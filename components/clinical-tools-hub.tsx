@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
-import { Box, Check, ExternalLink, HeartPulse, ImageIcon, Layers3, ScanLine, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { Check, ExternalLink, HeartPulse, ImageIcon, Layers3, ScanLine, ShieldCheck } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { cha2Ds2VaLabel, hasBledLabel, scoreCha2Ds2Va, scoreHasBled } from "@/lib/ui/clinical-calculators";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
@@ -77,39 +77,51 @@ function OncologyExternalTools() {
 }
 
 export function ImagingWorkspace({ specialty }: { specialty: SpecialtyId }) {
-  const [activeLayers, setActiveLayers] = useState<string[]>(["Миокард"]);
   const [confirmed, setConfirmed] = useState(false);
   const [fileName, setFileName] = useState("");
   const [format, setFormat] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inobitec = useMemo(() => curatedSourcesForSpecialty(specialty).find(source => source.id === "inobitec"), [specialty]);
 
-  function toggleLayer(layer: string) {
-    setActiveLayers(current => current.includes(layer) ? current.filter(item => item !== layer) : [...current, layer]);
-  }
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   function selectImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !confirmed) return;
+
     setFileName(file.name);
     const lower = file.name.toLowerCase();
-    setFormat(lower.endsWith(".nii.gz") ? "NIfTI" : lower.split(".").pop()?.toUpperCase() ?? "FILE");
+    const detectedFormat = lower.endsWith(".nii.gz")
+      ? "NIfTI"
+      : lower.endsWith(".dcm") || lower.endsWith(".dicom")
+        ? "DICOM"
+        : lower.split(".").pop()?.toUpperCase() ?? "FILE";
+    setFormat(detectedFormat);
+
+    const browserPreview = /\.(png|jpe?g|webp)$/i.test(file.name);
+    setPreviewUrl(browserPreview ? URL.createObjectURL(file) : null);
   }
 
   return <div className="imaging-hub">
-    <header className="tools-intro"><span className="eyebrow">{specialty === "cardiology" ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>3D-анатомия и локальный просмотр обезличенных или учебных изображений.</p></header>
+    <header className="tools-intro"><span className="eyebrow">{specialty === "cardiology" ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>Локальный просмотр обезличенных или учебных изображений и честный cold start для будущей 3D-анатомии.</p></header>
 
     <div className="imaging-grid">
-      <section className="heart-3d-card">
-        <div className="heart-3d-copy"><div className="visual-icon"><HeartPulse size={24} /></div><span className="eyebrow">3D</span><h2>Сердце</h2><p>Место для интерактивной модели: камеры, клапаны, коронарные артерии и слои.</p><div className="layer-chips">{["Миокард", "Камеры", "Клапаны", "Коронарные артерии"].map(layer => <button key={layer} type="button" className={activeLayers.includes(layer) ? "active" : ""} onClick={() => toggleLayer(layer)}>{layer}</button>)}</div></div>
-        <div className="heart-stage" aria-label="Область 3D-визуализации сердца"><div className="heart-stage-orbit orbit-one" /><div className="heart-stage-orbit orbit-two" /><div className="heart-volume"><HeartPulse size={72} /></div><span><Box size={15} /> 3D viewer slot</span></div>
+      <section className="heart-3d-card heart-3d-cold-start">
+        <div className="heart-3d-copy"><div className="visual-icon"><HeartPulse size={24} /></div><span className="eyebrow">3D · cold start</span><h2>Анатомия сердца</h2><p>Интерактивная модель пока не подключена. Без лицензированного или собственного 3D-asset мы не имитируем работающий viewer.</p><div className="layer-chips planned-layers" aria-label="Планируемые слои"><span>Миокард</span><span>Камеры</span><span>Клапаны</span><span>Коронарные артерии</span></div></div>
+        <div className="heart-stage" aria-label="3D-модель пока не подключена"><div className="heart-stage-orbit orbit-one" /><div className="heart-stage-orbit orbit-two" /><div className="heart-volume"><HeartPulse size={72} /></div><span><Layers3 size={15} /> 3D-модель пока не подключена</span></div>
       </section>
 
       <section className="image-reader-card">
-        <div className="image-reader-head"><div><span className="eyebrow">Снимки</span><h2>Чтение изображений</h2></div><ScanLine size={26} /></div>
-        <div className="image-reader-viewports"><div><span>AXIAL</span><ImageIcon size={28} /></div><div><span>CORONAL</span><ImageIcon size={28} /></div><div><span>SAGITTAL</span><ImageIcon size={28} /></div><div><span>3D</span><Layers3 size={28} /></div></div>
-        <div className="image-reader-controls"><label className="viewer-confirm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><ShieldCheck size={16} /><span>Только обезличенный или учебный файл</span></label><label className={confirmed ? "secondary-button viewer-file" : "secondary-button viewer-file disabled"}>Выбрать снимок<input type="file" disabled={!confirmed} accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd,.png,.jpg,.jpeg,.tif,.tiff,.webp,.pdf" onChange={selectImage} /></label>{fileName && <div className="viewer-file-state"><strong>{fileName}</strong><span>{format} · локально, без отправки</span></div>}</div>
-        <div className="viewer-formats">DICOM · NIfTI · NRRD · MHA/MHD · PNG/JPEG/TIFF/WebP · PDF</div>
+        <div className="image-reader-head"><div><span className="eyebrow">Локально в браузере</span><h2>Просмотр изображения</h2></div><ScanLine size={26} /></div>
+        <div className="image-reader-viewports local-preview-grid">
+          <div className={previewUrl ? "local-preview has-preview" : "local-preview"} style={previewUrl ? { backgroundImage: `url(${previewUrl})` } : undefined}><span>{previewUrl ? "PREVIEW" : "LOCAL"}</span>{!previewUrl && <ImageIcon size={30} />}</div>
+          <div className="local-format-state"><span>FORMAT</span><strong>{format || "—"}</strong><small>{fileName ? (previewUrl ? "Предпросмотр готов" : "Файл выбран; рендерер формата не подключён") : "Выберите обезличенный или учебный файл"}</small></div>
+        </div>
+        <div className="image-reader-controls"><label className="viewer-confirm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><ShieldCheck size={16} /><span>Только обезличенный или учебный файл</span></label><label className={confirmed ? "secondary-button viewer-file" : "secondary-button viewer-file disabled"}>Выбрать локальный файл<input type="file" disabled={!confirmed} accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd,.png,.jpg,.jpeg,.webp,.pdf" onChange={selectImage} /></label>{fileName && <div className="viewer-file-state"><strong>{fileName}</strong><span>{format} · локально, без отправки{previewUrl ? " · предпросмотр готов" : " · визуальный рендерер пока не подключён"}</span></div>}</div>
+        <div className="viewer-formats">Встроенный предпросмотр: PNG · JPEG · WebP. DICOM · NIfTI · NRRD · MHA/MHD · PDF можно выбрать локально, но специализированный рендерер в прототип пока не встроен.</div>
         {inobitec && <a className="tool-source-link" href={inobitec.url} target="_blank" rel="noreferrer">Референс · {inobitec.name} <ExternalLink size={14} /></a>}
       </section>
     </div>
