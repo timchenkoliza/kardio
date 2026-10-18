@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, CheckCircle2, CircleAlert, ExternalLink } from "lucide-react";
+import { ContentOpenTracker } from "@/components/content-open-tracker";
 import { ContentSaveButton } from "@/components/content-actions";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ProductFrame } from "@/components/product-frame";
@@ -33,6 +34,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
 
   return (
     <ProductProvider initialState={{ ...state, specialty }} specialty={specialty}>
+      <ContentOpenTracker contentId={content.id} sourceId={content.sourceId} specialty={specialty} currentness={content.currentness} />
       <ProductFrame specialty={specialty}>
         <div className="alpha-shell detail-shell">
           <Link className="back-link" href={`/${specialty}`}><ArrowLeft size={16} /> В ленту</Link>
