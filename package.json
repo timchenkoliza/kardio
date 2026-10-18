@@ -27,6 +27,7 @@
     "telegram:inspect": "tsx scripts/inspect-telegram-export.ts",
     "telegram:candidate-sync": "tsx scripts/sync-telegram-candidates.ts",
     "distribution:inspect": "tsx scripts/inspect-distribution-signals.ts",
+    "resolution:event-sync": "tsx scripts/sync-event-reference-candidates.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
