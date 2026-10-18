@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   evidenceRecords,
@@ -88,7 +88,7 @@ export async function queryBySpecialty(
 ): Promise<OntologyNode[]> {
   requireSpecialty(specialty);
   const specialtyPredicate = options.includeGlobal
-    ? or(eq(ontologyNodes.specialty, specialty), eq(ontologyNodes.specialty, null))
+    ? or(eq(ontologyNodes.specialty, specialty), isNull(ontologyNodes.specialty))
     : eq(ontologyNodes.specialty, specialty);
   const typePredicate = options.types?.length ? inArray(ontologyNodes.type, [...options.types]) : undefined;
   const rows = await db.select().from(ontologyNodes)
