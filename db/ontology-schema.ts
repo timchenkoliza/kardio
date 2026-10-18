@@ -148,6 +148,7 @@ export const distributionPostCandidates = pgTable("distribution_post_candidates"
   specialty: text("specialty").$type<SpecialtyId>().notNull(),
   messageId: text("message_id").notNull(),
   sourceArtifactId: text("source_artifact_id").references(() => rawArchiveArtifacts.id).notNull(),
+  publishedAtInstant: timestamp("published_at_instant", { withTimezone: true, mode: "string" }),
   publishedAtLocal: timestamp("published_at_local", { withTimezone: false, mode: "string" }),
   publishedAtRaw: text("published_at_raw"),
   publishedAtBasis: text("published_at_basis").$type<"offset_explicit" | "source_local" | "unknown">().notNull(),
