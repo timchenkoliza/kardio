@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   distributionPostCandidateLinks,
@@ -26,6 +26,7 @@ export interface TelegramCandidateSyncReport {
   inserted: number;
   changed: number;
   unchanged: number;
+  missingAfterSync: number;
   links: number;
   mediaRefs: number;
   ontologyWrites: 0;
@@ -62,23 +63,38 @@ export async function syncTelegramDistributionCandidates(args: {
   const posts = parsed.filter((post) => post.kind === "post");
 
   const existing = await db
-    .select({ id: distributionPostCandidates.id, hash: distributionPostCandidates.rawFragmentSha256 })
+    .select({
+      id: distributionPostCandidates.id,
+      hash: distributionPostCandidates.rawFragmentSha256,
+      reviewState: distributionPostCandidates.reviewState,
+    })
     .from(distributionPostCandidates)
     .where(eq(distributionPostCandidates.sourceRegistryId, args.source.id));
-  const existingHashes = new Map(existing.map((row) => [row.id, row.hash]));
+  const existingById = new Map(existing.map((row) => [row.id, row]));
 
   let inserted = 0;
   let changed = 0;
   let unchanged = 0;
   for (const post of posts) {
-    const previousHash = existingHashes.get(post.stableId);
-    if (previousHash === undefined) inserted += 1;
-    else if (previousHash === post.rawFragmentSha256) unchanged += 1;
+    const previous = existingById.get(post.stableId);
+    if (!previous) inserted += 1;
+    else if (previous.hash === post.rawFragmentSha256) unchanged += 1;
     else changed += 1;
   }
 
   const now = new Date().toISOString();
+  const currentIds = posts.map((post) => post.stableId);
+  const currentIdSet = new Set(currentIds);
+  const missingAfterSync = existing.reduce((count, row) => count + (currentIdSet.has(row.id) ? 0 : 1), 0);
+
   await db.transaction(async (tx) => {
+    // Never hard-delete disappeared source records. Mark them missing so source
+    // removal and later reappearance remain observable without polluting ontology.
+    await tx.update(distributionPostCandidates).set({
+      sourcePresence: "missing",
+      updatedAt: now,
+    }).where(eq(distributionPostCandidates.sourceRegistryId, args.source.id));
+
     const rows = posts.map((post) => ({
       id: post.stableId,
       sourceRegistryId: post.sourceRegistryId,
@@ -93,14 +109,16 @@ export async function syncTelegramDistributionCandidates(args: {
       bodyText: post.text,
       hashtags: [...post.hashtags],
       rawFragmentSha256: post.rawFragmentSha256,
+      sourcePresence: "present" as const,
+      lastSeenAt: now,
       updatedAt: now,
     }));
 
     for (const batch of chunks(rows)) {
       await tx.insert(distributionPostCandidates).values(batch).onConflictDoNothing();
-      // Re-parsing updates source-derived fields but intentionally preserves
-      // reviewState/promotedNodeId so editorial decisions are never reset.
       for (const row of batch) {
+        const previous = existingById.get(row.id);
+        const sourceChanged = previous !== undefined && previous.hash !== row.rawFragmentSha256;
         await tx.update(distributionPostCandidates).set({
           sourceArtifactId: row.sourceArtifactId,
           specialty: row.specialty,
@@ -113,15 +131,21 @@ export async function syncTelegramDistributionCandidates(args: {
           bodyText: row.bodyText,
           hashtags: row.hashtags,
           rawFragmentSha256: row.rawFragmentSha256,
+          sourcePresence: "present",
+          lastSeenAt: now,
           updatedAt: now,
+          ...(sourceChanged && previous?.reviewState !== "parsed" ? { reviewState: "needs_review" as const } : {}),
         }).where(eq(distributionPostCandidates.id, row.id));
       }
     }
 
-    await tx.delete(distributionPostCandidateLinks)
-      .where(eq(distributionPostCandidateLinks.sourceRegistryId, args.source.id));
-    await tx.delete(distributionPostCandidateMedia)
-      .where(eq(distributionPostCandidateMedia.sourceRegistryId, args.source.id));
+    // Replace derived link/media snapshots only for posts present in this export.
+    // Missing posts keep their last observed children for audit/review purposes.
+    for (const idBatch of chunks(currentIds)) {
+      if (!idBatch.length) continue;
+      await tx.delete(distributionPostCandidateLinks).where(inArray(distributionPostCandidateLinks.candidateId, idBatch));
+      await tx.delete(distributionPostCandidateMedia).where(inArray(distributionPostCandidateMedia.candidateId, idBatch));
+    }
 
     const linkRows = posts.flatMap((post) => post.links.map((link, ordinal) => ({
       candidateId: post.stableId,
@@ -152,6 +176,7 @@ export async function syncTelegramDistributionCandidates(args: {
     inserted,
     changed,
     unchanged,
+    missingAfterSync,
     links: posts.reduce((sum, post) => sum + post.links.length, 0),
     mediaRefs: posts.reduce((sum, post) => sum + post.media.length, 0),
     ontologyWrites: 0,
