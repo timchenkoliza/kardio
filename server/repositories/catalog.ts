@@ -4,6 +4,24 @@ import { assets, contentObjects, sources } from "@/db/schema";
 import type { Asset, ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { isSpecialty } from "@/lib/specialty";
 
+const sourceTypeLabels: Record<string, string> = {
+  pharmacy: "Аптека",
+  expert: "Эксперт",
+  calculator: "Калькулятор",
+  journal: "Журнал",
+  peer_reviewed_journal: "Научный журнал",
+  portal: "Профессиональный портал",
+  guideline_index: "Рекомендации",
+  international_guidelines_index: "Международные рекомендации",
+  official_professional_society: "Профессиональное общество",
+  professional_society: "Профессиональное общество",
+  expert_education: "Образование",
+  education: "Образование",
+  commercial_education: "Образовательная платформа",
+  social_channel: "Профессиональный канал",
+  unknown: "Источник",
+};
+
 function requireSpecialty(specialty: SpecialtyId): void {
   if (!isSpecialty(specialty)) throw new Error("Unknown specialty");
 }
@@ -11,7 +29,8 @@ function requireSpecialty(specialty: SpecialtyId): void {
 function sourceRecord(row: typeof sources.$inferSelect): Source {
   const copy = { ...row } as Partial<typeof row>;
   delete copy.raw;
-  return copy as Source;
+  const source = copy as Source;
+  return { ...source, type: sourceTypeLabels[source.type] ?? source.type };
 }
 
 function assetRecord(row: typeof assets.$inferSelect | null): Asset | null {
