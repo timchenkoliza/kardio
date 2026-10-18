@@ -9,13 +9,18 @@ function requireSpecialty(specialty: SpecialtyId): void {
 }
 
 function sourceRecord(row: typeof sources.$inferSelect): Source {
-  const { raw: _raw, ...source } = row;
-  return source;
+  const copy = { ...row } as Partial<typeof row>;
+  delete copy.raw;
+  return copy as Source;
 }
 
 function assetRecord(row: typeof assets.$inferSelect | null): Asset | null {
   if (!row) return null;
-  const { raw: _raw, specialty: _specialty, contentId: _contentId, ...asset } = row;
+  const copy = { ...row } as Partial<typeof row>;
+  delete copy.raw;
+  delete copy.specialty;
+  delete copy.contentId;
+  const asset = copy as Asset;
   // Rights policies apply at read time too, including future imported assets.
   return { ...asset, url: asset.status === "verified" && asset.rights === "publishable" ? asset.url : null };
 }
@@ -28,8 +33,10 @@ async function queryContent(specialty: SpecialtyId, id?: string): Promise<Conten
     .where(and(eq(contentObjects.specialty, specialty), id ? eq(contentObjects.id, id) : undefined))
     .orderBy(asc(contentObjects.id));
   return rows.map(({ content, source, asset }) => {
-    const { raw: _raw, datasetId: _datasetId, ...fields } = content;
-    return { ...fields, source: sourceRecord(source), asset: assetRecord(asset) };
+    const copy = { ...content } as Partial<typeof content>;
+    delete copy.raw;
+    delete copy.datasetId;
+    return { ...(copy as Omit<ContentObject, "source" | "asset">), source: sourceRecord(source), asset: assetRecord(asset) };
   });
 }
 
