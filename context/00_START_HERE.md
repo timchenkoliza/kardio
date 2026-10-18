@@ -83,21 +83,53 @@ Shared across shells:
 Shell choice is explicit, user-owned and reversible.
 Do not infer it from behavior and do not silently switch it.
 
+## Real-content phase
+
+The product is now moving from demo placeholders to the supplied source-grounded Cardio Golden Set.
+
+Read:
+- `17_REAL_CONTENT_AUDIT.md`
+- `18_EDITORIAL_IMAGE_POLICY.md`
+
+All three shells must consume the **same canonical Golden Set objects**. They may differ only in ranking, grouping, navigation, density, composition and interaction model.
+
+Do not fork facts per shell.
+Do not invent missing medical metadata.
+Do not hide currentness/version/rights uncertainty to make a card look cleaner.
+
+### Editorial image correction
+
+`Real image` does not mean `generic medical photo`.
+
+Images require a semantically correct editorial match.
+Priority is:
+1. exact source asset;
+2. supplied source-document asset;
+3. semantically matched real uploaded asset with provenance/rights tracking;
+4. credible external original-source asset;
+5. no image.
+
+An image-free card is better than irrelevant stock photography.
+Do not treat Pinterest/moodboard screenshots as source content assets.
+Do not reuse one generic doctor photo across unrelated cards.
+
 ## Read order
 
 1. `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
 2. `phase2/MULTI_SHELL_ARCHITECTURE.md`
-3. `product/PRODUCT_BOUNDARIES.md`
-4. `product/MVP_ARCHITECTURE.md`
-5. `knowledge/source_modes.json`
-6. `knowledge/source_registry.cardiology.json`
-7. `ranking/RANKING_POLICY_V3.md`
-8. `product/GENUI_EVOLUTION.md`
-9. `pilot/RKO_PILOT.md`
-10. `metrics/MVP_METRICS.md`
-11. `legal/LEGAL_GATES_RU.md`
-12. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
-13. `13_PHASE_1_PROMPT_V3.md`
+3. `17_REAL_CONTENT_AUDIT.md`
+4. `18_EDITORIAL_IMAGE_POLICY.md`
+5. `product/PRODUCT_BOUNDARIES.md`
+6. `product/MVP_ARCHITECTURE.md`
+7. `knowledge/source_modes.json`
+8. `knowledge/source_registry.cardiology.json`
+9. `ranking/RANKING_POLICY_V3.md`
+10. `product/GENUI_EVOLUTION.md`
+11. `pilot/RKO_PILOT.md`
+12. `metrics/MVP_METRICS.md`
+13. `legal/LEGAL_GATES_RU.md`
+14. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
+15. `13_PHASE_1_PROMPT_V3.md`
 
 `knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
@@ -129,10 +161,14 @@ Saved items, recent activity, pins and query state persist across shell switches
 
 `phase2/kardio-multishell.html` is an earlier selection-wrapper prototype and should not be treated as the final architecture proof.
 
+The current HTML still contains hard-coded placeholder content. Do not polish those placeholders. Replace them through the shared Golden Set content layer first.
+
 ## Pixel-first status
 
 The user has selected the multi-shell direction.
 The pixel-first build contract may now be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
+
+Real content binding precedes final pixel-level polish.
 
 Do not claim visual verification unless the shell was actually rendered and inspected at the required anchor viewports.
 
