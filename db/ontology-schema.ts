@@ -156,14 +156,17 @@ export const distributionPostCandidates = pgTable("distribution_post_candidates"
   bodyText: text("body_text").notNull(),
   hashtags: jsonb("hashtags").$type<string[]>().notNull(),
   rawFragmentSha256: text("raw_fragment_sha256").notNull(),
+  sourcePresence: text("source_presence").$type<"present" | "missing">().default("present").notNull(),
   reviewState: text("review_state").$type<"parsed" | "needs_review" | "approved_for_promotion" | "rejected" | "promoted">().default("parsed").notNull(),
   promotedNodeId: text("promoted_node_id").references(() => ontologyNodes.id),
   parsedAt: timestamp("parsed_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("distribution_post_source_message_uniq").on(table.sourceRegistryId, table.messageId),
   index("distribution_post_specialty_idx").on(table.specialty, table.sourceRegistryId),
   index("distribution_post_review_idx").on(table.reviewState, table.specialty),
+  index("distribution_post_presence_idx").on(table.sourcePresence, table.sourceRegistryId),
   index("distribution_post_promoted_idx").on(table.promotedNodeId),
 ]);
 
