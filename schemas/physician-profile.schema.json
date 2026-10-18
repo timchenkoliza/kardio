@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhysicianProfile",
+  "type": "object",
+  "required": ["specialty", "care_setting"],
+  "properties": {
+    "specialty": {"type": "string"},
+    "subspecialties": {"type": "array", "items": {"type": "string"}},
+    "care_setting": {"type": "string"},
+    "role": {"type": "string"},
+    "language": {"type": "string"},
+    "preferences": {"type": "object"},
+    "source_relationships": {"type": "object"},
+    "inferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "confidence", "evidence", "user_editable"],
+        "properties": {
+          "field": {"type": "string"},
+          "value": {},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "evidence": {"type": "array"},
+          "user_editable": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}
