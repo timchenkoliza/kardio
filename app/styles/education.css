@@ -113,7 +113,7 @@
 
 .education-feature-copy h2 {
   max-width: 680px;
-  font-size: clamp(26px, 3vw, 38px);
+  font-size: var(--font-size-feature);
   line-height: 1.05;
 }
 
@@ -333,6 +333,6 @@
   }
 
   .education-feature-copy h2 {
-    font-size: 26px;
+    font-size: var(--font-size-feature-mobile);
   }
 }
