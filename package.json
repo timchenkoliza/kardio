@@ -29,6 +29,7 @@
     "distribution:inspect": "tsx scripts/inspect-distribution-signals.ts",
     "resolution:event-sync": "tsx scripts/sync-event-reference-candidates.ts",
     "resolution:event-inspect": "tsx scripts/inspect-event-pages.ts",
+    "resolution:event-context-inspect": "tsx scripts/inspect-event-mention-context.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
