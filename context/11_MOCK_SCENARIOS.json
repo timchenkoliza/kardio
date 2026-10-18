@@ -1,0 +1,163 @@
+{
+  "_meta": {
+    "purpose": "Synthetic deterministic fixtures for design/prototype only. Not medical advice and not a production clinical dataset.",
+    "source_basis": "Uses the source research's example patterns; some details are deliberately synthetic to exercise UI states."
+  },
+  "today": {
+    "date_label": "Сегодня",
+    "patients_total": 18,
+    "priority_count": 3,
+    "incoming_results": 7,
+    "open_tasks": 6
+  },
+  "patients": [
+    {
+      "id": "p_hf_001",
+      "name": "Алексей Сергеевич К.",
+      "age": 64,
+      "context": [
+        "ХСН HFrEF",
+        "повторный визит"
+      ],
+      "priority": "high",
+      "priority_reason": "Комбинация ухудшения симптомов и динамики показателей",
+      "changes": [
+        {
+          "label": "Вес",
+          "previous": "82,1 кг",
+          "current": "84,7 кг",
+          "delta": "+2,6 кг",
+          "period": "10 дней",
+          "kind": "fact"
+        },
+        {
+          "label": "NT-proBNP",
+          "previous": "1 800",
+          "current": "3 400",
+          "delta": "+1 600",
+          "period": "последний контроль",
+          "kind": "fact"
+        },
+        {
+          "label": "ФВ ЛЖ",
+          "current": "34%",
+          "source": "ЭхоКГ",
+          "kind": "fact"
+        }
+      ],
+      "symptoms": [
+        "ночные пробуждения от одышки — 2 эпизода"
+      ],
+      "unknowns": [
+        "контрольная ЭхоКГ после смены терапии не выполнена"
+      ],
+      "visit_agenda": [
+        "уточнить динамику симптомов",
+        "сверить терапию и приверженность",
+        "определить дальнейший маршрут"
+      ],
+      "draft_actions": [
+        {
+          "label": "Подготовить направление на контрольное ЭхоКГ",
+          "state": "draft"
+        },
+        {
+          "label": "Создать задачу на контроль калия/креатинина",
+          "state": "draft"
+        }
+      ]
+    },
+    {
+      "id": "p_af_002",
+      "name": "Мария Викторовна Л.",
+      "age": 58,
+      "context": [
+        "ФП",
+        "повторный визит"
+      ],
+      "priority": "medium",
+      "priority_reason": "Новый результат холтера требует просмотра",
+      "changes": [
+        {
+          "label": "Холтер",
+          "current": "новый отчёт",
+          "kind": "result"
+        },
+        {
+          "label": "Задача",
+          "current": "оценить события и сопоставить с дневником симптомов",
+          "kind": "task"
+        }
+      ],
+      "unknowns": [
+        "не подтверждена приверженность текущей терапии"
+      ],
+      "draft_actions": []
+    },
+    {
+      "id": "p_htn_003",
+      "name": "Игорь Петрович С.",
+      "age": 51,
+      "context": [
+        "АГ",
+        "контроль"
+      ],
+      "priority": "low",
+      "priority_reason": "Плановый контроль, новых тревожных сигналов нет",
+      "changes": [
+        {
+          "label": "Домашнее АД",
+          "current": "данные загружены",
+          "kind": "result"
+        }
+      ],
+      "unknowns": [],
+      "draft_actions": []
+    }
+  ],
+  "ambient": {
+    "patient_id": "p_hf_001",
+    "consent": "confirmed",
+    "recording_state": "active",
+    "note_state": "draft",
+    "clarifiers": [
+      "Уточнить выраженность одышки при обычной нагрузке",
+      "Уточнить изменения отёков и веса по дням"
+    ],
+    "evidence_card": {
+      "title": "Изменения, требующие внимания",
+      "items": [
+        "Вес +2,6 кг за 10 дней",
+        "NT-proBNP 1 800 → 3 400",
+        "ФВ ЛЖ 34%",
+        "Контрольная ЭхоКГ не выполнена"
+      ]
+    }
+  },
+  "tasks": [
+    {
+      "id": "t1",
+      "patient_id": "p_hf_001",
+      "label": "Контрольное ЭхоКГ",
+      "owner": "врач",
+      "state": "draft",
+      "due": "требует подтверждения"
+    },
+    {
+      "id": "t2",
+      "patient_id": "p_hf_001",
+      "label": "Контроль калия/креатинина",
+      "owner": "медсестра",
+      "state": "draft",
+      "due": "после подтверждения"
+    },
+    {
+      "id": "t3",
+      "patient_id": "p_af_002",
+      "label": "Просмотреть новый холтер",
+      "owner": "врач",
+      "state": "open",
+      "due": "сегодня"
+    }
+  ]
+}

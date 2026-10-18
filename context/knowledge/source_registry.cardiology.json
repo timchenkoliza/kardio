@@ -1,0 +1,590 @@
+[
+  {
+    "idx": 30,
+    "id": "S0521",
+    "name": "Сайт Бориса Бикбова",
+    "url": "https://boris.bikbov.ru/",
+    "allUrls": [
+      "https://boris.bikbov.ru/",
+      "https://boris.bikbov.ru/2013/07/21/kalkulyator-skf-rascheta-skorosti-klubochkovoy-filtratsii"
+    ],
+    "host": "boris.bikbov.ru",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Врач общей практики",
+      "Гастроэнтеролог",
+      "Кардиолог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 32,
+    "id": "S0528",
+    "name": "Клиника Бориса Цветкова",
+    "url": "https://clinic-cvetkov.ru/company/kalkulyator-imt",
+    "allUrls": [
+      "https://clinic-cvetkov.ru/company/kalkulyator-imt"
+    ],
+    "host": "clinic-cvetkov.ru",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "ИМТ",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Кардиолог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 42,
+    "id": "S1094",
+    "name": "VK",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Невролог",
+      "Кардиолог",
+      "Онколог",
+      "Гинеколог",
+      "Стоматолог",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 44,
+    "id": "S0109",
+    "name": "Российское кардиологическое общество",
+    "url": "https://scardio.ru/",
+    "allUrls": [
+      "https://scardio.ru/"
+    ],
+    "host": "scardio.ru",
+    "lang": "ru",
+    "category": "Профобщества",
+    "subcategory": "Кардиология",
+    "specialties": [
+      "Врач УЗД",
+      "Эндокринолог",
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 76,
+    "id": "S0432",
+    "name": "Конференции",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Образование",
+    "subcategory": "Конференция",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Кардиолог",
+      "Онколог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 77,
+    "id": "S0415",
+    "name": "Журналы",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Кардиолог",
+      "Онколог",
+      "Стоматолог",
+      "Ревматолог",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 93,
+    "id": "S0008",
+    "name": "1Med.TV Первый медицинский канал",
+    "url": "https://1med.tv/",
+    "allUrls": [
+      "https://1med.tv/"
+    ],
+    "host": "1med.tv",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 94,
+    "id": "S0206",
+    "name": "Doc Сфера (от фарм компаний)",
+    "url": "https://docsfera.ru/about",
+    "allUrls": [
+      "https://docsfera.ru/about"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Фарма",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 95,
+    "id": "S0386",
+    "name": "аптекару",
+    "url": "https://apteka.ru/",
+    "allUrls": [
+      "https://apteka.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 96,
+    "id": "S0408",
+    "name": "Доктор Егоров",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Эксперты",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "expert",
+    "job": "Получить мнение конкретного авторитета",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 97,
+    "id": "S0410",
+    "name": "ЕАптека",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 98,
+    "id": "S0424",
+    "name": "Калькулятор Бибикова",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 99,
+    "id": "S0207",
+    "name": "Кардиология журнал",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 100,
+    "id": "S0085",
+    "name": "МЕДИ РУ",
+    "url": "https://medi.ru/",
+    "allUrls": [
+      "https://medi.ru/"
+    ],
+    "host": "medi.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Портал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 101,
+    "id": "S0458",
+    "name": "питерская платформа",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 102,
+    "id": "S0471",
+    "name": "Санкт-Петербургский союз врачей",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профобщества",
+    "subcategory": "Общество",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 103,
+    "id": "S0478",
+    "name": "Столички",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 104,
+    "id": "S0208",
+    "name": "ТГ: Доктор Егоров",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 105,
+    "id": "S0493",
+    "name": "Ютека",
+    "url": "https://uteka.ru",
+    "allUrls": [
+      "https://uteka.ru"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 106,
+    "id": "S0482",
+    "name": "Телемедицина",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Телемедицина",
+    "subcategory": "Платформа",
+    "specialties": [
+      "Кардиолог",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "platform",
+    "job": "Организовать взаимодействие с пациентом и сервисом",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 107,
+    "id": "S0441",
+    "name": "МедВестник",
+    "url": "https://medvestnik.ru/",
+    "allUrls": [
+      "https://medvestnik.ru/"
+    ],
+    "host": "medvestnik.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Издание",
+    "specialties": [
+      "Кардиолог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 108,
+    "id": "S0978",
+    "name": "сайт РКО",
+    "url": "https://scardio.ru/",
+    "allUrls": [
+      "https://scardio.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профобщества",
+    "subcategory": "Кардиология",
+    "specialties": [
+      "Кардиолог-липидолог",
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 155,
+    "id": "S0749",
+    "name": "ЕЦП",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Офтальмолог",
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 156,
+    "id": "S0265",
+    "name": "Вебинары",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Образование",
+    "subcategory": "Вебинары",
+    "specialties": [
+      "Офтальмолог",
+      "Кардиолог-липидолог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 935,
+    "id": "S0007",
+    "name": "Справочник Видаль «Лекарственные препараты в России",
+    "url": "https://vidal.ru/",
+    "allUrls": [
+      "https://vidal.ru/"
+    ],
+    "host": "vidal.ru",
+    "lang": "ru",
+    "category": "Лекарства",
+    "subcategory": "Справочник",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Инфекционист",
+      "Хирург",
+      "Травматолог-ортопед",
+      "Эндокринолог",
+      "Невролог",
+      "Кардиолог",
+      "Онколог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "reference",
+    "job": "Проверить препарат, дозу, взаимодействие",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  }
+]

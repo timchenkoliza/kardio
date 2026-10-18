@@ -1,0 +1,2758 @@
+[
+  {
+    "idx": 1,
+    "id": "S0017",
+    "name": "Cochrane Library и Кокрановская библиотека",
+    "url": "https://cochranelibrary.com/",
+    "allUrls": [
+      "https://cochranelibrary.com/"
+    ],
+    "host": "cochranelibrary.com",
+    "lang": "en",
+    "category": "Наука",
+    "subcategory": "Обзоры",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "deep",
+    "archetype": "evidence",
+    "job": "Найти доказательство и понять, что изменилось",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 2,
+    "id": "S0034",
+    "name": "eLibrary",
+    "url": "https://elibrary.ru/",
+    "allUrls": [
+      "https://elibrary.ru/"
+    ],
+    "host": "elibrary.ru",
+    "lang": "—",
+    "category": "Наука",
+    "subcategory": "База статей",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "deep",
+    "archetype": "evidence",
+    "job": "Найти доказательство и понять, что изменилось",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 3,
+    "id": "S0601",
+    "name": "MSD",
+    "url": "https://www.msd.ru/",
+    "allUrls": [
+      "https://www.msd.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Фарма",
+    "subcategory": "Корпоративный ресурс",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 4,
+    "id": "S0179",
+    "name": "MSD Professional",
+    "url": "https://www.msdmanuals.com/ru/professional",
+    "allUrls": [
+      "https://www.msdmanuals.com/ru/professional"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Справочники",
+    "subcategory": "Медицинский",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "reference",
+    "job": "Быстро сверить факт, термин или рекомендацию",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 5,
+    "id": "S0180",
+    "name": "Status Presence",
+    "url": "https://praesens.ru/",
+    "allUrls": [
+      "https://praesens.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Образование",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 6,
+    "id": "S0701",
+    "name": "Бумажные материалы",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "—",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 7,
+    "id": "S0127",
+    "name": "Мир Врача",
+    "url": "https://mirvracha.ru/journal",
+    "allUrls": [
+      "https://mirvracha.ru/journal"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": true,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 8,
+    "id": "S0497",
+    "name": "МИС",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 9,
+    "id": "S0897",
+    "name": "Офлайн",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Вне сети",
+    "subcategory": "Неясно",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "offline",
+    "archetype": "offline",
+    "job": "Решить задачу без цифрового источника",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 10,
+    "id": "S0290",
+    "name": "Приказы и Нормативные акты",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Нормативы",
+    "subcategory": "Право",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "regulation",
+    "job": "Проверить актуальные правила и клинрекомендации",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 11,
+    "id": "S0975",
+    "name": "Рубрикатор КР",
+    "url": "https://minzdrav.clinirec.ru/",
+    "allUrls": [
+      "https://minzdrav.clinirec.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Нормативы",
+    "subcategory": "Клинрекомендации",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "regulation",
+    "job": "Проверить актуальные правила и клинрекомендации",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 12,
+    "id": "S0980",
+    "name": "Сайты аптек",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 13,
+    "id": "S0994",
+    "name": "Собственная разработка",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Инструменты",
+    "subcategory": "Свой инструмент",
+    "specialties": [
+      "Акушер-гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "utility",
+    "archetype": "tool",
+    "job": "Сделать конкретное действие быстрее",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 14,
+    "id": "S0559",
+    "name": "Google AI со ссылкой на КонсультантПлюс",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "ИИ",
+    "subcategory": "Поиск",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "assistant",
+    "job": "Получить краткий ответ и следующий шаг",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 15,
+    "id": "S0602",
+    "name": "MSD Manuals",
+    "url": "https://msdmanuals.com/ru/professional/гинекология-и-акушерство/фибромиомы-матки/фибромиомы-матки",
+    "allUrls": [
+      "https://msdmanuals.com/ru/professional/гинекология-и-акушерство/фибромиомы-матки/фибромиомы-матки"
+    ],
+    "host": "msdmanuals.com",
+    "lang": "ru",
+    "category": "Справочники",
+    "subcategory": "Медицинский",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "reference",
+    "job": "Быстро сверить факт, термин или рекомендацию",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 16,
+    "id": "S0698",
+    "name": "Бумажная инфографика",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "Инфографика",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 17,
+    "id": "S0907",
+    "name": "Первая подходящая картинка в поисковике",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Поиск",
+    "subcategory": "Изображения",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "search",
+    "job": "Найти подходящий источник или ответ",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 18,
+    "id": "S0957",
+    "name": "РОАГ",
+    "url": "https://roag-portal.ru/clinical_recommendations",
+    "allUrls": [
+      "https://roag-portal.ru/clinical_recommendations"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Нормативы",
+    "subcategory": "Клинрекомендации",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "regulation",
+    "job": "Проверить актуальные правила и клинрекомендации",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 19,
+    "id": "S0719",
+    "name": "МИС, встроенный модуль",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Врач УЗД",
+      "Пульмонолог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 20,
+    "id": "S0259",
+    "name": "Алиса",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "ИИ",
+    "subcategory": "Помощник врача",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Гинеколог",
+      "Дерматолог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "assistant",
+    "job": "Получить краткий ответ и следующий шаг",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 21,
+    "id": "S0298",
+    "name": "Рубрикатор клинических рекомендаций",
+    "url": "https://cr.minzdrav.gov.ru/",
+    "allUrls": [
+      "https://cr.minzdrav.gov.ru/"
+    ],
+    "host": "cr.minzdrav.gov.ru",
+    "lang": "ru",
+    "category": "Нормативы",
+    "subcategory": "Клинрекомендации",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Гинеколог",
+      "Психиатр"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "regulation",
+    "job": "Проверить актуальные правила и клинрекомендации",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 22,
+    "id": "S0231",
+    "name": "РЛС",
+    "url": "https://www.rlsnet.ru/",
+    "allUrls": [
+      "https://www.rlsnet.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Лекарства",
+    "subcategory": "Справочник",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Дерматолог",
+      "Онколог",
+      "Терапевт",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "reference",
+    "job": "Проверить препарат, дозу, взаимодействие",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 23,
+    "id": "S0018",
+    "name": "PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/",
+    "allUrls": [
+      "https://pubmed.ncbi.nlm.nih.gov/"
+    ],
+    "host": "pubmed.ncbi.nlm.nih.gov",
+    "lang": "en",
+    "category": "Наука",
+    "subcategory": "База статей",
+    "specialties": [
+      "Акушер-гинеколог",
+      "Оториноларинголог (ЛОР)"
+    ],
+    "spontaneous": true,
+    "mode": "deep",
+    "archetype": "evidence",
+    "job": "Найти доказательство и понять, что изменилось",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 24,
+    "id": "S0516",
+    "name": "b17.ru",
+    "url": "https://b17.ru/",
+    "allUrls": [
+      "https://b17.ru/"
+    ],
+    "host": "b17.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Портал",
+    "specialties": [
+      "Врач общей практики",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 25,
+    "id": "S0645",
+    "name": "Telegram: \"Без рецепта\"",
+    "url": "https://t.me/s/bezrec",
+    "allUrls": [
+      "https://t.me/s/bezrec"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Врач общей практики",
+      "Физическая и реабилитационная медицина (ФРМ)"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 26,
+    "id": "ROW-0026",
+    "name": "Telegram: \"Медицинская Россия\"",
+    "url": "https://t.me/s/mediamedics",
+    "allUrls": [
+      "https://t.me/s/mediamedics"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Врач общей практики",
+      "Физическая и реабилитационная медицина (ФРМ)"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 27,
+    "id": "S0667",
+    "name": "Авиценна",
+    "url": "https://avilek.ru/map/list/",
+    "allUrls": [
+      "https://avilek.ru/map/list/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Врач общей практики",
+      "Физическая и реабилитационная медицина (ФРМ)"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 28,
+    "id": "S0983",
+    "name": "СВ-Мед",
+    "url": "https://svmed.spb.ru/",
+    "allUrls": [
+      "https://svmed.spb.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Портал",
+    "specialties": [
+      "Врач общей практики",
+      "Физическая и реабилитационная медицина (ФРМ)"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 29,
+    "id": "S0434",
+    "name": "лабкорп",
+    "url": "https://www.labcorp.com/",
+    "allUrls": [
+      "https://www.labcorp.com/"
+    ],
+    "host": "",
+    "lang": "en",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 30,
+    "id": "S0521",
+    "name": "Сайт Бориса Бикбова",
+    "url": "https://boris.bikbov.ru/",
+    "allUrls": [
+      "https://boris.bikbov.ru/",
+      "https://boris.bikbov.ru/2013/07/21/kalkulyator-skf-rascheta-skorosti-klubochkovoy-filtratsii"
+    ],
+    "host": "boris.bikbov.ru",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Врач общей практики",
+      "Гастроэнтеролог",
+      "Кардиолог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 31,
+    "id": "S0167",
+    "name": "MedSoftPro",
+    "url": "https://medsoftpro.ru/kalkulyatory/skf",
+    "allUrls": [
+      "https://medsoftpro.ru/kalkulyatory/skf",
+      "https://medsoftpro.ru/kalkulyatory/beck-scale",
+      "https://medsoftpro.ru/kalkulyatory/child-pugh",
+      "https://medsoftpro.ru/kalkulyatory/curb65-scale",
+      "https://medsoftpro.ru/kalkulyatory/prevent-cvd-risk"
+    ],
+    "host": "medsoftpro.ru",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "Набор шкал",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Инфекционист",
+      "Терапевт"
+    ],
+    "spontaneous": true,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 32,
+    "id": "S0528",
+    "name": "Клиника Бориса Цветкова",
+    "url": "https://clinic-cvetkov.ru/company/kalkulyator-imt",
+    "allUrls": [
+      "https://clinic-cvetkov.ru/company/kalkulyator-imt"
+    ],
+    "host": "clinic-cvetkov.ru",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "ИМТ",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Кардиолог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 33,
+    "id": "S0515",
+    "name": "app.rnova",
+    "url": "https://app.rnova.org/site/login",
+    "allUrls": [
+      "https://app.rnova.org/site/login"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 34,
+    "id": "S0596",
+    "name": "MedTrain Asia",
+    "url": "https://medtrain.asia/kalkulyatory/arterialnaya-zhestkost",
+    "allUrls": [
+      "https://medtrain.asia/kalkulyatory/arterialnaya-zhestkost"
+    ],
+    "host": "medtrain.asia",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 35,
+    "id": "S0620",
+    "name": "Radimed",
+    "url": "https://radimed.ru/ehocalc",
+    "allUrls": [
+      "https://radimed.ru/ehocalc"
+    ],
+    "host": "radimed.ru",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 36,
+    "id": "S0674",
+    "name": "Аксапта",
+    "url": "https://vk.ru/wall-2123469_11833",
+    "allUrls": [
+      "https://vk.ru/wall-2123469_11833"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 37,
+    "id": "S0763",
+    "name": "Инструкции к препаратам",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 38,
+    "id": "S0955",
+    "name": "Редкие онлайн-обучения",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Образование",
+    "subcategory": "Курсы",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 39,
+    "id": "S0652",
+    "name": "УЗИ-Академия",
+    "url": "https://uzi-academy.ru/tools/liver/fib-4",
+    "allUrls": [
+      "https://uzi-academy.ru/tools/liver/fib-4",
+      "https://uzi-academy.ru/tools/thyroid/tirads",
+      "https://uzi-academy.ru/tools/thyroid/thyroid-volume",
+      "https://uzi-academy.ru/tools/liver/elastography-converter"
+    ],
+    "host": "uzi-academy.ru",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "УЗИ",
+    "specialties": [
+      "Врач УЗД",
+      "Гастроэнтеролог",
+      "Терапевт"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 40,
+    "id": "S0406",
+    "name": "Диагнозис Акьют",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 41,
+    "id": "S0423",
+    "name": "Интернет Квест",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 42,
+    "id": "S1094",
+    "name": "VK",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "—",
+    "specialties": [
+      "Врач УЗД",
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Невролог",
+      "Кардиолог",
+      "Онколог",
+      "Гинеколог",
+      "Стоматолог",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 43,
+    "id": "S0477",
+    "name": "СтАР",
+    "url": "https://e-stomatology.ru/index.php",
+    "allUrls": [
+      "https://e-stomatology.ru/index.php"
+    ],
+    "host": "",
+    "lang": "—",
+    "category": "Профобщества",
+    "subcategory": "Стоматология",
+    "specialties": [],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 44,
+    "id": "S0109",
+    "name": "Российское кардиологическое общество",
+    "url": "https://scardio.ru/",
+    "allUrls": [
+      "https://scardio.ru/"
+    ],
+    "host": "scardio.ru",
+    "lang": "ru",
+    "category": "Профобщества",
+    "subcategory": "Кардиология",
+    "specialties": [
+      "Врач УЗД",
+      "Эндокринолог",
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 45,
+    "id": "S0244",
+    "name": "1С Медицина",
+    "url": "https://stoma1c.ru",
+    "allUrls": [
+      "https://stoma1c.ru"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 46,
+    "id": "S0496",
+    "name": "Co-pilot",
+    "url": "https://ai.itmo.ru/tpost/zji6fl9mj1-co-pilot-dlya-vracha",
+    "allUrls": [
+      "https://ai.itmo.ru/tpost/zji6fl9mj1-co-pilot-dlya-vracha"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "ИИ",
+    "subcategory": "Помощник врача",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "assistant",
+    "job": "Получить краткий ответ и следующий шаг",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 47,
+    "id": "ROW-0047",
+    "name": "Hepatool",
+    "url": "https://escape-team.tech/portfolio/hepatool?ysclid=mva4cu1dfj604137966",
+    "allUrls": [
+      "https://escape-team.tech/portfolio/hepatool?ysclid=mva4cu1dfj604137966"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "Гепатология",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 48,
+    "id": "S0751",
+    "name": "Журнал РГА",
+    "url": "https://www.gastro-j.ru/jour",
+    "allUrls": [
+      "https://www.gastro-j.ru/jour"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 49,
+    "id": "S0754",
+    "name": "Зарубежные статьи",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Наука",
+    "subcategory": "Статьи",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "deep",
+    "archetype": "evidence",
+    "job": "Найти доказательство и понять, что изменилось",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 50,
+    "id": "S0804",
+    "name": "Мед. блогеры",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "Каналы авторов",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 51,
+    "id": "S0280",
+    "name": "Медицинские представители и фармкомпании",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Фарма",
+    "subcategory": "Медпредставители",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 52,
+    "id": "S0020",
+    "name": "Сберздоровье",
+    "url": "https://sberhealth.ru/",
+    "allUrls": [
+      "https://sberhealth.ru/"
+    ],
+    "host": "sberhealth.ru",
+    "lang": "ru",
+    "category": "Телемедицина",
+    "subcategory": "Платформа",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": true,
+    "mode": "transaction",
+    "archetype": "platform",
+    "job": "Организовать взаимодействие с пациентом и сервисом",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 53,
+    "id": "S0564",
+    "name": "Шкала Чайлд-Пью",
+    "url": "https://medicalc.pro/childpew",
+    "allUrls": [
+      "https://medicalc.pro/childpew",
+      "https://play.google.com/store/search?q=Hepatool&c=apps&hl=ru"
+    ],
+    "host": "medicalc.pro",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 54,
+    "id": "S0274",
+    "name": "Конференции и конгрессы и симпозиумы",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Образование",
+    "subcategory": "Мероприятия",
+    "specialties": [
+      "Гастроэнтеролог",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 55,
+    "id": "S0614",
+    "name": "Hepatool",
+    "url": "https://play.google.com/store/search?q=Hepatool&c=apps&hl=ru",
+    "allUrls": [
+      "https://play.google.com/store/search?q=Hepatool&c=apps&hl=ru",
+      "https://play.google.com/store/apps/details?id=ru.medsolutions&hl=ru"
+    ],
+    "host": "play.google.com",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "Гепатология",
+    "specialties": [
+      "Гастроэнтеролог",
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 56,
+    "id": "S0642",
+    "name": "Telegram-каналы блогеров",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Каналы авторов",
+    "specialties": [
+      "Гастроэнтеролог",
+      "Эндокринолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 57,
+    "id": "S0847",
+    "name": "МИС Инвитро",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Гастроэнтеролог",
+      "Эндокринолог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 58,
+    "id": "S0873",
+    "name": "Нумеди",
+    "url": "https://numedy.com/",
+    "allUrls": [
+      "https://numedy.com/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Гастроэнтеролог",
+      "Эндокринолог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 59,
+    "id": "S0333",
+    "name": "Google Translate",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Инструменты",
+    "subcategory": "Перевод",
+    "specialties": [
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "utility",
+    "archetype": "tool",
+    "job": "Сделать конкретное действие быстрее",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 60,
+    "id": "S0250",
+    "name": "Invitro",
+    "url": "https://www.invitro.ru/doctors/library/",
+    "allUrls": [
+      "https://www.invitro.ru/doctors/library/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 61,
+    "id": "S0251",
+    "name": "iSpring Learn",
+    "url": "https://www.ispring.ru/elearning-insights/ispring-v-meditsinskom-obrazovanii",
+    "allUrls": [
+      "https://www.ispring.ru/elearning-insights/ispring-v-meditsinskom-obrazovanii"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Образование",
+    "subcategory": "Курсы",
+    "specialties": [
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 62,
+    "id": "S0258",
+    "name": "Актион 360",
+    "url": "https://action360.ru/",
+    "allUrls": [
+      "https://action360.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Образование",
+    "subcategory": "Курсы",
+    "specialties": [
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 63,
+    "id": "S0203",
+    "name": "Dermatilogy.ru",
+    "url": "https://dermatilogy.ru/",
+    "allUrls": [
+      "https://dermatilogy.ru/"
+    ],
+    "host": "dermatilogy.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Дерматология",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 64,
+    "id": "ROW-0064",
+    "name": "DERMATOLOGY-ONLINE.RU",
+    "url": "https://dermatology-online.ru/",
+    "allUrls": [
+      "https://dermatology-online.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Дерматология",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 65,
+    "id": "S0325",
+    "name": "DERMATOLOGY-ONLINE.RU tg",
+    "url": "https://t.me/+EseC6socCexkZjli",
+    "allUrls": [
+      "https://t.me/+EseC6socCexkZjli"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 66,
+    "id": "S0572",
+    "name": "Instagram (проф. Смирнова)",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Каналы авторов",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 67,
+    "id": "S0380",
+    "name": "YouTube",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "Видео",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 68,
+    "id": "S0775",
+    "name": "Калькулятор от медицинских представителей",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 69,
+    "id": "S0426",
+    "name": "Кашкинские чтения",
+    "url": "https://mycology.szgmu.ru/congress2026",
+    "allUrls": [
+      "https://mycology.szgmu.ru/congress2026"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Образование",
+    "subcategory": "Конференция",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 70,
+    "id": "S0454",
+    "name": "Общество Торновского",
+    "url": "http://rodvk-spb.ru/?ysclid=mva91ioeo0458107055",
+    "allUrls": [
+      "http://rodvk-spb.ru/?ysclid=mva91ioeo0458107055"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профобщества",
+    "subcategory": "Дерматология",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 71,
+    "id": "S0288",
+    "name": "Петербургский аптечный справочник",
+    "url": "https://papteki.ru/help/contact/",
+    "allUrls": [
+      "https://papteki.ru/help/contact/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 72,
+    "id": "S0950",
+    "name": "Рассчитывает вручную",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Вне сети",
+    "subcategory": "Неясно",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "offline",
+    "archetype": "offline",
+    "job": "Решить задачу без цифрового источника",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 73,
+    "id": "S0204",
+    "name": "Смирнова Ирина Олеговна",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Эксперты",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "expert",
+    "job": "Получить мнение конкретного авторитета",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 74,
+    "id": "S0490",
+    "name": "Шумская Ольга Григорьевна",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Эксперты",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "expert",
+    "job": "Получить мнение конкретного авторитета",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 75,
+    "id": "S0398",
+    "name": "Второе мнение",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 76,
+    "id": "S0432",
+    "name": "Конференции",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Образование",
+    "subcategory": "Конференция",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Кардиолог",
+      "Онколог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "learn",
+    "archetype": "education",
+    "job": "Разобраться и повысить навык",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 77,
+    "id": "S0415",
+    "name": "Журналы",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Кардиолог",
+      "Онколог",
+      "Стоматолог",
+      "Ревматолог",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 78,
+    "id": "S0390",
+    "name": "Афина",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 79,
+    "id": "S0339",
+    "name": "Instagram",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "en",
+    "category": "Соцсети",
+    "subcategory": "—",
+    "specialties": [
+      "Дерматовенеролог",
+      "Эндокринолог",
+      "Онколог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 80,
+    "id": "S0644",
+    "name": "Telegram-сообщества",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Сообщество",
+    "specialties": [
+      "Детский нефролог",
+      "Педиатр"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 81,
+    "id": "S0750",
+    "name": "Журнал \"Нефрология\"",
+    "url": "https://journal.nephrolog.ru/jour/index",
+    "allUrls": [
+      "https://journal.nephrolog.ru/jour/index"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Детский нефролог",
+      "Педиатр"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 82,
+    "id": "S0641",
+    "name": "Telegram-канал \"Медач\"",
+    "url": "https://t.me/medach",
+    "allUrls": [
+      "https://t.me/medach"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 83,
+    "id": "S0729",
+    "name": "ГРЛС",
+    "url": "https://grls.minzdrav.gov.ru/Default.aspx",
+    "allUrls": [
+      "https://grls.minzdrav.gov.ru/Default.aspx"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Нормативы",
+    "subcategory": "Реестр лекарств",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "regulation",
+    "job": "Проверить актуальные правила и клинрекомендации",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 84,
+    "id": "S0747",
+    "name": "ЕРИС",
+    "url": "https://telemedai.ru/proekty/edinyj-radiologicheskij-informacionnyj-servis_2020",
+    "allUrls": [
+      "https://telemedai.ru/proekty/edinyj-radiologicheskij-informacionnyj-servis_2020"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 85,
+    "id": "S0271",
+    "name": "Клинический фармаколог",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 86,
+    "id": "S0281",
+    "name": "Медицинский справочник в смартфоне",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 87,
+    "id": "S0948",
+    "name": "Распечатка (источник не помнит)",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "—",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 88,
+    "id": "S0299",
+    "name": "Сайт РВТ и АРВТ взаимодействия",
+    "url": "https://calc.arvt.ru/calc/interactions",
+    "allUrls": [
+      "https://calc.arvt.ru/calc/interactions"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Лекарства",
+    "subcategory": "Взаимодействия",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "reference",
+    "job": "Проверить препарат, дозу, взаимодействие",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 89,
+    "id": "S0990",
+    "name": "Скачанный или распечатанный опросник",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "Опросник",
+    "specialties": [
+      "Инфекционист"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 90,
+    "id": "S0278",
+    "name": "Медицинские калькуляторы и шкалы",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Калькуляторы",
+    "subcategory": "Калькулятор",
+    "specialties": [
+      "Инфекционист",
+      "Ревматолог",
+      "Педиатр"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 91,
+    "id": "S0249",
+    "name": "Google",
+    "url": "https://www.google.com/",
+    "allUrls": [
+      "https://www.google.com/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Поиск",
+    "subcategory": "Поисковик",
+    "specialties": [
+      "Инфекционист",
+      "Рентгенолог",
+      "Педиатр",
+      "Онколог",
+      "Гинеколог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "search",
+    "job": "Найти подходящий источник или ответ",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 92,
+    "id": "S0591",
+    "name": "MedicalC",
+    "url": "https://medicalc.pro/",
+    "allUrls": [
+      "https://medicalc.pro/",
+      "https://medicalc.pro/ab",
+      "https://medicalc.pro/childpew"
+    ],
+    "host": "medicalc.pro",
+    "lang": "ru",
+    "category": "Калькуляторы",
+    "subcategory": "Набор шкал",
+    "specialties": [
+      "Инфекционист",
+      "Хирург",
+      "Гастроэнтеролог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 93,
+    "id": "S0008",
+    "name": "1Med.TV Первый медицинский канал",
+    "url": "https://1med.tv/",
+    "allUrls": [
+      "https://1med.tv/"
+    ],
+    "host": "1med.tv",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 94,
+    "id": "S0206",
+    "name": "Doc Сфера (от фарм компаний)",
+    "url": "https://docsfera.ru/about",
+    "allUrls": [
+      "https://docsfera.ru/about"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Фарма",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 95,
+    "id": "S0386",
+    "name": "аптекару",
+    "url": "https://apteka.ru/",
+    "allUrls": [
+      "https://apteka.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 96,
+    "id": "S0408",
+    "name": "Доктор Егоров",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Эксперты",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "expert",
+    "job": "Получить мнение конкретного авторитета",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 97,
+    "id": "S0410",
+    "name": "ЕАптека",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 98,
+    "id": "S0424",
+    "name": "Калькулятор Бибикова",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Калькуляторы",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "pull",
+    "archetype": "calculator",
+    "job": "Посчитать и получить применимый результат",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 99,
+    "id": "S0207",
+    "name": "Кардиология журнал",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профисточники",
+    "subcategory": "Журнал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 100,
+    "id": "S0085",
+    "name": "МЕДИ РУ",
+    "url": "https://medi.ru/",
+    "allUrls": [
+      "https://medi.ru/"
+    ],
+    "host": "medi.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Портал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 101,
+    "id": "S0458",
+    "name": "питерская платформа",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 29,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 102,
+    "id": "S0471",
+    "name": "Санкт-Петербургский союз врачей",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профобщества",
+    "subcategory": "Общество",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 103,
+    "id": "S0478",
+    "name": "Столички",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Аптеки",
+    "subcategory": "Аптека",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 104,
+    "id": "S0208",
+    "name": "ТГ: Доктор Егоров",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "Канал",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 105,
+    "id": "S0493",
+    "name": "Ютека",
+    "url": "https://uteka.ru",
+    "allUrls": [
+      "https://uteka.ru"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Аптеки",
+    "subcategory": "—",
+    "specialties": [
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Проверить наличие, цену или доступность",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 106,
+    "id": "S0482",
+    "name": "Телемедицина",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Телемедицина",
+    "subcategory": "Платформа",
+    "specialties": [
+      "Кардиолог",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "platform",
+    "job": "Организовать взаимодействие с пациентом и сервисом",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 107,
+    "id": "S0441",
+    "name": "МедВестник",
+    "url": "https://medvestnik.ru/",
+    "allUrls": [
+      "https://medvestnik.ru/"
+    ],
+    "host": "medvestnik.ru",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Издание",
+    "specialties": [
+      "Кардиолог",
+      "Стоматолог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 108,
+    "id": "S0978",
+    "name": "сайт РКО",
+    "url": "https://scardio.ru/",
+    "allUrls": [
+      "https://scardio.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Профобщества",
+    "subcategory": "Кардиология",
+    "specialties": [
+      "Кардиолог-липидолог",
+      "Кардиолог"
+    ],
+    "spontaneous": false,
+    "mode": "social",
+    "archetype": "community",
+    "job": "Свериться с профессиональным сообществом",
+    "completeness": 86,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 109,
+    "id": "S0625",
+    "name": "Robomed",
+    "url": "https://robo-med.com/",
+    "allUrls": [
+      "https://robo-med.com/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 110,
+    "id": "S0032",
+    "name": "Врачи РФ",
+    "url": "https://врачи.рф/",
+    "allUrls": [
+      "https://врачи.рф/",
+      "https://vrachirf.ru/"
+    ],
+    "host": "врачи.рф",
+    "lang": "ru",
+    "category": "Профисточники",
+    "subcategory": "Сообщество",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": true,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 100,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 111,
+    "id": "S0401",
+    "name": "Госуслуги",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "ru",
+    "category": "Не классифицировано",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "unknown",
+    "archetype": "unknown",
+    "job": "Источник требует ручной интерпретации",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 112,
+    "id": "S0430",
+    "name": "Клиника Эксперт",
+    "url": "https://klinikaexpert.ru/articles/nevrologiya-lechenie-v-seti-diagnosticheskih-tsentrov-i-klinik-ekspert",
+    "allUrls": [
+      "https://klinikaexpert.ru/articles/nevrologiya-lechenie-v-seti-diagnosticheskih-tsentrov-i-klinik-ekspert"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Клиники",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Найти услугу, организацию или практику",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 113,
+    "id": "S0256",
+    "name": "Клинический госпиталь на Яузе",
+    "url": "https://www.yamed.ru/",
+    "allUrls": [
+      "https://www.yamed.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Клиники",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "transaction",
+    "archetype": "catalog",
+    "job": "Найти услугу, организацию или практику",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 114,
+    "id": "S0785",
+    "name": "Книга",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 115,
+    "id": "S0446",
+    "name": "Медсофт",
+    "url": "https://medsoft.su/",
+    "allUrls": [
+      "https://medsoft.su/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Медсистемы",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "workflow",
+    "archetype": "workflow",
+    "job": "Решить задачу внутри рабочего контура",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 116,
+    "id": "S0896",
+    "name": "Отрывные бланки (от мед представителей)",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Фарма",
+    "subcategory": "Материалы",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 117,
+    "id": "S0302",
+    "name": "Учебники",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Печатные",
+    "subcategory": "Учебники",
+    "specialties": [
+      "Невролог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "paper",
+    "job": "Получить компактный материал вне цифрового интерфейса",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 118,
+    "id": "S0377",
+    "name": "WhatsApp",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Соцсети",
+    "subcategory": "—",
+    "specialties": [
+      "Невролог",
+      "Онколог",
+      "Гинеколог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "feed",
+    "job": "Увидеть важное без сформулированного запроса",
+    "completeness": 43,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 119,
+    "id": "S0995",
+    "name": "Сообщества",
+    "url": "",
+    "allUrls": [],
+    "host": "",
+    "lang": "—",
+    "category": "Профисточники",
+    "subcategory": "Сообщества",
+    "specialties": [
+      "Невролог",
+      "Хирург"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "publication",
+    "job": "Следить за профильной повесткой",
+    "completeness": 57,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  },
+  {
+    "idx": 120,
+    "id": "S0317",
+    "name": "BIOCAD",
+    "url": "https://biocad.ru/",
+    "allUrls": [
+      "https://biocad.ru/"
+    ],
+    "host": "",
+    "lang": "ru",
+    "category": "Фарма",
+    "subcategory": "—",
+    "specialties": [
+      "Онколог"
+    ],
+    "spontaneous": false,
+    "mode": "push",
+    "archetype": "pharma",
+    "job": "Получить продуктовую и отраслевую информацию",
+    "completeness": 71,
+    "research_status": "observed_in_source_research",
+    "trust_status": "unknown_unless_separately_verified"
+  }
+]

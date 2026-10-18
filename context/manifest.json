@@ -1,0 +1,26 @@
+{
+  "package": "claude_sonnet_5_5_physician_assistant_pack",
+  "purpose": "Two-phase visual discovery + pixel-first build context for an online physician assistant",
+  "phase_1": "Explore and compare 3 structurally different UI concepts; do not create final design.md",
+  "phase_2": "After user selection, formalize design system and build responsive Vercel-ready app",
+  "files": [
+    "00_START_HERE.md",
+    "01_SOURCE_OF_TRUTH.md",
+    "02_PRODUCT_NORTH_STAR.md",
+    "03_CLINICIAN_WORKFLOW.md",
+    "04_ASSISTANT_MODES.md",
+    "05_INFORMATION_ARCHITECTURE.md",
+    "06_TRUST_SAFETY_ACTIONS.md",
+    "07_DATA_PROVENANCE.md",
+    "08_VISUAL_DISCOVERY_BRIEF.md",
+    "09_VISUAL_CONCEPTS_TO_EXPLORE.md",
+    "10_RESPONSIVE_CONTRACT.md",
+    "11_MOCK_SCENARIOS.json",
+    "12_DESIGN_ACCEPTANCE.md",
+    "13_PHASE_1_PROMPT.md",
+    "14_PHASE_2_BUILD_PROMPT.md",
+    "15_DECISION_LOG_TEMPLATE.md",
+    "source/design_engineering_agents_summary.md",
+    "source/doctor_workflow_research_full.md"
+  ]
+}

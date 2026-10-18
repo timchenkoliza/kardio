@@ -1,0 +1,52 @@
+{
+  "pull": {
+    "label": "Интент от врача",
+    "meaning": "Врач уже знает, что хочет проверить.",
+    "default_surface": "ask/search"
+  },
+  "push": {
+    "label": "Без интента от врача",
+    "meaning": "Интент возникает после сигнала.",
+    "default_surface": "ranked_updates"
+  },
+  "social": {
+    "label": "Peer-to-peer",
+    "meaning": "Ответ появляется через людей.",
+    "default_surface": "people/community"
+  },
+  "workflow": {
+    "label": "Внутри рабочего процесса",
+    "meaning": "Источник встроен в рабочий процесс.",
+    "default_surface": "contextual_workflow"
+  },
+  "utility": {
+    "label": "Действие",
+    "meaning": "Нужен конкретный результат.",
+    "default_surface": "tools"
+  },
+  "learn": {
+    "label": "Обучение",
+    "meaning": "Нужно закрыть пробел в знаниях.",
+    "default_surface": "learning"
+  },
+  "transaction": {
+    "label": "Поиск/транзакция",
+    "meaning": "Найти и совершить действие.",
+    "default_surface": "services"
+  },
+  "deep": {
+    "label": "Deep Research",
+    "meaning": "Разобрать доказательства глубже.",
+    "default_surface": "evidence"
+  },
+  "offline": {
+    "label": "Офлайн",
+    "meaning": "Физический источник.",
+    "default_surface": "reference_only"
+  },
+  "unknown": {
+    "label": "Не классифицировано",
+    "meaning": "Роль ещё не установлена.",
+    "default_surface": "registry_only"
+  }
+}

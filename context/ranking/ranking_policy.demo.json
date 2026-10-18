@@ -1,0 +1,29 @@
+{
+  "_status": "DESIGN_HYPOTHESIS_ONLY_NOT_PRODUCTION",
+  "hard_gates": [
+    "allowed_surface",
+    "permissions",
+    "clinical_provenance",
+    "commercial_separation",
+    "user_not_muted",
+    "freshness_policy"
+  ],
+  "score_dimensions": {
+    "task_match": 0.24,
+    "workflow_phase_match": 0.18,
+    "specialty_match": 0.14,
+    "explicit_user_preference": 0.14,
+    "source_trust": 0.1,
+    "freshness": 0.07,
+    "actionability": 0.06,
+    "continuity": 0.04,
+    "novelty": 0.03
+  },
+  "rerank_constraints": {
+    "max_same_source_top10": 2,
+    "commercial_patient_specific_mix": "forbidden",
+    "pinned_modules": "preserve",
+    "critical_workflow_items": "priority_override",
+    "explain_every_item": true
+  }
+}
