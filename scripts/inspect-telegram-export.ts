@@ -28,7 +28,14 @@ const actualPosts = posts.filter((post) => post.kind === "post");
 const services = posts.length - actualPosts.length;
 const withText = actualPosts.filter((post) => post.text.length > 0).length;
 const withMedia = actualPosts.filter((post) => post.media.length > 0).length;
+const withTimestamp = actualPosts.filter((post) => post.publishedAt !== null).length;
+const explicitOffsetTimestamps = actualPosts.filter((post) => post.publishedAtBasis === "offset_explicit").length;
+const sourceLocalTimestamps = actualPosts.filter((post) => post.publishedAtBasis === "source_local").length;
+const unknownTimestamps = actualPosts.filter((post) => post.publishedAtBasis === "unknown").length;
 const linkCount = actualPosts.reduce((sum, post) => sum + post.links.length, 0);
+const externalLinkCount = actualPosts.reduce((sum, post) => sum + post.links.filter((link) => link.kind === "external").length, 0);
+const internalNavigationLinkCount = actualPosts.reduce((sum, post) => sum + post.links.filter((link) => link.kind === "internal_navigation").length, 0);
+const localArtifactLinkCount = actualPosts.reduce((sum, post) => sum + post.links.filter((link) => link.kind === "local_artifact").length, 0);
 const mediaCount = actualPosts.reduce((sum, post) => sum + post.media.length, 0);
 const hashtagCount = new Set(actualPosts.flatMap((post) => post.hashtags)).size;
 const sampleLimit = Math.max(0, Math.min(20, Number(process.env.TELEGRAM_INSPECT_LIMIT ?? 5) || 5));
@@ -43,17 +50,28 @@ console.log(JSON.stringify({
   serviceMessages: services,
   postsWithText: withText,
   postsWithMedia: withMedia,
+  postsWithTimestamp: withTimestamp,
+  timestampBasis: {
+    offsetExplicit: explicitOffsetTimestamps,
+    sourceLocal: sourceLocalTimestamps,
+    unknown: unknownTimestamps,
+  },
   links: linkCount,
+  externalLinks: externalLinkCount,
+  internalNavigationLinks: internalNavigationLinkCount,
+  localArtifactLinks: localArtifactLinkCount,
   mediaRefs: mediaCount,
   uniqueHashtags: hashtagCount,
   samples: actualPosts.slice(0, sampleLimit).map((post) => ({
     stableId: post.stableId,
     publishedAt: post.publishedAt,
+    publishedAtRaw: post.publishedAtRaw,
+    publishedAtBasis: post.publishedAtBasis,
     authorName: post.authorName,
     excerpt: post.text.slice(0, 180),
     hashtags: post.hashtags,
-    links: post.links.slice(0, 3).map((link) => link.href),
-    media: post.media.slice(0, 3),
+    links: post.links.slice(0, 3),
+    media: post.media.slice(0, 4),
     rawFragmentSha256: post.rawFragmentSha256,
   })),
 }, null, 2));
