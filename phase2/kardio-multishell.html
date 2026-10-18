@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KARDIO · Выбор сборки</title>
+<style>
+:root{--bg:#f3f4f1;--paper:#fff;--ink:#181a18;--muted:#6e716b;--line:#d7d9d3;--accent:#204c3a;--soft:#eceee9;--shadow:0 24px 80px rgba(21,25,22,.14)}*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,a{font:inherit}.app{height:100%;display:grid;grid-template-rows:54px minmax(0,1fr)}.bar{display:flex;align-items:center;gap:14px;padding:8px 14px;border-bottom:1px solid var(--line);background:rgba(250,250,248,.96);backdrop-filter:blur(14px);z-index:20}.brand{font-size:18px;font-weight:850;letter-spacing:-.04em}.bar .sep{width:1px;height:22px;background:var(--line)}.current{display:flex;align-items:center;gap:8px;min-width:0}.current small{color:var(--muted)}.current strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spacer{flex:1}.bar button,.link{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:8px 11px;text-decoration:none;cursor:pointer}.bar button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}.stage{position:relative;min-height:0}.stage iframe{width:100%;height:100%;border:0;background:#fff}.empty{height:100%;display:grid;place-items:center;padding:24px;color:var(--muted)}.overlay{position:fixed;inset:0;background:rgba(19,22,20,.36);backdrop-filter:blur(5px);z-index:50;display:none;overflow:auto;padding:34px 18px}.overlay.open{display:block}.chooser{max-width:1120px;margin:auto;background:#f8f8f5;border:1px solid rgba(255,255,255,.5);border-radius:24px;box-shadow:var(--shadow);padding:26px}.chooser-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;margin-bottom:22px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}h1{font-size:clamp(32px,5vw,58px);line-height:.98;letter-spacing:-.055em;margin:8px 0 12px;max-width:800px}.lead{max-width:740px;color:var(--muted);font-size:16px}.close{border:1px solid var(--line);background:#fff;border-radius:12px;width:40px;height:40px;cursor:pointer}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;min-height:370px}.card.selected{outline:2px solid var(--accent);outline-offset:-2px}.card h2{font-size:22px;letter-spacing:-.035em;margin:10px 0 7px}.card p{color:var(--muted);margin:0 0 16px}.diagram{background:var(--soft);border-radius:14px;padding:10px;display:grid;gap:7px;margin:4px 0 18px;min-height:120px}.barline{height:11px;border-radius:5px;background:#d7dad3}.barline.dark{background:#7c837c}.barline.short{width:58%}.diagram.gridish{grid-template-columns:58px 1fr}.diagram.gridish .rail{grid-row:1/5;background:#c9cec8;border-radius:8px}.diagram.workspace{grid-template-columns:1fr 1fr}.diagram.workspace .wide{grid-column:1/-1}.facts{display:grid;gap:7px;margin:0 0 18px;padding:0;list-style:none}.facts li{padding-top:7px;border-top:1px solid #eceee9;color:#41443f}.card footer{margin-top:auto;display:flex;gap:8px}.choose{flex:1;border:0;border-radius:12px;padding:11px;background:var(--ink);color:#fff;font-weight:700;cursor:pointer}.preview{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff;color:var(--ink);text-decoration:none}.note{margin-top:15px;font-size:12px;color:var(--muted)}@media(max-width:880px){.cards{grid-template-columns:1fr}.card{min-height:0}.chooser{padding:18px}.diagram{min-height:92px}.bar .link{display:none}}@media(max-width:560px){.bar{padding:7px 9px}.current small,.bar .sep{display:none}.current strong{max-width:125px}.bar button{padding:8px}.overlay{padding:10px}.chooser{border-radius:18px}.chooser-head{grid-template-columns:1fr}.close{position:absolute;right:24px;top:24px}.card footer{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">KARDIO</div><div class="sep"></div>
+    <div class="current"><small>Сборка</small><strong id="currentName">не выбрана</strong></div>
+    <div class="spacer"></div>
+    <a class="link" href="../phase1/compare.html">Сравнить</a>
+    <button id="change">Сменить сборку</button>
+  </header>
+  <main class="stage" id="stage"><div class="empty">Выберите рабочую сборку KARDIO.</div></main>
+</div>
+
+<div class="overlay" id="overlay" aria-modal="true" role="dialog">
+  <section class="chooser">
+    <div class="chooser-head"><div><div class="eyebrow">Ваш интерфейс · ваш выбор</div><h1>Как вам удобнее работать с KARDIO?</h1><div class="lead">Все три сборки используют одни и те же источники, поиск, инструменты, сохранённое и настройки. Меняется только способ организации рабочего пространства. Выбор можно изменить в любой момент.</div></div><button class="close" id="close" aria-label="Закрыть">×</button></div>
+    <div class="cards">
+      <article class="card" data-shell="search_first">
+        <div class="eyebrow">A · Search-first Navigator</div><h2>Начать с вопроса</h2><p>Большой поиск и четыре быстрые задачи. Минимум навигации до первого полезного результата.</p>
+        <div class="diagram"><div class="barline dark"></div><div class="barline"></div><div class="barline"></div><div class="barline short"></div></div>
+        <ul class="facts"><li>Лучше для первого входа и неизвестного интента</li><li>Источник остаётся рядом с ответом</li><li>Самая лёгкая когнитивная модель</li></ul>
+        <footer><button class="choose" data-choose="search_first">Выбрать Navigator</button><a class="preview" href="../phase1/concept-a-search-first.html" target="_blank">Preview</a></footer>
+      </article>
+      <article class="card" data-shell="toolbelt">
+        <div class="eyebrow">B · Professional Toolbelt</div><h2>Держать инструменты под рукой</h2><p>Постоянная профессиональная панель и центральная рабочая область для частых переходов.</p>
+        <div class="diagram gridish"><div class="rail"></div><div class="barline dark"></div><div class="barline"></div><div class="barline"></div><div class="barline short"></div></div>
+        <ul class="facts"><li>Лучше для повторной ежедневной работы</li><li>Минимум пути между КР, tools и sources</li><li>Сильная профессиональная «мышечная память»</li></ul>
+        <footer><button class="choose" data-choose="toolbelt">Выбрать Toolbelt</button><a class="preview" href="../phase1/concept-b-toolbelt.html" target="_blank">Preview</a></footer>
+      </article>
+      <article class="card" data-shell="knowledge_workspace">
+        <div class="eyebrow">C · Knowledge Workspace</div><h2>Работать по темам</h2><p>Коллекции и профессиональные темы становятся основной навигацией. Сильная база для будущих явных workspaces.</p>
+        <div class="diagram workspace"><div class="barline dark wide"></div><div class="barline"></div><div class="barline"></div><div class="barline wide"></div></div>
+        <ul class="facts"><li>Лучше для глубоких повторяющихся тем</li><li>Хорошо масштабируется в коллекции</li><li>Естественный путь к будущему Gen-UI</li></ul>
+        <footer><button class="choose" data-choose="knowledge_workspace">Выбрать Workspace</button><a class="preview" href="../phase1/concept-c-knowledge-workspace.html" target="_blank">Preview</a></footer>
+      </article>
+    </div>
+    <div class="note">Выбор сборки — явная пользовательская настройка. KARDIO не меняет интерфейс автоматически на основании поведения и не использует выбор сборки как клинический профиль.</div>
+  </section>
+</div>
+<script>
+const shells={
+  search_first:{name:'Search-first Navigator',src:'../phase1/concept-a-search-first.html'},
+  toolbelt:{name:'Professional Toolbelt',src:'../phase1/concept-b-toolbelt.html'},
+  knowledge_workspace:{name:'Knowledge Workspace',src:'../phase1/concept-c-knowledge-workspace.html'}
+};
+const KEY='kardio.ui_shell';
+const overlay=document.getElementById('overlay'), stage=document.getElementById('stage'), currentName=document.getElementById('currentName');
+let current=null;
+function valid(v){return Object.prototype.hasOwnProperty.call(shells,v)}
+function render(shell){if(!valid(shell))return;current=shell;localStorage.setItem(KEY,shell);currentName.textContent=shells[shell].name;stage.innerHTML='';const frame=document.createElement('iframe');frame.src=shells[shell].src;frame.title='KARDIO · '+shells[shell].name;stage.appendChild(frame);document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',c.dataset.shell===shell));const u=new URL(location.href);u.searchParams.set('assembly',shell);history.replaceState(null,'',u);overlay.classList.remove('open')}
+function openChooser(){overlay.classList.add('open');document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',c.dataset.shell===current))}
+document.querySelectorAll('[data-choose]').forEach(b=>b.addEventListener('click',()=>render(b.dataset.choose)));
+document.getElementById('change').addEventListener('click',openChooser);
+document.getElementById('close').addEventListener('click',()=>{if(current)overlay.classList.remove('open')});
+overlay.addEventListener('click',e=>{if(e.target===overlay&&current)overlay.classList.remove('open')});
+const fromUrl=new URL(location.href).searchParams.get('assembly');const saved=localStorage.getItem(KEY);if(valid(fromUrl))render(fromUrl);else if(valid(saved))render(saved);else openChooser();
+</script>
+</body>
+</html>
