@@ -13,6 +13,8 @@
   --font-size-caption: 13px;
   --font-size-metadata: 12px;
   --font-size-micro: 10px;
+  --font-size-feature: clamp(26px, 3vw, 38px);
+  --font-size-feature-mobile: 26px;
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -57,6 +59,8 @@
   --color-success-soft: #edf8f3;
   --color-overlay: #17171c66;
   --color-overlay-strong: #17171cb8;
+  --color-inverse-surface: #111217;
+  --color-inverse-text-secondary: #b8bac4;
 
   --specialty-art-1: #d9dbff;
   --specialty-art-2: #b9c8ff;
