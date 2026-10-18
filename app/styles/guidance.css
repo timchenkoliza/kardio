@@ -31,7 +31,7 @@
   color: var(--color-accent-ink);
   background: var(--color-accent-soft);
   opacity: 1;
-  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  box-shadow: var(--shadow-focus);
 }
 .section-help-popover {
   position: absolute;
