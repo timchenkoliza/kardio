@@ -113,23 +113,55 @@ An image-free card is better than irrelevant stock photography.
 Do not treat Pinterest/moodboard screenshots as source content assets.
 Do not reuse one generic doctor photo across unrelated cards.
 
+## Specialty visual identity phase
+
+Read:
+- `19_SPECIALTY_VISUAL_IDENTITY.md`
+
+This is a shared specialty layer across all three shells, not a fourth shell and not a separate product theme.
+
+Core rule:
+
+> **Yandex Med owns the interface. Specialty owns the atmosphere.**
+
+The approved starting directions are:
+- Cardiology — `PULSE / PERFUSION`, calibrated palette v0.2;
+- Oncology — `CELL / PRECISION`, calibrated palette v0.2.
+
+The current Yandex Med lavender/periwinkle reference used for prototype calibration is `#8A8BFF`, sampled from the supplied current Yandex Med landing-page reference. If an official Yandex Med design token is available, inherit the official token instead of creating a near-duplicate.
+
+Specialty colors must not replace semantic success/warning/error colors.
+Pinterest/moodboard references may guide palette, rhythm, material feel and composition but remain `reference_only_do_not_render_as_content`.
+
+### Required execution order
+
+1. canonical Golden Set binding;
+2. shared 24-object evaluation slice across A/B/C;
+3. editorial image resolver / provenance rules;
+4. specialty visual identity integration;
+5. pixel-first polish;
+6. final responsive / visual QA.
+
+Do not apply the specialty visual system to hard-coded demo content and do not start final pixel polish before the real-content render path is stable.
+
 ## Read order
 
 1. `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
 2. `phase2/MULTI_SHELL_ARCHITECTURE.md`
 3. `17_REAL_CONTENT_AUDIT.md`
 4. `18_EDITORIAL_IMAGE_POLICY.md`
-5. `product/PRODUCT_BOUNDARIES.md`
-6. `product/MVP_ARCHITECTURE.md`
-7. `knowledge/source_modes.json`
-8. `knowledge/source_registry.cardiology.json`
-9. `ranking/RANKING_POLICY_V3.md`
-10. `product/GENUI_EVOLUTION.md`
-11. `pilot/RKO_PILOT.md`
-12. `metrics/MVP_METRICS.md`
-13. `legal/LEGAL_GATES_RU.md`
-14. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
-15. `13_PHASE_1_PROMPT_V3.md`
+5. `19_SPECIALTY_VISUAL_IDENTITY.md`
+6. `product/PRODUCT_BOUNDARIES.md`
+7. `product/MVP_ARCHITECTURE.md`
+8. `knowledge/source_modes.json`
+9. `knowledge/source_registry.cardiology.json`
+10. `ranking/RANKING_POLICY_V3.md`
+11. `product/GENUI_EVOLUTION.md`
+12. `pilot/RKO_PILOT.md`
+13. `metrics/MVP_METRICS.md`
+14. `legal/LEGAL_GATES_RU.md`
+15. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
+16. `13_PHASE_1_PROMPT_V3.md`
 
 `knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
@@ -166,9 +198,14 @@ The current HTML still contains hard-coded placeholder content. Do not polish th
 ## Pixel-first status
 
 The user has selected the multi-shell direction.
-The pixel-first build contract may now be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
+The pixel-first build contract may be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
 
-Real content binding precedes final pixel-level polish.
+However, final pixel-level polish is sequenced **after**:
+1. real content binding;
+2. editorial image-resolution rules;
+3. specialty visual identity integration.
+
+Pixel-first is the execution/refinement pass for an already accepted visual system, not the place to discover a new specialty palette.
 
 Do not claim visual verification unless the shell was actually rendered and inspected at the required anchor viewports.
 
