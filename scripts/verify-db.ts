@@ -19,19 +19,15 @@ try {
     const actual = await scalar(`select count(*)::text as value from ${table}`);
     checks.push({ name, actual, expected, ok: actual === expected });
   };
-  const minimum = async (name: string, table: string, min: number) => {
-    const actual = await scalar(`select count(*)::text as value from ${table}`);
-    checks.push({ name, actual, minimum: min, ok: actual >= min });
-  };
 
   await exact("datasets", "datasets", 1);
   await exact("canonical sources", "sources", 18);
   await exact("canonical content", "content_objects", 54);
   await exact("evaluation slice", "evaluation_items", 24);
-  await minimum("ontology nodes", "ontology_nodes", 131);
-  await minimum("ontology edges", "ontology_edges", 504);
-  await minimum("evidence records", "evidence_records", 634);
-  await minimum("state facts", "node_state_facts", 257);
+  await exact("ontology nodes", "ontology_nodes", 131);
+  await exact("ontology edges", "ontology_edges", 504);
+  await exact("evidence records", "evidence_records", 634);
+  await exact("state facts", "node_state_facts", 257);
 
   const oncologyLegacyContent = await scalar(
     "select count(*)::text as value from content_objects where specialty = $1",
@@ -49,6 +45,18 @@ try {
     ) duplicates
   `);
   checks.push({ name: "duplicate raw archive identities", actual: duplicateArchiveItems, expected: 0, ok: duplicateArchiveItems === 0 });
+
+  const prematurelyPromotedArchiveItems = await scalar(`
+    select count(*)::text as value
+    from raw_archive_artifacts
+    where promoted_node_id is not null
+  `);
+  checks.push({
+    name: "raw archive items promoted before parser/review",
+    actual: prematurelyPromotedArchiveItems,
+    expected: 0,
+    ok: prematurelyPromotedArchiveItems === 0,
+  });
 
   const report = {
     ok: checks.every((check) => check.ok),
