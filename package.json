@@ -21,6 +21,7 @@
     "db:seed": "tsx scripts/import-goldenset.ts",
     "db:ontology-seed": "tsx scripts/import-ontology.ts",
     "db:drive-sync": "tsx scripts/sync-drive-inventory.ts",
+    "db:verify": "tsx scripts/verify-db.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "ontology:validate": "tsx scripts/validate-ontology.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
