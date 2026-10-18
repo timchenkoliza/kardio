@@ -41,11 +41,22 @@ Clinical authority must come from:
 - clinical editors;
 - external experts.
 
+## V3 conflict guard
+
+This repository still contains artifacts from an older patient/EHR/workflow concept.
+
+Before reading beyond the v3 path below, read:
+- `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
+
+If any repository file conflicts with the no-patient-data boundary, the current v3 boundary wins unless the user explicitly overrides it.
+
+Do not merge patient/EHR-era concepts into the current MVP.
+
 ## Read order
 
-1. `product/PRODUCT_BOUNDARIES.md`
-2. `product/MVP_ARCHITECTURE.md`
-3. `knowledge/KNOWLEDGE_ARCHITECTURE.md`
+1. `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
+2. `product/PRODUCT_BOUNDARIES.md`
+3. `product/MVP_ARCHITECTURE.md`
 4. `knowledge/source_modes.json`
 5. `knowledge/source_registry.cardiology.json`
 6. `ranking/RANKING_POLICY_V3.md`
@@ -55,6 +66,8 @@ Clinical authority must come from:
 10. `legal/LEGAL_GATES_RU.md`
 11. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
 12. `13_PHASE_1_PROMPT_V3.md`
+
+`knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
 ## First-screen source-of-truth
 
