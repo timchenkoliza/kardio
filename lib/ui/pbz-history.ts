@@ -27,19 +27,28 @@ export const pbzCardiologyClusters: readonly PbzCardiologyCluster[] = [
 ] as const;
 
 const patientLevelMarkers = [
-  /пациент(?:ка|у|ом|а)?\b/u,
-  /больн(?:ой|ая|ого|ой)\b/u,
+  /пациент(?:ка|у|ом|а|ы|ов)?\b/u,
+  /больн(?:ой|ая|ого|ой|ому|ые)\b/u,
   /полис\s*омс/u,
   /снилс/u,
   /дата рождения/u,
   /номер карты/u,
   /медицинск.{0,12}карта/u,
   /\bmrn\b/u,
+  /\b(?:мужчина|женщина)\s+\d{1,3}\s*(?:лет|год|года)\b/u,
+  /\b\d{1,3}\s*(?:лет|год|года)\b/u,
+  /\bад\s*[-–:]?\s*\d{2,3}\s*[\\/]\s*\d{2,3}\b/u,
+  /\bчсс\s*[-–:]?\s*\d{2,3}\b/u,
+  /\bсатурац/u,
+  /\bжалоб/u,
+  /\bанамнез/u,
+  /\bу меня\b/u,
+  /\bмне\s+\d{1,3}\b/u,
 ] as const;
 
 export function isSafePbzPersonalizationQuery(value: string): boolean {
   const query = value.trim().toLocaleLowerCase("ru-RU");
-  if (!query || query.length > 240) return false;
+  if (!query || query.length > 180) return false;
   return !patientLevelMarkers.some((pattern) => pattern.test(query));
 }
 
@@ -64,7 +73,7 @@ export function summarizePbzCardiologyHistory(queries: readonly string[]): PbzHi
   return pbzCardiologyClusters
     .map((cluster) => ({ cluster, count: counts.get(cluster.id) ?? 0 }))
     .filter((signal) => signal.count > 0)
-    .sort((a, b) => b.count - a.count || a.cluster.label.localeCompare(b.cluster.label, "ru"));
+    .sort((a, b) => b.count - a.count || pbzCardiologyClusters.findIndex((cluster) => cluster.id === a.cluster.id) - pbzCardiologyClusters.findIndex((cluster) => cluster.id === b.cluster.id));
 }
 
 // Demo fixture derived only from short professional cardiology queries in the provided PBZ export.
