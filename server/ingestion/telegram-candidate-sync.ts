@@ -85,7 +85,8 @@ export async function syncTelegramDistributionCandidates(args: {
       specialty: post.specialty,
       messageId: post.messageId,
       sourceArtifactId: sourceArtifact.id,
-      publishedAtLocal: post.publishedAt,
+      publishedAtInstant: post.publishedAtBasis === "offset_explicit" ? post.publishedAt : null,
+      publishedAtLocal: post.publishedAtBasis === "source_local" ? post.publishedAt : null,
       publishedAtRaw: post.publishedAtRaw,
       publishedAtBasis: post.publishedAtBasis,
       authorDisplayName: post.authorName,
@@ -96,21 +97,15 @@ export async function syncTelegramDistributionCandidates(args: {
     }));
 
     for (const batch of chunks(rows)) {
-      await tx.insert(distributionPostCandidates).values(batch).onConflictDoUpdate({
-        target: distributionPostCandidates.id,
-        set: {
-          sourceArtifactId: sourceArtifact.id,
-          publishedAtLocal: undefined,
-          updatedAt: now,
-        },
-      });
-      // Drizzle's conflict update API does not expose excluded.* portably here;
-      // update mutable parsed fields per row below while preserving review/promotion state.
+      await tx.insert(distributionPostCandidates).values(batch).onConflictDoNothing();
+      // Re-parsing updates source-derived fields but intentionally preserves
+      // reviewState/promotedNodeId so editorial decisions are never reset.
       for (const row of batch) {
         await tx.update(distributionPostCandidates).set({
           sourceArtifactId: row.sourceArtifactId,
           specialty: row.specialty,
           messageId: row.messageId,
+          publishedAtInstant: row.publishedAtInstant,
           publishedAtLocal: row.publishedAtLocal,
           publishedAtRaw: row.publishedAtRaw,
           publishedAtBasis: row.publishedAtBasis,
