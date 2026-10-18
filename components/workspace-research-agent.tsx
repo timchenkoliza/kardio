@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
-import { ArrowRight, FileText, Plus, Search, ShieldCheck, Sparkles, Upload, UsersRound, X } from "lucide-react";
+import { ArrowRight, FileText, History, Plus, Search, ShieldCheck, Sparkles, Upload, UsersRound, X } from "lucide-react";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
+import { PBZ_DEMO_HISTORY_SIGNALS, PBZ_DEMO_RESEARCH_TERMS } from "@/lib/ui/pbz-history";
 import { hasBlockedPatientLevelMarkers, rankWorkspaceResearch } from "@/lib/ui/workspace-research-agent";
 import { SectionHelp } from "./section-help";
 import { useProduct } from "./product-provider";
@@ -27,12 +28,16 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
   const [confirmedAggregateOnly, setConfirmedAggregateOnly] = useState(false);
   const [fileMessage, setFileMessage] = useState("");
   const interests = scopedInterests(state.researchInterests, specialty);
+  const usePbzDemoContext = specialty === "cardiology" && interests.length === 0 && !draft.trim() && !aggregateText;
 
-  const signals = useMemo(() => [
-    ...interests,
-    draft.trim(),
-    aggregateText,
-  ].filter(Boolean), [interests, draft, aggregateText]);
+  const signals = useMemo(() => {
+    if (usePbzDemoContext) return [...PBZ_DEMO_RESEARCH_TERMS];
+    return [
+      ...interests,
+      draft.trim(),
+      aggregateText,
+    ].filter(Boolean);
+  }, [interests, draft, aggregateText, usePbzDemoContext]);
 
   const recommendations = useMemo(
     () => rankWorkspaceResearch(content, signals, 5),
@@ -91,10 +96,16 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
       <div className="workspace-agent-icon"><Sparkles size={22} aria-hidden="true" /></div>
       <div>
         <span className="eyebrow">Агент по теме</span>
-        <div className="heading-with-help"><h2 id="workspace-agent-title">Что изучить дальше</h2><SectionHelp text="Агент использует только явно заданные вами интересы и агрегированный контекст, затем объяснимо сопоставляет их с проверенным каталогом. Он не делает выводов о конкретном пациенте." /></div>
+        <div className="heading-with-help"><h2 id="workspace-agent-title">Что изучить дальше</h2><SectionHelp text="Агент использует явно заданные вами интересы и безопасные сигналы профессиональной истории, затем объяснимо сопоставляет их с проверенным каталогом. Он не делает выводов о конкретном пациенте." /></div>
         <p>Укажите нозологию или профессиональный интерес. Навигатор соберёт объяснимый маршрут по уже проверенному каталогу — без догадок о пациенте.</p>
       </div>
     </div>
+
+    {usePbzDemoContext && <div className="workspace-pbz-demo" aria-label="Демо-контекст из ПБЗ">
+      <div><History size={16} aria-hidden="true" /><strong>Подхватили профессиональные интересы из ПБЗ</strong><span>демо</span></div>
+      <p>В демо учитываются только короткие кардиологические запросы из выгрузки; пациентские кейсы и идентификаторы отсекаются.</p>
+      <div className="workspace-pbz-chips">{PBZ_DEMO_HISTORY_SIGNALS.slice(0, 5).map(({ cluster, count }) => <button type="button" key={cluster.id} onClick={() => setDraft(cluster.searchQuery)}>{cluster.label}<small>{count}</small></button>)}</div>
+    </div>}
 
     <div className="workspace-agent-inputs">
       <div className="workspace-agent-interest-panel">
@@ -123,7 +134,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
 
     <div className="workspace-agent-results">
       <div className="workspace-reading-route">
-        <div className="workspace-agent-result-head"><div><span className="eyebrow">Что почитать</span><div className="heading-with-help"><h3>{recommendations.length ? "Маршрут по теме" : "Добавьте тему"}</h3><SectionHelp text="Материалы ранжируются по совпадению с заданной темой в заголовках, темах, тегах и описаниях; совпавшие термины показываются рядом." /></div></div>{recommendations.length > 0 && <span>{recommendations.length} совпадений</span>}</div>
+        <div className="workspace-agent-result-head"><div><span className="eyebrow">Что почитать</span><div className="heading-with-help"><h3>{recommendations.length ? (usePbzDemoContext ? "По вашей истории ПБЗ" : "Маршрут по теме") : "Добавьте тему"}</h3><SectionHelp text="Материалы ранжируются по совпадению с профессиональными сигналами в заголовках, темах, тегах и описаниях; совпавшие термины показываются рядом." /></div></div>{recommendations.length > 0 && <span>{recommendations.length} совпадений</span>}</div>
         {recommendations.length > 0 ? <div className="workspace-agent-list">{recommendations.map(result => <article key={result.content.id}>
           <div className="workspace-agent-result-mark">{result.content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</div>
           <div><span>{result.content.source.name} · {kindLabel[result.content.kind]}</span><Link href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`}>{result.content.title}</Link><small>Совпало: {result.matchedTerms.slice(0, 3).join(", ")}</small></div>
