@@ -38,17 +38,27 @@ function withNormalizedEventPath(parsed: URL, segments: readonly string[]): stri
 }
 
 /**
- * Diagnostic identity key only. It deliberately normalizes the two transport-level
- * differences already observed in the source archive: http -> https and a missing
- * trailing slash. Query parameters are preserved because we have not yet shown
- * empirically that they are non-identifying.
+ * Transport-level reference identity only. Gate 10 showed that http/https and
+ * missing trailing slashes create duplicate URL-reference candidates in the
+ * observed archive. Those differences are now safe to collapse.
+ *
+ * Query parameters remain identifying because the source sample has not shown
+ * that they are transport noise. This key must not be interpreted as a
+ * ProfessionalEvent identity: registration pages, TV-studio pages, series and
+ * event occurrences may still share structural ancestry while representing
+ * different world objects.
  */
-export function diagnosticEventReferenceKey(value: string): string | null {
+export function transportNormalizedEventReferenceKey(value: string): string | null {
   const parsed = safeScardioUrl(value);
   if (!parsed) return null;
   const segments = eventSegments(parsed);
   if (!segments) return null;
   return withNormalizedEventPath(parsed, segments);
+}
+
+/** @deprecated Use transportNormalizedEventReferenceKey for persisted transport grouping. */
+export function diagnosticEventReferenceKey(value: string): string | null {
+  return transportNormalizedEventReferenceKey(value);
 }
 
 export function inspectEventReferenceShape(value: string): EventReferenceShape | null {
