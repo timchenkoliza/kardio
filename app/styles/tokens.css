@@ -1,0 +1,39 @@
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+
+  --font-size-display-xl: 44px;
+  --font-size-display-lg: 36px;
+  --font-size-heading-1: 32px;
+  --font-size-heading-2: 24px;
+  --font-size-heading-3: 20px;
+  --font-size-title: 18px;
+  --font-size-body: 16px;
+  --font-size-body-compact: 15px;
+  --font-size-label: 14px;
+  --font-size-caption: 13px;
+  --font-size-metadata: 12px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-subtle: 0 1px 2px rgb(16 24 40 / 6%);
+  --shadow-raised: 0 8px 24px rgb(16 24 40 / 8%);
+
+  --color-canvas: #f8f8fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f2f7;
+  --color-text: #17171c;
+  --color-text-secondary: #686872;
+  --color-border: #e4e4eb;
+  --color-accent: #989bfb;
+  --color-accent-soft: #ececff;
+  --color-danger: #b42318;
+  --color-success: #157a55;
+}
