@@ -197,7 +197,8 @@ export async function syncDriveRawArchiveInventory(args: {
       syncedAt,
     });
     artifacts += 1;
-    rootMetadata.isFolder ? folders += 1 : files += 1;
+    if (rootMetadata.isFolder) folders += 1;
+    else files += 1;
 
     const queue: Array<{ folderId: string; parentOntologyNodeId: string; depth: number }> = [{ folderId: source.folder_id, parentOntologyNodeId: rootNodeId, depth: 0 }];
     let sawExpectedEntry = false;
