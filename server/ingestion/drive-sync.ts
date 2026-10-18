@@ -1,28 +1,10 @@
 import { db } from "@/db/client";
-import { evidenceRecords, ontologyNodes, rawArchiveArtifacts } from "@/db/ontology-schema";
+import { rawArchiveArtifacts } from "@/db/ontology-schema";
 import type { SpecialtyId } from "@/lib/domain/types";
-import { evidenceId, ontologyEdgeId, ontologyNodeId, specialtyNodeId } from "@/lib/ontology/ids";
-import type { OntologyEdge } from "@/lib/ontology/types";
 import { loadDriveSourceRegistry, type RawArchiveItem, type RawArchiveProvider } from "@/server/ingestion/drive-source";
-import { upsertOntologyEdge } from "@/server/repositories/ontology";
 
-function externalArtifactNodeId(specialty: SpecialtyId, providerItemId: string): string {
-  return ontologyNodeId({ type: "external_artifact", specialty, namespace: "google-drive", originalId: providerItemId });
-}
-
-async function ensureSpecialtyNode(specialty: SpecialtyId): Promise<string> {
-  const id = specialtyNodeId(specialty);
-  await db.insert(ontologyNodes).values({
-    id,
-    type: "specialty",
-    specialty,
-    label: specialty === "cardiology" ? "Кардиология" : "Онкология",
-    originalId: specialty,
-    namespace: "system",
-    attributes: {},
-    raw: null,
-  }).onConflictDoNothing();
-  return id;
+function rawArchiveArtifactId(provider: RawArchiveProvider["kind"], providerItemId: string): string {
+  return `raw-archive:${provider}:${encodeURIComponent(providerItemId)}`;
 }
 
 async function persistArchiveItem(args: {
@@ -30,44 +12,11 @@ async function persistArchiveItem(args: {
   specialty: SpecialtyId;
   sourceRegistryId: string;
   provider: RawArchiveProvider;
-  parentOntologyNodeId?: string | null;
   syncedAt: string;
 }): Promise<string> {
-  const nodeId = externalArtifactNodeId(args.specialty, args.item.id);
-  await db.insert(ontologyNodes).values({
-    id: nodeId,
-    type: "external_artifact",
-    specialty: args.specialty,
-    label: args.item.name,
-    originalId: args.item.id,
-    namespace: "google-drive",
-    attributes: {
-      provider: args.provider.kind,
-      sourceRegistryId: args.sourceRegistryId,
-      mimeType: args.item.mimeType,
-      size: args.item.size,
-      modifiedAt: args.item.modifiedAt,
-      isFolder: args.item.isFolder,
-    },
-    raw: null,
-  }).onConflictDoUpdate({
-    target: ontologyNodes.id,
-    set: {
-      label: args.item.name,
-      specialty: args.specialty,
-      attributes: {
-        provider: args.provider.kind,
-        sourceRegistryId: args.sourceRegistryId,
-        mimeType: args.item.mimeType,
-        size: args.item.size,
-        modifiedAt: args.item.modifiedAt,
-        isFolder: args.item.isFolder,
-      },
-    },
-  });
-
+  const artifactId = rawArchiveArtifactId(args.provider.kind, args.item.id);
   await db.insert(rawArchiveArtifacts).values({
-    ontologyNodeId: nodeId,
+    id: artifactId,
     provider: args.provider.kind,
     providerItemId: args.item.id,
     parentProviderItemId: args.item.parentId,
@@ -80,9 +29,10 @@ async function persistArchiveItem(args: {
     checksum: null,
     materializedLocator: null,
     syncState: "metadata_synced",
+    promotedNodeId: null,
     syncedAt: args.syncedAt,
   }).onConflictDoUpdate({
-    target: rawArchiveArtifacts.ontologyNodeId,
+    target: rawArchiveArtifacts.id,
     set: {
       provider: args.provider.kind,
       providerItemId: args.item.id,
@@ -97,67 +47,7 @@ async function persistArchiveItem(args: {
       syncedAt: args.syncedAt,
     },
   });
-
-  const metadataEvidenceId = evidenceId("google-drive", nodeId, "provider-metadata");
-  await db.insert(evidenceRecords).values({
-    id: metadataEvidenceId,
-    targetKind: "node",
-    targetId: nodeId,
-    targetProperty: null,
-    type: "derived_from_source",
-    sourceNodeId: null,
-    externalUrl: null,
-    artifactRef: `google-drive:${args.item.id}`,
-    capturedAt: args.syncedAt,
-    verifiedAt: args.syncedAt,
-    extractionMethod: `${args.provider.kind}_metadata_sync`,
-    confidence: 1,
-    verification: "verified",
-    reviewer: null,
-    rightsState: null,
-    validFrom: args.item.modifiedAt,
-    expiresAt: null,
-    notes: "Provider metadata evidence only; not clinical authority or redistribution-rights evidence.",
-  }).onConflictDoUpdate({
-    target: evidenceRecords.id,
-    set: {
-      artifactRef: `google-drive:${args.item.id}`,
-      capturedAt: args.syncedAt,
-      verifiedAt: args.syncedAt,
-      extractionMethod: `${args.provider.kind}_metadata_sync`,
-      verification: "verified",
-      validFrom: args.item.modifiedAt,
-    },
-  });
-
-  const specialtyId = await ensureSpecialtyNode(args.specialty);
-  const specialtyEdge: OntologyEdge = {
-    id: ontologyEdgeId({ type: "applies_to_specialty", fromId: nodeId, toId: specialtyId, discriminator: "drive-registry" }),
-    type: "applies_to_specialty",
-    fromId: nodeId,
-    toId: specialtyId,
-    reviewState: "approved",
-    confidence: 1,
-    evidenceIds: [metadataEvidenceId],
-    attributes: { basis: "drive_source_registry" },
-  };
-  await upsertOntologyEdge(specialtyEdge);
-
-  if (args.parentOntologyNodeId) {
-    const parentEdge: OntologyEdge = {
-      id: ontologyEdgeId({ type: "related_to", fromId: nodeId, toId: args.parentOntologyNodeId, discriminator: "archive-child-of" }),
-      type: "related_to",
-      fromId: nodeId,
-      toId: args.parentOntologyNodeId,
-      reviewState: "approved",
-      confidence: 1,
-      evidenceIds: [metadataEvidenceId],
-      attributes: { archiveRelation: "child_of" },
-    };
-    await upsertOntologyEdge(parentEdge);
-  }
-
-  return nodeId;
+  return artifactId;
 }
 
 export interface DriveSyncReport {
@@ -189,7 +79,7 @@ export async function syncDriveRawArchiveInventory(args: {
   for (const source of registry.telegram_exports) {
     if (artifacts >= maxItems) { truncated = true; break; }
     const rootMetadata = await args.provider.getMetadata(source.folder_id, { specialty: source.specialty, sourceRegistryId: source.id });
-    const rootNodeId = await persistArchiveItem({
+    await persistArchiveItem({
       item: rootMetadata,
       specialty: source.specialty,
       sourceRegistryId: source.id,
@@ -200,7 +90,7 @@ export async function syncDriveRawArchiveInventory(args: {
     if (rootMetadata.isFolder) folders += 1;
     else files += 1;
 
-    const queue: Array<{ folderId: string; parentOntologyNodeId: string; depth: number }> = [{ folderId: source.folder_id, parentOntologyNodeId: rootNodeId, depth: 0 }];
+    const queue: Array<{ folderId: string; depth: number }> = [{ folderId: source.folder_id, depth: 0 }];
     let sawExpectedEntry = false;
 
     while (queue.length && artifacts < maxItems) {
@@ -210,18 +100,17 @@ export async function syncDriveRawArchiveInventory(args: {
       for (const item of children) {
         if (artifacts >= maxItems) { truncated = true; break; }
         if (current.depth === 0 && item.name === source.expected_entry && !item.isFolder) sawExpectedEntry = true;
-        const nodeId = await persistArchiveItem({
+        await persistArchiveItem({
           item,
           specialty: source.specialty,
           sourceRegistryId: source.id,
           provider: args.provider,
-          parentOntologyNodeId: current.parentOntologyNodeId,
           syncedAt,
         });
         artifacts += 1;
         if (item.isFolder) {
           folders += 1;
-          queue.push({ folderId: item.id, parentOntologyNodeId: nodeId, depth: current.depth + 1 });
+          queue.push({ folderId: item.id, depth: current.depth + 1 });
         } else {
           files += 1;
         }
