@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./styles/tokens.css";
 import "./styles/product-v1.css";
 import "./styles/shell-modes.css";
+import "./styles/workspace-agent.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
 
