@@ -7,12 +7,12 @@
 .workspace-pbz-demo > div:first-child { display: flex; align-items: center; gap: 7px; }
 .workspace-pbz-demo > div:first-child > svg { color: var(--color-text-tertiary); }
 .workspace-pbz-demo strong { font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
-.workspace-pbz-demo > div:first-child > span { padding: 2px 5px; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-pill); color: var(--color-text-tertiary); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.workspace-pbz-demo > div:first-child > span { padding: 2px 5px; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-pill); color: var(--color-text-tertiary); font-size: var(--font-size-micro); text-transform: uppercase; letter-spacing: .05em; }
 .workspace-pbz-demo p { margin: 4px 0 0 23px; color: var(--color-text-secondary); font-size: var(--font-size-metadata); line-height: 1.4; }
 .workspace-pbz-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 23px; }
 .workspace-pbz-chips button { min-height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); border-radius: var(--radius-pill); font-size: var(--font-size-metadata); }
 .workspace-pbz-chips button:hover { color: var(--color-text); border-color: var(--color-border-strong); }
-.workspace-pbz-chips small { color: var(--color-text-tertiary); font-size: 10px; }
+.workspace-pbz-chips small { color: var(--color-text-tertiary); font-size: var(--font-size-micro); }
 .workspace-agent-inputs { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 16px; margin-top: 18px; align-items: start; }
 .workspace-agent-interest-panel, .workspace-agent-upload { padding: 18px; background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
 .workspace-interest-form { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
