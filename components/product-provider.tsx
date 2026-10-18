@@ -23,12 +23,21 @@ export function ProductProvider({ initialState, specialty, children }: { initial
     setMessage("");
     try {
       const response = await fetch("/api/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(command) });
-      if (!response.ok) throw new Error("state_save_failed");
+      if (!response.ok) {
+        let apiMessage = "Не удалось сохранить изменение. Попробуйте ещё раз.";
+        try {
+          const payload = await response.json() as { error?: unknown };
+          if (typeof payload.error === "string" && payload.error.trim()) apiMessage = payload.error;
+        } catch {
+          // Keep the bounded user-facing fallback when the response is not JSON.
+        }
+        throw new Error(apiMessage);
+      }
       const next: UserState = await response.json();
       setState(next);
       return true;
-    } catch {
-      setMessage("Не удалось сохранить изменение. Попробуйте ещё раз.");
+    } catch (error) {
+      setMessage(error instanceof Error && error.message ? error.message : "Не удалось сохранить изменение. Попробуйте ещё раз.");
       return false;
     } finally {
       locked.current = false;
