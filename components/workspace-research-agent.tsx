@@ -64,25 +64,25 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
     event.target.value = "";
     if (!file) return;
     if (!confirmedAggregateOnly) {
-      setFileMessage("Сначала подтвердите, что файл содержит только агрегированные данные без строк отдельных пациентов.");
+      setFileMessage("Подтвердите, что в файле нет строк пациентов и идентификаторов");
       return;
     }
     if (file.size > MAX_LOCAL_FILE_BYTES) {
-      setFileMessage("Для alpha используйте агрегированный файл до 128 КБ.");
+      setFileMessage("Файл должен быть не больше 128 КБ");
       return;
     }
     if (!/\.(?:txt|csv|md)$/i.test(file.name)) {
-      setFileMessage("Поддерживаются только TXT, CSV и MD с агрегированной сводкой.");
+      setFileMessage("Можно загрузить TXT, CSV или MD");
       return;
     }
     const text = (await file.text()).slice(0, MAX_LOCAL_TEXT_CHARS);
     if (hasBlockedPatientLevelMarkers(text)) {
-      setFileMessage("Файл похож на данные уровня пациента. Он не был принят. Оставьте только агрегированную сводку без идентификаторов и строк пациентов.");
+      setFileMessage("Похоже, в файле есть данные отдельных пациентов. Оставьте только агрегированную сводку без идентификаторов");
       return;
     }
     setAggregateText(text);
     setAggregateFileName(file.name);
-    setFileMessage("Файл обработан локально в браузере и не отправлен на сервер.");
+    setFileMessage("Файл открыт локально и не отправлен на сервер");
   }
 
   function clearAggregate() {
@@ -95,15 +95,15 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
     <div className="workspace-agent-head">
       <div className="workspace-agent-icon"><Sparkles size={22} aria-hidden="true" /></div>
       <div>
-        <span className="eyebrow">Агент по теме</span>
-        <div className="heading-with-help"><h2 id="workspace-agent-title">Что изучить дальше</h2><SectionHelp text="Агент использует явно заданные вами интересы и безопасные сигналы профессиональной истории, затем объяснимо сопоставляет их с проверенным каталогом. Он не делает выводов о конкретном пациенте." /></div>
-        <p>Укажите нозологию или профессиональный интерес. Навигатор соберёт объяснимый маршрут по уже проверенному каталогу — без догадок о пациенте.</p>
+        <span className="eyebrow">По теме</span>
+        <div className="heading-with-help"><h2 id="workspace-agent-title">Материалы по теме</h2><SectionHelp text="Используем темы, которые вы добавили сами, и безопасные сигналы профессиональной истории. Сопоставляем их с каталогом и не делаем выводов о конкретном пациенте." /></div>
+        <p>Добавьте нозологию или профессиональный интерес — подберём материалы из каталога.</p>
       </div>
     </div>
 
     {usePbzDemoContext && <div className="workspace-pbz-demo" aria-label="Демо-контекст из ПБЗ">
-      <div><History size={16} aria-hidden="true" /><strong>Подхватили профессиональные интересы из ПБЗ</strong><span>демо</span></div>
-      <p>В демо учитываются только короткие кардиологические запросы из выгрузки; пациентские кейсы и идентификаторы отсекаются.</p>
+      <div><History size={16} aria-hidden="true" /><strong>Из истории ПБЗ</strong><span>демо</span></div>
+      <p>Используем только короткие профессиональные кардиологические запросы. Пациентские кейсы и идентификаторы не учитываем.</p>
       <div className="workspace-pbz-chips">{PBZ_DEMO_HISTORY_SIGNALS.slice(0, 5).map(({ cluster }) => <button type="button" key={cluster.id} onClick={() => setDraft(cluster.searchQuery)}>{cluster.label}</button>)}</div>
     </div>}
 
@@ -119,35 +119,35 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
 
       <div className="workspace-agent-upload">
         <div className="workspace-upload-copy">
-          <div className="workspace-upload-title"><Upload size={18} /><strong>Агрегированный контекст</strong><SectionHelp text="Допустимы только обезличенные агрегаты и сводки. Строки отдельных пациентов, идентификаторы и медицинские карты сюда не загружаются." /></div>
-          <p>Можно добавить обезличенную агрегированную сводку. Не загружайте записи отдельных пациентов — даже без ФИО.</p>
+          <div className="workspace-upload-title"><Upload size={18} /><strong>Добавить сводку</strong><SectionHelp text="Можно добавить только обезличенные агрегаты и сводки. Строки отдельных пациентов, идентификаторы и медицинские карты сюда не загружаются." /></div>
+          <p>Добавьте обезличенную агрегированную сводку без записей отдельных пациентов.</p>
         </div>
-        <label className="workspace-privacy-check"><input type="checkbox" checked={confirmedAggregateOnly} onChange={event => setConfirmedAggregateOnly(event.target.checked)} /><span><ShieldCheck size={16} /> Подтверждаю: только агрегаты, без строк пациентов и идентификаторов</span></label>
+        <label className="workspace-privacy-check"><input type="checkbox" checked={confirmedAggregateOnly} onChange={event => setConfirmedAggregateOnly(event.target.checked)} /><span><ShieldCheck size={16} /> В файле нет строк пациентов и идентификаторов</span></label>
         <div className="workspace-upload-actions">
-          <label className={confirmedAggregateOnly ? "secondary-button workspace-file-button" : "secondary-button workspace-file-button disabled"}><FileText size={15} /> {aggregateFileName || "Выбрать TXT / CSV / MD"}<input type="file" accept=".txt,.csv,.md,text/plain,text/csv,text/markdown" disabled={!confirmedAggregateOnly} onChange={event => void readAggregateFile(event)} /></label>
+          <label className={confirmedAggregateOnly ? "secondary-button workspace-file-button" : "secondary-button workspace-file-button disabled"}><FileText size={15} /> {aggregateFileName || "Выбрать файл"}<input type="file" accept=".txt,.csv,.md,text/plain,text/csv,text/markdown" disabled={!confirmedAggregateOnly} onChange={event => void readAggregateFile(event)} /></label>
           {aggregateFileName && <button type="button" className="quiet-button" onClick={clearAggregate}>Убрать файл</button>}
         </div>
         {fileMessage && <p className="workspace-file-message" role="status">{fileMessage}</p>}
-        <p className="workspace-local-note">В alpha содержимое файла остаётся только в памяти браузера: мы не сохраняем и не отправляем его в API.</p>
+        <p className="workspace-local-note">Файл остаётся в памяти браузера и не отправляется в API.</p>
       </div>
     </div>
 
     <div className="workspace-agent-results">
       <div className="workspace-reading-route">
-        <div className="workspace-agent-result-head"><div><span className="eyebrow">Что почитать</span><div className="heading-with-help"><h3>{recommendations.length ? (usePbzDemoContext ? "По вашей истории ПБЗ" : "Маршрут по теме") : "Добавьте тему"}</h3><SectionHelp text="Материалы ранжируются по совпадению с профессиональными сигналами в заголовках, темах, тегах и описаниях; совпавшие термины показываются рядом." /></div></div>{recommendations.length > 0 && <span>{recommendations.length} совпадений</span>}</div>
+        <div className="workspace-agent-result-head"><div><span className="eyebrow">Материалы</span><div className="heading-with-help"><h3>{recommendations.length ? (usePbzDemoContext ? "По истории ПБЗ" : "По вашей теме") : "Добавьте тему"}</h3><SectionHelp text="Смотрим совпадения в заголовках, темах, тегах и описаниях. Показываем только материалы из текущего каталога." /></div></div>{recommendations.length > 0 && <span>{recommendations.length} материалов</span>}</div>
         {recommendations.length > 0 ? <div className="workspace-agent-list">{recommendations.map(result => <article key={result.content.id}>
           <div className="workspace-agent-result-mark">{result.content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</div>
-          <div><span>{result.content.source.name} · {kindLabel[result.content.kind]}</span><Link href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`}>{result.content.title}</Link><small>Совпало: {result.matchedTerms.slice(0, 3).join(", ")}</small></div>
+          <div><span>{result.content.source.name} · {kindLabel[result.content.kind]}</span><Link href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`}>{result.content.title}</Link><small>Темы: {result.matchedTerms.slice(0, 3).join(", ")}</small></div>
           <Link className="mode-row-open" href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`} aria-label={`Открыть: ${result.content.title}`}><ArrowRight size={16} /></Link>
-        </article>)}</div> : <p className="workspace-agent-empty">Нозология и агрегированный контекст используются только как сигналы поиска по вашему каталогу. Генеративные медицинские выводы из них не делаются.</p>}
+        </article>)}</div> : <p className="workspace-agent-empty">Добавьте тему — покажем материалы из каталога по тем же профессиональным сигналам.</p>}
       </div>
 
       <aside className="workspace-expert-route">
         <UsersRound size={22} aria-hidden="true" />
-        <span className="eyebrow">С кем обсудить</span>
-        <div className="heading-with-help"><h3>Эксперты без выдуманных имён</h3><SectionHelp text="Эксперт появится только при наличии подтверждённого профиля, специальности, организации и основания рекомендации по теме." /></div>
-        <p>Верифицированный каталог врачей-экспертов пока не подключён. Поэтому alpha не придумывает людей по теме.</p>
-        <div className="workspace-expert-rule"><strong>Следующий слой</strong><span>Тема / специальность → подтверждённый врач → организация → основание рекомендации → способ связаться.</span></div>
+        <span className="eyebrow">Врачи</span>
+        <div className="heading-with-help"><h3>С кем обсудить</h3><SectionHelp text="Покажем врача только когда есть подтверждённый профиль, специальность, организация и основание для рекомендации по теме." /></div>
+        <p>Каталог врачей пока не подключён.</p>
+        <div className="workspace-expert-rule"><strong>Каталог пока пуст</strong><span>После подключения здесь появятся подтверждённые профили врачей по теме.</span></div>
       </aside>
     </div>
   </section>;
