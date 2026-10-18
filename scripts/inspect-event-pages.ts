@@ -18,15 +18,46 @@ interface FetchResult {
   contentType: string | null;
   html: string | null;
   error: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
 }
 
 function allowed(url: URL): boolean {
   return (url.protocol === "https:" || url.protocol === "http:") && allowedHosts.has(url.hostname.toLocaleLowerCase("en-US"));
 }
 
+function errorDetails(error: unknown): { error: string; errorCode: string | null; errorMessage: string | null } {
+  if (!(error instanceof Error)) {
+    return { error: "fetch_failed", errorCode: null, errorMessage: String(error) };
+  }
+
+  const cause = (error as Error & { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const record = cause as Record<string, unknown>;
+    return {
+      error: error.name,
+      errorCode: typeof record.code === "string" ? record.code : null,
+      errorMessage: typeof record.message === "string" ? record.message : error.message,
+    };
+  }
+
+  return { error: error.name, errorCode: null, errorMessage: error.message };
+}
+
 async function fetchPage(startUrl: string): Promise<FetchResult> {
   let current = new URL(startUrl);
-  if (!allowed(current)) return { status: null, finalUrl: startUrl, redirects: 0, contentType: null, html: null, error: "blocked_source_url" };
+  if (!allowed(current)) {
+    return {
+      status: null,
+      finalUrl: startUrl,
+      redirects: 0,
+      contentType: null,
+      html: null,
+      error: "blocked_source_url",
+      errorCode: null,
+      errorMessage: null,
+    };
+  }
 
   for (let redirects = 0; redirects <= 3; redirects += 1) {
     try {
@@ -41,9 +72,31 @@ async function fetchPage(startUrl: string): Promise<FetchResult> {
 
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get("location");
-        if (!location) return { status: response.status, finalUrl: current.toString(), redirects, contentType: response.headers.get("content-type"), html: null, error: "redirect_without_location" };
+        if (!location) {
+          return {
+            status: response.status,
+            finalUrl: current.toString(),
+            redirects,
+            contentType: response.headers.get("content-type"),
+            html: null,
+            error: "redirect_without_location",
+            errorCode: null,
+            errorMessage: null,
+          };
+        }
         const next = new URL(location, current);
-        if (!allowed(next)) return { status: response.status, finalUrl: next.toString(), redirects: redirects + 1, contentType: response.headers.get("content-type"), html: null, error: "blocked_cross_host_redirect" };
+        if (!allowed(next)) {
+          return {
+            status: response.status,
+            finalUrl: next.toString(),
+            redirects: redirects + 1,
+            contentType: response.headers.get("content-type"),
+            html: null,
+            error: "blocked_cross_host_redirect",
+            errorCode: null,
+            errorMessage: null,
+          };
+        }
         current = next;
         continue;
       }
@@ -58,6 +111,8 @@ async function fetchPage(startUrl: string): Promise<FetchResult> {
         contentType,
         html,
         error: isHtml ? null : "non_html_response",
+        errorCode: null,
+        errorMessage: null,
       };
     } catch (error) {
       return {
@@ -66,12 +121,21 @@ async function fetchPage(startUrl: string): Promise<FetchResult> {
         redirects,
         contentType: null,
         html: null,
-        error: error instanceof Error ? error.name : "fetch_failed",
+        ...errorDetails(error),
       };
     }
   }
 
-  return { status: null, finalUrl: current.toString(), redirects: 4, contentType: null, html: null, error: "too_many_redirects" };
+  return {
+    status: null,
+    finalUrl: current.toString(),
+    redirects: 4,
+    contentType: null,
+    html: null,
+    error: "too_many_redirects",
+    errorCode: null,
+    errorMessage: null,
+  };
 }
 
 try {
@@ -115,6 +179,8 @@ try {
       redirects: fetched.redirects,
       contentType: fetched.contentType,
       error: fetched.error,
+      errorCode: fetched.errorCode,
+      errorMessage: fetched.errorMessage,
       htmlTitle: signals?.htmlTitle ?? null,
       canonicalHref: signals?.canonicalHref ?? null,
       ogTitle: signals?.ogTitle ?? null,
