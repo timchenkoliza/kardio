@@ -1,158 +1,137 @@
 # KARDIO — Real Content Audit
 
-Status: **authoritative input audit before UI binding**.
+Status: **authoritative real-content baseline for the current multi-shell prototype**.
 
 Date: 2026-10-18.
 
 ## Input audited
 
 Human-readable source: `cardio_goldenset_content_db_v2.xlsx` supplied by the user.
+Canonical runtime representation is derived without editorial rewriting of medical facts.
 
-The workbook contains:
-- `OVERVIEW`
-- `CONTENT_GOLDEN`
-- `SOURCE_REGISTRY`
-- `SCHEMA`
-- `QA_RULES`
+## Canonical inventory
 
-## Dataset shape
+- 54 source-grounded content objects
+- 18 registered sources
+- 24-object fixed cross-shell evaluation slice
 
-Golden content objects: **54**.
+The same 24 objects must initially be rendered by:
+- Search-first Navigator
+- Professional Toolbelt
+- Knowledge Workspace
 
-Registered sources: **18**.
+The shells may rank, group, navigate and compose differently. They must not fork facts.
 
-Content types:
-- 11 clinical guidelines;
-- 18 video lectures;
-- 5 journal/news objects;
-- 1 project;
-- 4 Society news objects;
-- 2 TV-studio objects;
-- 1 webinar;
-- 4 membership-service objects;
-- 8 clinical cards.
+## Current implementation status
 
-Currentness:
-- 18 current;
-- 31 require some form of review/currentness/date/version check;
-- 5 are explicitly non-current / superseded / archive according to the workbook state.
+Real-content binding is now **IMPLEMENTED** in:
 
-All 54 objects retain `rights_status = needs_rights_review` in this prototype dataset.
+- `phase2/kardio-app.html`
+- `phase2/content-runtime.js`
+- `phase2/kardio-app.js`
+- `phase2/kardio-real.css`
+- `data/cardio_goldenset_loader.js`
+- `data/goldenset-chunk-01.js` … `goldenset-chunk-05.js`
+- `data/cardio-evaluation-slice-v1.bundle.js`
+- `data/content-image-enrichment.bundle.js`
 
-All 54 currently have `emergency_flag = false` and `requires_clinician_confirmation = false`; do not invent high-stakes action states to exercise UI.
+The previous hard-coded demo `catalog` / `sources` arrays are no longer in the active render path of `phase2/kardio-app.html`.
 
-## Missing metadata that UI must survive
+## Required data states
 
-The dataset intentionally does not fabricate missing fields.
+UI must preserve rather than clean away:
 
-Observed missingness:
-- `publication_date`: absent for 41/54 objects;
-- `publication_year`: absent for 13/54;
-- `author_expert`: absent for 36/54;
-- `source_asset`: absent for 35/54.
+- current
+- needs review
+- superseded
+- archive / legacy
+- missing author
+- missing publication date
+- missing source asset
+- source-level URL rather than invented deep link
+- unresolved rights status
 
-`source_url` exists for all 54 content objects, but in many cases it is a source/section URL rather than an item-level deep link. UI must not imply a deeper source resolution than the data supports.
+Missing metadata is a valid state. Do not hallucinate it to make cards look complete.
 
-## Versioning is real, not decorative
+## Currentness/version behavior
 
-The dataset contains explicit supersession chains, e.g. older and newer clinical-guideline objects linked through `supersedes_id` / `superseded_by_id`.
+Older recommendations remain visible when they are present in the Golden Set.
+If `superseded_by_id` exists, the UI must:
+- mark the object as superseded;
+- expose the newer object;
+- never silently present the old version as current.
 
-UI requirement:
-- keep old objects accessible when useful;
-- visually state `Есть более новая версия` for superseded material;
-- resolve the replacement by ID;
-- never silently present a superseded object as current.
+## Search model
 
-## Trust/content classes
+Prototype search may use factual fields already present in the canonical object, including:
+- title
+- card summary
+- topic / canonical topic
+- content type
+- author / expert
+- organization
+- source metadata
+- tags
+- category / subcategory
 
-Observed `trust_layer` values in the content table:
-- official;
-- expert;
-- professional.
+Search ranking must not mutate canonical fields.
 
-All 54 current content objects are marked `non_commercial`.
+## Capability gaps
 
-Source registry additionally contains commercial/pharma and other source roles. The production adapter must keep:
-- official/guideline;
-- professional society;
-- journal/editorial;
-- expert/education;
-- commercial/pharma;
-- user-added/community
-
-visually and behaviorally distinct when those classes enter the rendered set.
-
-Do not fabricate a commercial content card merely to demonstrate commercial styling. The source-registry surface may demonstrate commercial source classification using real registry entries until actual commercial content objects exist.
-
-## Capability coverage gap
-
-The Golden Set is a **content database**, not yet the complete MVP capability database.
-
-It strongly covers:
-- clinical guidelines;
-- video education;
-- Society/professional news;
-- journal/editorial material;
-- clinical cards;
-- RKO membership/community material.
-
-It does **not yet contain canonical product objects for**:
+The current Golden Set does **not** yet provide complete source-grounded canonical objects for:
 - calculators;
 - drug/reference entries;
-- VMP/referral routes.
+- referral / VMP navigation.
 
-Those capabilities remain valid parts of the product architecture, but they must not be populated with invented medical facts.
+These remain legitimate product capabilities but must render as explicit content gaps until grounded data is supplied. Do not fabricate medical entries.
 
-Until source-grounded datasets exist for them:
-- keep capability entry points structurally present where required by the approved shell;
-- label their real-data state accurately;
-- do not fabricate calculator definitions, drug monographs or VMP requirements;
-- do not let placeholder capability content contaminate the Golden Set evaluation comparison.
+## Editorial images
 
-## Golden Set vs current prototype
+Image enrichment is separate from canonical facts.
 
-The current `phase2/kardio-app.html` still contains hard-coded placeholder arrays and strings such as:
-- HSN demo guideline object;
-- fixed RKO update;
-- fixed source list;
-- demo tools;
-- demo recent/saved/pinned values.
+Current prototype rule:
+- exact semantic match first;
+- provenance and rights tracked separately;
+- image-free card preferred to weak stock match.
 
-Those placeholders are architecture scaffolding only. They must be replaced by selectors over the Golden Set/shared content layer. The three shells must not create separate content copies.
+Only one uploaded clinical image is currently attached to the evaluation slice: the real echocardiography examination photo for `fact-ar-echo-2025`.
+It is prototype-only until rights/provenance are verified.
 
-## Fixed cross-concept evaluation slice
+Pinterest/moodboard screenshots are reference-only and are never rendered as content.
+Other uploaded donor-heart, CT, ECG, device and video assets remain unassigned until an exact content/provenance match is established.
 
-Initial evaluation slice: **24 Golden Set objects**.
+## Shared state
 
-Mix:
-- 6 clinical guidelines;
-- 5 video lectures;
-- 4 journal/news objects;
-- 4 clinical cards;
-- 2 Society news objects;
-- 1 TV-studio object;
-- 1 project;
-- 1 membership-service object.
+Across A/B/C the following are common:
+- canonical objects;
+- source URLs;
+- saved IDs;
+- pinned IDs;
+- recent IDs;
+- query state;
+- trust/currentness metadata.
 
-State mix includes:
-- current;
-- superseded;
-- needs-version/date review;
-- legacy;
-- current-in-export.
+Switching shell must not duplicate or rewrite these objects.
 
-The same 24 IDs must be rendered by A, B and C before concept-specific ranking/grouping is applied.
+## Verification status
 
-## Hard implementation order
+VERIFIED:
+- Golden Set runtime integrity contract: 54 content objects / 18 sources;
+- fixed 24-object evaluation manifest exists;
+- real-content render path is wired into all three shells;
+- demo arrays are removed from active `phase2/kardio-app.html` render path;
+- source links/currentness/review/superseded states are implemented;
+- explicit empty states are used for unpopulated capabilities;
+- semantic image policy is implemented.
 
-1. Canonical Golden Set JSON.
-2. Normalization/adapter layer.
-3. Shared selectors/search/filtering.
-4. Fixed evaluation-slice manifest.
-5. Editorial image enrichment layer.
-6. Replace hard-coded prototype content.
-7. Only then perform real-content visual QA and pixel-level polish.
+IMPLEMENTED BUT NOT VISUALLY VERIFIED:
+- responsive rendering at 390 / 768 / 1440;
+- long-title wrapping and exact visual density;
+- final typography and geometry;
+- detailed A/B/C pixel consistency.
 
-## No-redesign guard
+NOT VERIFIED:
+- browser screenshot regression in this execution environment;
+- Vercel Preview deployment.
 
-This audit does not authorize changes to the approved A/B/C product models. Content integration may change card height, overflow handling, progressive disclosure and state rendering, but not the product logic of the three shells.
+Final pixel-first visual QA starts only after opening the real-content prototype in a browser and inspecting the anchor viewports.
