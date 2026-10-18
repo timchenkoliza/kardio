@@ -36,3 +36,28 @@ export const eventReferenceMentions = pgTable("event_reference_mentions", {
   index("event_reference_mention_event_idx").on(table.eventCandidateId),
   index("event_reference_mention_source_idx").on(table.sourceRegistryId, table.sourcePresence),
 ]);
+
+/**
+ * Transport-normalized equivalence classes for event-reference URLs.
+ *
+ * This is deliberately not an event identity table. It collapses only transport
+ * variants proven equivalent by Gate 10 (http/https and missing trailing slash)
+ * while preserving query parameters and all original event_reference_candidates.
+ */
+export const eventReferenceTransportGroups = pgTable("event_reference_transport_groups", {
+  id: text("id").primaryKey(),
+  canonicalReferenceUrl: text("canonical_reference_url").notNull(),
+  normalizationBasis: text("normalization_basis").$type<"scardio_transport_v1">().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("event_reference_transport_url_uniq").on(table.canonicalReferenceUrl),
+]);
+
+export const eventReferenceTransportMembers = pgTable("event_reference_transport_members", {
+  eventCandidateId: text("event_candidate_id").primaryKey().references(() => eventReferenceCandidates.id),
+  transportGroupId: text("transport_group_id").references(() => eventReferenceTransportGroups.id).notNull(),
+  mappedAt: timestamp("mapped_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+  index("event_reference_transport_member_group_idx").on(table.transportGroupId),
+]);
