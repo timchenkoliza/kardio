@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "purpose": "Raw source archive registry. Folder IDs are ingestion locators, never production media URLs.",
+  "root": {
+    "folder_id": "1JnLZvA-yab8bkmRrq8juovMS8t4ld6cR",
+    "kind": "raw_archive"
+  },
+  "collections": {
+    "telegram": {
+      "folder_id": "1XKfcIiRWc6OfSMD-Z08RQTGya5CSr3JJ",
+      "kind": "telegram_exports"
+    },
+    "journals": {
+      "folder_id": "1k_N8SOAn7RX8MPQPBHSKUvrwUYcrEQSC",
+      "kind": "journal_assets"
+    },
+    "events": {
+      "folder_id": "1PTzBnUtwvwT55cOCEQfzeaO_EwQOdUyF",
+      "kind": "event_assets"
+    },
+    "experts": {
+      "folder_id": "1GkpPja32_3FEpNnHUJTQYuh72xWB9Bkn",
+      "kind": "expert_assets"
+    }
+  },
+  "telegram_exports": [
+    {
+      "id": "cardiology_channel_01",
+      "folder_id": "1IsdE1WD4NgcaWcC4vB6KKah2R2VedLsi",
+      "specialty": "cardiology",
+      "format": "telegram_desktop_html",
+      "expected_entry": "messages.html",
+      "canonical_authority": false
+    },
+    {
+      "id": "cardiology_channel_02",
+      "folder_id": "1oVWUWlEOqSBX-9VRXv03cBds0BGv_2Ya",
+      "specialty": "cardiology",
+      "format": "telegram_desktop_html",
+      "expected_entry": "messages.html",
+      "canonical_authority": false
+    },
+    {
+      "id": "oncology_channel_01",
+      "folder_id": "1k5XUVb-n9N3q5awt2Iuz_Bsef51hoiSl",
+      "specialty": "oncology",
+      "format": "telegram_desktop_html",
+      "expected_entry": "messages.html",
+      "canonical_authority": false
+    },
+    {
+      "id": "oncology_channel_02",
+      "folder_id": "1h1xVflFI6EKH97jDHd3_KxvzZtv0JJSR",
+      "specialty": "oncology",
+      "format": "telegram_desktop_html",
+      "expected_entry": "messages.html",
+      "canonical_authority": false
+    }
+  ]
+}
