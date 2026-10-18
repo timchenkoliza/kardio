@@ -8,6 +8,13 @@
       "when": 1792351988474,
       "tag": "0000_numerous_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792353121892,
+      "tag": "0001_good_havok",
+      "breakpoints": true
     }
   ]
 }
