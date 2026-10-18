@@ -48,6 +48,39 @@ Shell-specific:
 
 Do not fork content or business rules by shell.
 
+## Real-content invariant
+
+All three shells consume the same canonical Cardio Golden Set.
+
+The same `golden_id` must resolve to the same:
+- title;
+- summary;
+- expert/author;
+- organization;
+- publication metadata;
+- source URL;
+- provenance;
+- currentness/version state;
+- trust/editorial status;
+- commercial status;
+- QA metadata.
+
+A/B/C may rank and group the objects differently. They may not rewrite or simplify canonical facts independently.
+
+Use the fixed evaluation manifest in `data/cardio-evaluation-slice-v1.json` for fair initial comparison.
+
+## Editorial-image invariant
+
+Image selection is shared editorial metadata, not shell-owned decoration.
+
+The same `golden_id` should resolve to the same verified/source-grounded image asset across A/B/C unless a shell intentionally renders that object image-free because of density/layout.
+
+The shells may vary crop/composition only within the semantic constraints of `18_EDITORIAL_IMAGE_POLICY.md`.
+
+Never let one shell use an unrelated generic doctor photo merely because its card format expects imagery.
+
+If there is no semantically correct real image, use an image-free card.
+
 ## User-control contract
 
 - First use may present a neutral assembly chooser.
@@ -68,22 +101,6 @@ ui_shell = search_first | toolbelt | knowledge_workspace
 ```
 
 This setting is not a clinical or psychological profile.
-
-## Current implementation proof
-
-`phase2/kardio-app.html` is the current shared-state prototype.
-
-It implements:
-- explicit first-use shell selection;
-- switching between all three shells;
-- shared query state;
-- shared recent history;
-- shared saved items;
-- shared pinned capabilities;
-- one common source registry / trust model;
-- persistence in local storage for prototype review.
-
-The older `phase2/kardio-multishell.html` is only an iframe-based selection wrapper and should not be treated as the target production architecture.
 
 ## Why keep all three
 
@@ -141,13 +158,6 @@ The previous gate "select one Phase 1 direction" is replaced by:
 
 > Freeze the three-shell product architecture and build them against one shared domain/content contract.
 
-The pixel-first build contract now applies to all three shells.
+The pixel-first build contract applies to all three shells **after real-content binding is stable**.
 
 Visual QA must evaluate each shell independently at the required anchor viewports while checking that shared content and business rules remain consistent.
-
-## Verification status
-
-- Multi-shell product decision: VERIFIED by explicit user instruction.
-- Shared-state prototype: IMPLEMENTED.
-- Browser visual QA at anchor viewports: NOT VERIFIED in the current session.
-- Vercel Preview: NOT VERIFIED because no connected Vercel team/project is available in the current session.
