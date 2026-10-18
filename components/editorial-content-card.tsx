@@ -3,6 +3,7 @@ import { ArrowUpRight, CheckCircle2, CircleAlert } from "lucide-react";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { currentnessLabel, isPartner, kindLabel, publicationLabel } from "@/lib/ui/labels";
 import { ContentSaveButton } from "./content-actions";
+import { EditorialMedia } from "./editorial-media";
 
 export function EditorialContentCard({ content, specialty, featured = false, position }: {
   content: ContentObject;
@@ -13,6 +14,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
   const partner = isPartner(content);
   const statusIcon = content.currentness === "current" ? CheckCircle2 : CircleAlert;
   const StatusIcon = statusIcon;
+  const showMedia = featured || Boolean(content.asset?.url);
 
   return (
     <article className={featured ? "editorial-card featured-card" : "editorial-card"} data-kind={content.kind} data-rank-position={position}>
@@ -24,10 +26,13 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
         <ContentSaveButton contentId={content.id} specialty={specialty} compact />
       </div>
 
-      <Link className="editorial-card-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`}>
-        <h2>{content.title}</h2>
-        {content.summary && <p>{content.summary}</p>}
-      </Link>
+      <div className={showMedia ? "editorial-card-main with-media" : "editorial-card-main"}>
+        <Link className="editorial-card-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`}>
+          <h2>{content.title}</h2>
+          {content.summary && <p>{content.summary}</p>}
+        </Link>
+        {showMedia && <EditorialMedia content={content} specialty={specialty} compact={!featured} />}
+      </div>
 
       <div className="editorial-card-footer">
         <span>{publicationLabel(content)}</span>
