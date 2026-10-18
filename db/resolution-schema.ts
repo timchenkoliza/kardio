@@ -1,4 +1,4 @@
-import { index, integer, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { distributionPostCandidates, ontologyNodes } from "./ontology-schema";
 
 /**
