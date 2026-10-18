@@ -1,0 +1,113 @@
+{
+  "version": "0.2",
+  "date": "2026-10-18",
+  "status": "authoritative_prototype_visual_tokens",
+  "source_of_truth": "context/19_SPECIALTY_VISUAL_IDENTITY.md",
+  "brand": {
+    "name": "Yandex Med",
+    "lavender_reference": "#8A8BFF",
+    "lavender_reference_status": "sampled_from_supplied_current_yandex_med_surface",
+    "implementation_rule": "If an official Yandex Med design token exists, inherit it instead of creating a near-duplicate token."
+  },
+  "shared": {
+    "ink": "#262633",
+    "canvas": "#FAFAFF",
+    "brand_lavender": "#8A8BFF"
+  },
+  "cardiology": {
+    "concept": "PULSE / PERFUSION",
+    "visual_physics": "FLOW",
+    "tokens": {
+      "primary": "#741E31",
+      "secondary": "#B65B70",
+      "primary_soft": "#F3E5E8",
+      "cool_bridge": "#86A9B9",
+      "secondary_soft": "#E7EFF3",
+      "deep": "#491923",
+      "accent": "#8A8BFF",
+      "ink": "#262633",
+      "canvas": "#FAFAFF"
+    },
+    "deprecated_v01": [
+      "#A9445A",
+      "#D98B9B",
+      "#8D86FF"
+    ],
+    "photography_tonal_world": [
+      "garnet",
+      "berry",
+      "skin",
+      "steel",
+      "monitor_blue",
+      "white",
+      "subtle_lavender"
+    ]
+  },
+  "oncology": {
+    "concept": "CELL / PRECISION",
+    "visual_physics": "CLUSTER / TARGET",
+    "tokens": {
+      "primary": "#5B4966",
+      "secondary": "#9985A6",
+      "primary_soft": "#F1EDF3",
+      "tertiary": "#A8BAB2",
+      "secondary_soft": "#E8EFEC",
+      "deep": "#403646",
+      "accent": "#8A8BFF",
+      "ink": "#262633",
+      "canvas": "#FAFAFF"
+    },
+    "tertiary_rule": "Mineral Sage is tertiary only and must not become a co-primary color.",
+    "photography_tonal_world": [
+      "off_white",
+      "lilac_shadow",
+      "graphite",
+      "translucent_violet",
+      "muted_mineral_green"
+    ]
+  },
+  "proportions": {
+    "neutral_canvas_percent": "65-70",
+    "soft_low_chroma_surfaces_percent": "15-20",
+    "yandex_lavender_percent": "~10",
+    "strong_specialty_primary_percent": "4-7",
+    "other_strong_accents_percent": "<=3",
+    "note": "Art-direction guidance only; do not calculate literal CSS coverage."
+  },
+  "chroma_rules": {
+    "canvas": "very_low",
+    "soft_surfaces": "low",
+    "bridge_colors": "low_to_medium",
+    "brand_lavender": "higher_but_limited_area",
+    "specialty_primary": "medium_to_high_but_limited_area",
+    "equal_saturation_across_palette": false
+  },
+  "protected_semantic_roles": [
+    "error",
+    "danger",
+    "warning",
+    "success",
+    "positive_status",
+    "disabled"
+  ],
+  "accessibility": {
+    "normal_text_target_contrast": "4.5:1",
+    "large_text_target_contrast": "3:1",
+    "brand_lavender_on_white": "accent_or_background_not_normal_text",
+    "cardiology_secondary_on_white": "do_not_use_as_default_normal_text"
+  },
+  "image_policy": {
+    "authority": "context/18_EDITORIAL_IMAGE_POLICY.md",
+    "pinterest_moodboards": "reference_only_do_not_render_as_content",
+    "generic_doctor_photo_fallback": false,
+    "image_free_card_is_valid": true
+  },
+  "execution_order": [
+    "canonical_golden_set_binding",
+    "shared_24_object_evaluation_slice",
+    "editorial_image_resolver_and_provenance",
+    "specialty_visual_identity_integration",
+    "pixel_first_polish",
+    "final_responsive_visual_qa"
+  ]
+}
