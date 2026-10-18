@@ -20,6 +20,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/import-goldenset.ts",
     "db:ontology-seed": "tsx scripts/import-ontology.ts",
+    "db:drive-sync": "tsx scripts/sync-drive-inventory.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
