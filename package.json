@@ -31,6 +31,7 @@
     "resolution:event-inspect": "tsx scripts/inspect-event-pages.ts",
     "resolution:event-context-inspect": "tsx scripts/inspect-event-mention-context.ts",
     "resolution:event-identity-inspect": "tsx scripts/inspect-event-identity-shapes.ts",
+    "resolution:event-transport-sync": "tsx scripts/sync-event-reference-transport-groups.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
