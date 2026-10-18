@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import {
   evidenceRecords,
   nodeStateFacts,
+  ontologyEdgeEvidence,
   ontologyEdges,
   ontologyNodes,
 } from "@/db/ontology-schema";
@@ -36,7 +37,7 @@ function nodeRecord(row: typeof ontologyNodes.$inferSelect): OntologyNode {
   };
 }
 
-function edgeRecord(row: typeof ontologyEdges.$inferSelect): OntologyEdge {
+function edgeRecord(row: typeof ontologyEdges.$inferSelect, evidenceIds: readonly string[] = []): OntologyEdge {
   return {
     id: row.id,
     type: row.type,
@@ -44,7 +45,7 @@ function edgeRecord(row: typeof ontologyEdges.$inferSelect): OntologyEdge {
     toId: row.toId,
     reviewState: row.reviewState,
     confidence: row.confidence,
-    evidenceIds: [],
+    evidenceIds,
     attributes: row.attributes,
   };
 }
@@ -112,7 +113,15 @@ export async function getRelations(
   const rows = await db.select().from(ontologyEdges)
     .where(and(nodePredicate, typePredicate, reviewPredicate))
     .orderBy(asc(ontologyEdges.type), asc(ontologyEdges.id));
-  return rows.map(edgeRecord);
+  if (!rows.length) return [];
+  const evidenceLinks = await db.select().from(ontologyEdgeEvidence).where(inArray(ontologyEdgeEvidence.edgeId, rows.map((row) => row.id)));
+  const evidenceByEdge = new Map<string, string[]>();
+  for (const link of evidenceLinks) {
+    const bucket = evidenceByEdge.get(link.edgeId) ?? [];
+    bucket.push(link.evidenceId);
+    evidenceByEdge.set(link.edgeId, bucket);
+  }
+  return rows.map((row) => edgeRecord(row, evidenceByEdge.get(row.id) ?? []));
 }
 
 export async function relatedObjects(
@@ -182,23 +191,28 @@ export async function upsertOntologyEdge(edge: OntologyEdge): Promise<void> {
   if (!from) throw new Error(`Unknown ontology edge source ${edge.fromId}`);
   if (!to) throw new Error(`Unknown ontology edge target ${edge.toId}`);
   assertRelationAllowed(edge.type, from.type, to.type);
-  await db.insert(ontologyEdges).values({
-    id: edge.id,
-    type: edge.type,
-    fromId: edge.fromId,
-    toId: edge.toId,
-    reviewState: edge.reviewState,
-    confidence: edge.confidence,
-    attributes: { ...edge.attributes },
-  }).onConflictDoUpdate({
-    target: ontologyEdges.id,
-    set: {
+  await db.transaction(async (tx) => {
+    await tx.insert(ontologyEdges).values({
+      id: edge.id,
       type: edge.type,
       fromId: edge.fromId,
       toId: edge.toId,
       reviewState: edge.reviewState,
       confidence: edge.confidence,
       attributes: { ...edge.attributes },
-    },
+    }).onConflictDoUpdate({
+      target: ontologyEdges.id,
+      set: {
+        type: edge.type,
+        fromId: edge.fromId,
+        toId: edge.toId,
+        reviewState: edge.reviewState,
+        confidence: edge.confidence,
+        attributes: { ...edge.attributes },
+      },
+    });
+    for (const evidenceId of edge.evidenceIds) {
+      await tx.insert(ontologyEdgeEvidence).values({ edgeId: edge.id, evidenceId }).onConflictDoNothing();
+    }
   });
 }
