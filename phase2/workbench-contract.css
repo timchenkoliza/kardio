@@ -1,11 +1,19 @@
 /*
- * Reused from the earlier Med Research Workbench / med-feed-prototype-4 design contract.
- * Source precedent: src/config/design-contract.ts + src/app/app.css.
- * Rule: component geometry, spacing and typography come from this contract; specialty only changes theme tokens.
+ * Shared product contract.
+ * Brand source: physician-world-research / System/Brand.
+ * Typography is the official Yandex Med rule: YS Text Regular + Medium.
  */
+@font-face{
+  font-family:"YS Text";
+  src:url("https://yastatic.net/s3/home/fonts/ys/3/text-variable-full.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400 700;
+  font-display:swap;
+}
+
 :root{
   --wb-bg:#ffffff;
-  --wb-canvas:#f1f1f1;
+  --wb-canvas:#f3f3f3;
   --wb-surface:#f7f7fa;
   --wb-surface-strong:#ececf0;
   --wb-surface-inverse:#151519;
@@ -13,25 +21,27 @@
   --wb-border-strong:#d6d6dd;
   --wb-divider:#ececf0;
 
-  --wb-text:#151519;
-  --wb-text-secondary:#686871;
-  --wb-text-tertiary:#96969f;
+  --wb-text:#000000;
+  --wb-text-secondary:#62636b;
+  --wb-text-tertiary:#92939c;
   --wb-text-inverse:#ffffff;
 
+  /* Official Yandex Med working brandbook */
   --wb-brand-600:#7779f2;
   --wb-brand-500:#898bff;
   --wb-brand-400:#a7a5ff;
-  --wb-lilac-400:#d0b7ff;
-  --wb-lilac-200:#e8ddff;
+  --wb-lilac-end:#ceb6ff;
+  --wb-lilac-alt:#dabdff;
   --wb-lilac-100:#f3eeff;
+  --wb-lemon:#fffd89;
 
   --wb-success:#268c5a;
   --wb-success-soft:#e6f2ec;
   --wb-warning:#b26a00;
   --wb-danger:#d94141;
 
-  --wb-font:"YS Text",-apple-system,BlinkMacSystemFont,"Inter","Helvetica Neue",Arial,sans-serif;
-  --wb-font-display:"YS Display","YS Text",-apple-system,BlinkMacSystemFont,"Inter",sans-serif;
+  --wb-font:"YS Text",Arial,sans-serif;
+  --wb-font-display:"YS Text",Arial,sans-serif;
 
   --wb-fs-xs:12px;
   --wb-fs-sm:13px;
@@ -42,10 +52,10 @@
   --wb-fs-3xl:30px;
   --wb-fs-4xl:36px;
 
-  --wb-lh-tight:1.2;
-  --wb-lh-snug:1.3;
-  --wb-lh-normal:1.45;
-  --wb-lh-relaxed:1.6;
+  --wb-lh-tight:1.18;
+  --wb-lh-snug:1.28;
+  --wb-lh-normal:1.42;
+  --wb-lh-relaxed:1.58;
 
   --wb-sp-1:4px;
   --wb-sp-2:8px;
@@ -58,28 +68,34 @@
   --wb-sp-9:56px;
 
   --wb-r-control:12px;
-  --wb-r-card:16px;
-  --wb-r-sheet:20px;
+  --wb-r-card:24px;
+  --wb-r-sheet:32px;
   --wb-r-pill:999px;
 
-  --wb-shadow-card:0 1px 2px rgba(0,0,0,.04);
+  --wb-shadow-card:0 2px 10px rgba(18,18,24,.055);
   --wb-shadow-overlay:0 24px 64px rgba(0,0,0,.18);
 
   --wb-container:1440px;
-  --wb-sidebar:248px;
-  --wb-sidebar-compact:224px;
+  --wb-sidebar:72px;
+  --wb-sidebar-compact:72px;
   --wb-rail:288px;
   --wb-gutter:28px;
   --wb-header:64px;
-  --wb-feed-gap:24px;
+  --wb-feed-gap:18px;
 
-  /* Specialty theme interface. These are the only values specialty may swap. */
+  /* specialty interface — components read only these variables */
   --sp-primary:#741e31;
   --sp-secondary:#b65b70;
   --sp-soft:#f3e5e8;
   --sp-bridge:#86a9b9;
   --sp-bridge-soft:#e7eff3;
   --sp-deep:#491923;
+  --sp-canvas:#f8f0f2;
+  --sp-canvas-2:#eef4f6;
+  --sp-surface:#fffafb;
+  --sp-surface-strong:#f1dfe4;
+  --sp-border:#e6d1d7;
+  --sp-muted:#76656b;
   --sp-contrast:#ffffff;
 }
 
@@ -90,6 +106,12 @@ body[data-specialty="cardiology"]{
   --sp-bridge:#86a9b9;
   --sp-bridge-soft:#e7eff3;
   --sp-deep:#491923;
+  --sp-canvas:#f8f0f2;
+  --sp-canvas-2:#eef4f6;
+  --sp-surface:#fffafb;
+  --sp-surface-strong:#f1dfe4;
+  --sp-border:#e6d1d7;
+  --sp-muted:#76656b;
 }
 
 body[data-specialty="oncology"]{
@@ -99,4 +121,10 @@ body[data-specialty="oncology"]{
   --sp-bridge:#a8bab2;
   --sp-bridge-soft:#e8efec;
   --sp-deep:#403646;
+  --sp-canvas:#f5f0f6;
+  --sp-canvas-2:#edf2f0;
+  --sp-surface:#fffbff;
+  --sp-surface-strong:#e8dfea;
+  --sp-border:#ddd2e1;
+  --sp-muted:#716678;
 }
