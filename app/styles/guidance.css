@@ -1,28 +1,37 @@
 .heading-with-help {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+}
+.heading-with-help > h1,
+.heading-with-help > h2,
+.heading-with-help > h3 {
+  min-width: 0;
 }
 .section-help {
   position: relative;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  background: transparent;
   cursor: help;
   outline: none;
   vertical-align: middle;
+  opacity: .58;
 }
 .section-help:hover,
 .section-help:focus-visible {
   color: var(--color-accent-ink);
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
+  background: var(--color-accent-soft);
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 .section-help-popover {
   position: absolute;
