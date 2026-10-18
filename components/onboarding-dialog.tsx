@@ -6,6 +6,8 @@ import type { SpecialtyId } from "@/lib/domain/types";
 import { specialtyLabel } from "@/lib/ui/labels";
 import { useProduct } from "./product-provider";
 
+export const ONBOARDING_STORAGE_KEY = "kardio_onboarding_v1";
+
 const steps = [
   {
     title: "Три режима, один профиль",
@@ -33,13 +35,24 @@ export function OnboardingDialog({ specialty }: { specialty: SpecialtyId }) {
   const { state, pending, mutate } = useProduct();
   const dialog = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
+  const [browserCompleted, setBrowserCompleted] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!state.onboardingCompleted && dialog.current && !dialog.current.open) dialog.current.showModal();
+    const localCompleted = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+    if (state.onboardingCompleted && !localCompleted) window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+    setBrowserCompleted(localCompleted || state.onboardingCompleted);
   }, [state.onboardingCompleted]);
 
+  useEffect(() => {
+    if (browserCompleted === false && !state.onboardingCompleted && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [browserCompleted, state.onboardingCompleted]);
+
   async function finish() {
-    if (await mutate({ action: "preferences", onboardingCompleted: true })) dialog.current?.close();
+    if (await mutate({ action: "preferences", onboardingCompleted: true })) {
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+      setBrowserCompleted(true);
+      dialog.current?.close();
+    }
   }
 
   const current = steps[step];
