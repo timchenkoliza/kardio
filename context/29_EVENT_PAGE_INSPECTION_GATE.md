@@ -1,6 +1,6 @@
 # Event page inspection gate
 
-Status: **ACTIVE READ-ONLY ENRICHMENT GATE**  
+Status: **CLOSED — SOURCE TLS BLOCKED**  
 Date: 2026-10-18
 
 ## Purpose
@@ -35,6 +35,19 @@ The inspector starts only from URLs already resolved as explicit `scardio.ru/eve
 
 Default inspection is intentionally bounded to 10 candidates and may be increased only up to 25 with `EVENT_PAGE_INSPECT_LIMIT`.
 
+## Real-source outcome
+
+The live source redirects historical event URLs to `https://old.scardio.ru/...`. Both Node/Undici and system `curl` reject that archive host because its TLS certificate is expired (`CERT_HAS_EXPIRED`). This is a source transport failure, not a parser or ontology failure.
+
+Policy consequence:
+
+- do not set `NODE_TLS_REJECT_UNAUTHORIZED=0`;
+- do not use `curl -k` for ingestion;
+- do not silently downgrade trusted enrichment to unauthenticated HTTP;
+- do not persist page-derived title/date/location fields from this host until a trusted transport or trusted archive source is available.
+
+The URL identity itself remains a valid source-grounded observation because it came from the original Telegram export. Page-content enrichment is unavailable under the current trust boundary.
+
 ## Explicitly forbidden
 
 Do not infer or persist:
@@ -49,16 +62,17 @@ Do not infer or persist:
 - product eligibility;
 - Oncology fallback.
 
-## Acceptance
+## Acceptance / closure
 
-The gate passes when:
+The gate is considered closed when:
 
 1. unit tests show that prose alone does not create structured event fields;
 2. malformed JSON-LD is ignored;
-3. a bounded real sample can be fetched or its HTTP/network failure states are explicitly reported;
-4. observed redirects to the exact archive host can be followed without widening the network boundary;
-5. output measures title/canonical/JSON-LD/structured-event coverage;
-6. `ontologyWrites = 0` and `stagingWrites = 0`;
-7. `db:verify` remains green and ontology counts are unchanged.
+3. real network failure states are explicitly reported;
+4. the archive redirect target is identified exactly;
+5. the TLS failure is reproduced independently by Node and `curl`;
+6. no TLS verification bypass is introduced;
+7. `ontologyWrites = 0` and `stagingWrites = 0`;
+8. `db:verify` remains green and ontology counts are unchanged.
 
-The observed structure determines the next enrichment schema. We do not add title/date/location/speaker columns before seeing what the source pages actually expose reliably.
+The next enrichment step must use already trusted source-grounded context (Telegram post text, anchor labels, hashtags and timestamps) rather than weakening transport security.
