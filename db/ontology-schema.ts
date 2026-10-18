@@ -1,6 +1,7 @@
 import {
   doublePrecision,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -135,4 +136,57 @@ export const rawArchiveArtifacts = pgTable("raw_archive_artifacts", {
   uniqueIndex("raw_archive_provider_item_uniq").on(table.provider, table.providerItemId),
   index("raw_archive_specialty_idx").on(table.specialty, table.sourceRegistryId),
   index("raw_archive_promoted_node_idx").on(table.promotedNodeId),
+]);
+
+/**
+ * Parsed distribution records are staging data, not canonical knowledge.
+ * They may later be reviewed/resolved and selectively promoted to ontology nodes.
+ */
+export const distributionPostCandidates = pgTable("distribution_post_candidates", {
+  id: text("id").primaryKey(),
+  sourceRegistryId: text("source_registry_id").notNull(),
+  specialty: text("specialty").$type<SpecialtyId>().notNull(),
+  messageId: text("message_id").notNull(),
+  sourceArtifactId: text("source_artifact_id").references(() => rawArchiveArtifacts.id).notNull(),
+  publishedAtLocal: timestamp("published_at_local", { withTimezone: false, mode: "string" }),
+  publishedAtRaw: text("published_at_raw"),
+  publishedAtBasis: text("published_at_basis").$type<"offset_explicit" | "source_local" | "unknown">().notNull(),
+  authorDisplayName: text("author_display_name"),
+  bodyText: text("body_text").notNull(),
+  hashtags: jsonb("hashtags").$type<string[]>().notNull(),
+  rawFragmentSha256: text("raw_fragment_sha256").notNull(),
+  reviewState: text("review_state").$type<"parsed" | "needs_review" | "approved_for_promotion" | "rejected" | "promoted">().default("parsed").notNull(),
+  promotedNodeId: text("promoted_node_id").references(() => ontologyNodes.id),
+  parsedAt: timestamp("parsed_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("distribution_post_source_message_uniq").on(table.sourceRegistryId, table.messageId),
+  index("distribution_post_specialty_idx").on(table.specialty, table.sourceRegistryId),
+  index("distribution_post_review_idx").on(table.reviewState, table.specialty),
+  index("distribution_post_promoted_idx").on(table.promotedNodeId),
+]);
+
+export const distributionPostCandidateLinks = pgTable("distribution_post_candidate_links", {
+  candidateId: text("candidate_id").references(() => distributionPostCandidates.id).notNull(),
+  sourceRegistryId: text("source_registry_id").notNull(),
+  ordinal: integer("ordinal").notNull(),
+  href: text("href").notNull(),
+  label: text("label").notNull(),
+  kind: text("kind").$type<"external" | "internal_navigation" | "local_artifact">().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.candidateId, table.ordinal] }),
+  index("distribution_post_links_source_idx").on(table.sourceRegistryId),
+  index("distribution_post_links_kind_idx").on(table.kind),
+]);
+
+export const distributionPostCandidateMedia = pgTable("distribution_post_candidate_media", {
+  candidateId: text("candidate_id").references(() => distributionPostCandidates.id).notNull(),
+  sourceRegistryId: text("source_registry_id").notNull(),
+  ordinal: integer("ordinal").notNull(),
+  href: text("href").notNull(),
+  kind: text("kind").$type<"photo" | "video" | "file" | "gif" | "round_video" | "voice" | "sticker" | "webpage_thumb" | "other">().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.candidateId, table.ordinal] }),
+  index("distribution_post_media_source_idx").on(table.sourceRegistryId),
+  index("distribution_post_media_kind_idx").on(table.kind),
 ]);
