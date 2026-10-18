@@ -29,11 +29,10 @@ export function PbzContextStrip({ specialty, shell }: { specialty: SpecialtyId; 
         </div>
       </div>
       <div className="pbz-context-chips">
-        {signals.map(({ cluster, count }) => (
+        {signals.map(({ cluster }) => (
           <Link key={cluster.id} href={`/${specialty}?q=${encodeURIComponent(cluster.searchQuery)}`}>
             <Sparkles size={12} aria-hidden="true" />
             <span>{cluster.label}</span>
-            <small>{count}</small>
           </Link>
         ))}
       </div>
