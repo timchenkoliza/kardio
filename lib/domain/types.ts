@@ -94,15 +94,17 @@ export interface UserState {
   pinnedSourceIds: string[];
   followedSourceIds: string[];
   followedTopics: string[];
+  researchInterests: string[];
   recent: RecentEntry[];
   collections: Collection[];
 }
 export type StateCommand =
   | { action: "preferences"; specialty?: SpecialtyId; shell?: Shell }
   | { action: "save" | "pin" | "followSource" | "pinSource" | "followTopic"; id: string; enabled: boolean; specialty: SpecialtyId }
+  | { action: "researchInterest"; specialty: SpecialtyId; value: string; enabled: boolean }
   | { action: "recent"; entry: Omit<RecentEntry, "at"> }
   | { action: "createCollection"; name: string; specialty: SpecialtyId }
   | { action: "collectionItem"; collectionId: string; contentId: string; enabled: boolean; specialty: SpecialtyId }
   | { action: "deleteCollection"; collectionId: string; specialty: SpecialtyId }
   | { action: "clearHistory" };
-export const emptyUserState = (): UserState => ({ specialty: "cardiology", shell: "explore", savedIds: [], pinnedIds: [], pinnedSourceIds: [], followedSourceIds: [], followedTopics: [], recent: [], collections: [] });
+export const emptyUserState = (): UserState => ({ specialty: "cardiology", shell: "explore", savedIds: [], pinnedIds: [], pinnedSourceIds: [], followedSourceIds: [], followedTopics: [], researchInterests: [], recent: [], collections: [] });
