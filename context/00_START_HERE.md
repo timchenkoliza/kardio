@@ -117,6 +117,10 @@ Do not reuse one generic doctor photo across unrelated cards.
 
 Read:
 - `19_SPECIALTY_VISUAL_IDENTITY.md`
+- `20_SPECIALTY_VISUAL_TOKENS.json`
+
+`19_SPECIALTY_VISUAL_IDENTITY.md` is the human-readable visual specification.  
+`20_SPECIALTY_VISUAL_TOKENS.json` is the machine-readable palette/constraint layer for implementation.
 
 This is a shared specialty layer across all three shells, not a fourth shell and not a separate product theme.
 
@@ -151,17 +155,18 @@ Do not apply the specialty visual system to hard-coded demo content and do not s
 3. `17_REAL_CONTENT_AUDIT.md`
 4. `18_EDITORIAL_IMAGE_POLICY.md`
 5. `19_SPECIALTY_VISUAL_IDENTITY.md`
-6. `product/PRODUCT_BOUNDARIES.md`
-7. `product/MVP_ARCHITECTURE.md`
-8. `knowledge/source_modes.json`
-9. `knowledge/source_registry.cardiology.json`
-10. `ranking/RANKING_POLICY_V3.md`
-11. `product/GENUI_EVOLUTION.md`
-12. `pilot/RKO_PILOT.md`
-13. `metrics/MVP_METRICS.md`
-14. `legal/LEGAL_GATES_RU.md`
-15. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
-16. `13_PHASE_1_PROMPT_V3.md`
+6. `20_SPECIALTY_VISUAL_TOKENS.json`
+7. `product/PRODUCT_BOUNDARIES.md`
+8. `product/MVP_ARCHITECTURE.md`
+9. `knowledge/source_modes.json`
+10. `knowledge/source_registry.cardiology.json`
+11. `ranking/RANKING_POLICY_V3.md`
+12. `product/GENUI_EVOLUTION.md`
+13. `pilot/RKO_PILOT.md`
+14. `metrics/MVP_METRICS.md`
+15. `legal/LEGAL_GATES_RU.md`
+16. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
+17. `13_PHASE_1_PROMPT_V3.md`
 
 `knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
