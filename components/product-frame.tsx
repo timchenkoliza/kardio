@@ -22,11 +22,12 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
   const settings = useRef<HTMLDialogElement>(null);
   const [historyCleared, setHistoryCleared] = useState(false);
   const view = params.get("view") ?? "feed";
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const query = search.trim();
     if (!query) return;
     track("search_submitted");
+    await mutate({ action: "recent", entry: { kind: "query", specialty, query } });
     router.push(`/${specialty}?q=${encodeURIComponent(query)}`);
   }
   async function changeShell(shell: Shell) {
@@ -40,7 +41,7 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
     <header className="topbar">
       <Link className="brand" href={`/${specialty}`} aria-label="Яндекс Мед — главная"><span className="brand-symbol" aria-hidden="true">Я</span><span>Яндекс <strong>Мед</strong></span></Link>
       <div className="specialty-control"><label className="sr-only" htmlFor="specialty">Специальность</label><select id="specialty" value={specialty} disabled={pending} onChange={event => void changeSpecialty(event.target.value as SpecialtyId)}><option value="cardiology">Кардиология</option><option value="oncology">Онкология</option></select><ChevronDown size={14} aria-hidden="true" /></div>
-      <form className="global-search" role="search" onSubmit={submit}><Search size={19} aria-hidden="true" /><label className="sr-only" htmlFor="global-search">Поиск</label><input id="global-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Тема, рекомендация или вопрос" autoComplete="off" maxLength={240} /><button type="submit" aria-label="Найти"><span className="search-label">Найти</span><ArrowUpRight size={16} aria-hidden="true" /></button></form>
+      <form className="global-search" role="search" onSubmit={event => void submit(event)}><Search size={19} aria-hidden="true" /><label className="sr-only" htmlFor="global-search">Поиск</label><input id="global-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Тема, рекомендация или вопрос" autoComplete="off" maxLength={160} /><button type="submit" aria-label="Найти"><span className="search-label">Найти</span><ArrowUpRight size={16} aria-hidden="true" /></button></form>
       <button className="icon-button settings-button" aria-label="Настройки" onClick={() => settings.current?.showModal()}><Settings2 size={21} /></button>
       <span className="avatar" aria-label="Личное пространство без регистрации">М</span>
     </header>
