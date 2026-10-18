@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowUpRight, CircleAlert } from "lucide-react";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { currentnessLabel, isPartner, kindLabel, publicationLabel } from "@/lib/ui/labels";
 import { ContentSaveButton } from "./content-actions";
@@ -12,9 +12,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
   position?: number;
 }) {
   const partner = isPartner(content);
-  const statusIcon = content.currentness === "current" ? CheckCircle2 : CircleAlert;
-  const StatusIcon = statusIcon;
-  const showMedia = featured || Boolean(content.asset?.url);
+  const exceptionalState = content.currentness !== "current";
 
   return (
     <article className={featured ? "editorial-card featured-card" : "editorial-card"} data-kind={content.kind} data-rank-position={position}>
@@ -26,21 +24,24 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
         <ContentSaveButton contentId={content.id} specialty={specialty} compact />
       </div>
 
-      <div className={showMedia ? "editorial-card-main with-media" : "editorial-card-main"}>
+      <div className="editorial-card-main with-media">
         <Link className="editorial-card-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`}>
           <h2>{content.title}</h2>
           {content.summary && <p>{content.summary}</p>}
         </Link>
-        {showMedia && <EditorialMedia content={content} specialty={specialty} compact={!featured} />}
+        <EditorialMedia content={content} specialty={specialty} compact={!featured} />
       </div>
 
       <div className="editorial-card-footer">
         <span>{publicationLabel(content)}</span>
-        <span className={`currentness ${content.currentness}`} title={currentnessLabel[content.currentness]}>
-          <StatusIcon size={14} aria-hidden="true" />{content.currentness === "current" ? "Актуально" : content.currentness === "review" ? "Нужна проверка" : content.currentness === "superseded" ? "Есть новая версия" : "Архив"}
-        </span>
-        <Link className="quiet-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`} aria-label={`Открыть: ${content.title}`}>
-          Открыть <ArrowUpRight size={14} aria-hidden="true" />
+        {exceptionalState && (
+          <span className={`currentness ${content.currentness}`} title={currentnessLabel[content.currentness]}>
+            <CircleAlert size={14} aria-hidden="true" />
+            {content.currentness === "review" ? "Проверяем" : content.currentness === "superseded" ? "Есть новая версия" : "Архив"}
+          </span>
+        )}
+        <Link className="quiet-link card-open-icon" href={`/${specialty}/content/${encodeURIComponent(content.id)}`} aria-label={`Открыть: ${content.title}`}>
+          <ArrowUpRight size={15} aria-hidden="true" />
         </Link>
       </div>
     </article>
