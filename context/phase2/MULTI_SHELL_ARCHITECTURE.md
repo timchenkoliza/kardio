@@ -69,6 +69,22 @@ ui_shell = search_first | toolbelt | knowledge_workspace
 
 This setting is not a clinical or psychological profile.
 
+## Current implementation proof
+
+`phase2/kardio-app.html` is the current shared-state prototype.
+
+It implements:
+- explicit first-use shell selection;
+- switching between all three shells;
+- shared query state;
+- shared recent history;
+- shared saved items;
+- shared pinned capabilities;
+- one common source registry / trust model;
+- persistence in local storage for prototype review.
+
+The older `phase2/kardio-multishell.html` is only an iframe-based selection wrapper and should not be treated as the target production architecture.
+
 ## Why keep all three
 
 ### Search-first Navigator
@@ -128,3 +144,10 @@ The previous gate "select one Phase 1 direction" is replaced by:
 The pixel-first build contract now applies to all three shells.
 
 Visual QA must evaluate each shell independently at the required anchor viewports while checking that shared content and business rules remain consistent.
+
+## Verification status
+
+- Multi-shell product decision: VERIFIED by explicit user instruction.
+- Shared-state prototype: IMPLEMENTED.
+- Browser visual QA at anchor viewports: NOT VERIFIED in the current session.
+- Vercel Preview: NOT VERIFIED because no connected Vercel team/project is available in the current session.
