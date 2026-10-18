@@ -6,6 +6,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type {
   DomainEventType,
@@ -37,8 +38,10 @@ export const ontologyNodes = pgTable("ontology_nodes", {
 export const ontologyEdges = pgTable("ontology_edges", {
   id: text("id").primaryKey(),
   type: text("type").$type<RelationType>().notNull(),
-  fromId: text("from_id").references(() => ontologyNodes.id, { onDelete: "cascade" }).notNull(),
-  toId: text("to_id").references(() => ontologyNodes.id, { onDelete: "cascade" }).notNull(),
+  // Hard-delete is intentionally restricted by the default NO ACTION FK policy.
+  // Retire/deprecate ontology facts through state/review transitions instead of cascading history away.
+  fromId: text("from_id").references(() => ontologyNodes.id).notNull(),
+  toId: text("to_id").references(() => ontologyNodes.id).notNull(),
   reviewState: text("review_state").$type<RelationReviewState>().notNull(),
   confidence: doublePrecision("confidence"),
   attributes: jsonb("attributes").$type<Record<string, unknown>>().notNull(),
@@ -54,7 +57,8 @@ export const evidenceRecords = pgTable("evidence_records", {
   targetId: text("target_id").notNull(),
   targetProperty: text("target_property"),
   type: text("type").$type<EvidenceType>().notNull(),
-  sourceNodeId: text("source_node_id").references(() => ontologyNodes.id, { onDelete: "set null" }),
+  // Provenance should block destructive source-node deletion instead of silently losing the source link.
+  sourceNodeId: text("source_node_id").references(() => ontologyNodes.id),
   externalUrl: text("external_url"),
   artifactRef: text("artifact_ref"),
   capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).notNull(),
@@ -74,16 +78,16 @@ export const evidenceRecords = pgTable("evidence_records", {
 ]);
 
 export const ontologyEdgeEvidence = pgTable("ontology_edge_evidence", {
-  edgeId: text("edge_id").references(() => ontologyEdges.id, { onDelete: "cascade" }).notNull(),
-  evidenceId: text("evidence_id").references(() => evidenceRecords.id, { onDelete: "cascade" }).notNull(),
+  edgeId: text("edge_id").references(() => ontologyEdges.id).notNull(),
+  evidenceId: text("evidence_id").references(() => evidenceRecords.id).notNull(),
 }, (table) => [primaryKey({ columns: [table.edgeId, table.evidenceId] })]);
 
 export const nodeStateFacts = pgTable("node_state_facts", {
   id: text("id").primaryKey(),
-  nodeId: text("node_id").references(() => ontologyNodes.id, { onDelete: "cascade" }).notNull(),
+  nodeId: text("node_id").references(() => ontologyNodes.id).notNull(),
   dimension: text("dimension").$type<StateDimension>().notNull(),
   value: text("value").notNull(),
-  evidenceId: text("evidence_id").references(() => evidenceRecords.id, { onDelete: "set null" }),
+  evidenceId: text("evidence_id").references(() => evidenceRecords.id),
   validFrom: timestamp("valid_from", { withTimezone: true, mode: "string" }).notNull(),
   validUntil: timestamp("valid_until", { withTimezone: true, mode: "string" }),
   recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" }).notNull(),
@@ -94,9 +98,9 @@ export const nodeStateFacts = pgTable("node_state_facts", {
 export const ontologyDomainEvents = pgTable("ontology_domain_events", {
   id: text("id").primaryKey(),
   type: text("type").$type<DomainEventType>().notNull(),
-  subjectNodeId: text("subject_node_id").references(() => ontologyNodes.id, { onDelete: "cascade" }).notNull(),
+  subjectNodeId: text("subject_node_id").references(() => ontologyNodes.id).notNull(),
   occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
-  evidenceId: text("evidence_id").references(() => evidenceRecords.id, { onDelete: "set null" }),
+  evidenceId: text("evidence_id").references(() => evidenceRecords.id),
   payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
 }, (table) => [
   index("ontology_events_subject_idx").on(table.subjectNodeId, table.occurredAt),
@@ -108,7 +112,7 @@ export const ontologyDomainEvents = pgTable("ontology_domain_events", {
  * Raw bytes are never stored in ordinary relational columns.
  */
 export const rawArchiveArtifacts = pgTable("raw_archive_artifacts", {
-  ontologyNodeId: text("ontology_node_id").references(() => ontologyNodes.id, { onDelete: "cascade" }).primaryKey(),
+  ontologyNodeId: text("ontology_node_id").references(() => ontologyNodes.id).primaryKey(),
   provider: text("provider").notNull(),
   providerItemId: text("provider_item_id").notNull(),
   parentProviderItemId: text("parent_provider_item_id"),
@@ -123,6 +127,7 @@ export const rawArchiveArtifacts = pgTable("raw_archive_artifacts", {
   syncState: text("sync_state").notNull(),
   syncedAt: timestamp("synced_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 }, (table) => [
-  index("raw_archive_provider_item_idx").on(table.provider, table.providerItemId),
+  // One provider item should map to one raw-archive record. Deterministic node IDs remain the primary identity.
+  uniqueIndex("raw_archive_provider_item_uniq").on(table.provider, table.providerItemId),
   index("raw_archive_specialty_idx").on(table.specialty, table.sourceRegistryId),
 ]);
