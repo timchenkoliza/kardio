@@ -6,6 +6,7 @@ import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
+import { EventsHub, VmpHub } from "@/components/professional-destination-hubs";
 import { ReferenceHub } from "@/components/reference-hub";
 import { SectionHelp } from "@/components/section-help";
 import { WorkspaceResearchAgent } from "@/components/workspace-research-agent";
@@ -122,6 +123,8 @@ function ExploreOrCatalogHome({
   if (view === "tools") return <ClinicalToolsHub specialty={specialty} />;
   if (view === "reference") return <ReferenceHub specialty={specialty} />;
   if (view === "imaging") return <ImagingWorkspace specialty={specialty} />;
+  if (view === "events") return <EventsHub specialty={specialty} content={content} />;
+  if (view === "referral") return <VmpHub specialty={specialty} />;
 
   const viewKind = contentKindFromView(view);
   let visible = selectFeedContent({
@@ -229,7 +232,7 @@ function PracticeHome({ specialty, content, sources, state }: { specialty: Speci
       <Link href={`/${specialty}?kind=guideline`}><BookOpen size={22} /><span><strong>Рекомендации</strong><small>Открыть текущие версии</small></span><ArrowRight size={17} /></Link>
       <Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Две кардиологические шкалы</small></span><ArrowRight size={17} /></Link>
       <Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Лекарства и взаимодействия</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Навигация по доступным материалам</small></span><ArrowRight size={17} /></Link>
+      <Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Официальные документы и навигация</small></span><ArrowRight size={17} /></Link>
     </section>
 
     <div className="practice-columns">
