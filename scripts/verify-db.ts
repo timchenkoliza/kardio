@@ -58,10 +58,45 @@ try {
     ok: prematurelyPromotedArchiveItems === 0,
   });
 
+  const duplicateDistributionCandidates = await scalar(`
+    select count(*)::text as value
+    from (
+      select source_registry_id, message_id
+      from distribution_post_candidates
+      group by source_registry_id, message_id
+      having count(*) > 1
+    ) duplicates
+  `);
+  checks.push({
+    name: "duplicate distribution candidate identities",
+    actual: duplicateDistributionCandidates,
+    expected: 0,
+    ok: duplicateDistributionCandidates === 0,
+  });
+
+  const candidateSourceArtifactOrphans = await scalar(`
+    select count(*)::text as value
+    from distribution_post_candidates c
+    left join raw_archive_artifacts a on a.id = c.source_artifact_id
+    where a.id is null
+  `);
+  checks.push({
+    name: "distribution candidates without raw source artifact",
+    actual: candidateSourceArtifactOrphans,
+    expected: 0,
+    ok: candidateSourceArtifactOrphans === 0,
+  });
+
   const report = {
     ok: checks.every((check) => check.ok),
     checks,
     rawArchiveArtifacts: await scalar("select count(*)::text as value from raw_archive_artifacts"),
+    distributionCandidates: await scalar("select count(*)::text as value from distribution_post_candidates"),
+    distributionCandidatesPresent: await scalar("select count(*)::text as value from distribution_post_candidates where source_presence = 'present'"),
+    distributionCandidatesMissing: await scalar("select count(*)::text as value from distribution_post_candidates where source_presence = 'missing'"),
+    distributionCandidateLinks: await scalar("select count(*)::text as value from distribution_post_candidate_links"),
+    distributionCandidateMedia: await scalar("select count(*)::text as value from distribution_post_candidate_media"),
+    distributionCandidatesPromoted: await scalar("select count(*)::text as value from distribution_post_candidates where promoted_node_id is not null"),
   };
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok) process.exitCode = 1;
