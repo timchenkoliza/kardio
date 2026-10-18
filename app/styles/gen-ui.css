@@ -1,0 +1,130 @@
+.gen-ui-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.gen-ui-block {
+  position: relative;
+  min-width: 0;
+}
+
+.gen-ui-block.is-pinned {
+  scroll-margin-top: 96px;
+}
+
+.gen-ui-block.is-less {
+  opacity: .88;
+}
+
+.gen-ui-menu {
+  position: absolute;
+  z-index: 12;
+  top: 10px;
+  right: 10px;
+}
+
+.gen-ui-menu > summary {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-subtle);
+}
+
+.gen-ui-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gen-ui-menu[open] > summary {
+  background: var(--color-text);
+  color: var(--color-surface);
+  border-color: var(--color-text);
+}
+
+.gen-ui-menu-popover {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  width: 230px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.gen-ui-menu-popover strong {
+  padding: 6px 8px 8px;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.gen-ui-menu-popover button {
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  font: inherit;
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.gen-ui-menu-popover button:hover {
+  background: var(--color-surface-hover);
+}
+
+.gen-ui-menu-popover button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.gen-ui-settings-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.gen-ui-setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.gen-ui-setting-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.gen-ui-setting-row small {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-metadata);
+}
+
+@media (max-width: 760px) {
+  .gen-ui-menu {
+    top: 8px;
+    right: 8px;
+  }
+
+  .gen-ui-menu-popover {
+    width: min(230px, calc(100vw - 48px));
+  }
+}
