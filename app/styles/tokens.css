@@ -27,6 +27,9 @@
   --shadow-subtle: 0 1px 2px rgb(16 24 40 / 6%);
   --shadow-raised: 0 8px 24px rgb(16 24 40 / 8%);
   --shadow-floating: 0 18px 50px rgb(50 50 80 / 10%);
+  --shadow-card: 0 1px 0 rgb(23 23 28 / 5%), 0 8px 28px rgb(23 23 28 / 4%);
+  --shadow-card-hover: 0 14px 34px rgb(23 23 28 / 8%);
+  --shadow-card-featured: 0 1px 0 rgb(23 23 28 / 4%), 0 14px 42px rgb(23 23 28 / 5%);
 
   --color-canvas: #f8f8fb;
   --color-canvas-lilac: #f4f3ff;
@@ -51,4 +54,85 @@
   --color-success: #157a55;
   --color-success-soft: #edf8f3;
   --color-overlay: #17171c66;
+  --color-overlay-strong: #17171cb8;
+
+  --specialty-art-1: #d9dbff;
+  --specialty-art-2: #b9c8ff;
+  --specialty-art-3: #eef0ff;
+  --specialty-art-ink: #4d50b8;
+  --rail-highlight: #fff5dc;
+
+  --art-guideline-bg: #efeaff;
+  --art-guideline-1: #b6a8ff;
+  --art-guideline-2: #d9d2ff;
+  --art-guideline-ink: #5447b9;
+  --art-article-bg: #eaf4ff;
+  --art-article-1: #8fc7ff;
+  --art-article-2: #c5e2ff;
+  --art-article-ink: #2f67a6;
+  --art-video-bg: #fff0df;
+  --art-video-1: #ffad6d;
+  --art-video-2: #ffd2ae;
+  --art-video-ink: #9b571e;
+  --art-clinical-bg: #e9f7ef;
+  --art-clinical-1: #8bd0aa;
+  --art-clinical-2: #c7ead7;
+  --art-clinical-ink: #2f7750;
+  --art-event-bg: #fff2f3;
+  --art-event-1: #f39aaa;
+  --art-event-2: #ffd1d9;
+  --art-event-ink: #9e4355;
+}
+
+.product[data-specialty="cardiology"] {
+  --color-canvas: #f8f9fd;
+  --color-canvas-lilac: #f3f3ff;
+  --color-canvas-blue: #f4f8ff;
+  --color-accent: #989bfb;
+  --color-accent-strong: #7478e8;
+  --color-accent-ink: #4d50b8;
+  --color-accent-soft: #ececff;
+  --color-accent-wash: #f4f3ff;
+  --specialty-art-1: #d9dbff;
+  --specialty-art-2: #b9c8ff;
+  --specialty-art-3: #eef0ff;
+  --specialty-art-ink: #4d50b8;
+  --rail-highlight: #fff5dc;
+}
+
+.product[data-specialty="oncology"] {
+  --color-canvas: #fcf8fa;
+  --color-canvas-lilac: #fff3f7;
+  --color-canvas-blue: #fff8f2;
+  --color-accent: #e8a0bc;
+  --color-accent-strong: #c56f95;
+  --color-accent-ink: #8c4567;
+  --color-accent-soft: #f8e5ee;
+  --color-accent-wash: #fff2f6;
+  --specialty-art-1: #f3c4d7;
+  --specialty-art-2: #f5d5bf;
+  --specialty-art-3: #fdeff4;
+  --specialty-art-ink: #8c4567;
+  --rail-highlight: #f9e8ef;
+
+  --art-guideline-bg: #f8e9f0;
+  --art-guideline-1: #d887aa;
+  --art-guideline-2: #efbed2;
+  --art-guideline-ink: #7f3f60;
+  --art-article-bg: #fff0e7;
+  --art-article-1: #eea77d;
+  --art-article-2: #f8d0b7;
+  --art-article-ink: #8b5432;
+  --art-video-bg: #f1eafd;
+  --art-video-1: #ae8bdd;
+  --art-video-2: #d9c9f1;
+  --art-video-ink: #66468f;
+  --art-clinical-bg: #eef5ea;
+  --art-clinical-1: #a8c991;
+  --art-clinical-2: #d5e5ca;
+  --art-clinical-ink: #577344;
+  --art-event-bg: #fff0e9;
+  --art-event-1: #e9a17f;
+  --art-event-2: #f5ccb9;
+  --art-event-ink: #8b5432;
 }
