@@ -19,6 +19,9 @@ It only refines the active cardiology visual layer after real-content binding.
 Active entry point:
 - `phase2/kardio-app.html`
 
+Visual QA harness:
+- `phase2/visual-qa.html`
+
 Final CSS order now ends with:
 - `phase2/kardio-pixel-polish.css`
 
@@ -141,6 +144,19 @@ C — Knowledge Workspace:
 - source action may take a full row;
 - long titles remain visible rather than truncated.
 
+## Visual QA harness
+
+`phase2/visual-qa.html` exists only for local review.
+
+It provides:
+- A / B / C side-by-side or stacked review;
+- exact iframe widths for 390, 768 and 1440 px;
+- the same real Golden Set runtime used by the active app;
+- automatic QA-shell bootstrapping through `?qaShell=A|B|C`;
+- onboarding bypass only when the explicit QA query parameter is present.
+
+Normal `phase2/kardio-app.html` behavior is unchanged without the QA parameter.
+
 ## Source-level checks completed
 
 VERIFIED:
@@ -152,7 +168,9 @@ VERIFIED:
 - current/review/superseded/archive labels remain present;
 - no-image fallback remains valid;
 - semantically matched clinical image uses a no-crop/contain rule in the final layer;
-- mobile/tablet/desktop breakpoints are explicitly encoded.
+- mobile/tablet/desktop breakpoints are explicitly encoded;
+- an explicit `overflow-x` guard exists on the cardiology surface;
+- the local QA harness does not affect normal production behavior without `qaShell`.
 
 ## Browser verification status
 
@@ -167,10 +185,10 @@ Local Chromium exists in the execution container, but navigation to both `file:/
 
 ## Merge gate
 
-Do not merge the draft PR until the user opens the branch locally and checks at minimum:
-- A/B/C home at desktop width;
-- A/B/C around 768 px;
-- A/B/C around 390 px;
+Do not merge the draft PR until the user opens `phase2/visual-qa.html` locally and checks at minimum:
+- A/B/C home at 1440;
+- A/B/C at 768;
+- A/B/C at 390;
 - the long-title search/guideline states;
 - `fact-ar-echo-2025` image treatment;
 - at least one superseded object;
