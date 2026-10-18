@@ -7,9 +7,11 @@
 
 body[data-specialty="cardiology"]{
   background:#f8f6f7;
+  overflow-x:hidden;
 }
 body[data-specialty="cardiology"] .root{
   background:#fbf9fa;
+  overflow-x:clip;
 }
 body[data-specialty="cardiology"] .global{
   height:56px;
