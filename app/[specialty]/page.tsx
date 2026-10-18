@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Bookmark, BookOpen, CalendarDays, Calculator, Clock, FolderOpen, Library, Pin, Search } from "lucide-react";
 import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-hub";
 import { EditorialContentCard } from "@/components/editorial-content-card";
+import { GenUiStack } from "@/components/gen-ui-stack";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import { EventsHub, VmpHub } from "@/components/professional-destination-hubs";
@@ -213,6 +214,38 @@ function ExploreOrCatalogHome({
 function PracticeHome({ specialty, content, sources, state }: { specialty: SpecialtyId; content: ContentObject[]; sources: Source[]; state: UserState }) {
   const model = buildPracticeHomeModel(content, state, specialty);
   const personal = model.pinned.length ? model.pinned : model.recent.length ? model.recent : model.saved;
+  const blocks = [
+    {
+      id: "practice-launcher",
+      label: "Быстрые инструменты",
+      content: <section className="practice-launcher" aria-label="Рабочие задачи">
+        <Link href={`/${specialty}?kind=guideline`}><BookOpen size={22} /><span><strong>Рекомендации</strong><small>Открыть текущие версии</small></span><ArrowRight size={17} /></Link>
+        <Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Две кардиологические шкалы</small></span><ArrowRight size={17} /></Link>
+        <Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Лекарства и взаимодействия</small></span><ArrowRight size={17} /></Link>
+        <Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Официальные документы и навигация</small></span><ArrowRight size={17} /></Link>
+      </section>,
+    },
+    {
+      id: "practice-current",
+      label: "Рекомендации и личное",
+      content: <div className="practice-columns">
+        <section className="practice-primary" aria-labelledby="guidelines-title">
+          <div className="mode-section-heading"><div><span className="eyebrow">Сейчас под рукой</span><div className="heading-with-help"><h2 id="guidelines-title">Текущие рекомендации</h2><SectionHelp text="Здесь только текущие клинические рекомендации из каталога; архивные и заменённые версии не поднимаются в этот блок." /></div></div><Link href={`/${specialty}?kind=guideline`}>Все рекомендации <ArrowRight size={15} /></Link></div>
+          {model.currentGuidelines.length ? <div className="mode-row-list">{model.currentGuidelines.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div> : <ModeInlineEmpty text="В каталоге пока нет текущих рекомендаций." />}
+        </section>
+        <aside className="practice-personal" aria-label="Ваш быстрый доступ">
+          <div className="mode-section-heading compact"><div><span className="eyebrow">Личное</span><div className="heading-with-help"><h2>{model.pinned.length ? "Закреплено" : model.recent.length ? "Недавнее" : "Сохранено"}</h2><SectionHelp text="Приоритет: закреплённое → недавно открытое → сохранённое. Это ваш собственный слой, а не редакционная рекомендация." /></div></div></div>
+          {personal.length ? <div className="personal-shortlist">{personal.slice(0, 4).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div> : <ModeInlineEmpty text="Здесь появятся материалы, которые вы закрепите, сохраните или недавно открывали." />}
+          <Link className="secondary-button practice-saved-link" href={`/${specialty}?view=saved`}><Bookmark size={15} /> Мои материалы</Link>
+        </aside>
+      </div>,
+    },
+    ...(model.taskObjects.length > 0 ? [{
+      id: "practice-catalog-tools",
+      label: "Рабочие объекты каталога",
+      content: <section className="practice-tools" aria-labelledby="practice-tools-title"><div className="mode-section-heading"><div><span className="eyebrow">Инструменты</span><div className="heading-with-help"><h2 id="practice-tools-title">Рабочие объекты каталога</h2><SectionHelp text="Только явно загруженные инструменты, справочные объекты и маршруты. Никаких сгенерированных формул или пациентских рекомендаций." /></div></div></div><div className="mode-row-list">{model.taskObjects.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div></section>,
+    }] : []),
+  ];
 
   return <div className="practice-home">
     <section className="mode-hero practice-hero" aria-labelledby="practice-title">
@@ -227,28 +260,7 @@ function PracticeHome({ specialty, content, sources, state }: { specialty: Speci
         <span><strong>{model.pinned.length}</strong> закреплено</span>
       </div>
     </section>
-
-    <section className="practice-launcher" aria-label="Рабочие задачи">
-      <Link href={`/${specialty}?kind=guideline`}><BookOpen size={22} /><span><strong>Рекомендации</strong><small>Открыть текущие версии</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Две кардиологические шкалы</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Лекарства и взаимодействия</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Официальные документы и навигация</small></span><ArrowRight size={17} /></Link>
-    </section>
-
-    <div className="practice-columns">
-      <section className="practice-primary" aria-labelledby="guidelines-title">
-        <div className="mode-section-heading"><div><span className="eyebrow">Сейчас под рукой</span><div className="heading-with-help"><h2 id="guidelines-title">Текущие рекомендации</h2><SectionHelp text="Здесь только текущие клинические рекомендации из каталога; архивные и заменённые версии не поднимаются в этот блок." /></div></div><Link href={`/${specialty}?kind=guideline`}>Все рекомендации <ArrowRight size={15} /></Link></div>
-        {model.currentGuidelines.length ? <div className="mode-row-list">{model.currentGuidelines.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div> : <ModeInlineEmpty text="В каталоге пока нет текущих рекомендаций." />}
-      </section>
-
-      <aside className="practice-personal" aria-label="Ваш быстрый доступ">
-        <div className="mode-section-heading compact"><div><span className="eyebrow">Личное</span><div className="heading-with-help"><h2>{model.pinned.length ? "Закреплено" : model.recent.length ? "Недавнее" : "Сохранено"}</h2><SectionHelp text="Приоритет: закреплённое → недавно открытое → сохранённое. Это ваш собственный слой, а не редакционная рекомендация." /></div></div></div>
-        {personal.length ? <div className="personal-shortlist">{personal.slice(0, 4).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div> : <ModeInlineEmpty text="Здесь появятся материалы, которые вы закрепите, сохраните или недавно открывали." />}
-        <Link className="secondary-button practice-saved-link" href={`/${specialty}?view=saved`}><Bookmark size={15} /> Мои материалы</Link>
-      </aside>
-    </div>
-
-    {model.taskObjects.length > 0 && <section className="practice-tools" aria-labelledby="practice-tools-title"><div className="mode-section-heading"><div><span className="eyebrow">Инструменты</span><div className="heading-with-help"><h2 id="practice-tools-title">Рабочие объекты каталога</h2><SectionHelp text="Только явно загруженные инструменты, справочные объекты и маршруты. Никаких сгенерированных формул или пациентских рекомендаций." /></div></div></div><div className="mode-row-list">{model.taskObjects.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div></section>}
+    <GenUiStack specialty={specialty} shell="practice" blocks={blocks} />
     <p className="mode-footnote">Источники в каталоге: {sources.length}. Практика не использует данные пациента и не пытается угадывать контекст приёма.</p>
   </div>;
 }
