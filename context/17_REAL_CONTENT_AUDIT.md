@@ -39,6 +39,8 @@ Currentness:
 
 All 54 objects retain `rights_status = needs_rights_review` in this prototype dataset.
 
+All 54 currently have `emergency_flag = false` and `requires_clinician_confirmation = false`; do not invent high-stakes action states to exercise UI.
+
 ## Missing metadata that UI must survive
 
 The dataset intentionally does not fabricate missing fields.
@@ -68,6 +70,8 @@ Observed `trust_layer` values in the content table:
 - expert;
 - professional.
 
+All 54 current content objects are marked `non_commercial`.
+
 Source registry additionally contains commercial/pharma and other source roles. The production adapter must keep:
 - official/guideline;
 - professional society;
@@ -77,6 +81,33 @@ Source registry additionally contains commercial/pharma and other source roles. 
 - user-added/community
 
 visually and behaviorally distinct when those classes enter the rendered set.
+
+Do not fabricate a commercial content card merely to demonstrate commercial styling. The source-registry surface may demonstrate commercial source classification using real registry entries until actual commercial content objects exist.
+
+## Capability coverage gap
+
+The Golden Set is a **content database**, not yet the complete MVP capability database.
+
+It strongly covers:
+- clinical guidelines;
+- video education;
+- Society/professional news;
+- journal/editorial material;
+- clinical cards;
+- RKO membership/community material.
+
+It does **not yet contain canonical product objects for**:
+- calculators;
+- drug/reference entries;
+- VMP/referral routes.
+
+Those capabilities remain valid parts of the product architecture, but they must not be populated with invented medical facts.
+
+Until source-grounded datasets exist for them:
+- keep capability entry points structurally present where required by the approved shell;
+- label their real-data state accurately;
+- do not fabricate calculator definitions, drug monographs or VMP requirements;
+- do not let placeholder capability content contaminate the Golden Set evaluation comparison.
 
 ## Golden Set vs current prototype
 
