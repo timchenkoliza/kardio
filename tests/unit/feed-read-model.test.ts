@@ -3,7 +3,7 @@ import { normalizeQuery, relatedContent, selectFeedContent } from "@/lib/ui/feed
 import type { ContentObject } from "@/lib/domain/types";
 
 function item(overrides: Partial<ContentObject> & Pick<ContentObject, "id" | "title">): ContentObject {
-  return {
+  const base: ContentObject = {
     id: overrides.id,
     specialty: "cardiology",
     kind: "article",
@@ -46,8 +46,8 @@ function item(overrides: Partial<ContentObject> & Pick<ContentObject, "id" | "ti
     author: overrides.author ?? null,
     provenance: { type: "test", asset: null, location: null, notes: null },
     asset: null,
-    ...overrides,
   };
+  return Object.assign(base, overrides);
 }
 
 describe("alpha feed read model", () => {
