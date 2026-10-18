@@ -91,19 +91,40 @@
 }
 
 .product[data-specialty="cardiology"] {
-  --color-canvas: #f8f9fd;
-  --color-canvas-lilac: #f3f3ff;
-  --color-canvas-blue: #f4f8ff;
-  --color-accent: #989bfb;
-  --color-accent-strong: #7478e8;
-  --color-accent-ink: #4d50b8;
-  --color-accent-soft: #ececff;
-  --color-accent-wash: #f4f3ff;
-  --specialty-art-1: #d9dbff;
-  --specialty-art-2: #b9c8ff;
-  --specialty-art-3: #eef0ff;
-  --specialty-art-ink: #4d50b8;
-  --rail-highlight: #fff5dc;
+  --color-canvas: #f7f5f1;
+  --color-canvas-lilac: #f7eee9;
+  --color-canvas-blue: #eef3f6;
+  --color-accent: #8b2433;
+  --color-accent-strong: #651823;
+  --color-accent-ink: #4d111b;
+  --color-accent-soft: #f0d7da;
+  --color-accent-wash: #f8ece9;
+  --specialty-art-1: #c94d5f;
+  --specialty-art-2: #b9cbd6;
+  --specialty-art-3: #f2e7d6;
+  --specialty-art-ink: #5c1823;
+  --rail-highlight: #f1e2bc;
+
+  --art-guideline-bg: #f6ece8;
+  --art-guideline-1: #8b2433;
+  --art-guideline-2: #e7c5c8;
+  --art-guideline-ink: #5c1823;
+  --art-article-bg: #eaf0f4;
+  --art-article-1: #9eb9c9;
+  --art-article-2: #ccd9e0;
+  --art-article-ink: #365568;
+  --art-video-bg: #f5e6cc;
+  --art-video-1: #c94d5f;
+  --art-video-2: #eab5a8;
+  --art-video-ink: #74303a;
+  --art-clinical-bg: #edf2f4;
+  --art-clinical-1: #b5c9d2;
+  --art-clinical-2: #dde4e7;
+  --art-clinical-ink: #405b63;
+  --art-event-bg: #f8e8e8;
+  --art-event-1: #c94d5f;
+  --art-event-2: #e9b1b8;
+  --art-event-ink: #7d2330;
 }
 
 .product[data-specialty="oncology"] {
