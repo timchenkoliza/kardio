@@ -11,6 +11,7 @@ import "./styles/detail-media.css";
 import "./styles/lavka-pass-v2.css";
 import "./styles/lavka-pass-v3.css";
 import "./styles/lavka-pass-v4.css";
+import "./styles/clinical-tools.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
 
