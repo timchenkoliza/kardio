@@ -12,7 +12,7 @@ const sessionIdPattern = /^[a-f0-9]{64}$/;
 const item = { id: idSchema, enabled: z.boolean(), specialty: specialtySchema };
 const researchInterestSchema = z.string().trim().min(2).max(120).regex(/^[^\u0000-\u001f\u007f]+$/u);
 export const stateCommandSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("preferences"), specialty: specialtySchema.optional(), shell: z.enum(["explore", "practice", "workspace"]).optional() }).strict(),
+  z.object({ action: z.literal("preferences"), specialty: specialtySchema.optional(), shell: z.enum(["explore", "practice", "workspace"]).optional(), onboardingCompleted: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("save"), ...item }).strict(),
   z.object({ action: z.literal("pin"), ...item }).strict(),
   z.object({ action: z.literal("followSource"), ...item }).strict(),
@@ -32,6 +32,7 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
   return {
     ...base,
     ...value,
+    onboardingCompleted: value.onboardingCompleted === true,
     savedIds: Array.isArray(value.savedIds) ? value.savedIds : [],
     pinnedIds: Array.isArray(value.pinnedIds) ? value.pinnedIds : [],
     pinnedSourceIds: Array.isArray(value.pinnedSourceIds) ? value.pinnedSourceIds : [],
@@ -88,6 +89,7 @@ export async function mutateState(sessionId: string, command: StateCommand): Pro
       case "preferences":
         if (command.specialty) state.specialty = command.specialty;
         if (command.shell) state.shell = command.shell;
+        if (typeof command.onboardingCompleted === "boolean") state.onboardingCompleted = command.onboardingCompleted;
         break;
       case "save": state.savedIds = toggle(state.savedIds, command.id, command.enabled); break;
       case "pin": state.pinnedIds = toggle(state.pinnedIds, command.id, command.enabled); break;
