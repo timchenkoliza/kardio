@@ -172,7 +172,7 @@ export const distributionPostCandidateLinks = pgTable("distribution_post_candida
   ordinal: integer("ordinal").notNull(),
   href: text("href").notNull(),
   label: text("label").notNull(),
-  kind: text("kind").$type<"external" | "internal_navigation" | "local_artifact">().notNull(),
+  kind: text("kind").$type<"external" | "internal_navigation" | "local_artifact" | "other">().notNull(),
 }, (table) => [
   primaryKey({ columns: [table.candidateId, table.ordinal] }),
   index("distribution_post_links_source_idx").on(table.sourceRegistryId),
@@ -184,7 +184,7 @@ export const distributionPostCandidateMedia = pgTable("distribution_post_candida
   sourceRegistryId: text("source_registry_id").notNull(),
   ordinal: integer("ordinal").notNull(),
   href: text("href").notNull(),
-  kind: text("kind").$type<"photo" | "video" | "file" | "gif" | "round_video" | "voice" | "sticker" | "webpage_thumb" | "other">().notNull(),
+  kind: text("kind").$type<"photo" | "video" | "file" | "gif" | "round_video" | "voice" | "sticker" | "webpage_thumb" | "thumbnail" | "other">().notNull(),
 }, (table) => [
   primaryKey({ columns: [table.candidateId, table.ordinal] }),
   index("distribution_post_media_source_idx").on(table.sourceRegistryId),
