@@ -5,7 +5,11 @@ import { parseEventPageSignals } from "@/server/ingestion/event-page-inspection"
 
 const limit = Math.max(1, Math.min(25, Number(process.env.EVENT_PAGE_INSPECT_LIMIT ?? 10) || 10));
 const timeoutMs = Math.max(1_000, Math.min(30_000, Number(process.env.EVENT_PAGE_FETCH_TIMEOUT_MS ?? 10_000) || 10_000));
-const allowedHosts = new Set(["scardio.ru", "www.scardio.ru"]);
+
+// Exact allowlist only. The live scardio.ru site currently redirects many historical
+// event pages to its archive host old.scardio.ru. We allow that observed archive host
+// explicitly rather than widening the boundary to arbitrary *.scardio.ru subdomains.
+const allowedHosts = new Set(["scardio.ru", "www.scardio.ru", "old.scardio.ru"]);
 
 interface FetchResult {
   status: number | null;
@@ -121,6 +125,7 @@ try {
 
   console.log(JSON.stringify({
     mode: "read_only_event_page_inspection",
+    allowedHosts: [...allowedHosts],
     availableObservedCandidates: await db.$count(eventReferenceCandidates, eq(eventReferenceCandidates.reviewState, "observed")),
     requestedLimit: limit,
     inspected: candidates.length,
