@@ -7,6 +7,10 @@ import {
   rawArchiveArtifacts,
 } from "@/db/ontology-schema";
 import type { RawArchiveProvider, TelegramExportRegistryEntry } from "@/server/ingestion/drive-source";
+import {
+  candidateTimestampColumns,
+  reviewStateAfterSourceChange,
+} from "@/server/ingestion/distribution-candidate-policy";
 import { parseTelegramDesktopHtml } from "@/server/ingestion/telegram-html";
 
 const CHUNK_SIZE = 500;
@@ -95,30 +99,36 @@ export async function syncTelegramDistributionCandidates(args: {
       updatedAt: now,
     }).where(eq(distributionPostCandidates.sourceRegistryId, args.source.id));
 
-    const rows = posts.map((post) => ({
-      id: post.stableId,
-      sourceRegistryId: post.sourceRegistryId,
-      specialty: post.specialty,
-      messageId: post.messageId,
-      sourceArtifactId: sourceArtifact.id,
-      publishedAtInstant: post.publishedAtBasis === "offset_explicit" ? post.publishedAt : null,
-      publishedAtLocal: post.publishedAtBasis === "source_local" ? post.publishedAt : null,
-      publishedAtRaw: post.publishedAtRaw,
-      publishedAtBasis: post.publishedAtBasis,
-      authorDisplayName: post.authorName,
-      bodyText: post.text,
-      hashtags: [...post.hashtags],
-      rawFragmentSha256: post.rawFragmentSha256,
-      sourcePresence: "present" as const,
-      lastSeenAt: now,
-      updatedAt: now,
-    }));
+    const rows = posts.map((post) => {
+      const timestampColumns = candidateTimestampColumns(post);
+      return {
+        id: post.stableId,
+        sourceRegistryId: post.sourceRegistryId,
+        specialty: post.specialty,
+        messageId: post.messageId,
+        sourceArtifactId: sourceArtifact.id,
+        ...timestampColumns,
+        publishedAtRaw: post.publishedAtRaw,
+        publishedAtBasis: post.publishedAtBasis,
+        authorDisplayName: post.authorName,
+        bodyText: post.text,
+        hashtags: [...post.hashtags],
+        rawFragmentSha256: post.rawFragmentSha256,
+        sourcePresence: "present" as const,
+        lastSeenAt: now,
+        updatedAt: now,
+      };
+    });
 
     for (const batch of chunks(rows)) {
       await tx.insert(distributionPostCandidates).values(batch).onConflictDoNothing();
       for (const row of batch) {
         const previous = existingById.get(row.id);
         const sourceChanged = previous !== undefined && previous.hash !== row.rawFragmentSha256;
+        const nextReviewState = reviewStateAfterSourceChange({
+          previous: previous?.reviewState ?? null,
+          sourceChanged,
+        });
         await tx.update(distributionPostCandidates).set({
           sourceArtifactId: row.sourceArtifactId,
           specialty: row.specialty,
@@ -134,7 +144,7 @@ export async function syncTelegramDistributionCandidates(args: {
           sourcePresence: "present",
           lastSeenAt: now,
           updatedAt: now,
-          ...(sourceChanged && previous?.reviewState !== "parsed" ? { reviewState: "needs_review" as const } : {}),
+          ...(nextReviewState ? { reviewState: nextReviewState } : {}),
         }).where(eq(distributionPostCandidates.id, row.id));
       }
     }
