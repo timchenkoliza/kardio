@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>KARDIO · Real-content multi-shell prototype</title>
+<title>Яндекс Мед · Профессиональная среда врача</title>
+<link rel="stylesheet" href="./workbench-contract.css">
 <link rel="stylesheet" href="./kardio-real.css">
+<link rel="stylesheet" href="./kardio-pixel.css">
 <script>window.KARDIO_GOLDENSET_CHUNKS=[];</script>
 <script src="../data/goldenset-chunk-01.js"></script>
 <script src="../data/goldenset-chunk-02.js"></script>
@@ -18,10 +20,58 @@
 <script src="./content-runtime.js"></script>
 </head>
 <body data-specialty="cardiology">
-<header class="global"><div class="brand">KARDIO</div><span class="shell-label">Сборка</span><span class="shell-name" id="shellName">—</span><div class="grow"></div><button class="ghost" id="debugToggle">ID</button><button class="ghost" id="chooseShell">Сменить</button></header>
+<header class="global">
+  <div class="brand"><span class="brand-mark" aria-hidden>М</span><span class="brand-product">Яндекс Мед</span></div>
+  <button class="specialty-chip" id="chooseSpecialty" type="button" aria-label="Сменить специальность"><span class="specialty-dot" aria-hidden></span><span id="specialtyLabel">Кардиология</span></button>
+  <span class="shell-label">Режим</span><span class="shell-name" id="shellName">—</span>
+  <div class="grow"></div>
+  <button class="ghost" id="debugToggle">ID</button>
+  <button class="ghost" id="chooseShell">Сменить режим</button>
+</header>
 <div id="root" class="root"></div>
-<div id="overlay" class="overlay"><section class="chooser"><div class="eyebrow">Явная пользовательская настройка</div><h1>Выберите рабочую сборку</h1><p>Все три сборки используют один и тот же Golden Set. Данные, источники, сохранённое и закреплённое общие; меняются только навигация, группировка, плотность и композиция.</p><div class="options"><button class="option" data-shell="search_first"><div class="eyebrow">A</div><h2>Search-first Navigator</h2><p>Быстрый вход через поиск, затем источник и действие.</p><span class="pick">Выбрать</span></button><button class="option" data-shell="toolbelt"><div class="eyebrow">B</div><h2>Professional Toolbelt</h2><p>Постоянные профессиональные capabilities и быстрые переключения.</p><span class="pick">Выбрать</span></button><button class="option" data-shell="workspace"><div class="eyebrow">C</div><h2>Knowledge Workspace</h2><p>Темы и коллекции как долговременное рабочее пространство.</p><span class="pick">Выбрать</span></button></div></section></div>
+
+<div id="overlay" class="overlay">
+  <section class="chooser" aria-live="polite">
+    <div class="chooser-stage" id="specialtyStage">
+      <div class="eyebrow">Профессиональная среда Яндекс Мед</div>
+      <h1>Выберите специальность</h1>
+      <p>Интерфейс остаётся Яндекс Мед, а цвет, визуальная физика и редакционная атмосфера меняются вместе со специальностью.</p>
+      <div class="specialty-grid">
+        <button class="specialty-option specialty-option--cardiology" type="button" data-specialty-choice="cardiology">
+          <span class="specialty-kicker">Pulse / Perfusion</span>
+          <h2>Кардиология</h2>
+          <p>Garnet, cath-lab blue и Yandex lavender. Визуальная физика — поток, давление, ритм.</p>
+          <span class="specialty-meta">54 реальных объекта · 24 в evaluation slice</span>
+        </button>
+        <button class="specialty-option specialty-option--oncology" type="button" data-specialty-choice="oncology">
+          <span class="specialty-kicker">Cell / Precision</span>
+          <h2>Онкология</h2>
+          <p>Aubergine, cellular mauve и mineral sage. Визуальная физика — cluster / target.</p>
+          <span class="specialty-meta">Айдентика готова · данные ещё не подключены</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="chooser-stage" id="shellStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-specialty-back aria-label="Назад">←</button><div><div class="eyebrow">Кардиология · реальный Golden Set</div><h1>Выберите рабочий режим</h1></div></div>
+      <p>Контент, источники, сохранённое и provenance общие. Меняется только способ организации профессиональной работы.</p>
+      <div class="options">
+        <button class="option" data-shell="search_first"><div class="eyebrow">A</div><h2>Search-first Navigator</h2><p>Поиск как главный вход: материал → источник → действие.</p><span class="pick">Выбрать</span></button>
+        <button class="option" data-shell="toolbelt"><div class="eyebrow">B</div><h2>Professional Toolbelt</h2><p>Компактные профессиональные capabilities и источники постоянно под рукой.</p><span class="pick">Выбрать</span></button>
+        <button class="option" data-shell="workspace"><div class="eyebrow">C</div><h2>Knowledge Workspace</h2><p>Темы, источники и коллекции как долговременное рабочее пространство.</p><span class="pick">Выбрать</span></button>
+      </div>
+    </div>
+
+    <div class="chooser-stage" id="oncologyStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-specialty-back aria-label="Назад">←</button><div><div class="eyebrow">Онкология · Cell / Precision</div><h1>Визуальная система готова</h1></div></div>
+      <p>Мы не показываем кардиологический Golden Set под онкологической айдентикой. Для полноценного входа сюда нужен отдельный source-grounded oncology dataset.</p>
+      <div class="specialty-gap"><b>Что уже определено:</b> palette, CLUSTER / TARGET physics, component tokens и photography rules. Что не выдумываем: клинический контент, источники и ranking без oncology Golden Set.</div>
+    </div>
+  </section>
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="./kardio-app.js"></script>
+<script src="./specialty-theme.js"></script>
 </body>
 </html>
