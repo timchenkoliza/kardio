@@ -1,47 +1,72 @@
 (()=>{
   const overlay=document.querySelector('#overlay');
+  const introStage=document.querySelector('#introStage');
   const specialtyStage=document.querySelector('#specialtyStage');
+  const safetyStage=document.querySelector('#safetyStage');
   const shellStage=document.querySelector('#shellStage');
   const oncologyStage=document.querySelector('#oncologyStage');
   const specialtyLabel=document.querySelector('#specialtyLabel');
   const specialtyButton=document.querySelector('#chooseSpecialty');
   const chooseShell=document.querySelector('#chooseShell');
+  const ONBOARDING_KEY='yamed.feed.onboarding.v1';
+  const SPECIALTY_KEY='yamed.feed.specialty.v1';
+  const stages={intro:introStage,specialty:specialtyStage,safety:safetyStage,shell:shellStage,oncology:oncologyStage};
+  if(!overlay||Object.values(stages).some(x=>!x))return;
 
-  if(!overlay||!specialtyStage||!shellStage||!oncologyStage)return;
+  const hasCompleted=()=>{try{return localStorage.getItem(ONBOARDING_KEY)==='done'}catch{return false}};
+  const setCompleted=()=>{try{localStorage.setItem(ONBOARDING_KEY,'done')}catch{}}
+  const rememberedSpecialty=()=>{try{return localStorage.getItem(SPECIALTY_KEY)||'cardiology'}catch{return'cardiology'}};
+  const rememberSpecialty=id=>{try{localStorage.setItem(SPECIALTY_KEY,id)}catch{}}
 
-  const setStage=(name)=>{
-    specialtyStage.hidden=name!=='specialty';
-    shellStage.hidden=name!=='shell';
-    oncologyStage.hidden=name!=='oncology';
-  };
-
-  const openSpecialty=()=>{
-    overlay.classList.add('open');
-    setStage('specialty');
-  };
-
-  const activateCardiology=()=>{
-    document.body.dataset.specialty='cardiology';
-    if(specialtyLabel)specialtyLabel.textContent='Кардиология';
+  function setStage(name){
+    for(const [k,node] of Object.entries(stages))node.hidden=k!==name;
+  }
+  function openStage(name){overlay.classList.add('open');setStage(name)}
+  function setSpecialty(id){
+    document.body.dataset.specialty=id;
+    if(specialtyLabel)specialtyLabel.textContent=id==='oncology'?'Онкология':'Кардиология';
+    rememberSpecialty(id);
+  }
+  function selectCardiology(){
+    setSpecialty('cardiology');
+    if(hasCompleted()&&window.KARDIO_HAS_SHELL){overlay.classList.remove('open');return}
+    setStage('safety');
+  }
+  function selectOncology(){
+    setSpecialty('oncology');
+    setStage('oncology');
+  }
+  function continueSafety(){
+    setCompleted();
+    setSpecialty('cardiology');
     setStage('shell');
+  }
+
+  document.querySelector('#introContinue')?.addEventListener('click',()=>setStage('specialty'));
+  document.querySelector('[data-specialty-choice="cardiology"]')?.addEventListener('click',selectCardiology);
+  document.querySelector('[data-specialty-choice="oncology"]')?.addEventListener('click',selectOncology);
+  document.querySelector('#specialtySkip')?.addEventListener('click',()=>setStage('safety'));
+  document.querySelector('#safetyContinue')?.addEventListener('click',continueSafety);
+  document.querySelectorAll('[data-onboarding-back]').forEach(x=>x.addEventListener('click',()=>setStage(x.dataset.onboardingBack)));
+
+  specialtyButton?.addEventListener('click',()=>openStage('specialty'));
+  chooseShell?.addEventListener('click',()=>openStage('shell'));
+
+  const initial=rememberedSpecialty();
+  /* Do not reopen a stale oncology theme over cardiology content after reload. */
+  setSpecialty(initial==='oncology'?'cardiology':initial);
+
+  /* app.js opens the overlay on a fresh shell. We decide which step it should show. */
+  if(overlay.classList.contains('open')){
+    setStage(hasCompleted()?'shell':'intro');
+  }else{
+    setStage(hasCompleted()?'shell':'intro');
+  }
+
+  window.KARDIO_ONBOARDING={
+    openIntro:()=>openStage('intro'),
+    openSpecialty:()=>openStage('specialty'),
+    openShell:()=>openStage('shell'),
+    setStage,
   };
-
-  /* Oncology is deliberately preview-only until an oncology canonical data layer exists.
-     Never render the Cardiology Golden Set under an Oncology label/theme. */
-  const previewOncology=()=>setStage('oncology');
-
-  document.querySelector('[data-specialty-choice="cardiology"]')?.addEventListener('click',activateCardiology);
-  document.querySelector('[data-specialty-choice="oncology"]')?.addEventListener('click',previewOncology);
-  document.querySelectorAll('[data-specialty-back]').forEach(x=>x.addEventListener('click',()=>setStage('specialty')));
-  specialtyButton?.addEventListener('click',openSpecialty);
-
-  /* Existing app.js owns shell state and opens the same overlay. We only reset its first
-     visual step so the dividing screen always starts with specialty, as in the Workbench. */
-  chooseShell?.addEventListener('click',()=>setStage('specialty'));
-
-  document.body.dataset.specialty='cardiology';
-  if(specialtyLabel)specialtyLabel.textContent='Кардиология';
-
-  /* On a fresh run app.js opens the chooser because shell=null. Make specialty the first gate. */
-  setStage('specialty');
 })();
