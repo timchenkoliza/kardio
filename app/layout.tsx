@@ -6,6 +6,7 @@ import "./styles/shell-modes.css";
 import "./styles/workspace-agent.css";
 import "./styles/guidance.css";
 import "./styles/pbz-context.css";
+import "./styles/pixel-pass-v1.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
 
