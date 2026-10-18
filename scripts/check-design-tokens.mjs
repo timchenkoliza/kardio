@@ -17,6 +17,11 @@ walk("components");
 const failures = [];
 const rawColor = /#[\da-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|color)\s*\(/i;
 const controlled = /^(?:font-size|font-family|font-weight|font|(?:border(?:-(?:top|bottom)-(?:left|right))?-radius)|(?:box|text)-shadow)$/;
+const controlledAtom = /^(?:var\(--[\w-]+\)|inherit|initial|unset|revert|none|0)$/;
+function isControlledTokenValue(value) {
+  const normalized = value.trim().replace(/\s*!important$/, "");
+  return normalized.split(/\s+/).every((atom) => controlledAtom.test(atom));
+}
 for (const file of files) {
   if (file === tokenFile) continue;
   const source = fs.readFileSync(path.join(root, file), "utf8");
@@ -31,8 +36,8 @@ for (const file of files) {
   for (const match of sourceWithoutComments.matchAll(/([\w-]+)\s*:\s*([^;{}]+)[;}]/g)) {
     const [, property, value] = match;
     if (property.startsWith("--")) failures.push(`${file}: custom token ${property} must be centralized in ${tokenFile}`);
-    if (controlled.test(property) && !/^(?:var\(--[\w-]+\)|inherit|initial|unset|revert|none|0)(?:\s*!important)?$/.test(value.trim())) {
-      failures.push(`${file}: ${property}: ${value.trim()} must reference a semantic token`);
+    if (controlled.test(property) && !isControlledTokenValue(value)) {
+      failures.push(`${file}: ${property}: ${value.trim()} must reference semantic tokens`);
     }
     const valueWithoutTokenNames = value.replace(/--[\w-]+/g, "");
     if (/^(?:color|background(?:-color)?|border(?:-color)?|outline(?:-color)?|fill|stroke)$/.test(property) && /\b(?:white|black|red|blue|green|gray|grey|purple|yellow|orange|pink)\b/.test(valueWithoutTokenNames)) {
