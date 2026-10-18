@@ -18,15 +18,31 @@ The parser may extract only source-grounded fields from the Telegram HTML export
 - source registry ID and specialty scope;
 - Telegram message ID and deterministic stable ID;
 - post vs service-message kind;
-- raw and parsed publication timestamp;
+- raw publication timestamp plus a normalized value and explicit timestamp basis;
 - source-grounded author/sender display name;
 - plain post text;
 - hashtags;
-- hyperlinks;
-- relative media references;
+- hyperlinks classified as external, internal navigation, local artifact or other;
+- relative media references from both anchor hrefs and non-user-avatar image src values;
 - SHA-256 of the source message fragment.
 
 The parser does not infer diagnosis, clinical truth, authority, rights, professional topic, person identity, event identity, research-study identity, currentness or product eligibility.
+
+## Timestamp semantics
+
+The real `cardiology_channel_01` Telegram Desktop export uses timestamps such as:
+
+`11 March 2022, 15:28:27`
+
+This observed format contains no timezone/UTC offset. The parser therefore stores:
+
+- the exact `publishedAtRaw` string;
+- a normalized wall-clock value such as `2022-03-11T15:28:27`;
+- `publishedAtBasis = source_local`.
+
+It must **not** silently append `Z`, assume UTC, or assume Moscow time. If an export explicitly includes an offset (for example `18.10.2026 12:34:56 UTC+03:00`), the parser may normalize it to an absolute ISO instant and marks `publishedAtBasis = offset_explicit`.
+
+Unknown/unrecognized timestamp formats remain explicit `unknown` rather than receiving inferred timezone semantics.
 
 ## Promotion boundary
 
@@ -68,8 +84,10 @@ The raw-fragment SHA-256 provides change detection without pretending that a par
 1. parser unit tests pass;
 2. parser is deterministic;
 3. `cardiology_channel_01` can be inspected read-only from the real Drive export;
-4. no parser run changes ontology counts;
-5. no parser run writes canonical content;
-6. source/message IDs remain stable;
-7. media stays relative/provenance-linked and carries no inferred usage rights;
-8. missing Cardiology/Oncology exports remain explicit missing states rather than fallback data.
+4. observed Telegram Desktop timestamp formats are normalized without inventing timezone semantics;
+5. no parser run changes ontology counts;
+6. no parser run writes canonical content;
+7. source/message IDs remain stable;
+8. media stays relative/provenance-linked and carries no inferred usage rights;
+9. internal hashtag/navigation links are distinguishable from external URLs;
+10. missing Cardiology/Oncology exports remain explicit missing states rather than fallback data.
