@@ -5,6 +5,7 @@ import { ArrowRight, Bookmark, BookOpen, CalendarDays, Calculator, Clock, Folder
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import { EditorialContentCard } from "@/components/editorial-content-card";
+import { SectionHelp } from "@/components/section-help";
 import { WorkspaceResearchAgent } from "@/components/workspace-research-agent";
 import type { ContentObject, Source, SpecialtyId, UserState } from "@/lib/domain/types";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
@@ -45,7 +46,7 @@ export default async function SpecialtyHome({
   const state = await readState(cookieStore.get(SESSION_COOKIE)?.value);
   const [content, sources] = await Promise.all([listContent(specialty), listSources(specialty)]);
   const initialState = { ...state, specialty };
-  const rootHome = view === "feed" && !query;
+  const rootHome = view === "feed" && !query && kind === "all";
 
   return (
     <ProductProvider initialState={initialState} specialty={specialty}>
@@ -96,13 +97,18 @@ function ExploreOrCatalogHome({
   const rest = visible.slice(1, 10);
   const currentCount = content.filter(item => item.currentness === "current").length;
   const reviewCount = content.filter(item => item.currentness === "review").length;
-  const isExploreHome = view === "feed" && !query;
+  const isFeedCatalog = view === "feed" && !query;
+  const isExploreHome = isFeedCatalog && kind === "all";
+  const pageTitle = query ? "Поиск" : view === "saved" ? "Мои материалы" : view === "sources" ? "Источники" : kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Лента" : "Материалы";
 
   return <>
     <section className="feed-intro explore-intro" aria-labelledby="feed-title">
       <div>
         <span className="eyebrow">{specialtyLabel[specialty]}{isExploreHome ? " · Обзор" : ""}</span>
-        <h1 id="feed-title">{query ? "Поиск" : view === "saved" ? "Мои материалы" : view === "sources" ? "Источники" : isExploreHome ? "Лента" : "Материалы"}</h1>
+        <div className="heading-with-help">
+          <h1 id="feed-title">{pageTitle}</h1>
+          <SectionHelp text={isExploreHome ? "Обзор помогает находить новое: материалы ранжируются детерминированно по каталогу, без персональных данных пациента." : "Раздел показывает только объекты выбранного типа или запроса из текущего каталога."} />
+        </div>
         <p>{query ? `По запросу «${query}»` : specialty === "cardiology" ? "Новые темы, проверяемые материалы и понятные пути к первоисточникам." : "Отдельное пространство специальности. Контент появится только после собственной верифицированной загрузки."}</p>
       </div>
       {specialty === "cardiology" && isExploreHome && (
@@ -114,7 +120,7 @@ function ExploreOrCatalogHome({
       )}
     </section>
 
-    {isExploreHome && specialty === "cardiology" && (
+    {isFeedCatalog && specialty === "cardiology" && (
       <nav className="feed-tabs" aria-label="Разделы ленты">
         {feedTabs.map(tab => (
           <Link key={tab} className={kind === tab ? "feed-tab active" : "feed-tab"} href={`/${specialty}${tab === "all" ? "" : `?kind=${tab}`}`}>
@@ -139,7 +145,7 @@ function ExploreOrCatalogHome({
           <aside className="context-rail" aria-label="Быстрый доступ">
             <div className="context-module">
               <span className="eyebrow">Куда дальше</span>
-              <h2>Исследовать</h2>
+              <div className="heading-with-help"><h2>Исследовать</h2><SectionHelp text="Быстрые маршруты в соседние разделы каталога. Они не меняют ваши сохранения и рабочий режим." /></div>
               <div className="quick-job-list">
                 <Link href={`/${specialty}?kind=guideline`}><BookOpen size={18} /><span><strong>Рекомендации</strong><small>Текущие версии и архив</small></span><ArrowRight size={16} /></Link>
                 <Link href={`/${specialty}?view=events`}><CalendarDays size={18} /><span><strong>События</strong><small>Только подтверждённые объекты каталога</small></span><ArrowRight size={16} /></Link>
@@ -148,7 +154,7 @@ function ExploreOrCatalogHome({
             </div>
             <div className="context-module quiet-module">
               <Search size={20} aria-hidden="true" />
-              <h2>Ищите по теме</h2>
+              <div className="heading-with-help"><h2>Ищите по теме</h2><SectionHelp text="Поиск учитывает заголовки, темы, источники и описания; результат остаётся объяснимым и детерминированным." /></div>
               <p>Поиск работает по заголовкам, темам, источникам и описаниям. Результат остаётся объяснимым и детерминированным.</p>
             </div>
           </aside>
@@ -168,7 +174,7 @@ function PracticeHome({ specialty, content, sources, state }: { specialty: Speci
     <section className="mode-hero practice-hero" aria-labelledby="practice-title">
       <div>
         <span className="eyebrow">{specialtyLabel[specialty]} · Практика</span>
-        <h1 id="practice-title">Рабочий стол врача</h1>
+        <div className="heading-with-help"><h1 id="practice-title">Рабочий стол врача</h1><SectionHelp text="Практика собрана вокруг повторяемых рабочих задач: сначала актуальные рекомендации и инструменты, затем ваш личный быстрый доступ." /></div>
         <p>Не лента новостей: быстрый вход в текущие рекомендации, инструменты и то, что вы сами закрепили для повторной работы.</p>
       </div>
       <div className="mode-stats" aria-label="Рабочее состояние">
@@ -187,18 +193,18 @@ function PracticeHome({ specialty, content, sources, state }: { specialty: Speci
 
     <div className="practice-columns">
       <section className="practice-primary" aria-labelledby="guidelines-title">
-        <div className="mode-section-heading"><div><span className="eyebrow">Сейчас под рукой</span><h2 id="guidelines-title">Текущие рекомендации</h2></div><Link href={`/${specialty}?kind=guideline`}>Все рекомендации <ArrowRight size={15} /></Link></div>
+        <div className="mode-section-heading"><div><span className="eyebrow">Сейчас под рукой</span><div className="heading-with-help"><h2 id="guidelines-title">Текущие рекомендации</h2><SectionHelp text="Здесь только текущие клинические рекомендации из каталога; архивные и заменённые версии не поднимаются в этот блок." /></div></div><Link href={`/${specialty}?kind=guideline`}>Все рекомендации <ArrowRight size={15} /></Link></div>
         {model.currentGuidelines.length ? <div className="mode-row-list">{model.currentGuidelines.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div> : <ModeInlineEmpty text="В каталоге пока нет текущих рекомендаций." />}
       </section>
 
       <aside className="practice-personal" aria-label="Ваш быстрый доступ">
-        <div className="mode-section-heading compact"><div><span className="eyebrow">Личное</span><h2>{model.pinned.length ? "Закреплено" : model.recent.length ? "Недавнее" : "Сохранено"}</h2></div></div>
+        <div className="mode-section-heading compact"><div><span className="eyebrow">Личное</span><div className="heading-with-help"><h2>{model.pinned.length ? "Закреплено" : model.recent.length ? "Недавнее" : "Сохранено"}</h2><SectionHelp text="Приоритет: закреплённое → недавно открытое → сохранённое. Это ваш собственный слой, а не редакционная рекомендация." /></div></div></div>
         {personal.length ? <div className="personal-shortlist">{personal.slice(0, 4).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div> : <ModeInlineEmpty text="Здесь появятся материалы, которые вы закрепите, сохраните или недавно открывали." />}
         <Link className="secondary-button practice-saved-link" href={`/${specialty}?view=saved`}><Bookmark size={15} /> Мои материалы</Link>
       </aside>
     </div>
 
-    {model.taskObjects.length > 0 && <section className="practice-tools" aria-labelledby="practice-tools-title"><div className="mode-section-heading"><div><span className="eyebrow">Инструменты</span><h2 id="practice-tools-title">Рабочие объекты каталога</h2></div></div><div className="mode-row-list">{model.taskObjects.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div></section>}
+    {model.taskObjects.length > 0 && <section className="practice-tools" aria-labelledby="practice-tools-title"><div className="mode-section-heading"><div><span className="eyebrow">Инструменты</span><div className="heading-with-help"><h2 id="practice-tools-title">Рабочие объекты каталога</h2><SectionHelp text="Только явно загруженные инструменты, справочные объекты и маршруты. Никаких сгенерированных формул или пациентских рекомендаций." /></div></div></div><div className="mode-row-list">{model.taskObjects.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} />)}</div></section>}
     <p className="mode-footnote">Источники в каталоге: {sources.length}. Практика не использует данные пациента и не пытается угадывать контекст приёма.</p>
   </div>;
 }
@@ -213,7 +219,7 @@ function WorkspaceHome({ specialty, content, sources, state }: { specialty: Spec
     <section className="mode-hero workspace-hero" aria-labelledby="workspace-title">
       <div>
         <span className="eyebrow">{specialtyLabel[specialty]} · Рабочее пространство</span>
-        <h1 id="workspace-title">Ваши материалы и контекст</h1>
+        <div className="heading-with-help"><h1 id="workspace-title">Ваши материалы и контекст</h1><SectionHelp text="Рабочее пространство строится только из ваших действий: сохранений, закреплений, подборок, тем, истории и явно заданных интересов." /></div>
         <p>Сохраняйте свои материалы, интересы и профессиональные вопросы. Агент помогает собирать маршрут по теме, не превращая пространство в ещё одну общую ленту.</p>
       </div>
       <div className="mode-stats" aria-label="Состояние пространства">
@@ -229,17 +235,17 @@ function WorkspaceHome({ specialty, content, sources, state }: { specialty: Spec
       <section className="workspace-empty">
         <div className="workspace-empty-icon"><FolderOpen size={28} /></div>
         <span className="eyebrow">Пока пусто</span>
-        <h2>Рабочее пространство начинается с ваших действий</h2>
+        <div className="heading-with-help"><h2>Рабочее пространство начинается с ваших действий</h2><SectionHelp text="Пустое состояние намеренное: сюда не подмешивается общий каталог, пока вы сами не зададите контекст." /></div>
         <p>Добавьте интересующую нозологию выше, сохраните материал или закрепите нужное. Мы не подставляем сюда случайные статьи.</p>
         <div className="workspace-empty-actions"><Link className="primary-source-button" href={`/${specialty}`}>Перейти в обзор <ArrowRight size={15} /></Link><Link className="secondary-button" href={`/${specialty}?view=saved`}>Мои материалы</Link></div>
       </section>
     ) : (
       <div className="workspace-board">
-        {model.pinned.length > 0 && <WorkspaceSection title="Закреплено" eyebrow="Всегда под рукой" icon={<Pin size={18} />}><div className="mode-row-list">{model.pinned.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
-        {model.collections.length > 0 && <WorkspaceSection title="Подборки" eyebrow="Ваши наборы" icon={<FolderOpen size={18} />}><div className="collection-list">{model.collections.map(collection => <article key={collection.id} className="collection-card"><div><strong>{collection.name}</strong><span>{collection.items.length} материалов</span></div>{collection.items.length > 0 ? <div className="collection-preview">{collection.items.slice(0, 3).map(item => <Link key={item.id} href={`/${specialty}/content/${encodeURIComponent(item.id)}`}>{item.title}</Link>)}</div> : <p>Подборка пока пустая.</p>}</article>)}</div></WorkspaceSection>}
-        {model.saved.length > 0 && <WorkspaceSection title="Сохранено" eyebrow="Ваш архив" icon={<Bookmark size={18} />}><div className="mode-row-list">{model.saved.slice(0, 8).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
-        {model.recent.length > 0 && <WorkspaceSection title="Недавнее" eyebrow="Продолжить работу" icon={<Clock size={18} />}><div className="mode-row-list">{model.recent.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
-        {(model.researchInterests.length > 0 || model.followedTopics.length > 0 || followedSources.length > 0 || pinnedSources.length > 0 || model.recentQueries.length > 0) && <WorkspaceSection title="Контекст" eyebrow="Явно выбранное" icon={<Library size={18} />}><div className="workspace-context-groups">{model.researchInterests.length > 0 && <div><strong>Интересы и нозологии</strong><div className="workspace-chips">{model.researchInterests.map(interest => <span key={interest}>{interest}</span>)}</div></div>}{model.followedTopics.length > 0 && <div><strong>Темы</strong><div className="workspace-chips">{model.followedTopics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div></div>}{[...pinnedSources, ...followedSources].length > 0 && <div><strong>Источники</strong><div className="workspace-chips">{[...pinnedSources, ...followedSources].filter((source, index, array) => array.findIndex(item => item.id === source.id) === index).map(source => <span key={source.id}>{source.name}</span>)}</div></div>}{model.recentQueries.length > 0 && <div><strong>Недавние запросы</strong><div className="workspace-chips">{model.recentQueries.map(query => <Link key={query} href={`/${specialty}?q=${encodeURIComponent(query)}`}>{query}</Link>)}</div></div>}</div></WorkspaceSection>}
+        {model.pinned.length > 0 && <WorkspaceSection title="Закреплено" eyebrow="Всегда под рукой" help="Материалы, которые вы явно закрепили для быстрого возврата." icon={<Pin size={18} />}><div className="mode-row-list">{model.pinned.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
+        {model.collections.length > 0 && <WorkspaceSection title="Подборки" eyebrow="Ваши наборы" help="Пользовательские наборы материалов. Состав определяется только вами." icon={<FolderOpen size={18} />}><div className="collection-list">{model.collections.map(collection => <article key={collection.id} className="collection-card"><div><strong>{collection.name}</strong><span>{collection.items.length} материалов</span></div>{collection.items.length > 0 ? <div className="collection-preview">{collection.items.slice(0, 3).map(item => <Link key={item.id} href={`/${specialty}/content/${encodeURIComponent(item.id)}`}>{item.title}</Link>)}</div> : <p>Подборка пока пустая.</p>}</article>)}</div></WorkspaceSection>}
+        {model.saved.length > 0 && <WorkspaceSection title="Сохранено" eyebrow="Ваш архив" help="Все материалы, которые вы сохранили из каталога." icon={<Bookmark size={18} />}><div className="mode-row-list">{model.saved.slice(0, 8).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
+        {model.recent.length > 0 && <WorkspaceSection title="Недавнее" eyebrow="Продолжить работу" help="Недавно открытые материалы из вашей локальной истории работы." icon={<Clock size={18} />}><div className="mode-row-list">{model.recent.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
+        {(model.researchInterests.length > 0 || model.followedTopics.length > 0 || followedSources.length > 0 || pinnedSources.length > 0 || model.recentQueries.length > 0) && <WorkspaceSection title="Контекст" eyebrow="Явно выбранное" help="Темы, нозологии, источники и запросы, которые формируют ваш персональный рабочий контекст." icon={<Library size={18} />}><div className="workspace-context-groups">{model.researchInterests.length > 0 && <div><strong>Интересы и нозологии</strong><div className="workspace-chips">{model.researchInterests.map(interest => <span key={interest}>{interest}</span>)}</div></div>}{model.followedTopics.length > 0 && <div><strong>Темы</strong><div className="workspace-chips">{model.followedTopics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div></div>}{[...pinnedSources, ...followedSources].length > 0 && <div><strong>Источники</strong><div className="workspace-chips">{[...pinnedSources, ...followedSources].filter((source, index, array) => array.findIndex(item => item.id === source.id) === index).map(source => <span key={source.id}>{source.name}</span>)}</div></div>}{model.recentQueries.length > 0 && <div><strong>Недавние запросы</strong><div className="workspace-chips">{model.recentQueries.map(query => <Link key={query} href={`/${specialty}?q=${encodeURIComponent(query)}`}>{query}</Link>)}</div></div>}</div></WorkspaceSection>}
       </div>
     )}
   </div>;
@@ -253,8 +259,8 @@ function ModeContentRow({ item, specialty, compact = false }: { item: ContentObj
   </article>;
 }
 
-function WorkspaceSection({ title, eyebrow, icon, children }: { title: string; eyebrow: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return <section className="workspace-section"><div className="workspace-section-head"><div className="workspace-section-icon">{icon}</div><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div></div>{children}</section>;
+function WorkspaceSection({ title, eyebrow, help, icon, children }: { title: string; eyebrow: string; help: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return <section className="workspace-section"><div className="workspace-section-head"><div className="workspace-section-icon">{icon}</div><div><span className="eyebrow">{eyebrow}</span><div className="heading-with-help"><h2>{title}</h2><SectionHelp text={help} /></div></div></div>{children}</section>;
 }
 
 function ModeInlineEmpty({ text }: { text: string }) {
