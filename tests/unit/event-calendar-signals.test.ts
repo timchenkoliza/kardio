@@ -26,9 +26,14 @@ describe("event calendar signals", () => {
     ]);
   });
 
-  it("supports numeric dates and standalone years", () => {
+  it("supports full numeric dates and standalone years", () => {
     const signals = extractEventCalendarSignals("Регистрация до 13.09.2023. Следующий цикл — 2024 год.");
     expect(signals.map((signal) => signal.normalizedKey)).toContain("date:2023-09-13");
     expect(signals.map((signal) => signal.normalizedKey)).toContain("year:2024");
+  });
+
+  it("does not treat clock-like decimals or partial numeric forms as dates", () => {
+    const signals = extractEventCalendarSignals("Сессии: 11.00, 11.05, 12.00; версия 2.0.");
+    expect(signals.filter((signal) => signal.kind === "numeric_date")).toEqual([]);
   });
 });
