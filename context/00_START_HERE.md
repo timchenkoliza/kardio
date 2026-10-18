@@ -80,23 +80,59 @@ An image-free card is better than irrelevant stock photography.
 Do not treat Pinterest/moodboard screenshots as source content assets.
 Do not reuse one generic doctor photo across unrelated cards.
 
+## Specialty visual identity phase
+
+Read:
+- `19_SPECIALTY_VISUAL_IDENTITY.md`
+- `20_SPECIALTY_VISUAL_TOKENS.json`
+- `12_DESIGN_ACCEPTANCE.md`
+
+This is a shared visual layer across A / B / C, not another shell.
+
+Core rule:
+
+> **Yandex Med owns the interface. Specialty owns the atmosphere.**
+
+Approved starting directions:
+- Cardiology — `PULSE / PERFUSION`, visual physics `FLOW`, calibrated palette v0.2;
+- Oncology — `CELL / PRECISION`, visual physics `CLUSTER / TARGET`, calibrated palette v0.2.
+
+For current prototype calibration use Yandex Med lavender/periwinkle reference `#8A8BFF`. If an official Yandex Med design token becomes available, inherit the official token instead of creating a near-duplicate.
+
+Specialty color must not replace semantic success / warning / error roles.
+Pinterest/moodboard references are art-direction inputs only and remain `reference_only_do_not_render_as_content`.
+
+Required visual execution order:
+1. canonical Golden Set binding;
+2. shared 24-object evaluation slice;
+3. image resolver / provenance rules;
+4. specialty visual identity integration;
+5. pixel-first polish;
+6. final responsive / visual QA.
+
+The current repository has completed steps 1–3 and is now in step 4 / early step 5.
+Do not change canonical content to make visual layout easier.
+
 ## Read order
 
 1. `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
 2. `phase2/MULTI_SHELL_ARCHITECTURE.md`
 3. `17_REAL_CONTENT_AUDIT.md`
 4. `18_EDITORIAL_IMAGE_POLICY.md`
-5. `product/PRODUCT_BOUNDARIES.md`
-6. `product/MVP_ARCHITECTURE.md`
-7. `knowledge/source_modes.json`
-8. `knowledge/source_registry.cardiology.json`
-9. `ranking/RANKING_POLICY_V3.md`
-10. `product/GENUI_EVOLUTION.md`
-11. `pilot/RKO_PILOT.md`
-12. `metrics/MVP_METRICS.md`
-13. `legal/LEGAL_GATES_RU.md`
-14. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
-15. `13_PHASE_1_PROMPT_V3.md`
+5. `19_SPECIALTY_VISUAL_IDENTITY.md`
+6. `20_SPECIALTY_VISUAL_TOKENS.json`
+7. `12_DESIGN_ACCEPTANCE.md`
+8. `product/PRODUCT_BOUNDARIES.md`
+9. `product/MVP_ARCHITECTURE.md`
+10. `knowledge/source_modes.json`
+11. `knowledge/source_registry.cardiology.json`
+12. `ranking/RANKING_POLICY_V3.md`
+13. `product/GENUI_EVOLUTION.md`
+14. `pilot/RKO_PILOT.md`
+15. `metrics/MVP_METRICS.md`
+16. `legal/LEGAL_GATES_RU.md`
+17. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
+18. `13_PHASE_1_PROMPT_V3.md`
 
 `knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
@@ -144,12 +180,13 @@ Saved items, recent activity, pins and query state persist across shell switches
 
 The user has selected the multi-shell direction and real-content binding is implemented.
 
-The pixel-first build contract may now be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
+A first specialty visual-system pass is now wired into `phase2/kardio-real.css` using the calibrated Yandex Med + Cardiology token set. Final pixel-level polish is still pending.
 
 Next gate:
 - open the real-content prototype in a browser;
 - inspect 390 / 768 / 1440;
 - correct typography, geometry, wrapping, density, state hierarchy and A/B/C consistency;
+- verify that Cardiology atmosphere remains subordinate to Yandex Med identity;
 - do not change canonical content to make layout easier.
 
 Do not claim visual verification unless the shell was actually rendered and inspected at the required anchor viewports.
