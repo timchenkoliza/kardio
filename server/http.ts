@@ -18,10 +18,23 @@ export function rateLimit(key: string, limit = 120) {
     windows.set(key, { count: 1, expires: now + 60_000 });
   }
 }
+function requestOrigin(request: NextRequest): string | null {
+  const configured = process.env.APP_ORIGIN?.trim();
+  if (configured) {
+    try { return new URL(configured).origin; } catch { return null; }
+  }
+  const host = request.headers.get("host")?.trim();
+  if (!host) return null;
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProto || request.nextUrl.protocol.replace(/:$/, "");
+  return `${protocol}://${host}`;
+}
 export function assertSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
-  const allowed = process.env.APP_ORIGIN || request.nextUrl.origin;
-  if (!origin || origin !== allowed) throw new HttpError(403, "Запрос отклонён. Откройте приложение и повторите действие.");
+  const allowed = requestOrigin(request);
+  let normalizedOrigin: string | null = null;
+  try { normalizedOrigin = origin ? new URL(origin).origin : null; } catch { normalizedOrigin = null; }
+  if (!normalizedOrigin || !allowed || normalizedOrigin !== allowed) throw new HttpError(403, "Запрос отклонён. Откройте приложение и повторите действие.");
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new HttpError(415, "Ожидается JSON.");
 }
 export async function parseBody(request: NextRequest) {
