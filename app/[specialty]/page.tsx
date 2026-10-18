@@ -2,12 +2,15 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowRight, Bookmark, BookOpen, CalendarDays, Calculator, Clock, FolderOpen, Library, Pin, Search } from "lucide-react";
+import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-hub";
+import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
-import { EditorialContentCard } from "@/components/editorial-content-card";
+import { ReferenceHub } from "@/components/reference-hub";
 import { SectionHelp } from "@/components/section-help";
 import { WorkspaceResearchAgent } from "@/components/workspace-research-agent";
 import type { ContentObject, Source, SpecialtyId, UserState } from "@/lib/domain/types";
+import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
 import { kindLabel, specialtyLabel } from "@/lib/ui/labels";
 import { buildPracticeHomeModel, buildWorkspaceHomeModel } from "@/lib/ui/shell-model";
@@ -23,6 +26,7 @@ const viewTitles: Record<string, string> = {
   sources: "Источники",
   tools: "Калькуляторы",
   reference: "Справочник",
+  imaging: "Визуализация",
   referral: "ВМП",
   events: "События",
   education: "Обучение",
@@ -32,14 +36,6 @@ const emptyCopy: Record<string, { title: string; body: string }> = {
   saved: {
     title: "Пока ничего не сохранено",
     body: "Сохраняйте материалы из ленты — они появятся здесь.",
-  },
-  tools: {
-    title: "Калькуляторы пока не добавлены",
-    body: "Здесь появятся проверенные клинические калькуляторы после загрузки в каталог.",
-  },
-  reference: {
-    title: "Справочник пока пуст",
-    body: "Здесь появятся проверенные справочные материалы после загрузки в каталог.",
   },
   referral: {
     title: "Материалы по ВМП пока не добавлены",
@@ -123,6 +119,10 @@ function ExploreOrCatalogHome({
   view: string;
   kind: FeedKindFilter;
 }) {
+  if (view === "tools") return <ClinicalToolsHub specialty={specialty} />;
+  if (view === "reference") return <ReferenceHub specialty={specialty} />;
+  if (view === "imaging") return <ImagingWorkspace specialty={specialty} />;
+
   const viewKind = contentKindFromView(view);
   let visible = selectFeedContent({
     content,
@@ -227,8 +227,8 @@ function PracticeHome({ specialty, content, sources, state }: { specialty: Speci
 
     <section className="practice-launcher" aria-label="Рабочие задачи">
       <Link href={`/${specialty}?kind=guideline`}><BookOpen size={22} /><span><strong>Рекомендации</strong><small>Открыть текущие версии</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Только загруженные инструменты</small></span><ArrowRight size={17} /></Link>
-      <Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Профессиональные справочные объекты</small></span><ArrowRight size={17} /></Link>
+      <Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Две кардиологические шкалы</small></span><ArrowRight size={17} /></Link>
+      <Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Лекарства и взаимодействия</small></span><ArrowRight size={17} /></Link>
       <Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Навигация по доступным материалам</small></span><ArrowRight size={17} /></Link>
     </section>
 
@@ -309,14 +309,19 @@ function ModeInlineEmpty({ text }: { text: string }) {
 }
 
 function SourceDirectory({ specialty, sources }: { specialty: SpecialtyId; sources: Source[] }) {
+  const curated = curatedSourcesForSpecialty(specialty);
+  const canonicalUrls = new Set(sources.flatMap(source => [source.url?.toLowerCase(), source.name.toLowerCase()].filter((value): value is string => Boolean(value))));
+  const extras = curated.filter(source => !canonicalUrls.has(source.url.toLowerCase()) && !canonicalUrls.has(source.name.toLowerCase()));
   return <section className="source-directory" aria-label="Каталог источников">
-    {sources.length ? sources.map(source => (
+    {sources.map(source => (
       <article className="source-row" key={source.id}>
         <span className="source-mark large" aria-hidden="true">{source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
         <div><h2>{source.name}</h2><p>{source.publisher ?? source.type}</p></div>
         {source.url ? <a href={source.url} target="_blank" rel="noreferrer">Открыть источник <ArrowRight size={15} /></a> : <span className="muted">Ссылка не указана</span>}
       </article>
-    )) : <EmptyState specialty={specialty} view="sources" />}
+    ))}
+    {extras.map(source => <article className="source-row" key={`curated:${source.id}`}><span className="source-mark large" aria-hidden="true">{source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</span><div><h2>{source.name}</h2><p>{source.category} · {source.note}</p></div><a href={source.url} target="_blank" rel="noreferrer">Открыть источник <ArrowRight size={15} /></a></article>)}
+    {sources.length === 0 && extras.length === 0 && <EmptyState specialty={specialty} view="sources" />}
   </section>;
 }
 
