@@ -11,6 +11,8 @@ export const SESSION_COOKIE = "kardio_session";
 const sessionIdPattern = /^[a-f0-9]{64}$/;
 const item = { id: idSchema, enabled: z.boolean(), specialty: specialtySchema };
 const researchInterestSchema = z.string().trim().min(2).max(120).regex(/^[^\u0000-\u001f\u007f]+$/u);
+const uiBlockIdSchema = z.string().trim().min(1).max(80).regex(/^[a-z0-9:_-]+$/i);
+const uiBlockLabelSchema = z.string().trim().min(1).max(80).regex(/^[^\u0000-\u001f\u007f]+$/u);
 export const stateCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("preferences"), specialty: specialtySchema.optional(), shell: z.enum(["explore", "practice", "workspace"]).optional(), onboardingCompleted: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("save"), ...item }).strict(),
@@ -23,6 +25,7 @@ export const stateCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("createCollection"), name: z.string().trim().min(1).max(80), specialty: specialtySchema }).strict(),
   z.object({ action: z.literal("collectionItem"), collectionId: z.string().uuid(), contentId: idSchema, enabled: z.boolean(), specialty: specialtySchema }).strict(),
   z.object({ action: z.literal("deleteCollection"), collectionId: z.string().uuid(), specialty: specialtySchema }).strict(),
+  z.object({ action: z.literal("uiPreference"), specialty: specialtySchema, shell: z.enum(["explore", "practice", "workspace"]), blockId: uiBlockIdSchema, label: uiBlockLabelSchema, mode: z.enum(["hidden", "less", "pinned", "default"]) }).strict(),
   z.object({ action: z.literal("clearHistory") }).strict(),
 ]);
 
@@ -41,6 +44,14 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
     researchInterests: Array.isArray(value.researchInterests) ? value.researchInterests : [],
     recent: Array.isArray(value.recent) ? value.recent : [],
     collections: Array.isArray(value.collections) ? value.collections : [],
+    uiPreferences: Array.isArray(value.uiPreferences) ? value.uiPreferences.filter(preference => (
+      preference
+      && typeof preference.blockId === "string"
+      && typeof preference.label === "string"
+      && (preference.mode === "hidden" || preference.mode === "less" || preference.mode === "pinned")
+      && (preference.shell === "explore" || preference.shell === "practice" || preference.shell === "workspace")
+      && (preference.specialty === "cardiology" || preference.specialty === "oncology")
+    )) : [],
   };
 }
 
@@ -118,6 +129,17 @@ export async function mutateState(sessionId: string, command: StateCommand): Pro
         break;
       }
       case "deleteCollection": state.collections = state.collections.filter(value => !(value.id === command.collectionId && value.specialty === command.specialty)); break;
+      case "uiPreference": {
+        state.uiPreferences = state.uiPreferences.filter(preference => !(
+          preference.specialty === command.specialty
+          && preference.shell === command.shell
+          && preference.blockId === command.blockId
+        ));
+        if (command.mode !== "default") {
+          state.uiPreferences.push({ specialty: command.specialty, shell: command.shell, blockId: command.blockId, label: command.label.trim(), mode: command.mode });
+        }
+        break;
+      }
       case "clearHistory": state.recent = []; break;
     }
     await tx.update(anonymousSessions).set({ state, updatedAt: new Date() }).where(eq(anonymousSessions.id, sessionId));
