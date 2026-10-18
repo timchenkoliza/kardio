@@ -7,6 +7,7 @@ import { ArrowRight, FileText, Plus, Search, ShieldCheck, Sparkles, Upload, User
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
 import { hasBlockedPatientLevelMarkers, rankWorkspaceResearch } from "@/lib/ui/workspace-research-agent";
+import { SectionHelp } from "./section-help";
 import { useProduct } from "./product-provider";
 
 const MAX_LOCAL_FILE_BYTES = 128 * 1024;
@@ -90,7 +91,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
       <div className="workspace-agent-icon"><Sparkles size={22} aria-hidden="true" /></div>
       <div>
         <span className="eyebrow">Агент по теме</span>
-        <h2 id="workspace-agent-title">Что изучить дальше</h2>
+        <div className="heading-with-help"><h2 id="workspace-agent-title">Что изучить дальше</h2><SectionHelp text="Агент использует только явно заданные вами интересы и агрегированный контекст, затем объяснимо сопоставляет их с проверенным каталогом. Он не делает выводов о конкретном пациенте." /></div>
         <p>Укажите нозологию или профессиональный интерес. Навигатор соберёт объяснимый маршрут по уже проверенному каталогу — без догадок о пациенте.</p>
       </div>
     </div>
@@ -107,7 +108,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
 
       <div className="workspace-agent-upload">
         <div className="workspace-upload-copy">
-          <div className="workspace-upload-title"><Upload size={18} /><strong>Агрегированный контекст</strong></div>
+          <div className="workspace-upload-title"><Upload size={18} /><strong>Агрегированный контекст</strong><SectionHelp text="Допустимы только обезличенные агрегаты и сводки. Строки отдельных пациентов, идентификаторы и медицинские карты сюда не загружаются." /></div>
           <p>Можно добавить обезличенную агрегированную сводку. Не загружайте записи отдельных пациентов — даже без ФИО.</p>
         </div>
         <label className="workspace-privacy-check"><input type="checkbox" checked={confirmedAggregateOnly} onChange={event => setConfirmedAggregateOnly(event.target.checked)} /><span><ShieldCheck size={16} /> Подтверждаю: только агрегаты, без строк пациентов и идентификаторов</span></label>
@@ -122,7 +123,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
 
     <div className="workspace-agent-results">
       <div className="workspace-reading-route">
-        <div className="workspace-agent-result-head"><div><span className="eyebrow">Что почитать</span><h3>{recommendations.length ? "Маршрут по теме" : "Добавьте тему"}</h3></div>{recommendations.length > 0 && <span>{recommendations.length} совпадений</span>}</div>
+        <div className="workspace-agent-result-head"><div><span className="eyebrow">Что почитать</span><div className="heading-with-help"><h3>{recommendations.length ? "Маршрут по теме" : "Добавьте тему"}</h3><SectionHelp text="Материалы ранжируются по совпадению с заданной темой в заголовках, темах, тегах и описаниях; совпавшие термины показываются рядом." /></div></div>{recommendations.length > 0 && <span>{recommendations.length} совпадений</span>}</div>
         {recommendations.length > 0 ? <div className="workspace-agent-list">{recommendations.map(result => <article key={result.content.id}>
           <div className="workspace-agent-result-mark">{result.content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</div>
           <div><span>{result.content.source.name} · {kindLabel[result.content.kind]}</span><Link href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`}>{result.content.title}</Link><small>Совпало: {result.matchedTerms.slice(0, 3).join(", ")}</small></div>
@@ -133,7 +134,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
       <aside className="workspace-expert-route">
         <UsersRound size={22} aria-hidden="true" />
         <span className="eyebrow">С кем обсудить</span>
-        <h3>Эксперты без выдуманных имён</h3>
+        <div className="heading-with-help"><h3>Эксперты без выдуманных имён</h3><SectionHelp text="Эксперт появится только при наличии подтверждённого профиля, специальности, организации и основания рекомендации по теме." /></div>
         <p>Верифицированный каталог врачей-экспертов пока не подключён. Поэтому alpha не придумывает людей по теме.</p>
         <div className="workspace-expert-rule"><strong>Следующий слой</strong><span>Тема / специальность → подтверждённый врач → организация → основание рекомендации → способ связаться.</span></div>
       </aside>
