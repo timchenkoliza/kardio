@@ -4,3 +4,10 @@ private-data/
 .vercel/
 node_modules/
 .DS_Store
+!.env.example
+.next/
+.local/
+*.tsbuildinfo
+test-results/
+playwright-report/
+coverage/
