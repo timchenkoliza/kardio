@@ -23,7 +23,7 @@
 }
 
 .local-preview.has-preview {
-  background-color: #111217;
+  background-color: var(--color-inverse-surface);
 }
 
 .local-format-state {
@@ -41,7 +41,7 @@
 }
 
 .local-format-state small {
-  color: #b8bac4;
+  color: var(--color-inverse-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 1.45;
 }
