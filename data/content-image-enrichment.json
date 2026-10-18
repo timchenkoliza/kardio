@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "purpose": "Non-destructive editorial image enrichment for prototype content.",
+    "rule": "Semantic match and provenance outrank image coverage. Image-free is preferable to irrelevant stock or generic medical photography.",
+    "do_not_modify_canonical_facts": true
+  },
+  "mappings": {
+    "fact-ar-echo-2025": {
+      "asset_filename": "cardiology-collection(1).jpg",
+      "image_origin": "uploaded",
+      "image_source_name": "User-provided real clinical ultrasound examination photo",
+      "image_source_url": null,
+      "image_credit": null,
+      "image_usage_note": "Semantically matched to echocardiography content. Rights/provenance require confirmation before public release.",
+      "image_semantic_role": "clinical",
+      "image_status": "needs_review",
+      "render_policy": "prototype_only_until_rights_verified"
+    }
+  },
+  "unassigned_uploaded_assets": [
+    {
+      "asset_filename": "NEJMc2607437_600x400(1).jpg",
+      "description": "Real donor/ex-vivo heart photography",
+      "reason_unassigned": "No current evaluation object is semantically close enough; do not force-fit transplantation/pathology imagery.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "photo_394_0.jpg",
+      "description": "Historical CT comparison graphic",
+      "reason_unassigned": "No matching Golden Set object and provenance/rights not yet verified.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "photo_592_0.jpg",
+      "description": "Hyperkalemia ECG meme/teaching graphic",
+      "reason_unassigned": "Not eligible as default high-end editorial imagery; provenance unclear.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "photo_619_0.jpg",
+      "description": "Normal vs abnormal ECG teaching image",
+      "reason_unassigned": "Potential arrhythmia relevance but provenance and exact clinical context are insufficient.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "photo_762_0.jpg",
+      "description": "Cardiac device/occluder illustration plus fluoroscopic image",
+      "reason_unassigned": "Potential AF/device relevance but exact source and rights are unknown.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "701_file_701_0.mp4",
+      "description": "Real cardiac MR/cine imaging clip",
+      "reason_unassigned": "Real clinical media, but exact topic/source/rights are not yet tied to a Golden Set object.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "713_file_713_0.mp4",
+      "description": "Real coronary angiography clip with annotated LCA trunk stenosis",
+      "reason_unassigned": "Could match ischemic-heart-disease content, but exact source and rights are not yet verified.",
+      "image_status": "needs_review"
+    },
+    {
+      "asset_filename": "785_2024-06-21 20.41.49.mp4",
+      "description": "3D mechanical circulatory-support animation",
+      "reason_unassigned": "Synthetic illustration and no matching Golden Set object; not treated as real clinical photography.",
+      "image_status": "exclude_from_real_photo_pool"
+    }
+  ],
+  "reference_only_assets": [
+    {
+      "asset_pattern": "Screenshot 2026-10-18 at 18.44*.png",
+      "description": "Pinterest / moodboard screenshots",
+      "render_policy": "reference_only_do_not_render_as_content",
+      "reason": "Visual research reference, not source-grounded medical content assets."
+    }
+  ]
+}
