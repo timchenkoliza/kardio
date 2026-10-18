@@ -29,7 +29,9 @@ Malformed JSON-LD is ignored rather than repaired.
 
 ## Network boundary
 
-The inspector starts only from URLs already resolved as explicit `scardio.ru/events/...` references. Redirects are followed manually and only while they remain on `scardio.ru` or `www.scardio.ru`; cross-host redirects are blocked and reported.
+The inspector starts only from URLs already resolved as explicit `scardio.ru/events/...` references. Redirects are followed manually only across an exact allowlist of known source hosts: `scardio.ru`, `www.scardio.ru`, and `old.scardio.ru`.
+
+`old.scardio.ru` was added after the first real inspection showed that historical `scardio.ru/events/...` pages systematically redirect to this archive host. The allowlist remains exact; arbitrary `*.scardio.ru` subdomains and all unrelated hosts are still blocked and reported.
 
 Default inspection is intentionally bounded to 10 candidates and may be increased only up to 25 with `EVENT_PAGE_INSPECT_LIMIT`.
 
@@ -54,8 +56,9 @@ The gate passes when:
 1. unit tests show that prose alone does not create structured event fields;
 2. malformed JSON-LD is ignored;
 3. a bounded real sample can be fetched or its HTTP/network failure states are explicitly reported;
-4. output measures title/canonical/JSON-LD/structured-event coverage;
-5. `ontologyWrites = 0` and `stagingWrites = 0`;
-6. `db:verify` remains green and ontology counts are unchanged.
+4. observed redirects to the exact archive host can be followed without widening the network boundary;
+5. output measures title/canonical/JSON-LD/structured-event coverage;
+6. `ontologyWrites = 0` and `stagingWrites = 0`;
+7. `db:verify` remains green and ontology counts are unchanged.
 
 The observed structure determines the next enrichment schema. We do not add title/date/location/speaker columns before seeing what the source pages actually expose reliably.
