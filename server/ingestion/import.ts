@@ -1,7 +1,15 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { assets, contentObjects, contentRelationships, datasets, evaluationItems, sourceObservations, sources } from "@/db/schema";
+import type { ContentObject } from "@/lib/domain/types";
 import { DATASET_ID, loadGoldenSet, normalizeGoldenSet, validationReport, type LoadedGoldenSet } from "./goldenset";
+
+function contentFields(content: ContentObject): Omit<ContentObject, "source" | "asset"> {
+  const copy = { ...content } as Partial<ContentObject>;
+  delete copy.source;
+  delete copy.asset;
+  return copy as Omit<ContentObject, "source" | "asset">;
+}
 
 export async function importGoldenSet(loaded?: LoadedGoldenSet) {
   const resolved = loaded ?? await loadGoldenSet();
@@ -19,8 +27,7 @@ export async function importGoldenSet(loaded?: LoadedGoldenSet) {
       await tx.insert(sources).values(row).onConflictDoUpdate({ target: [sources.specialty, sources.id], set: row });
     }
     for (const content of normalized.content) {
-      const { source: _source, asset: _asset, ...fields } = content;
-      const row = { ...fields, datasetId: DATASET_ID, raw: resolved.dataset.content.find((item) => item.golden_id === content.id)! };
+      const row = { ...contentFields(content), datasetId: DATASET_ID, raw: resolved.dataset.content.find((item) => item.golden_id === content.id)! };
       await tx.insert(contentObjects).values(row).onConflictDoUpdate({ target: [contentObjects.specialty, contentObjects.id], set: row });
     }
     await tx.delete(contentRelationships).where(eq(contentRelationships.specialty, "cardiology"));
