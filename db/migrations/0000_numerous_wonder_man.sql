@@ -184,7 +184,7 @@ CREATE TABLE "ontology_nodes" (
 );
 --> statement-breakpoint
 CREATE TABLE "raw_archive_artifacts" (
-	"ontology_node_id" text PRIMARY KEY NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"provider" text NOT NULL,
 	"provider_item_id" text NOT NULL,
 	"parent_provider_item_id" text,
@@ -197,6 +197,7 @@ CREATE TABLE "raw_archive_artifacts" (
 	"checksum" text,
 	"materialized_locator" text,
 	"sync_state" text NOT NULL,
+	"promoted_node_id" text,
 	"synced_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -216,7 +217,7 @@ ALTER TABLE "ontology_edge_evidence" ADD CONSTRAINT "ontology_edge_evidence_edge
 ALTER TABLE "ontology_edge_evidence" ADD CONSTRAINT "ontology_edge_evidence_evidence_id_evidence_records_id_fk" FOREIGN KEY ("evidence_id") REFERENCES "public"."evidence_records"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ontology_edges" ADD CONSTRAINT "ontology_edges_from_id_ontology_nodes_id_fk" FOREIGN KEY ("from_id") REFERENCES "public"."ontology_nodes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ontology_edges" ADD CONSTRAINT "ontology_edges_to_id_ontology_nodes_id_fk" FOREIGN KEY ("to_id") REFERENCES "public"."ontology_nodes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "raw_archive_artifacts" ADD CONSTRAINT "raw_archive_artifacts_ontology_node_id_ontology_nodes_id_fk" FOREIGN KEY ("ontology_node_id") REFERENCES "public"."ontology_nodes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "raw_archive_artifacts" ADD CONSTRAINT "raw_archive_artifacts_promoted_node_id_ontology_nodes_id_fk" FOREIGN KEY ("promoted_node_id") REFERENCES "public"."ontology_nodes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "analytics_event_created_idx" ON "analytics_events" USING btree ("event","created_at");--> statement-breakpoint
 CREATE INDEX "assets_content_idx" ON "assets" USING btree ("specialty","content_id");--> statement-breakpoint
 CREATE INDEX "content_specialty_kind_idx" ON "content_objects" USING btree ("specialty","kind");--> statement-breakpoint
@@ -234,4 +235,5 @@ CREATE INDEX "ontology_nodes_type_idx" ON "ontology_nodes" USING btree ("type");
 CREATE INDEX "ontology_nodes_specialty_type_idx" ON "ontology_nodes" USING btree ("specialty","type");--> statement-breakpoint
 CREATE INDEX "ontology_nodes_original_idx" ON "ontology_nodes" USING btree ("namespace","original_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "raw_archive_provider_item_uniq" ON "raw_archive_artifacts" USING btree ("provider","provider_item_id");--> statement-breakpoint
-CREATE INDEX "raw_archive_specialty_idx" ON "raw_archive_artifacts" USING btree ("specialty","source_registry_id");
+CREATE INDEX "raw_archive_specialty_idx" ON "raw_archive_artifacts" USING btree ("specialty","source_registry_id");--> statement-breakpoint
+CREATE INDEX "raw_archive_promoted_node_idx" ON "raw_archive_artifacts" USING btree ("promoted_node_id");

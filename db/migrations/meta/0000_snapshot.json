@@ -1,5 +1,5 @@
 {
-  "id": "16b91fda-c698-49a1-82c8-54f9f9f5634c",
+  "id": "6d8ee51d-8706-4c72-865a-1ffbf684b4ce",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1619,8 +1619,8 @@
       "name": "raw_archive_artifacts",
       "schema": "",
       "columns": {
-        "ontology_node_id": {
-          "name": "ontology_node_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true
@@ -1697,6 +1697,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "promoted_node_id": {
+          "name": "promoted_node_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "synced_at": {
           "name": "synced_at",
           "type": "timestamp with time zone",
@@ -1747,15 +1753,30 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "raw_archive_promoted_node_idx": {
+          "name": "raw_archive_promoted_node_idx",
+          "columns": [
+            {
+              "expression": "promoted_node_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "raw_archive_artifacts_ontology_node_id_ontology_nodes_id_fk": {
-          "name": "raw_archive_artifacts_ontology_node_id_ontology_nodes_id_fk",
+        "raw_archive_artifacts_promoted_node_id_ontology_nodes_id_fk": {
+          "name": "raw_archive_artifacts_promoted_node_id_ontology_nodes_id_fk",
           "tableFrom": "raw_archive_artifacts",
           "tableTo": "ontology_nodes",
           "columnsFrom": [
-            "ontology_node_id"
+            "promoted_node_id"
           ],
           "columnsTo": [
             "id"
