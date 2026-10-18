@@ -1,7 +1,7 @@
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { curatedSourcesForSpecialty, curatedSourcesForSurface } from "@/lib/ui/curated-external-tools";
 
-export type ProductDestination = "sources" | "reference" | "education" | "events" | "tools" | "imaging";
+export type ProductDestination = "sources" | "reference" | "education" | "events" | "tools" | "imaging" | "referral";
 
 export interface DestinationReadiness {
   destination: ProductDestination;
@@ -59,6 +59,7 @@ export function buildContentCompletenessSnapshot(args: {
   const educationExternal = curatedSourcesForSurface(specialty, "education").length;
   const toolsExternal = curatedSourcesForSurface(specialty, "tools").length;
   const imagingExternal = curatedSourcesForSurface(specialty, "imaging").length;
+  const referralExternal = curatedSourcesForSurface(specialty, "referral").length;
   const educationCanonical = educationContent(content).length;
   const eventCanonical = canonicalEventContent(content).length;
   const nativeCardiologyCalculators = specialty === "cardiology" ? 2 : 0;
@@ -91,7 +92,7 @@ export function buildContentCompletenessSnapshot(args: {
       ready: eventCanonical > 0,
       canonicalObjects: eventCanonical,
       curatedExternalObjects: 0,
-      basis: "Только канонические объекты event. Event reference candidates из staging сюда не промотируются автоматически.",
+      basis: "Только канонические объекты event. Наблюдаемые ссылки на события не промотируются автоматически.",
     },
     {
       destination: "tools",
@@ -106,6 +107,13 @@ export function buildContentCompletenessSnapshot(args: {
       canonicalObjects: nativeImagingShell,
       curatedExternalObjects: imagingExternal,
       basis: "Локальный imaging shell + внешний DICOM reference; без загрузки пациентских данных на сервер.",
+    },
+    {
+      destination: "referral",
+      ready: referralExternal > 0,
+      canonicalObjects: 0,
+      curatedExternalObjects: referralExternal,
+      basis: "Официальные публичные документы по ВМП используются как навигационный слой без пациентского маршрута и без автоматического продвижения в онтологию.",
     },
   ];
 
