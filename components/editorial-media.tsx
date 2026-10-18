@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
 
