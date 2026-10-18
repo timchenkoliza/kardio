@@ -104,7 +104,7 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
     {usePbzDemoContext && <div className="workspace-pbz-demo" aria-label="Демо-контекст из ПБЗ">
       <div><History size={16} aria-hidden="true" /><strong>Подхватили профессиональные интересы из ПБЗ</strong><span>демо</span></div>
       <p>В демо учитываются только короткие кардиологические запросы из выгрузки; пациентские кейсы и идентификаторы отсекаются.</p>
-      <div className="workspace-pbz-chips">{PBZ_DEMO_HISTORY_SIGNALS.slice(0, 5).map(({ cluster, count }) => <button type="button" key={cluster.id} onClick={() => setDraft(cluster.searchQuery)}>{cluster.label}<small>{count}</small></button>)}</div>
+      <div className="workspace-pbz-chips">{PBZ_DEMO_HISTORY_SIGNALS.slice(0, 5).map(({ cluster }) => <button type="button" key={cluster.id} onClick={() => setDraft(cluster.searchQuery)}>{cluster.label}</button>)}</div>
     </div>}
 
     <div className="workspace-agent-inputs">
