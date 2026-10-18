@@ -87,6 +87,48 @@ try {
     ok: candidateSourceArtifactOrphans === 0,
   });
 
+  const duplicateEventReferenceCandidates = await scalar(`
+    select count(*)::text as value
+    from (
+      select normalized_url
+      from event_reference_candidates
+      group by normalized_url
+      having count(*) > 1
+    ) duplicates
+  `);
+  checks.push({
+    name: "duplicate event reference normalized URLs",
+    actual: duplicateEventReferenceCandidates,
+    expected: 0,
+    ok: duplicateEventReferenceCandidates === 0,
+  });
+
+  const eventReferenceMentionOrphans = await scalar(`
+    select count(*)::text as value
+    from event_reference_mentions m
+    left join distribution_post_candidates p on p.id = m.distribution_candidate_id
+    left join event_reference_candidates e on e.id = m.event_candidate_id
+    where p.id is null or e.id is null
+  `);
+  checks.push({
+    name: "event reference mentions with missing staging parents",
+    actual: eventReferenceMentionOrphans,
+    expected: 0,
+    ok: eventReferenceMentionOrphans === 0,
+  });
+
+  const prematurelyPromotedEventReferences = await scalar(`
+    select count(*)::text as value
+    from event_reference_candidates
+    where promoted_node_id is not null
+  `);
+  checks.push({
+    name: "event references promoted before review",
+    actual: prematurelyPromotedEventReferences,
+    expected: 0,
+    ok: prematurelyPromotedEventReferences === 0,
+  });
+
   const report = {
     ok: checks.every((check) => check.ok),
     checks,
@@ -97,6 +139,10 @@ try {
     distributionCandidateLinks: await scalar("select count(*)::text as value from distribution_post_candidate_links"),
     distributionCandidateMedia: await scalar("select count(*)::text as value from distribution_post_candidate_media"),
     distributionCandidatesPromoted: await scalar("select count(*)::text as value from distribution_post_candidates where promoted_node_id is not null"),
+    eventReferenceCandidates: await scalar("select count(*)::text as value from event_reference_candidates"),
+    eventReferenceMentionsPresent: await scalar("select count(*)::text as value from event_reference_mentions where source_presence = 'present'"),
+    eventReferenceMentionsMissing: await scalar("select count(*)::text as value from event_reference_mentions where source_presence = 'missing'"),
+    eventReferenceCandidatesPromoted: await scalar("select count(*)::text as value from event_reference_candidates where promoted_node_id is not null"),
   };
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok) process.exitCode = 1;
