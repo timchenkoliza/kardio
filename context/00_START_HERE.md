@@ -2,44 +2,11 @@
 
 ## Product boundary
 
-This product has **no access to patient data, EHR/EMR, appointment schedules, encounter context, diagnostic device data, or clinical tasks**.
+This product has no access to patient data, EHR/EMR, appointment schedules, encounter context, diagnostic-device data linked to a patient, or patient-specific clinical tasks.
 
-Do not invent them in concepts, mocks, flows, or UI.
+KARDIO is a professional cardiology knowledge and tool navigator for physicians.
 
-This is a professional physician product built around:
-- trusted knowledge;
-- source navigation;
-- search;
-- calculators/tools;
-- guideline updates;
-- professional sources;
-- explicit user customization;
-- later, carefully controlled recommendation / Gen-UI.
-
-## Core positioning
-
-> A cardiology work navigator: Russian clinical guidelines, practical scenarios, calculators, medicines, referral/VMP routes and important updates — without patient data, with a source behind every answer.
-
-## Product strategy
-
-Do not build medicine from scratch.
-
-Own:
-- UX;
-- search;
-- structuring;
-- retrieval;
-- tagging;
-- distribution;
-- usage analytics;
-- source/capability orchestration.
-
-Clinical authority must come from:
-- official guidelines;
-- professional societies;
-- licensed/contracted sources;
-- clinical editors;
-- external experts.
+Clinical authority must come from approved external sources, professional societies, licensed/contracted knowledge, clinical editors and expert review.
 
 ## V3 conflict guard
 
@@ -85,13 +52,13 @@ Do not infer it from behavior and do not silently switch it.
 
 ## Real-content phase
 
-The product is now moving from demo placeholders to the supplied source-grounded Cardio Golden Set.
+The product has moved from demo placeholders to the supplied source-grounded Cardio Golden Set.
 
 Read:
 - `17_REAL_CONTENT_AUDIT.md`
 - `18_EDITORIAL_IMAGE_POLICY.md`
 
-All three shells must consume the **same canonical Golden Set objects**. They may differ only in ranking, grouping, navigation, density, composition and interaction model.
+All three shells consume the **same canonical Golden Set objects**. They may differ only in ranking, grouping, navigation, density, composition and interaction model.
 
 Do not fork facts per shell.
 Do not invent missing medical metadata.
@@ -113,60 +80,23 @@ An image-free card is better than irrelevant stock photography.
 Do not treat Pinterest/moodboard screenshots as source content assets.
 Do not reuse one generic doctor photo across unrelated cards.
 
-## Specialty visual identity phase
-
-Read:
-- `19_SPECIALTY_VISUAL_IDENTITY.md`
-- `20_SPECIALTY_VISUAL_TOKENS.json`
-
-`19_SPECIALTY_VISUAL_IDENTITY.md` is the human-readable visual specification.  
-`20_SPECIALTY_VISUAL_TOKENS.json` is the machine-readable palette/constraint layer for implementation.
-
-This is a shared specialty layer across all three shells, not a fourth shell and not a separate product theme.
-
-Core rule:
-
-> **Yandex Med owns the interface. Specialty owns the atmosphere.**
-
-The approved starting directions are:
-- Cardiology — `PULSE / PERFUSION`, calibrated palette v0.2;
-- Oncology — `CELL / PRECISION`, calibrated palette v0.2.
-
-The current Yandex Med lavender/periwinkle reference used for prototype calibration is `#8A8BFF`, sampled from the supplied current Yandex Med landing-page reference. If an official Yandex Med design token is available, inherit the official token instead of creating a near-duplicate.
-
-Specialty colors must not replace semantic success/warning/error colors.
-Pinterest/moodboard references may guide palette, rhythm, material feel and composition but remain `reference_only_do_not_render_as_content`.
-
-### Required execution order
-
-1. canonical Golden Set binding;
-2. shared 24-object evaluation slice across A/B/C;
-3. editorial image resolver / provenance rules;
-4. specialty visual identity integration;
-5. pixel-first polish;
-6. final responsive / visual QA.
-
-Do not apply the specialty visual system to hard-coded demo content and do not start final pixel polish before the real-content render path is stable.
-
 ## Read order
 
 1. `16_V3_SOURCE_OF_TRUTH_AUDIT.md`
 2. `phase2/MULTI_SHELL_ARCHITECTURE.md`
 3. `17_REAL_CONTENT_AUDIT.md`
 4. `18_EDITORIAL_IMAGE_POLICY.md`
-5. `19_SPECIALTY_VISUAL_IDENTITY.md`
-6. `20_SPECIALTY_VISUAL_TOKENS.json`
-7. `product/PRODUCT_BOUNDARIES.md`
-8. `product/MVP_ARCHITECTURE.md`
-9. `knowledge/source_modes.json`
-10. `knowledge/source_registry.cardiology.json`
-11. `ranking/RANKING_POLICY_V3.md`
-12. `product/GENUI_EVOLUTION.md`
-13. `pilot/RKO_PILOT.md`
-14. `metrics/MVP_METRICS.md`
-15. `legal/LEGAL_GATES_RU.md`
-16. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
-17. `13_PHASE_1_PROMPT_V3.md`
+5. `product/PRODUCT_BOUNDARIES.md`
+6. `product/MVP_ARCHITECTURE.md`
+7. `knowledge/source_modes.json`
+8. `knowledge/source_registry.cardiology.json`
+9. `ranking/RANKING_POLICY_V3.md`
+10. `product/GENUI_EVOLUTION.md`
+11. `pilot/RKO_PILOT.md`
+12. `metrics/MVP_METRICS.md`
+13. `legal/LEGAL_GATES_RU.md`
+14. `08_VISUAL_DISCOVERY_BRIEF_V3.md`
+15. `13_PHASE_1_PROMPT_V3.md`
 
 `knowledge/KNOWLEDGE_ARCHITECTURE.md` is currently mixed with stale patient-context concepts and is not authoritative for v3 until rewritten.
 
@@ -193,24 +123,34 @@ Do not introduce inferred personalization in MVP.
 Use:
 - `phase2/kardio-app.html`
 
-This prototype demonstrates one shared local state with three selectable render shells.
+This prototype now uses the real Golden Set render path.
+
+Runtime pieces:
+- `data/goldenset-chunk-01.js` … `goldenset-chunk-05.js`
+- `data/cardio_goldenset_loader.js`
+- `data/cardio-evaluation-slice-v1.bundle.js`
+- `data/content-image-enrichment.bundle.js`
+- `phase2/content-runtime.js`
+- `phase2/kardio-app.js`
+- `phase2/kardio-real.css`
+
+The active render path no longer uses the old hard-coded demo `catalog` / `sources` arrays.
+
 Saved items, recent activity, pins and query state persist across shell switches.
 
-`phase2/kardio-multishell.html` is an earlier selection-wrapper prototype and should not be treated as the final architecture proof.
-
-The current HTML still contains hard-coded placeholder content. Do not polish those placeholders. Replace them through the shared Golden Set content layer first.
+`phase2/kardio-multishell.html` is an earlier selection-wrapper prototype and should not be treated as the current architecture proof.
 
 ## Pixel-first status
 
-The user has selected the multi-shell direction.
-The pixel-first build contract may be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
+The user has selected the multi-shell direction and real-content binding is implemented.
 
-However, final pixel-level polish is sequenced **after**:
-1. real content binding;
-2. editorial image-resolution rules;
-3. specialty visual identity integration.
+The pixel-first build contract may now be applied to **all three shells**, with the requirement that shared content/business rules remain consistent.
 
-Pixel-first is the execution/refinement pass for an already accepted visual system, not the place to discover a new specialty palette.
+Next gate:
+- open the real-content prototype in a browser;
+- inspect 390 / 768 / 1440;
+- correct typography, geometry, wrapping, density, state hierarchy and A/B/C consistency;
+- do not change canonical content to make layout easier.
 
 Do not claim visual verification unless the shell was actually rendered and inspected at the required anchor viewports.
 
@@ -220,8 +160,10 @@ Gen-UI remains a **later hypothesis**, not the base MVP.
 
 First prove:
 - fast successful retrieval;
-- trust;
-- repeat usage.
+- trusted source verification;
+- repeat utility;
+- predictable tool access;
+- value of saved/pinned professional knowledge.
 
 Then allow explicit user-created workspaces from approved modules.
 
@@ -230,12 +172,12 @@ The existence of the Knowledge Workspace shell does not automatically activate g
 ## Absolute non-goals
 
 - patient data;
-- EHR integration;
-- AI diagnosis;
-- therapy selection for a patient;
-- autonomous clinical decisions;
-- hospital information system;
-- clinical alerting;
-- patient prioritization;
-- automatic doctor personality profiling;
-- engagement-maximizing feed.
+- EHR/EMR integration;
+- appointment or encounter awareness;
+- patient cards;
+- patient-specific alerts/tasks;
+- ambient clinical scribe;
+- autonomous diagnosis/treatment;
+- generic engagement feed;
+- hidden inferred personalization;
+- generic medical stock imagery used as filler.
