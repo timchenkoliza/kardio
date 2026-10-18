@@ -68,5 +68,5 @@ export function rankWorkspaceResearch(
 
 export function hasBlockedPatientLevelMarkers(value: string): boolean {
   const normalized = normalizeQuery(value);
-  return /\b(фио|фамили|имя пациента|дата рождения|телефон|email|e mail|снилс|полис омс|номер карты|медицинская карта|patient id|patient_id|mrn)\b/u.test(normalized);
+  return /(фио|фамили|имя пациента|дата рождения|телефон|email|e mail|снилс|полис омс|номер карты|медицинская карта|patient id|mrn)/u.test(normalized);
 }
