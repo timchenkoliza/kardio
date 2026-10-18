@@ -93,6 +93,22 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<script>
+/* Local visual-QA hook only. Production behavior is unchanged unless ?qaShell=A|B|C is present. */
+(()=>{
+  const requested=new URLSearchParams(location.search).get('qaShell');
+  if(!requested)return;
+  const shell={A:'search_first',B:'toolbelt',C:'workspace',search_first:'search_first',toolbelt:'toolbelt',workspace:'workspace'}[requested];
+  if(!shell)return;
+  try{
+    const key='kardio.realcontent.v1';
+    const state={...JSON.parse(localStorage.getItem(key)||'{}'),shell,view:'home',debug:false};
+    localStorage.setItem(key,JSON.stringify(state));
+    localStorage.setItem('yamed.feed.onboarding.v1','done');
+    localStorage.setItem('yamed.feed.specialty.v1','cardiology');
+  }catch{}
+})();
+</script>
 <script src="./kardio-app.js"></script>
 <script src="./specialty-theme.js"></script>
 </body>
