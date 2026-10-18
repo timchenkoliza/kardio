@@ -58,6 +58,7 @@ describe("semantic shell models", () => {
     expect(model.pinned).toEqual([]);
     expect(model.recent).toEqual([]);
     expect(model.collections).toEqual([]);
+    expect(model.researchInterests).toEqual([]);
   });
 
   it("workspace is built only from user-owned state", () => {
@@ -65,6 +66,7 @@ describe("semantic shell models", () => {
       ...emptyUserState(),
       savedIds: ["saved"],
       pinnedIds: ["pinned"],
+      researchInterests: ["cardiology:фибрилляция предсердий", "oncology:меланома"],
       recent: [{ kind: "content", specialty: "cardiology", id: "recent", at: "2026-10-18T00:00:00.000Z" }],
       collections: [{ id: "00000000-0000-4000-8000-000000000001", specialty: "cardiology", name: "Моя подборка", contentIds: ["saved"] }],
     };
@@ -74,6 +76,7 @@ describe("semantic shell models", () => {
     expect(model.pinned.map((value) => value.id)).toEqual(["pinned"]);
     expect(model.recent.map((value) => value.id)).toEqual(["recent"]);
     expect(model.collections[0]?.items.map((value) => value.id)).toEqual(["saved"]);
+    expect(model.researchInterests).toEqual(["фибрилляция предсердий"]);
     expect([...model.saved, ...model.pinned, ...model.recent].some((value) => value.id === "random")).toBe(false);
   });
 
