@@ -29,6 +29,13 @@ function searchableText(content: ContentObject): string {
   ].join(" "));
 }
 
+function lexicalTermMatches(term: string, haystack: string, haystackTerms: readonly string[]): boolean {
+  if (haystack.includes(term)) return true;
+  if (term.length < 7) return false;
+  const oneCharacterStem = term.slice(0, -1);
+  return haystackTerms.some((candidate) => candidate.length >= oneCharacterStem.length && candidate.startsWith(oneCharacterStem));
+}
+
 export function deterministicContentOrder(a: ContentObject, b: ContentObject): number {
   return (
     b.priority - a.priority
@@ -57,7 +64,8 @@ export function selectFeedContent(args: {
     .filter((item) => {
       if (!queryTerms.length) return true;
       const haystack = searchableText(item);
-      return queryTerms.every((term) => haystack.includes(term));
+      const haystackTerms = haystack.split(/\s+/).filter(Boolean);
+      return queryTerms.every((term) => lexicalTermMatches(term, haystack, haystackTerms));
     })
     .sort(deterministicContentOrder);
 }
