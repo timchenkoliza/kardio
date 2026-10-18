@@ -1,7 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 
-export type CuratedSurface = "sources" | "reference" | "education" | "tools" | "imaging";
-export type CuratedProvenance = "source_research" | "user_provided";
+export type CuratedSurface = "sources" | "reference" | "education" | "tools" | "imaging" | "referral";
+export type CuratedProvenance = "source_research" | "user_provided" | "official_public_source";
 
 export interface CuratedExternalSource {
   id: string;
@@ -17,9 +17,10 @@ export interface CuratedExternalSource {
 }
 
 /**
- * Product-facing external resources observed in the source registry or supplied
- * explicitly for the prototype. These records are navigation aids, not
- * canonical ontology promotion and not clinical endorsement.
+ * Product-facing external resources observed in the source registry, supplied
+ * explicitly for the prototype, or linked from official public sources.
+ * These records are navigation aids, not canonical ontology promotion and not
+ * clinical endorsement.
  */
 export const curatedExternalSources: readonly CuratedExternalSource[] = [
   {
@@ -129,6 +130,30 @@ export const curatedExternalSources: readonly CuratedExternalSource[] = [
     language: "en",
     surfaces: ["sources", "reference", "imaging"],
     provenance: "user_provided",
+  },
+  {
+    id: "vmp-program-2026",
+    registryId: null,
+    specialty: "shared",
+    name: "Программа государственных гарантий 2026",
+    category: "ВМП · официальный перечень",
+    url: "https://static.government.ru/media/files/jOaAAOJdAT8F5J1VmdvrzeTkw5huazYr.pdf",
+    note: "Постановление Правительства РФ № 2188 от 29.12.2025. В приложениях содержится перечень видов ВМП на 2026 год.",
+    language: "ru",
+    surfaces: ["sources", "reference", "referral"],
+    provenance: "official_public_source",
+  },
+  {
+    id: "vmp-minzdrav-explainer",
+    registryId: null,
+    specialty: "shared",
+    name: "Минздрав России · ВМП",
+    category: "ВМП · официальная справка",
+    url: "https://minzdrav.gov.ru/special/reception/help/vmp/0",
+    note: "Официальная справка о высокотехнологичной медицинской помощи и профилях, в которых она оказывается.",
+    language: "ru",
+    surfaces: ["sources", "reference", "referral"],
+    provenance: "official_public_source",
   },
   {
     id: "cancer-risk-calculators",
