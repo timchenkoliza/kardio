@@ -1,18 +1,38 @@
 {
-  "version": "0.2",
+  "version": "0.3",
   "date": "2026-10-18",
   "status": "authoritative_prototype_visual_tokens",
-  "source_of_truth": "context/19_SPECIALTY_VISUAL_IDENTITY.md",
+  "source_of_truth": [
+    "context/19_SPECIALTY_VISUAL_IDENTITY.md",
+    "physician-world-research/System/Brand/Typography.md",
+    "physician-world-research/System/Brand/Visual Language.md"
+  ],
   "brand": {
     "name": "Yandex Med",
-    "lavender_reference": "#8A8BFF",
-    "lavender_reference_status": "sampled_from_supplied_current_yandex_med_surface",
-    "implementation_rule": "If an official Yandex Med design token exists, inherit it instead of creating a near-duplicate token."
+    "typeface": {
+      "family": "YS Text",
+      "headline_weight": "Medium",
+      "body_weight": "Regular",
+      "rule": "Do not silently substitute another typeface when YS Text is available."
+    },
+    "white_calm": "#FFFFFF",
+    "digital_blue": "#898BFF",
+    "ai_gradient": {
+      "start": "#898BFF",
+      "end_dedicated_construction_page": "#CEB6FF",
+      "alternate_palette_page_endpoint": "#DABDFF",
+      "status": "WIP endpoint conflict; current prototype follows dedicated gradient-construction page",
+      "direction": "lower-left to upper-right",
+      "digital_blue_share": "approximately two thirds of filled area"
+    },
+    "lemon_tech": "#FFFD89",
+    "black_care": "#000000",
+    "deprecated_sampled_anchor": "#8A8BFF"
   },
   "shared": {
-    "ink": "#262633",
-    "canvas": "#FAFAFF",
-    "brand_lavender": "#8A8BFF"
+    "ink": "#000000",
+    "canvas": "#FFFFFF",
+    "brand_accent": "#898BFF"
   },
   "cardiology": {
     "concept": "PULSE / PERFUSION",
@@ -24,24 +44,15 @@
       "cool_bridge": "#86A9B9",
       "secondary_soft": "#E7EFF3",
       "deep": "#491923",
-      "accent": "#8A8BFF",
-      "ink": "#262633",
-      "canvas": "#FAFAFF"
+      "section_canvas_warm": "#F8F0F2",
+      "section_canvas_cool": "#EEF4F6",
+      "surface": "#FFFAFB",
+      "border": "#E6D1D7",
+      "accent": "#898BFF",
+      "ink": "#000000"
     },
-    "deprecated_v01": [
-      "#A9445A",
-      "#D98B9B",
-      "#8D86FF"
-    ],
-    "photography_tonal_world": [
-      "garnet",
-      "berry",
-      "skin",
-      "steel",
-      "monitor_blue",
-      "white",
-      "subtle_lavender"
-    ]
+    "deprecated_v01": ["#A9445A", "#D98B9B", "#8D86FF"],
+    "photography_tonal_world": ["garnet", "berry", "skin", "steel", "monitor_blue", "white", "subtle_lavender"]
   },
   "oncology": {
     "concept": "CELL / PRECISION",
@@ -53,60 +64,36 @@
       "tertiary": "#A8BAB2",
       "secondary_soft": "#E8EFEC",
       "deep": "#403646",
-      "accent": "#8A8BFF",
-      "ink": "#262633",
-      "canvas": "#FAFAFF"
+      "section_canvas_primary": "#F5F0F6",
+      "section_canvas_secondary": "#EDF2F0",
+      "surface": "#FFFBFF",
+      "border": "#DDD2E1",
+      "accent": "#898BFF",
+      "ink": "#000000"
     },
     "tertiary_rule": "Mineral Sage is tertiary only and must not become a co-primary color.",
-    "photography_tonal_world": [
-      "off_white",
-      "lilac_shadow",
-      "graphite",
-      "translucent_violet",
-      "muted_mineral_green"
-    ]
+    "photography_tonal_world": ["off_white", "lilac_shadow", "graphite", "translucent_violet", "muted_mineral_green"]
   },
-  "proportions": {
-    "neutral_canvas_percent": "65-70",
-    "soft_low_chroma_surfaces_percent": "15-20",
-    "yandex_lavender_percent": "~10",
-    "strong_specialty_primary_percent": "4-7",
-    "other_strong_accents_percent": "<=3",
-    "note": "Art-direction guidance only; do not calculate literal CSS coverage."
+  "section_theming_rule": {
+    "scope": "entire specialty workspace after specialty selection",
+    "includes": ["canvas", "rails", "priority modules", "card borders", "selected tabs", "source/status context surfaces", "editorial accents"],
+    "excludes": ["global Yandex Med logo chrome", "semantic success/warning/error roles"],
+    "anti_pattern": "Do not theme only CTA buttons while leaving the rest of the specialty section generic white."
   },
-  "chroma_rules": {
-    "canvas": "very_low",
-    "soft_surfaces": "low",
-    "bridge_colors": "low_to_medium",
-    "brand_lavender": "higher_but_limited_area",
-    "specialty_primary": "medium_to_high_but_limited_area",
-    "equal_saturation_across_palette": false
-  },
-  "protected_semantic_roles": [
-    "error",
-    "danger",
-    "warning",
-    "success",
-    "positive_status",
-    "disabled"
-  ],
-  "accessibility": {
-    "normal_text_target_contrast": "4.5:1",
-    "large_text_target_contrast": "3:1",
-    "brand_lavender_on_white": "accent_or_background_not_normal_text",
-    "cardiology_secondary_on_white": "do_not_use_as_default_normal_text"
-  },
+  "protected_semantic_roles": ["error", "danger", "warning", "success", "positive_status", "disabled"],
   "image_policy": {
     "authority": "context/18_EDITORIAL_IMAGE_POLICY.md",
     "pinterest_moodboards": "reference_only_do_not_render_as_content",
     "generic_doctor_photo_fallback": false,
-    "image_free_card_is_valid": true
+    "image_free_card_is_valid": true,
+    "feed_image_share_guidance": "approximately 25-30 percent of a card maximum when a semantically exact image exists"
   },
   "execution_order": [
     "canonical_golden_set_binding",
     "shared_24_object_evaluation_slice",
     "editorial_image_resolver_and_provenance",
     "specialty_visual_identity_integration",
+    "physician_feed_card_grammar",
     "pixel_first_polish",
     "final_responsive_visual_qa"
   ]
