@@ -60,6 +60,7 @@ describe("content completeness gate read model", () => {
     expect(curatedSourcesForSurface("cardiology", "education").map(item => item.id)).toContain("1med");
     expect(curatedSourcesForSurface("cardiology", "tools").map(item => item.id)).not.toContain("cancer-risk-calculators");
     expect(curatedSourcesForSurface("oncology", "tools").map(item => item.id)).toEqual(expect.arrayContaining(["cancer-risk-calculators", "cancer-survival-rates"]));
+    expect(curatedSourcesForSurface("cardiology", "referral").map(item => item.id)).toEqual(expect.arrayContaining(["vmp-program-2026", "vmp-minzdrav-explainer"]));
   });
 
   it("finds education from canonical videos and explicit education tags", () => {
@@ -93,7 +94,7 @@ describe("content completeness gate read model", () => {
     expect(uniqueCuratedSourceCount("cardiology", [canonicalRko])).toBe(baseline - 1);
   });
 
-  it("marks reference, education, tools and imaging ready without promoting external resources into canonical counts", () => {
+  it("marks reference, education, tools, imaging and VMP ready without promoting external resources into canonical counts", () => {
     const snapshot = buildContentCompletenessSnapshot({ specialty: "cardiology", content: [], sources: [] });
     const byDestination = new Map(snapshot.destinations.map(item => [item.destination, item]));
 
@@ -102,6 +103,8 @@ describe("content completeness gate read model", () => {
     expect(byDestination.get("education")?.ready).toBe(true);
     expect(byDestination.get("tools")?.canonicalObjects).toBe(2);
     expect(byDestination.get("imaging")?.ready).toBe(true);
+    expect(byDestination.get("referral")?.ready).toBe(true);
+    expect(byDestination.get("referral")?.canonicalObjects).toBe(0);
     expect(byDestination.get("events")?.ready).toBe(false);
   });
 });
