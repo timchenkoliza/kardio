@@ -1,17 +1,32 @@
 import { createHash } from "node:crypto";
 import type { SpecialtyId } from "@/lib/domain/types";
 
+export type TelegramLinkKind = "external" | "internal_navigation" | "local_artifact" | "other";
+
 export interface TelegramLinkCandidate {
   href: string;
   label: string;
+  kind: TelegramLinkKind;
 }
 
-export type TelegramMediaKind = "photo" | "video" | "file" | "gif" | "round_video" | "voice" | "sticker" | "webpage_thumb" | "other";
+export type TelegramMediaKind =
+  | "photo"
+  | "video"
+  | "file"
+  | "gif"
+  | "round_video"
+  | "voice"
+  | "sticker"
+  | "webpage_thumb"
+  | "thumbnail"
+  | "other";
 
 export interface TelegramMediaCandidate {
   href: string;
   kind: TelegramMediaKind;
 }
+
+export type TelegramTimestampBasis = "offset_explicit" | "source_local" | "unknown";
 
 export interface TelegramPostCandidate {
   sourceRegistryId: string;
@@ -19,8 +34,13 @@ export interface TelegramPostCandidate {
   messageId: string;
   stableId: string;
   kind: "post" | "service";
+  /**
+   * ISO instant when the export contains an explicit UTC offset, otherwise a
+   * normalized source-local wall-clock value without an invented timezone.
+   */
   publishedAt: string | null;
   publishedAtRaw: string | null;
+  publishedAtBasis: TelegramTimestampBasis;
   authorName: string | null;
   text: string;
   hashtags: readonly string[];
@@ -38,7 +58,23 @@ const MEDIA_PREFIXES: ReadonlyArray<[string, TelegramMediaKind]> = [
   ["voice_messages/", "voice"],
   ["stickers/", "sticker"],
   ["webpage_thumbs/", "webpage_thumb"],
+  ["thumbs/", "thumbnail"],
 ];
+
+const ENGLISH_MONTHS: Readonly<Record<string, number>> = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
+};
 
 function decodeHtml(value: string): string {
   const named: Record<string, string> = {
@@ -89,13 +125,66 @@ function divInnerByClass(fragment: string, className: string): string | null {
   return fragment.match(expression)?.[1] ?? null;
 }
 
-function parseTelegramTimestamp(raw: string | null): string | null {
-  if (!raw) return null;
-  const match = raw.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2}) UTC([+-])(\d{2}):?(\d{2})$/);
-  if (!match) return null;
-  const [, day, month, year, hour, minute, second, sign, offsetHour, offsetMinute] = match;
-  const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}${sign}${offsetHour}:${offsetMinute}`);
-  return Number.isNaN(parsed.valueOf()) ? null : parsed.toISOString();
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function validWallClock(year: number, month: number, day: number, hour: number, minute: number, second: number): boolean {
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day
+    && date.getUTCHours() === hour
+    && date.getUTCMinutes() === minute
+    && date.getUTCSeconds() === second;
+}
+
+function parseTelegramTimestamp(raw: string | null): { value: string | null; basis: TelegramTimestampBasis } {
+  if (!raw) return { value: null, basis: "unknown" };
+
+  const explicitOffset = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2}) UTC([+-])(\d{2}):?(\d{2})$/);
+  if (explicitOffset) {
+    const [, day, month, year, hour, minute, second, sign, offsetHour, offsetMinute] = explicitOffset;
+    const parsed = new Date(`${year}-${pad2(Number(month))}-${pad2(Number(day))}T${hour}:${minute}:${second}${sign}${offsetHour}:${offsetMinute}`);
+    return Number.isNaN(parsed.valueOf())
+      ? { value: null, basis: "unknown" }
+      : { value: parsed.toISOString(), basis: "offset_explicit" };
+  }
+
+  // Observed in the real Telegram Desktop export connected for cardiology_channel_01:
+  // "11 March 2022, 15:28:27". The export does not state a timezone, so keep
+  // it as a normalized wall-clock value instead of silently inventing UTC/MSK.
+  const sourceLocal = raw.match(/^(\d{1,2}) ([A-Za-z]+) (\d{4}), (\d{2}):(\d{2}):(\d{2})$/);
+  if (sourceLocal) {
+    const [, dayRaw, monthName, yearRaw, hourRaw, minuteRaw, secondRaw] = sourceLocal;
+    const month = ENGLISH_MONTHS[monthName.toLowerCase()];
+    const day = Number(dayRaw);
+    const year = Number(yearRaw);
+    const hour = Number(hourRaw);
+    const minute = Number(minuteRaw);
+    const second = Number(secondRaw);
+    if (month && validWallClock(year, month, day, hour, minute, second)) {
+      return {
+        value: `${yearRaw}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}:${pad2(second)}`,
+        basis: "source_local",
+      };
+    }
+  }
+
+  return { value: null, basis: "unknown" };
+}
+
+function mediaKind(href: string): TelegramMediaKind | null {
+  const normalized = href.replace(/^\.\//, "");
+  for (const [prefix, kind] of MEDIA_PREFIXES) if (normalized.startsWith(prefix)) return kind;
+  return null;
+}
+
+function linkKind(href: string): TelegramLinkKind {
+  if (href === "#" || href.startsWith("javascript:")) return "internal_navigation";
+  if (mediaKind(href)) return "local_artifact";
+  if (/^https?:\/\//i.test(href) || /^(?:mailto|tel):/i.test(href)) return "external";
+  return "other";
 }
 
 function collectLinks(fragment: string): TelegramLinkCandidate[] {
@@ -109,26 +198,35 @@ function collectLinks(fragment: string): TelegramLinkCandidate[] {
     const key = `${href}\u0000${label}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    links.push({ href, label });
+    links.push({ href, label, kind: linkKind(href) });
   }
   return links;
 }
 
-function mediaKind(href: string): TelegramMediaKind | null {
-  const normalized = href.replace(/^\.\//, "");
-  for (const [prefix, kind] of MEDIA_PREFIXES) if (normalized.startsWith(prefix)) return kind;
-  return null;
-}
-
-function collectMedia(links: readonly TelegramLinkCandidate[]): TelegramMediaCandidate[] {
+function collectMedia(fragment: string, links: readonly TelegramLinkCandidate[]): TelegramMediaCandidate[] {
   const media: TelegramMediaCandidate[] = [];
   const seen = new Set<string>();
-  for (const link of links) {
-    const kind = mediaKind(link.href);
-    if (!kind || seen.has(link.href)) continue;
-    seen.add(link.href);
-    media.push({ href: link.href, kind });
+  const add = (href: string) => {
+    const kind = mediaKind(href);
+    if (!kind || seen.has(href)) return;
+    seen.add(href);
+    media.push({ href, kind });
+  };
+
+  for (const link of links) add(link.href);
+
+  // Telegram webpage/video previews often expose their local image only via
+  // <img src>, not via an anchor href. Capture those references while excluding
+  // sender avatars so transport metadata does not masquerade as post media.
+  const imageExpression = /<img\b([^>]*)>/gi;
+  for (const match of fragment.matchAll(imageExpression)) {
+    const attributes = match[1];
+    const classNames = attribute(attributes, "class") ?? "";
+    if (/\buserpic\b/i.test(classNames)) continue;
+    const src = attribute(attributes, "src");
+    if (src) add(src);
   }
+
   return media;
 }
 
@@ -160,6 +258,7 @@ export function parseTelegramDesktopHtml(
     const fragment = html.slice(start.index, end);
     const dateTag = fragment.match(/<div[^>]*class="[^"]*\bdate\b[^"]*\bdetails\b[^"]*"[^>]*>/i)?.[0] ?? null;
     const publishedAtRaw = dateTag ? attribute(dateTag, "title") : null;
+    const parsedTimestamp = parseTelegramTimestamp(publishedAtRaw);
     const fromName = divInnerByClass(fragment, "from_name");
     const textInner = divInnerByClass(fragment, "text");
     const text = textInner ? plainText(textInner) : "";
@@ -171,13 +270,14 @@ export function parseTelegramDesktopHtml(
       messageId: start.messageId,
       stableId: `${context.sourceRegistryId}:message:${start.messageId}`,
       kind: /\bservice\b/i.test(start.classNames) ? "service" : "post",
-      publishedAt: parseTelegramTimestamp(publishedAtRaw),
+      publishedAt: parsedTimestamp.value,
       publishedAtRaw,
+      publishedAtBasis: parsedTimestamp.basis,
       authorName: fromName ? plainText(fromName) || null : null,
       text,
       hashtags: collectHashtags(text),
       links,
-      media: collectMedia(links),
+      media: collectMedia(fragment, links),
       rawFragmentSha256: createHash("sha256").update(fragment).digest("hex"),
     });
   }
