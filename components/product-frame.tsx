@@ -51,7 +51,7 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
     window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     await mutate({ action: "preferences", onboardingCompleted: false });
   }
-  return <div className="product" data-shell={state.shell}>
+  return <div className="product" data-shell={state.shell} data-specialty={specialty}>
     <a className="skip-link" href="#main">Перейти к содержанию</a>
     <header className="topbar">
       <Link className="brand" href={`/${specialty}`} aria-label="Яндекс Мед — главная"><span className="brand-symbol" aria-hidden="true">Я</span><span>Яндекс <strong>Мед</strong></span></Link>
