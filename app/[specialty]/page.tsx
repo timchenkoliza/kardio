@@ -18,6 +18,47 @@ export const dynamic = "force-dynamic";
 
 const feedTabs: FeedKindFilter[] = ["all", "guideline", "article", "video", "clinical"];
 
+const viewTitles: Record<string, string> = {
+  saved: "Мои материалы",
+  sources: "Источники",
+  tools: "Калькуляторы",
+  reference: "Справочник",
+  referral: "ВМП",
+  events: "События",
+  education: "Обучение",
+};
+
+const emptyCopy: Record<string, { title: string; body: string }> = {
+  saved: {
+    title: "Пока ничего не сохранено",
+    body: "Сохраняйте материалы из ленты — они появятся здесь.",
+  },
+  tools: {
+    title: "Калькуляторы пока не добавлены",
+    body: "Здесь появятся проверенные клинические калькуляторы после загрузки в каталог.",
+  },
+  reference: {
+    title: "Справочник пока пуст",
+    body: "Здесь появятся проверенные справочные материалы после загрузки в каталог.",
+  },
+  referral: {
+    title: "Материалы по ВМП пока не добавлены",
+    body: "Раздел появится, когда в каталоге будут проверенные маршруты и материалы по ВМП.",
+  },
+  events: {
+    title: "Событий пока нет",
+    body: "Новые подтверждённые события появятся здесь после загрузки в каталог.",
+  },
+  education: {
+    title: "Обучающих материалов пока нет",
+    body: "Курсы, лекции и другие проверенные материалы появятся здесь после загрузки в каталог.",
+  },
+  sources: {
+    title: "Источники пока не добавлены",
+    body: "Проверенные профессиональные источники появятся здесь после загрузки в каталог.",
+  },
+};
+
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -99,7 +140,7 @@ function ExploreOrCatalogHome({
   const reviewCount = content.filter(item => item.currentness === "review").length;
   const isFeedCatalog = view === "feed" && !query;
   const isExploreHome = isFeedCatalog && kind === "all";
-  const pageTitle = query ? "Поиск" : view === "saved" ? "Мои материалы" : view === "sources" ? "Источники" : kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Лента" : "Материалы";
+  const pageTitle = query ? "Поиск" : viewTitles[view] ?? (kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Лента" : "Материалы");
 
   return <>
     <section className="feed-intro explore-intro" aria-labelledby="feed-title">
@@ -141,7 +182,7 @@ function ExploreOrCatalogHome({
           </div>
         </section>
 
-        {!query && view === "feed" && (
+        {isExploreHome && (
           <aside className="context-rail" aria-label="Быстрый доступ">
             <div className="context-module">
               <span className="eyebrow">Куда дальше</span>
@@ -281,12 +322,13 @@ function SourceDirectory({ specialty, sources }: { specialty: SpecialtyId; sourc
 
 function EmptyState({ specialty, view, query }: { specialty: SpecialtyId; view: string; query?: string }) {
   const oncology = specialty === "oncology";
+  const copy = emptyCopy[view] ?? { title: "Материалов пока нет", body: "Новые проверенные материалы появятся здесь после загрузки в каталог." };
   return (
     <section className="empty-state">
       <span className="empty-state-mark" aria-hidden="true">{query ? "⌕" : "—"}</span>
-      <h2>{query ? "Ничего не найдено" : oncology ? "Онкология пока без канонического набора" : "В этом разделе пока нет материалов"}</h2>
-      <p>{query ? "Попробуйте более короткий запрос или название темы." : oncology ? "Мы не подменяем онкологию кардиологическими материалами. Раздел наполнится после собственной проверенной загрузки." : `Раздел «${view}» не заполняется синтетическими данными.`}</p>
-      <Link className="secondary-button" href={`/${specialty}`}>Вернуться на главную</Link>
+      <h2>{query ? "Ничего не найдено" : oncology ? "Онкология пока без канонического набора" : copy.title}</h2>
+      <p>{query ? "Попробуйте более короткий запрос или название темы." : oncology ? "Мы не подменяем онкологию кардиологическими материалами. Раздел наполнится после собственной проверенной загрузки." : copy.body}</p>
+      <Link className="secondary-button" href={`/${specialty}`}>{view === "saved" ? "Перейти в ленту" : "Вернуться на главную"}</Link>
     </section>
   );
 }
