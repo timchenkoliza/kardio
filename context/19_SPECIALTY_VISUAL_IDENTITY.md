@@ -1,483 +1,255 @@
 # Yandex Med Specialty Visual Identity System
 
-Status: **authoritative specialty visual-language rule**.
-
-Version: **v0.2**  
+Status: **authoritative specialty visual-language rule**  
+Version: **v0.3**  
 Date: **2026-10-18**
 
-## Purpose
+## 0. Authority and correction
 
-This document defines how specialties receive a distinct visual identity inside Yandex Med without becoming separate products, microsites or independent brands.
+The earlier sampled lavender `#8A8BFF` is no longer the brand anchor for this prototype.
 
-Core rule:
+The higher-authority `physician-world-research/System/Brand` material defines:
 
-> **Yandex Med owns the interface. Specialty owns the atmosphere.**
+- primary typeface: **YS Text**;
+- headline / main line: **YS Text Medium**;
+- body / supporting copy: **YS Text Regular**;
+- White calm: `#FFFFFF`;
+- Digital blue: `#898BFF`;
+- AI gradient: `#898BFF → #CEB6FF` on the dedicated gradient-construction page;
+- palette-page alternate endpoint: `#DABDFF` — keep this as a documented WIP conflict, do not silently merge it;
+- Lemon tech: `#FFFD89`, restrained interaction/change accent;
+- Black care: `#000000`.
 
-Operationally this means approximately **80% Yandex Med / 20% specialty identity**.
+The official brand system has priority over sampled screenshots and earlier approximate tokens.
 
-The specialty layer may influence color, imagery, data-viz, editorial surfaces, abstract motifs and subtle motion. It must not rewrite product architecture, information hierarchy, medical facts, ranking logic, source/provenance rules or semantic UI status colors.
+## 1. Product rule
 
-## Priority of truth
+> **Yandex Med owns the product grammar. Specialty owns the professional environment.**
 
-When requirements conflict, use this order:
+This does **not** mean “keep the whole product white and recolor three buttons”.
 
-1. **Content truth** — canonical Golden Set / shared product data.
-2. **Image truth** — `18_EDITORIAL_IMAGE_POLICY.md`.
-3. **Specialty visual identity** — this document.
-4. **Pixel execution** — layout, spacing, responsive tuning, micro-polish.
+After a specialty is selected, its identity applies to the **entire specialty workspace**:
 
-Visual attractiveness never overrides semantic accuracy or provenance.
+- canvas atmosphere;
+- rails/navigation context;
+- priority modules;
+- card borders and soft surfaces;
+- selected tabs/chips;
+- editorial accents;
+- data/graphic treatment;
+- image atmosphere.
 
-## Yandex Med core identity — stable across specialties
+The global Yandex Med logo/header chrome remains recognizably Yandex Med.
 
-Preserve:
+Specialty colors never replace semantic success / warning / error states.
 
-- YS Text typography where available;
-- predominantly white / very-light surfaces;
-- graphite / near-black primary typography;
-- Yandex Med lavender/periwinkle as the cross-specialty anchor;
+## 2. Shared Yandex Med visual grammar
+
+Preserve across every specialty:
+
+- `YS Text Medium` for primary lines/headings;
+- `YS Text Regular` for body/supporting text;
+- left-aligned hierarchy;
+- strong black/white contrast;
+- white and negative space as structural material;
+- Digital blue / AI gradient as the cross-specialty technology signature;
+- rounded modular forms derived from the Yandex Med construction logic;
+- simple outline icon family;
+- little or no heavy shadow;
+- 2–3 dominant information zones rather than equal card soup;
+- cards used for meaningful grouping, not decoration.
+
+### Brand graphic token
+
+The Yandex Med source describes an asymmetric horizontal modular form with:
+
 - rounded geometry;
-- restrained spacing and generous white space;
-- clean AI-native visual language;
-- shared navigation and component behavior;
-- shared interaction patterns;
-- shared semantic colors for success, warning, negative/error and status.
+- flowing internal transitions;
+- capsule-like terminals/protrusions;
+- a unified silhouette;
+- the AI lavender/blue gradient.
 
-Do not create a second design system per specialty.
+Use its **construction logic**, not the literal logo, when a branded graphic device is appropriate.
 
-## Yandex Med lavender anchor
+Do not create random blobs, decorative hearts or ECG zig-zags.
 
-Current visual reference sampled from the supplied live Yandex Med landing-page screenshot:
+## 3. Existing physician-feed grammar is authoritative for cards
 
-- **Yandex Med Lavender / Periwinkle reference:** `#8A8BFF`
+Do not replace the physician feed with a generic SaaS dashboard or a giant slogan followed by uniform cards.
 
-This is a **reference value observed from the current product surface**, not a claim that this HEX is the canonical internal design-system token.
+For the current prototype, reuse the existing feed grammar documented in `22_PHYSICIAN_FEED_UI_CONTRACT.md`:
 
-Implementation rule:
+- desktop: approximately 1–2 primary cards per viewport;
+- mobile: one card plus visible continuation;
+- text-first for research/guidelines;
+- imagery is optional and should occupy only a minority of the card when semantically justified;
+- title is 2–3 readable lines rather than clickbait;
+- short summary answers “what happened?”;
+- a separate **Для практики** block appears only when source-grounded practical/clinical-task data exists;
+- source, type, date, currentness and actions remain visible but subordinate;
+- missing fields remain absent rather than being invented.
 
-- if an official Yandex Med design token is available in the product code/design system, inherit that token;
-- do not create a near-duplicate lavender token merely because this file contains a sampled HEX;
-- until the official token is available, use `#8A8BFF` as the visual reference for prototype calibration.
+## 4. Cardiology — PULSE / PERFUSION
 
-The previous provisional `#8D86FF` value is deprecated for this project.
-
----
-
-# 1. Color-system rules
-
-The palette must behave like a designed color system, not a row of equally loud swatches.
-
-## 1.1 Hue relationships
-
-Use color harmony deliberately:
-
-- **Yandex Med lavender** is the persistent cool brand anchor.
-- **Cardiology** introduces a deep garnet/wine family as the warm specialty counterpoint.
-- A desaturated **cath-lab / steel blue** acts as the cool bridge between the Yandex lavender and the warm cardio family.
-- **Oncology** stays closer to the lavender family through aubergine/mauve, with muted mineral sage as a tertiary counterweight.
-
-For Cardiology the intended relationship is a restrained near-triadic tension:
-
-`lavender/periwinkle → cool steel blue bridge → garnet/wine specialty accent`
-
-For Oncology the intended relationship is predominantly analogous:
-
-`lavender/periwinkle → aubergine → mauve`
-
-with low-chroma sage used sparingly.
-
-## 1.2 Chroma rules
-
-Do not give every palette color equal saturation.
-
-- Base canvas and neutral surfaces: **very low chroma**.
-- Soft specialty surfaces: **low chroma**.
-- Secondary bridge colors: **low-to-medium chroma**.
-- Yandex Med lavender: **higher chroma, limited area**.
-- Specialty primary/deep accent: **medium-to-high chroma, limited area**.
-- Never place multiple high-chroma specialty colors at equal visual weight in the same module.
-
-If a screen starts to look like a themed dashboard, reduce specialty chroma and increase neutral area.
-
-## 1.3 Proportion rules
-
-Recommended visual balance for specialty screens:
-
-- **65–70%** neutral / white / canvas;
-- **15–20%** soft mist / low-chroma specialty surfaces;
-- around **10%** Yandex Med lavender family;
-- **4–7%** strong specialty primary/deep accent;
-- **≤3%** other strong accents.
-
-These are art-direction proportions, not literal CSS area calculations.
-
-The purpose is to prevent a 25/25/25/25 split between purple, red, blue and white.
-
-## 1.4 Semantic-color protection
-
-Specialty colors must not replace semantic status colors.
-
-In particular:
-
-- Cardiology red/berry/wine must not become the universal negative/error color;
-- specialty green/sage must not become the universal success color;
-- Yandex lavender must not be used as normal body text on white merely because it is a brand color.
-
-Preserve the existing product semantics for:
-
-- error / danger;
-- warning;
-- success / positive status;
-- disabled state;
-- focus / selected states where already defined by the base system.
-
-## 1.5 Accessibility floor
-
-Color is not allowed to reduce legibility.
-
-Prototype guidance:
-
-- normal text should target WCAG AA contrast (4.5:1 or better);
-- large text should target at least 3:1;
-- `#8A8BFF` on white is an accent/background color, not a normal-text color;
-- `#B65B70` is borderline for normal white-background text and should not be used as the default text color;
-- deep wine/plum colors are suitable for high-contrast text on white but should remain editorial accents rather than replacing the base ink everywhere.
-
----
-
-# 2. Cardiology — PULSE / PERFUSION
-
-## 2.1 Concept
+### Professional atmosphere
 
 Cardiology should evoke:
 
-- blood flow;
-- perfusion;
-- pressure;
-- rhythm;
-- echocardiography;
+- perfusion and flow;
+- pressure and rhythm;
 - hemodynamics;
-- vascular movement;
-- cath-lab precision;
-- cardiovascular imaging;
-- procedural technology.
+- echocardiography / cath-lab precision;
+- cardiovascular imaging and procedural technology.
 
-The identity should feel clinical, precise, contemporary and calm.
+It should feel clinical, controlled and contemporary — not romantic, alarming or wellness-oriented.
 
-It must not become decorative “heart branding”.
+### Palette v0.3
 
-## 2.2 Calibrated Cardiology palette — v0.2
+| Role | Token | HEX |
+|---|---|---:|
+| Yandex technology anchor | Digital blue | `#898BFF` |
+| Specialty primary | Cardio Garnet | `#741E31` |
+| Specialty secondary | Berry | `#B65B70` |
+| Warm soft surface | Tissue Blush | `#F3E5E8` |
+| Cool bridge | Cath-lab Blue | `#86A9B9` |
+| Cool soft surface | Oxygen Mist | `#E7EFF3` |
+| Deep editorial | Deep Wine | `#491923` |
+| Warm section canvas | Cardio Canvas Warm | `#F8F0F2` |
+| Cool section canvas | Cardio Canvas Cool | `#EEF4F6` |
+| Text | Black care | `#000000` |
 
-| Token role | Name | HEX | Intended role |
-|---|---|---:|---|
-| Cross-specialty anchor | Yandex Med Lavender | `#8A8BFF` | Brand continuity, limited emphasis |
-| Specialty primary | Cardio Garnet | `#741E31` | Deep editorial/cardio accent |
-| Specialty secondary | Berry | `#B65B70` | Mid accent, graphic transition |
-| Soft warm surface | Tissue Blush | `#F3E5E8` | Large low-chroma background surface |
-| Cool bridge | Cath-lab Blue | `#86A9B9` | Diagnostic/technical bridge to lavender |
-| Soft cool surface | Oxygen Mist | `#E7EFF3` | Large low-chroma background surface |
-| Deep editorial | Deep Wine | `#491923` | High-contrast editorial emphasis |
-| Primary ink | Ink | `#262633` | Main text / neutral foreground |
-| Base canvas | Canvas | `#FAFAFF` | Main background |
+### Whole-section behavior
 
-The previous Cardiology v0.1 palette centered on `#A9445A` + `#D98B9B` is deprecated. It skewed too strongly toward pink/beauty/wellness when used together.
+After Cardiology is selected:
 
-The v0.2 system deliberately deepens the warm accent toward **garnet / wine** and increases the role of **steel / cath-lab blue**, matching the desired Pinterest moodboard character more closely while remaining compatible with Yandex Med lavender.
+- overall section canvas shifts to the warm-blush / cool-steel atmosphere;
+- navigation rails use low-chroma Cardiology surfaces;
+- priority/editorial module may use stronger Cardiology surface treatment;
+- text cards remain readable, predominantly white, but inherit Cardiology border/accent hierarchy;
+- official/source context may use Cath-lab Blue;
+- selected professional-context states may use Garnet/Deep Wine;
+- Digital blue remains recognizably Yandex Med for product links/technology cues.
 
-## 2.3 Cardiology visual physics
+The result should be perceivably Cardiology even when no content image is present.
 
-### FLOW
+### Anti-patterns
 
-The defining behavior is continuous directed movement.
+Do not use:
 
-Preferred motifs:
+- generic bright red;
+- decorative anatomical hearts;
+- ECG zig-zag wallpaper;
+- blood effects;
+- generic hospital-blue stock language;
+- random red/purple/blue per-card coloring;
+- Garnet as error/danger semantics.
 
-- soft directional gradients;
-- elongated vessel/lumen-like abstract forms;
-- pressure-wave rhythm;
-- controlled pulse;
-- layered echo-like structures;
-- fluid transitions;
-- restrained directional motion;
-- thin or soft-flowing data paths.
+## 5. Oncology — CELL / PRECISION
 
-The motif should remain abstract unless the content itself contains a real medical diagram.
-
-## 2.4 Cardiology photography
-
-Prefer real, source-grounded imagery such as:
-
-- echocardiography;
-- coronary angiography;
-- cath-lab environments;
-- hemodynamic monitoring;
-- cardiac CT / MRI / cine;
-- cardiovascular devices;
-- procedural hands;
-- authentic cardiologist portraits;
-- authentic congress/event photography;
-- real source figures from journals and professional societies.
-
-Preferred tonal world:
-
-> **garnet / berry / skin / steel / monitor blue / white / subtle lavender**
-
-Photography should feel observational and professional rather than promotional.
-
-### Cardiology anti-patterns
-
-Do not use as the main visual language:
-
-- bright generic red;
-- giant anatomical hearts;
-- decorative ECG zig-zags;
-- Valentine's-heart symbolism;
-- blood splashes;
-- generic doctor-with-stethoscope photography;
-- generic operating-room stock;
-- blue hospital-stock aesthetics;
-- one cardiology image repeated across unrelated cards.
-
-If no semantically correct image exists, use an image-free card.
-
----
-
-# 3. Oncology — CELL / PRECISION
-
-## 3.1 Concept
+### Professional atmosphere
 
 Oncology should communicate:
 
-- cell biology;
-- pathology;
-- microscopy;
+- pathology/microscopy;
 - molecular diagnostics;
-- imaging;
 - precision oncology;
-- targeting;
-- local concentration;
-- structural change;
+- imaging;
+- structured targeting/focus;
 - multidisciplinary expertise.
 
-The identity should feel analytical, intelligent and precise.
+### Palette v0.3
 
-It must not use fear, illness severity or mortality as its visual differentiator.
+| Role | Token | HEX |
+|---|---|---:|
+| Yandex technology anchor | Digital blue | `#898BFF` |
+| Specialty primary | Aubergine | `#5B4966` |
+| Specialty secondary | Cellular Mauve | `#9985A6` |
+| Soft primary surface | Cell Mist | `#F1EDF3` |
+| Tertiary counterweight | Mineral Sage | `#A8BAB2` |
+| Soft secondary surface | Mineral Mist | `#E8EFEC` |
+| Deep editorial | Deep Plum | `#403646` |
+| Section canvas | Oncology Canvas | `#F5F0F6` |
+| Secondary canvas | Mineral Canvas | `#EDF2F0` |
+| Text | Black care | `#000000` |
 
-## 3.2 Calibrated Oncology palette — v0.2
+Mineral Sage remains tertiary; do not let it become a wellness/spa co-primary.
 
-| Token role | Name | HEX | Intended role |
-|---|---|---:|---|
-| Cross-specialty anchor | Yandex Med Lavender | `#8A8BFF` | Brand continuity, limited emphasis |
-| Specialty primary | Aubergine | `#5B4966` | Specialty primary / editorial accent |
-| Specialty secondary | Cellular Mauve | `#9985A6` | Mid accent / image atmosphere |
-| Soft primary surface | Cell Mist | `#F1EDF3` | Large low-chroma background surface |
-| Tertiary counterweight | Mineral Sage | `#A8BAB2` | Sparse tertiary accent only |
-| Soft secondary surface | Mineral Mist | `#E8EFEC` | Low-chroma supporting surface |
-| Deep editorial | Deep Plum | `#403646` | High-contrast editorial emphasis |
-| Primary ink | Ink | `#262633` | Main text / neutral foreground |
-| Base canvas | Canvas | `#FAFAFF` | Main background |
+Oncology content must not be faked by putting Cardiology Golden Set objects under an Oncology theme.
 
-Mineral Sage is tertiary. It must not become a co-primary color; overuse risks a wellness/spa aesthetic.
+## 6. Editorial imagery and semantic graphics
 
-## 3.3 Oncology visual physics
+`18_EDITORIAL_IMAGE_POLICY.md` remains authoritative for real/source imagery.
 
-### CLUSTER / TARGET
+Priority:
 
-The defining behavior is local structure and directed focus.
-
-Preferred motifs:
-
-- soft clusters;
-- cellular grouping;
-- translucent overlapping forms;
-- local density;
-- target/focus states;
-- structured networks;
-- controlled expansion/contraction;
-- isolated highlighted regions.
-
-Motion, when used, should feel analytical rather than biological or threatening.
-
-## 3.4 Oncology photography
-
-Prefer:
-
-- histology;
-- pathology;
-- microscopy;
-- PET / CT;
-- molecular diagnostics;
-- laboratory workflows when directly relevant;
-- multidisciplinary tumor boards;
-- authentic oncologist portraits;
-- original scientific figures;
-- real publication imagery.
-
-Preferred tonal world:
-
-> **off-white / lilac shadow / graphite / translucent violet / muted mineral green**
-
-### Oncology anti-patterns
-
-Avoid:
-
-- cancer ribbons as the primary brand device;
-- dark fatalistic imagery;
-- distressed-patient stock photography;
-- decorative tumor illustrations;
-- fear-driven visual cues;
-- black-heavy “serious disease” aesthetics;
-- generic scientific imagery chosen only because it looks molecular.
-
----
-
-# 4. Editorial-image-policy relationship
-
-`18_EDITORIAL_IMAGE_POLICY.md` always has priority over this document.
-
-Image resolution order remains:
-
-1. exact visual from the same content object/source;
+1. exact source visual;
 2. source figure / publication cover / expert portrait / event photo;
-3. semantically exact uploaded clinical asset with tracked provenance/rights;
-4. original publisher / society / university asset;
+3. exact uploaded clinical asset with provenance/rights state;
+4. original publisher/society/university asset;
 5. image-free card.
 
-Generic doctor photography is **not** a fallback.
+For generated semantic editorial graphics, follow information-first grammar:
 
-Pinterest screenshots and moodboards are:
+- `A_VS_B`
+- `CADENCE`
+- `ONE_VS_MANY`
+- `ROUTE_A_VS_B`
+- `STACK`
+- `DEVICE_METHOD`
+- `PROCEDURE`
+- `SEQUENCE`
+- `CHANGE`
+- `NO_IMAGE`
 
-`reference_only_do_not_render_as_content`
+If the material does not support a concrete visual distinction, choose `NO_IMAGE`.
 
-They may influence:
+Brand character is subordinate to clinical meaning.
 
-- palette;
-- composition;
-- visual rhythm;
-- material feel;
-- lighting;
-- art direction.
+## 7. Entry/onboarding flow
 
-They must never be rendered as production medical content.
+Do not invent a new specialty chooser when the existing physician-flow already exists.
 
-Synthetic medical illustrations must not be presented as real clinical photography.
+Reuse:
 
----
+1. **What Yandex Med / Feed is** — short product value introduction;
+2. **Какая у вас специальность?** — main specialty selection, with future verified-profile reuse;
+3. **Safety reminder** — reference tool, physician makes decisions, verify important facts, no patient personal/secret data;
+4. then enter the chosen product mode/shell.
 
-# 5. Implementation architecture
+The specialty chooser should be compact and functional, not a marketing gallery of giant specialty cards.
 
-Specialty identity must be implemented through a reusable token layer rather than scattered hard-coded colors.
+## 8. A / B / C consistency
 
-Recommended base interface:
+A / B / C share:
 
-```css
---med-brand-lavender
---med-specialty-primary
---med-specialty-primary-soft
---med-specialty-secondary
---med-specialty-secondary-soft
---med-specialty-deep
---med-specialty-accent
---med-specialty-gradient
---med-specialty-image-tint
-```
+- Yandex Med brand grammar;
+- YS Text typography;
+- same Cardiology specialty environment;
+- same content-card grammar;
+- same editorial-image policy;
+- same semantic status system;
+- same canonical Golden Set.
 
-Suggested specialty switch:
+They may differ in navigation, grouping, density and working model — not in brand quality.
 
-```html
-data-specialty="cardiology"
-data-specialty="oncology"
-```
+## 9. Acceptance criteria
 
-or an equivalent token mechanism.
+Reject the implementation if:
 
-Do not rewrite the entire base design system per specialty.
+- only CTAs are specialty-colored while the workspace remains generic;
+- YS Text is silently replaced by another typeface;
+- the home screen is mostly one generic slogan;
+- the feed becomes a matrix of uniform little cards;
+- real long titles are truncated into meaning loss;
+- images dominate research/guideline cards;
+- Cardiology and Oncology differ only by one chip color;
+- semantic colors are confused with specialty colors;
+- the system invents medical data to fill a layout;
+- A/B/C appear to be separate brands.
 
-## Where specialty identity may appear
+A successful screen should read in this order:
 
-Use selectively in:
-
-- hero atmosphere;
-- editorial section surfaces;
-- card cover zones;
-- specialty labels/cues;
-- data visualization;
-- section dividers;
-- subtle selected states where semantics remain clear;
-- abstract motifs;
-- image treatments;
-- light gradient fields;
-- limited decorative motion.
-
-Do not apply indiscriminately to:
-
-- every button;
-- all navigation;
-- all text;
-- every border;
-- every card;
-- semantic status colors.
-
-The user should perceive **Yandex Med first, specialty second**.
-
----
-
-# 6. A / B / C consistency
-
-The three Phase 2 shells must share:
-
-- one Yandex Med base identity;
-- one Cardiology specialty token system;
-- one editorial image policy;
-- one typography system;
-- one semantic status system;
-- one core component grammar.
-
-A / B / C may differ in product hierarchy, navigation, density, composition and interaction model.
-
-They must not look like unrelated brands.
-
-Specialty identity is a shared layer across all three shells, not another A/B/C variable.
-
----
-
-# 7. Execution order
-
-Do **not** apply this visual system to placeholder/demo content.
-
-Required order:
-
-1. canonical Golden Set binding;
-2. shared 24-object evaluation slice across A/B/C;
-3. image resolver / provenance rules;
-4. specialty visual identity integration;
-5. pixel-first polish;
-6. final responsive/visual QA.
-
-The visual-identity pass begins only after the real-content render path is stable.
-
----
-
-# 8. Acceptance criteria
-
-The system passes when:
-
-- the screen remains immediately recognizable as Yandex Med;
-- Cardiology is perceptible without relying only on a text label;
-- Oncology is visually distinct from Cardiology but still belongs to the same product family;
-- color proportions remain neutral-dominant rather than theme-dominant;
-- strong specialty colors are accents rather than full-screen paint;
-- semantic status colors remain unambiguous;
-- the identity works for image-free cards;
-- the identity works with real source imagery;
-- no Pinterest/moodboard image is rendered as content;
-- A / B / C remain directly comparable as product concepts;
-- future specialties can be added through the same token grammar;
-- final pixel-first polish can refine execution without redefining the identity.
-
-## Current approved directions
-
-- **Cardiology:** `PULSE / PERFUSION`, palette v0.2.
-- **Oncology:** `CELL / PRECISION`, palette v0.2.
-
-These are the current approved starting directions for the specialty visual-identity layer.
+1. **Yandex Med**;
+2. **the selected medical specialty**;
+3. **the current professional task/content**;
+4. **the chosen A/B/C working mode**.
