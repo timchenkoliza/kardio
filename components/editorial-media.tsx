@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
-import { kindLabel } from "@/lib/ui/labels";
 
 export function EditorialMedia({ content, specialty, compact = false }: {
   content: ContentObject;
@@ -33,7 +32,6 @@ export function EditorialMedia({ content, specialty, compact = false }: {
       <span className="editorial-art-orbit one" />
       <span className="editorial-art-orbit two" />
       <span className="editorial-art-line" />
-      <strong>{kindLabel[content.kind]}</strong>
     </div>
   );
 }
