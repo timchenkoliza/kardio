@@ -1,0 +1,102 @@
+/*
+ * Reused from the earlier Med Research Workbench / med-feed-prototype-4 design contract.
+ * Source precedent: src/config/design-contract.ts + src/app/app.css.
+ * Rule: component geometry, spacing and typography come from this contract; specialty only changes theme tokens.
+ */
+:root{
+  --wb-bg:#ffffff;
+  --wb-canvas:#f1f1f1;
+  --wb-surface:#f7f7fa;
+  --wb-surface-strong:#ececf0;
+  --wb-surface-inverse:#151519;
+  --wb-border:#e4e4e9;
+  --wb-border-strong:#d6d6dd;
+  --wb-divider:#ececf0;
+
+  --wb-text:#151519;
+  --wb-text-secondary:#686871;
+  --wb-text-tertiary:#96969f;
+  --wb-text-inverse:#ffffff;
+
+  --wb-brand-600:#7779f2;
+  --wb-brand-500:#898bff;
+  --wb-brand-400:#a7a5ff;
+  --wb-lilac-400:#d0b7ff;
+  --wb-lilac-200:#e8ddff;
+  --wb-lilac-100:#f3eeff;
+
+  --wb-success:#268c5a;
+  --wb-success-soft:#e6f2ec;
+  --wb-warning:#b26a00;
+  --wb-danger:#d94141;
+
+  --wb-font:"YS Text",-apple-system,BlinkMacSystemFont,"Inter","Helvetica Neue",Arial,sans-serif;
+  --wb-font-display:"YS Display","YS Text",-apple-system,BlinkMacSystemFont,"Inter",sans-serif;
+
+  --wb-fs-xs:12px;
+  --wb-fs-sm:13px;
+  --wb-fs-md:15px;
+  --wb-fs-lg:17px;
+  --wb-fs-xl:20px;
+  --wb-fs-2xl:24px;
+  --wb-fs-3xl:30px;
+  --wb-fs-4xl:36px;
+
+  --wb-lh-tight:1.2;
+  --wb-lh-snug:1.3;
+  --wb-lh-normal:1.45;
+  --wb-lh-relaxed:1.6;
+
+  --wb-sp-1:4px;
+  --wb-sp-2:8px;
+  --wb-sp-3:12px;
+  --wb-sp-4:16px;
+  --wb-sp-5:20px;
+  --wb-sp-6:24px;
+  --wb-sp-7:32px;
+  --wb-sp-8:40px;
+  --wb-sp-9:56px;
+
+  --wb-r-control:12px;
+  --wb-r-card:16px;
+  --wb-r-sheet:20px;
+  --wb-r-pill:999px;
+
+  --wb-shadow-card:0 1px 2px rgba(0,0,0,.04);
+  --wb-shadow-overlay:0 24px 64px rgba(0,0,0,.18);
+
+  --wb-container:1440px;
+  --wb-sidebar:248px;
+  --wb-sidebar-compact:224px;
+  --wb-rail:288px;
+  --wb-gutter:28px;
+  --wb-header:64px;
+  --wb-feed-gap:24px;
+
+  /* Specialty theme interface. These are the only values specialty may swap. */
+  --sp-primary:#741e31;
+  --sp-secondary:#b65b70;
+  --sp-soft:#f3e5e8;
+  --sp-bridge:#86a9b9;
+  --sp-bridge-soft:#e7eff3;
+  --sp-deep:#491923;
+  --sp-contrast:#ffffff;
+}
+
+body[data-specialty="cardiology"]{
+  --sp-primary:#741e31;
+  --sp-secondary:#b65b70;
+  --sp-soft:#f3e5e8;
+  --sp-bridge:#86a9b9;
+  --sp-bridge-soft:#e7eff3;
+  --sp-deep:#491923;
+}
+
+body[data-specialty="oncology"]{
+  --sp-primary:#5b4966;
+  --sp-secondary:#9985a6;
+  --sp-soft:#f1edf3;
+  --sp-bridge:#a8bab2;
+  --sp-bridge-soft:#e8efec;
+  --sp-deep:#403646;
+}
