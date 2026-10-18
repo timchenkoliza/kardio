@@ -36,12 +36,12 @@ try {
       g.id,
       g.canonical_reference_url,
       count(distinct m.event_candidate_id)::text as member_count,
-      count(distinct em.id) filter (where em.source_presence = 'present')::text as mention_count,
-      count(distinct em.distribution_candidate_id) filter (where em.source_presence = 'present')::text as post_count,
-      min(p.published_at_local) filter (where em.source_presence = 'present')::text as first_local,
-      max(p.published_at_local) filter (where em.source_presence = 'present')::text as last_local,
-      min(p.published_at_instant) filter (where em.source_presence = 'present')::text as first_instant,
-      max(p.published_at_instant) filter (where em.source_presence = 'present')::text as last_instant
+      (count(distinct em.id) filter (where em.source_presence = 'present'))::text as mention_count,
+      (count(distinct em.distribution_candidate_id) filter (where em.source_presence = 'present'))::text as post_count,
+      (min(p.published_at_local) filter (where em.source_presence = 'present'))::text as first_local,
+      (max(p.published_at_local) filter (where em.source_presence = 'present'))::text as last_local,
+      (min(p.published_at_instant) filter (where em.source_presence = 'present'))::text as first_instant,
+      (max(p.published_at_instant) filter (where em.source_presence = 'present'))::text as last_instant
     from event_reference_transport_groups g
     join event_reference_transport_members m on m.transport_group_id = g.id
     left join event_reference_mentions em on em.event_candidate_id = m.event_candidate_id
