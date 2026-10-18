@@ -30,6 +30,7 @@
   --shadow-card: 0 1px 0 rgb(23 23 28 / 5%), 0 8px 28px rgb(23 23 28 / 4%);
   --shadow-card-hover: 0 14px 34px rgb(23 23 28 / 8%);
   --shadow-card-featured: 0 1px 0 rgb(23 23 28 / 4%), 0 14px 42px rgb(23 23 28 / 5%);
+  --shadow-focus: 0 0 0 2px var(--color-accent-soft);
 
   --color-canvas: #f8f8fb;
   --color-canvas-lilac: #f4f3ff;
