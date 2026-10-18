@@ -63,6 +63,7 @@ export interface WorkspaceHomeModel {
   recentQueries: string[];
   collections: WorkspaceCollectionModel[];
   followedTopics: string[];
+  researchInterests: string[];
   followedSourceIds: string[];
   pinnedSourceIds: string[];
   hasOwnedState: boolean;
@@ -96,6 +97,9 @@ export function buildWorkspaceHomeModel(
   const followedTopics = state.followedTopics
     .filter((topic) => topic.startsWith(topicPrefix))
     .map((topic) => topic.slice(topicPrefix.length));
+  const researchInterests = state.researchInterests
+    .filter((interest) => interest.startsWith(topicPrefix))
+    .map((interest) => interest.slice(topicPrefix.length));
   const followedSourceIds = [...state.followedSourceIds];
   const pinnedSourceIds = [...state.pinnedSourceIds];
   const hasOwnedState = Boolean(
@@ -105,6 +109,7 @@ export function buildWorkspaceHomeModel(
     || recentQueries.length
     || collections.length
     || followedTopics.length
+    || researchInterests.length
     || followedSourceIds.length
     || pinnedSourceIds.length,
   );
@@ -115,6 +120,7 @@ export function buildWorkspaceHomeModel(
     recentQueries,
     collections,
     followedTopics,
+    researchInterests,
     followedSourceIds,
     pinnedSourceIds,
     hasOwnedState,
