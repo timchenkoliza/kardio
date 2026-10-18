@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, CheckCircle2, CircleAlert, ExternalLink } from
 import { ContentOpenTracker } from "@/components/content-open-tracker";
 import { ContentSaveButton } from "@/components/content-actions";
 import { EditorialContentCard } from "@/components/editorial-content-card";
+import { EditorialMedia } from "@/components/editorial-media";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import type { SpecialtyId } from "@/lib/domain/types";
@@ -55,6 +56,8 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
               <h1>{content.title}</h1>
               {content.summary && <p className="detail-deck">{content.summary}</p>}
             </div>
+
+            <div className="detail-visual"><EditorialMedia content={content} specialty={specialty} /></div>
 
             <dl className="detail-facts">
               <div><dt>Источник</dt><dd>{content.source.name}</dd></div>
