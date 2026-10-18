@@ -5,6 +5,7 @@ import { ArrowRight, Bookmark, BookOpen, CalendarDays, Calculator, Clock, Folder
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import { EditorialContentCard } from "@/components/editorial-content-card";
+import { WorkspaceResearchAgent } from "@/components/workspace-research-agent";
 import type { ContentObject, Source, SpecialtyId, UserState } from "@/lib/domain/types";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
 import { kindLabel, specialtyLabel } from "@/lib/ui/labels";
@@ -213,21 +214,23 @@ function WorkspaceHome({ specialty, content, sources, state }: { specialty: Spec
       <div>
         <span className="eyebrow">{specialtyLabel[specialty]} · Рабочее пространство</span>
         <h1 id="workspace-title">Ваши материалы и контекст</h1>
-        <p>Здесь нет общей редакционной выдачи. Только то, что вы сохранили, закрепили, собрали в подборки, открывали или явно выбрали.</p>
+        <p>Сохраняйте свои материалы, интересы и профессиональные вопросы. Агент помогает собирать маршрут по теме, не превращая пространство в ещё одну общую ленту.</p>
       </div>
       <div className="mode-stats" aria-label="Состояние пространства">
         <span><strong>{model.saved.length}</strong> сохранено</span>
         <span><strong>{model.collections.length}</strong> подборок</span>
-        <span><strong>{model.followedTopics.length}</strong> тем</span>
+        <span><strong>{model.researchInterests.length + model.followedTopics.length}</strong> тем</span>
       </div>
     </section>
+
+    <WorkspaceResearchAgent specialty={specialty} content={content} />
 
     {!model.hasOwnedState ? (
       <section className="workspace-empty">
         <div className="workspace-empty-icon"><FolderOpen size={28} /></div>
         <span className="eyebrow">Пока пусто</span>
         <h2>Рабочее пространство начинается с ваших действий</h2>
-        <p>Мы не подставляем сюда случайные статьи. Сохраните материал, закрепите нужное или начните собирать историю работы — и пространство будет состоять только из выбранного вами контекста.</p>
+        <p>Добавьте интересующую нозологию выше, сохраните материал или закрепите нужное. Мы не подставляем сюда случайные статьи.</p>
         <div className="workspace-empty-actions"><Link className="primary-source-button" href={`/${specialty}`}>Перейти в обзор <ArrowRight size={15} /></Link><Link className="secondary-button" href={`/${specialty}?view=saved`}>Мои материалы</Link></div>
       </section>
     ) : (
@@ -236,7 +239,7 @@ function WorkspaceHome({ specialty, content, sources, state }: { specialty: Spec
         {model.collections.length > 0 && <WorkspaceSection title="Подборки" eyebrow="Ваши наборы" icon={<FolderOpen size={18} />}><div className="collection-list">{model.collections.map(collection => <article key={collection.id} className="collection-card"><div><strong>{collection.name}</strong><span>{collection.items.length} материалов</span></div>{collection.items.length > 0 ? <div className="collection-preview">{collection.items.slice(0, 3).map(item => <Link key={item.id} href={`/${specialty}/content/${encodeURIComponent(item.id)}`}>{item.title}</Link>)}</div> : <p>Подборка пока пустая.</p>}</article>)}</div></WorkspaceSection>}
         {model.saved.length > 0 && <WorkspaceSection title="Сохранено" eyebrow="Ваш архив" icon={<Bookmark size={18} />}><div className="mode-row-list">{model.saved.slice(0, 8).map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
         {model.recent.length > 0 && <WorkspaceSection title="Недавнее" eyebrow="Продолжить работу" icon={<Clock size={18} />}><div className="mode-row-list">{model.recent.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection>}
-        {(model.followedTopics.length > 0 || followedSources.length > 0 || pinnedSources.length > 0 || model.recentQueries.length > 0) && <WorkspaceSection title="Контекст" eyebrow="Явно выбранное" icon={<Library size={18} />}><div className="workspace-context-groups">{model.followedTopics.length > 0 && <div><strong>Темы</strong><div className="workspace-chips">{model.followedTopics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div></div>}{[...pinnedSources, ...followedSources].length > 0 && <div><strong>Источники</strong><div className="workspace-chips">{[...pinnedSources, ...followedSources].filter((source, index, array) => array.findIndex(item => item.id === source.id) === index).map(source => <span key={source.id}>{source.name}</span>)}</div></div>}{model.recentQueries.length > 0 && <div><strong>Недавние запросы</strong><div className="workspace-chips">{model.recentQueries.map(query => <Link key={query} href={`/${specialty}?q=${encodeURIComponent(query)}`}>{query}</Link>)}</div></div>}</div></WorkspaceSection>}
+        {(model.researchInterests.length > 0 || model.followedTopics.length > 0 || followedSources.length > 0 || pinnedSources.length > 0 || model.recentQueries.length > 0) && <WorkspaceSection title="Контекст" eyebrow="Явно выбранное" icon={<Library size={18} />}><div className="workspace-context-groups">{model.researchInterests.length > 0 && <div><strong>Интересы и нозологии</strong><div className="workspace-chips">{model.researchInterests.map(interest => <span key={interest}>{interest}</span>)}</div></div>}{model.followedTopics.length > 0 && <div><strong>Темы</strong><div className="workspace-chips">{model.followedTopics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div></div>}{[...pinnedSources, ...followedSources].length > 0 && <div><strong>Источники</strong><div className="workspace-chips">{[...pinnedSources, ...followedSources].filter((source, index, array) => array.findIndex(item => item.id === source.id) === index).map(source => <span key={source.id}>{source.name}</span>)}</div></div>}{model.recentQueries.length > 0 && <div><strong>Недавние запросы</strong><div className="workspace-chips">{model.recentQueries.map(query => <Link key={query} href={`/${specialty}?q=${encodeURIComponent(query)}`}>{query}</Link>)}</div></div>}</div></WorkspaceSection>}
       </div>
     )}
   </div>;
