@@ -30,6 +30,8 @@ const MONTHS: Record<string, string> = {
 };
 
 const MONTH_PATTERN = Object.keys(MONTHS).join("|");
+const DAY_PATTERN = "(?:0?[1-9]|[12]\\d|3[01])";
+const NUMERIC_MONTH_PATTERN = "(?:0?[1-9]|1[0-2])";
 
 interface CandidateSignal extends EventCalendarSignal {
   priority: number;
@@ -70,6 +72,9 @@ function addMatches(
  * It does not decide that a matched date is an event date, registration deadline,
  * publication date, or any other semantic field. It also does not resolve relative
  * words such as "завтра" against the post timestamp.
+ *
+ * Numeric dates intentionally require an explicit four-digit year. This avoids
+ * treating clock-like or decimal source text such as "11.00" or "2.0" as dates.
  */
 export function extractEventCalendarSignals(text: string): readonly EventCalendarSignal[] {
   const source = text.normalize("NFC");
@@ -77,7 +82,7 @@ export function extractEventCalendarSignals(text: string): readonly EventCalenda
 
   addMatches(
     source,
-    new RegExp(`\\b([0-3]?\\d)\\s*[-–—]\\s*([0-3]?\\d)\\s+(${MONTH_PATTERN})(?:\\s+(20\\d{2})(?:\\s*(?:г(?:ода)?\\.?))?)?`, "giu"),
+    new RegExp(`\\b(${DAY_PATTERN})\\s*[-–—]\\s*(${DAY_PATTERN})\\s+(${MONTH_PATTERN})(?:\\s+(20\\d{2})(?:\\s*(?:г(?:ода)?\\.?))?)?`, "giu"),
     60,
     (match) => ({
       kind: "date_range",
@@ -88,7 +93,7 @@ export function extractEventCalendarSignals(text: string): readonly EventCalenda
 
   addMatches(
     source,
-    new RegExp(`\\b([0-3]?\\d)\\s+(${MONTH_PATTERN})(?:\\s+(20\\d{2})(?:\\s*(?:г(?:ода)?\\.?))?)?`, "giu"),
+    new RegExp(`\\b(${DAY_PATTERN})\\s+(${MONTH_PATTERN})(?:\\s+(20\\d{2})(?:\\s*(?:г(?:ода)?\\.?))?)?`, "giu"),
     50,
     (match) => ({
       kind: "day_month",
@@ -99,11 +104,11 @@ export function extractEventCalendarSignals(text: string): readonly EventCalenda
 
   addMatches(
     source,
-    /\b([0-3]?\d)[./]([01]?\d)(?:[./](20\d{2}))?\b/gu,
+    new RegExp(`\\b(${DAY_PATTERN})[./](${NUMERIC_MONTH_PATTERN})[./](20\\d{2})\\b`, "gu"),
     50,
     (match) => ({
       kind: "numeric_date",
-      normalizedKey: `date:${match[3] ?? "?"}-${match[2].padStart(2, "0")}-${padDay(match[1])}`,
+      normalizedKey: `date:${match[3]}-${match[2].padStart(2, "0")}-${padDay(match[1])}`,
     }),
     candidates,
   );
@@ -121,7 +126,7 @@ export function extractEventCalendarSignals(text: string): readonly EventCalenda
 
   addMatches(
     source,
-    /\b(сегодня|завтра|послезавтра)\b/giu,
+    /(?<![\p{L}\p{N}_])(сегодня|завтра|послезавтра)(?![\p{L}\p{N}_])/giu,
     20,
     (match) => ({
       kind: "relative_day",
@@ -151,7 +156,13 @@ export function extractEventCalendarSignals(text: string): readonly EventCalenda
 
   return accepted
     .sort((a, b) => a.start - b.start || b.priority - a.priority)
-    .map(({ priority: _priority, ...signal }) => signal);
+    .map((signal) => ({
+      kind: signal.kind,
+      raw: signal.raw,
+      normalizedKey: signal.normalizedKey,
+      start: signal.start,
+      end: signal.end,
+    }));
 }
 
 export function isExplicitDateSignal(signal: EventCalendarSignal): boolean {
