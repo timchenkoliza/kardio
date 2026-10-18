@@ -129,6 +129,49 @@ try {
     ok: prematurelyPromotedEventReferences === 0,
   });
 
+  const duplicateTransportGroupUrls = await scalar(`
+    select count(*)::text as value
+    from (
+      select canonical_reference_url
+      from event_reference_transport_groups
+      group by canonical_reference_url
+      having count(*) > 1
+    ) duplicates
+  `);
+  checks.push({
+    name: "duplicate event reference transport URLs",
+    actual: duplicateTransportGroupUrls,
+    expected: 0,
+    ok: duplicateTransportGroupUrls === 0,
+  });
+
+  const transportMemberOrphans = await scalar(`
+    select count(*)::text as value
+    from event_reference_transport_members m
+    left join event_reference_candidates c on c.id = m.event_candidate_id
+    left join event_reference_transport_groups g on g.id = m.transport_group_id
+    where c.id is null or g.id is null
+  `);
+  checks.push({
+    name: "event reference transport members with missing parents",
+    actual: transportMemberOrphans,
+    expected: 0,
+    ok: transportMemberOrphans === 0,
+  });
+
+  const candidatesWithoutTransportGroup = await scalar(`
+    select count(*)::text as value
+    from event_reference_candidates c
+    left join event_reference_transport_members m on m.event_candidate_id = c.id
+    where m.event_candidate_id is null
+  `);
+  checks.push({
+    name: "event reference candidates without transport group",
+    actual: candidatesWithoutTransportGroup,
+    expected: 0,
+    ok: candidatesWithoutTransportGroup === 0,
+  });
+
   const report = {
     ok: checks.every((check) => check.ok),
     checks,
@@ -143,6 +186,8 @@ try {
     eventReferenceMentionsPresent: await scalar("select count(*)::text as value from event_reference_mentions where source_presence = 'present'"),
     eventReferenceMentionsMissing: await scalar("select count(*)::text as value from event_reference_mentions where source_presence = 'missing'"),
     eventReferenceCandidatesPromoted: await scalar("select count(*)::text as value from event_reference_candidates where promoted_node_id is not null"),
+    eventReferenceTransportGroups: await scalar("select count(*)::text as value from event_reference_transport_groups"),
+    eventReferenceTransportMembers: await scalar("select count(*)::text as value from event_reference_transport_members"),
   };
   console.log(JSON.stringify(report, null, 2));
   if (!report.ok) process.exitCode = 1;
