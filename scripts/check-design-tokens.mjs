@@ -34,7 +34,8 @@ for (const file of files) {
     if (controlled.test(property) && !/^(?:var\(--[\w-]+\)|inherit|initial|unset|revert|none|0)(?:\s*!important)?$/.test(value.trim())) {
       failures.push(`${file}: ${property}: ${value.trim()} must reference a semantic token`);
     }
-    if (/^(?:color|background(?:-color)?|border(?:-color)?|outline(?:-color)?|fill|stroke)$/.test(property) && /\b(?:white|black|red|blue|green|gray|grey|purple|yellow|orange|pink)\b/.test(value)) {
+    const valueWithoutTokenNames = value.replace(/--[\w-]+/g, "");
+    if (/^(?:color|background(?:-color)?|border(?:-color)?|outline(?:-color)?|fill|stroke)$/.test(property) && /\b(?:white|black|red|blue|green|gray|grey|purple|yellow|orange|pink)\b/.test(valueWithoutTokenNames)) {
       failures.push(`${file}: named color in ${property} must reference a token`);
     }
   }
