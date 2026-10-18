@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KARDIO · Visual QA</title>
+<style>
+:root{--qa-width:390px;--ink:#20212a;--muted:#747782;--line:#dedfe5;--bg:#f4f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.qa-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.qa-header b{margin-right:8px}.qa-header span{font-size:12px;color:var(--muted)}
+.qa-button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font:12px Arial;cursor:pointer}.qa-button.active{background:#20212a;color:#fff;border-color:#20212a}
+.qa-note{padding:12px 16px 0;color:var(--muted);font-size:12px;line-height:1.45}
+.qa-grid{display:grid;grid-template-columns:1fr;gap:24px;padding:16px}
+.qa-case{min-width:0}.qa-case h2{margin:0 0 8px;font-size:14px}.qa-viewport{max-width:100%;overflow:auto;border:1px solid var(--line);background:#dcdde2;padding:12px;border-radius:10px}
+.qa-viewport iframe{display:block;width:var(--qa-width);height:900px;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+@media(min-width:1280px){body[data-width="390"] .qa-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}body[data-width="390"] .qa-viewport{padding:8px}}
+</style>
+</head>
+<body data-width="390">
+<header class="qa-header">
+  <b>KARDIO visual QA</b>
+  <button class="qa-button active" data-width="390">390</button>
+  <button class="qa-button" data-width="768">768</button>
+  <button class="qa-button" data-width="1440">1440</button>
+  <span>Один Golden Set · три shell · точная ширина iframe</span>
+</header>
+<div class="qa-note">Проверяйте длинные заголовки, отсутствие горизонтального overflow, статусные labels, source link, image-free cards и ЭхоКГ-карточку. Для проверки scroll depth прокрутите каждый iframe отдельно.</div>
+<main class="qa-grid">
+  <section class="qa-case"><h2>A · Search-first Navigator</h2><div class="qa-viewport"><iframe src="./kardio-app.html?qaShell=A" title="A Search-first Navigator"></iframe></div></section>
+  <section class="qa-case"><h2>B · Professional Toolbelt</h2><div class="qa-viewport"><iframe src="./kardio-app.html?qaShell=B" title="B Professional Toolbelt"></iframe></div></section>
+  <section class="qa-case"><h2>C · Knowledge Workspace</h2><div class="qa-viewport"><iframe src="./kardio-app.html?qaShell=C" title="C Knowledge Workspace"></iframe></div></section>
+</main>
+<script>
+const root=document.documentElement;
+document.querySelectorAll('[data-width]').forEach(button=>button.addEventListener('click',()=>{
+  const width=button.dataset.width;
+  root.style.setProperty('--qa-width',width+'px');
+  document.body.dataset.width=width;
+  document.querySelectorAll('[data-width]').forEach(x=>x.classList.toggle('active',x===button));
+}));
+</script>
+</body>
+</html>
