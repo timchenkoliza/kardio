@@ -108,11 +108,15 @@ export const ontologyDomainEvents = pgTable("ontology_domain_events", {
 ]);
 
 /**
- * Operational metadata for raw external archives (Google Drive/local mirror).
- * Raw bytes are never stored in ordinary relational columns.
+ * Operational inventory of external archive objects (Google Drive/local mirror).
+ *
+ * IMPORTANT: a raw provider file/folder is not automatically an ontology entity.
+ * Transport folders such as css/js/thumbs remain here only. A parser/reviewer may
+ * later promote a meaningful artifact (for example a Telegram post or media item)
+ * into the professional-world graph and set promotedNodeId.
  */
 export const rawArchiveArtifacts = pgTable("raw_archive_artifacts", {
-  ontologyNodeId: text("ontology_node_id").references(() => ontologyNodes.id).primaryKey(),
+  id: text("id").primaryKey(),
   provider: text("provider").notNull(),
   providerItemId: text("provider_item_id").notNull(),
   parentProviderItemId: text("parent_provider_item_id"),
@@ -125,9 +129,10 @@ export const rawArchiveArtifacts = pgTable("raw_archive_artifacts", {
   checksum: text("checksum"),
   materializedLocator: text("materialized_locator"),
   syncState: text("sync_state").notNull(),
+  promotedNodeId: text("promoted_node_id").references(() => ontologyNodes.id),
   syncedAt: timestamp("synced_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 }, (table) => [
-  // One provider item should map to one raw-archive record. Deterministic node IDs remain the primary identity.
   uniqueIndex("raw_archive_provider_item_uniq").on(table.provider, table.providerItemId),
   index("raw_archive_specialty_idx").on(table.specialty, table.sourceRegistryId),
+  index("raw_archive_promoted_node_idx").on(table.promotedNodeId),
 ]);
