@@ -49,3 +49,25 @@ explicitly customizable screens from approved modules.
 - no AI chatbot as home screen;
 - no engagement feed;
 - no generic SaaS card soup.
+
+## Specialty identity layer
+
+The specialty visual system is defined separately and is authoritative in:
+
+- `19_SPECIALTY_VISUAL_IDENTITY.md`
+- `20_SPECIALTY_VISUAL_TOKENS.json`
+
+Do not invent a new palette per A/B/C shell.
+
+All three shells must share one Yandex Med base identity and one Cardiology specialty identity.
+
+Core rule:
+
+> **Yandex Med owns the interface. Specialty owns the atmosphere.**
+
+Cardiology uses `PULSE / PERFUSION` with `FLOW` visual physics.
+Oncology is reserved as the next extensible specialty using `CELL / PRECISION` with `CLUSTER / TARGET` visual physics.
+
+Pinterest/moodboard references are art-direction references only and must never be rendered as medical content assets.
+
+Do not apply the specialty identity to placeholder/demo content. Real-content binding and editorial-image resolution precede the visual-identity pass; pixel-first polish follows it.
