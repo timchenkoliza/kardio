@@ -24,6 +24,7 @@
     "db:verify": "tsx scripts/verify-db.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "ontology:validate": "tsx scripts/validate-ontology.ts",
+    "telegram:inspect": "tsx scripts/inspect-telegram-export.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
