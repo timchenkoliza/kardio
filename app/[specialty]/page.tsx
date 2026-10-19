@@ -15,7 +15,7 @@ import { EventsHub, VmpHub } from "@/components/professional-destination-hubs";
 import { ReferenceHub } from "@/components/reference-hub";
 import { SectionHelp } from "@/components/section-help";
 import { PracticeGenUiSurface } from "@/components/shell-gen-ui-surfaces";
-import { WorkspaceCaseSurface } from "@/components/workspace-case-surface";
+import { WorkspaceIntegratedSurface } from "@/components/workspace-integrated-surface";
 import type { ContentObject, Shell, Source, SpecialtyId, UserState } from "@/lib/domain/types";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
@@ -115,7 +115,7 @@ export default async function SpecialtyHome({
         {rootHome && initialState.shell === "practice" ? (
           specialty === "cardiology" ? <PracticeGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} /> : <OncologyPracticeSurface />
         ) : rootHome && initialState.shell === "workspace" ? (
-          <WorkspaceCaseSurface specialty={specialty} recent={workspaceRecent} contextTerms={workspaceContextTerms} />
+          <WorkspaceIntegratedSurface specialty={specialty} content={content} sources={sources} state={initialState} recent={workspaceRecent} contextTerms={workspaceContextTerms} />
         ) : (
           <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} />
         )}
