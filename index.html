@@ -3,80 +3,197 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Kardio Agent-First Workspace — Demo</title>
+<meta name="color-scheme" content="light" />
+<title>Яндекс Мед — Agent Workspace</title>
 <style>
-:root{--bg:#f6f7fb;--panel:#fff;--text:#17181c;--muted:#6c707a;--line:#e5e7ee;--soft:#eef0ff;--accent:#5f63d8;--accent2:#989bfb;--ok:#1d7a53;--warn:#9a6a00;--shadow:0 12px 30px rgba(31,35,48,.08)}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{min-height:100vh}.header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:14px 28px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}.brand{display:flex;align-items:center;gap:10px;min-width:220px}.mark{width:34px;height:34px;border-radius:10px;background:#17181c;color:white;display:grid;place-items:center;font-weight:700}.brand strong{display:block;font-size:15px}.brand small{display:block;color:var(--muted)}.nav{display:flex;gap:6px;flex:1}.nav button,.ghost,.chip,.card-action,.primary,.smallbtn{font:inherit}.nav button{border:0;background:transparent;padding:9px 12px;border-radius:9px;color:var(--muted);cursor:pointer}.nav button.active{background:#f0f1f6;color:var(--text);font-weight:600}.boundary{display:flex;align-items:center;gap:8px;color:#565b66;font-size:12px}.demo-pill{padding:5px 8px;border-radius:999px;background:#f0edff;color:#554f9f;font-weight:700;font-size:11px;letter-spacing:.04em}.content{max-width:1180px;margin:0 auto;padding:34px 28px 56px}.eyebrow{text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:11px;color:#777c88}.hero{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:var(--shadow)}.hero-grid{display:grid;grid-template-columns:1.5fr .8fr;gap:28px;align-items:start}.hero h1{font-size:36px;line-height:1.1;margin:8px 0 12px;letter-spacing:-.03em}.hero p{margin:0;color:var(--muted);max-width:700px;font-size:16px}.trust{border:1px solid #dde0f8;background:#fafaff;border-radius:14px;padding:16px}.trust strong{display:block;margin-bottom:5px}.trust span{color:var(--muted)}.composer{margin-top:24px;border:1px solid #dadde7;border-radius:15px;overflow:hidden;background:white}.composer textarea{width:100%;min-height:106px;border:0;resize:vertical;padding:18px;font:inherit;font-size:16px;outline:none}.toolbar{display:flex;gap:12px;align-items:center;padding:12px;border-top:1px solid var(--line);background:#fafbfc}.toolbar select{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:white;max-width:220px}.primary{margin-left:auto;border:0;border-radius:10px;background:#17181c;color:white;padding:10px 16px;font-weight:650;cursor:pointer}.primary[disabled]{opacity:.55}.section{margin-top:32px}.section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:14px}.section-head h2{font-size:24px;margin:3px 0 0}.ghost{border:1px solid var(--line);background:white;border-radius:9px;padding:8px 11px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:17px;display:flex;flex-direction:column;min-height:230px}.card .icon{width:38px;height:38px;border-radius:11px;background:var(--soft);display:grid;place-items:center;font-weight:800;color:#555ac8}.card h3{margin:14px 0 7px;font-size:17px}.card p{margin:0;color:var(--muted);flex:1}.state{font-size:11px;color:#666b74;background:#f2f3f7;padding:4px 7px;border-radius:999px;align-self:flex-start}.card-action{margin-top:16px;border:0;background:transparent;padding:0;text-align:left;font-weight:700;cursor:pointer;color:#31346e}.result{background:white;border:1px solid var(--line);border-radius:18px;padding:22px}.result-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.tag{padding:5px 8px;border-radius:999px;background:#f3f4f8;color:#5f6470;font-size:12px}.tag.ok{background:#eef8f3;color:var(--ok)}.tag.warn{background:#fff7df;color:var(--warn)}.result-item{border-top:1px solid var(--line);padding:18px 0}.result-item:first-of-type{border-top:0}.result-item h3{margin:0 0 6px;font-size:17px}.result-item p{margin:0 0 12px;color:var(--muted)}.evidence{font-size:12px;color:#646975;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:10px}.actions{display:flex;gap:8px;margin-top:10px}.smallbtn{border:1px solid var(--line);background:white;border-radius:9px;padding:8px 10px;cursor:pointer}.smallbtn.dark{background:#17181c;color:#fff;border-color:#17181c}.notice{margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff7df;color:#7d5b0d}.agent-settings{display:grid;grid-template-columns:280px 1fr;gap:18px}.settings-list,.settings-panel,.materials-panel{background:white;border:1px solid var(--line);border-radius:16px;padding:16px}.settings-list button{width:100%;text-align:left;border:0;background:transparent;padding:12px;border-radius:10px;cursor:pointer}.settings-list button.active{background:#f1f2f7;font-weight:700}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:white;border-radius:999px;padding:7px 10px;cursor:pointer}.chip.on{background:#eeefff;border-color:#cfd1ff;color:#4d50a6}.material-form{display:grid;grid-template-columns:1fr 1.4fr auto;gap:10px}.material-form input{padding:10px;border:1px solid var(--line);border-radius:9px}.material{padding:14px 0;border-top:1px solid var(--line)}.material:first-child{border-top:0}.material strong{display:block}.material small{color:var(--muted)}.empty{padding:24px;text-align:center;color:var(--muted)}.overlay{position:fixed;inset:0;background:rgba(19,20,26,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.overlay.show{display:flex}.modal{background:white;border-radius:16px;padding:22px;max-width:480px;width:100%;box-shadow:var(--shadow)}.modal h3{margin-top:0}.modal .actions{justify-content:flex-end}.hidden{display:none!important}.footer-note{margin-top:28px;color:var(--muted);font-size:12px;text-align:center}@media(max-width:900px){.header{flex-wrap:wrap}.brand{min-width:auto}.boundary{width:100%;order:3}.hero-grid,.agent-settings{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.header{padding:12px 14px}.nav{order:3;width:100%;overflow:auto}.boundary{display:none}.content{padding:22px 14px 40px}.hero{padding:20px}.hero h1{font-size:29px}.grid{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}.primary{margin-left:0;width:100%}.material-form{grid-template-columns:1fr}.agent-settings{display:block}.settings-list{margin-bottom:12px}}
+:root{
+  --bg:#f7f7f5;--surface:#ffffff;--surface-2:#f1f1ee;--text:#111111;--muted:#777770;
+  --line:#e7e7e1;--line-strong:#d9d9d1;--violet:#7c72ff;--violet-soft:#efedff;--green:#2e8b64;
+  --amber:#a66b12;--red:#b84c4c;--shadow:0 14px 40px rgba(18,18,15,.06);--r:18px
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}a{color:inherit}
+.app{min-height:100vh}.topbar{height:64px;display:flex;align-items:center;gap:20px;padding:0 28px;border-bottom:1px solid var(--line);background:rgba(247,247,245,.9);backdrop-filter:blur(20px);position:sticky;top:0;z-index:30}
+.brand{display:flex;align-items:center;gap:10px;min-width:205px}.brandmark{width:34px;height:34px;background:#111;border-radius:11px;color:#fff;display:grid;place-items:center;font-weight:760}.brandcopy{display:flex;flex-direction:column;line-height:1.15}.brandcopy strong{font-size:14px}.brandcopy span{font-size:11px;color:var(--muted);margin-top:3px}
+.nav{display:flex;gap:4px;flex:1}.nav button{border:0;background:transparent;padding:9px 12px;border-radius:10px;color:#6d6d67}.nav button:hover{background:#ededeb;color:#111}.nav button.active{background:#e8e8e4;color:#111;font-weight:650}
+.topmeta{display:flex;align-items:center;gap:10px}.demo{background:var(--violet-soft);color:#5c52c9;padding:6px 9px;border-radius:999px;font-size:10px;font-weight:760;letter-spacing:.06em}.quiet{font-size:12px;color:var(--muted)}
+.layout{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:224px minmax(0,1fr) 300px;min-height:calc(100vh - 64px)}
+.sidebar{padding:26px 16px 32px 20px;border-right:1px solid var(--line);position:sticky;top:64px;height:calc(100vh - 64px);align-self:start}.side-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#99998f;font-weight:750;margin:0 8px 10px}.side-list{display:flex;flex-direction:column;gap:3px}.side-item{border:0;background:transparent;padding:10px 10px;border-radius:10px;text-align:left;display:flex;align-items:center;gap:10px;color:#595953}.side-item:hover{background:#efefec;color:#111}.side-item.active{background:#ecebea;color:#111;font-weight:650}.dot{width:7px;height:7px;border-radius:50%;background:#c9c9c3}.side-item.active .dot{background:var(--violet)}.side-spacer{height:26px}.profile-mini{margin-top:auto;padding:12px;border-top:1px solid var(--line);position:absolute;left:18px;right:18px;bottom:18px}.profile-mini strong{display:block;font-size:13px}.profile-mini span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.main{padding:40px 42px 64px;min-width:0}.rightbar{padding:34px 24px;border-left:1px solid var(--line);position:sticky;top:64px;height:calc(100vh - 64px);align-self:start;overflow:auto}
+.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#9a9a92;font-weight:760}.page-title{font-size:34px;line-height:1.08;letter-spacing:-.035em;margin:8px 0 8px;max-width:760px}.lead{color:#696963;font-size:15px;max-width:720px;margin:0 0 28px}
+.delegate{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px 18px 14px;box-shadow:var(--shadow)}.delegate textarea{border:0;outline:0;resize:none;width:100%;min-height:88px;font-size:18px;line-height:1.45;padding:3px 3px 14px;background:transparent}.delegate textarea::placeholder{color:#b2b2ab}.delegate-foot{display:flex;align-items:center;gap:10px;border-top:1px solid #f0f0ec;padding-top:12px}.agent-choice{display:flex;align-items:center;gap:8px;background:#f3f3f0;border:1px solid #ecece7;border-radius:10px;padding:7px 9px}.agent-choice select{border:0;background:transparent;outline:0;font-size:12px}.run{margin-left:auto;border:0;background:#111;color:#fff;border-radius:11px;padding:10px 15px;font-weight:700;display:flex;align-items:center;gap:8px}.run:hover{background:#282828}.run.loading{opacity:.7}.attach{border:0;background:transparent;color:#66665f;padding:7px 8px;border-radius:9px}.attach:hover{background:#f2f2ee}
+.quick-wrap{margin-top:24px}.quick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.quick-head strong{font-size:13px}.quick-head span{font-size:11px;color:var(--muted)}.quick{display:flex;gap:8px;overflow:auto;padding-bottom:4px;scrollbar-width:none}.quick::-webkit-scrollbar{display:none}.quick button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px;color:#55554f}.quick button:hover,.quick button.active{border-color:#cdc9ff;background:#f6f4ff;color:#3f388f}
+.section{margin-top:38px}.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:13px}.section-head h2{font-size:18px;letter-spacing:-.015em;margin:3px 0 0}.linkbtn{border:0;background:transparent;color:#66665f;font-size:12px}.linkbtn:hover{color:#111}
+.stream{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}.stream-row{display:grid;grid-template-columns:28px 1fr auto;gap:12px;padding:17px 18px;border-bottom:1px solid #efefe9;align-items:start}.stream-row:last-child{border-bottom:0}.stream-icon{width:26px;height:26px;border-radius:8px;background:#f1efff;color:#5a52bd;display:grid;place-items:center;font-weight:800;font-size:11px}.stream-title{font-weight:670;font-size:14px}.stream-desc{color:var(--muted);font-size:12px;margin-top:4px}.stream-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.meta{font-size:10px;color:#8a8a82}.badge-new{font-size:10px;padding:5px 7px;border-radius:999px;background:#eef8f3;color:var(--green);font-weight:700}
+.trace{margin-top:18px;background:#111;color:#fff;border-radius:22px;padding:18px 18px 16px;display:none;box-shadow:0 18px 44px rgba(0,0,0,.13)}.trace.show{display:block}.trace-top{display:flex;justify-content:space-between;align-items:center}.trace-top strong{font-size:13px}.trace-status{font-size:10px;color:#bfbfb8}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.step{background:#1e1e1e;border:1px solid #2d2d2d;border-radius:12px;padding:11px}.step small{display:block;color:#9c9c96;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.step span{display:block;font-size:11px;margin-top:4px}.step.done{border-color:#4b465f;background:#201e2b}.step.done span{color:#dad7ff}
+.result{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;display:none}.result.show{display:block}.result-head{padding:22px 22px 16px;border-bottom:1px solid #efefe9}.result-headline{display:flex;justify-content:space-between;gap:16px}.result-head h2{font-size:22px;line-height:1.15;letter-spacing:-.02em;margin:5px 0 6px}.result-head p{color:var(--muted);margin:0;max-width:700px}.result-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#99998f;font-weight:750}.result-count{font-size:11px;color:#66665f;background:#f3f3ef;border-radius:999px;padding:6px 8px;white-space:nowrap;height:max-content}
+.finding{padding:18px 22px;border-bottom:1px solid #efefe9}.finding:last-child{border-bottom:0}.finding-top{display:flex;justify-content:space-between;gap:18px}.finding h3{font-size:15px;margin:0;letter-spacing:-.01em}.finding p{margin:5px 0 0;color:#6f6f68;font-size:13px;max-width:760px}.evidence-line{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.evidence-pill{font-size:10px;border-radius:999px;padding:5px 7px;background:#f2f2ef;color:#696963}.evidence-pill.good{background:#eef8f3;color:#257454}.evidence-pill.review{background:#fff6e6;color:#8a5e17}.finding-actions{display:flex;gap:6px;margin-top:12px}.mini{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:11px}.mini:hover{background:#f4f4f0}.mini.primary{background:#111;border-color:#111;color:#fff}.mini.primary:hover{background:#292929}
+.context-title{font-size:12px;font-weight:700;margin:0 0 12px}.context-block{padding:14px 0;border-bottom:1px solid var(--line)}.context-block:first-of-type{padding-top:0}.context-block:last-child{border-bottom:0}.context-k{font-size:10px;color:#99998f;text-transform:uppercase;letter-spacing:.08em;font-weight:700}.context-v{margin-top:6px;font-size:12px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chip{font-size:10px;background:#ececea;color:#5f5f59;padding:6px 8px;border-radius:999px}.source-row{display:flex;justify-content:space-between;gap:12px;font-size:11px;margin-top:9px}.source-row span:last-child{color:#8c8c84}.source-row .ok{color:var(--green)}
+.tab-panel{display:none}.tab-panel.active{display:block}.agent-list-modern{display:flex;flex-direction:column;gap:10px}.agent-line{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center}.agent-ico{width:36px;height:36px;border-radius:11px;background:var(--violet-soft);color:#544ac8;display:grid;place-items:center;font-weight:800}.agent-line h3{margin:0;font-size:14px}.agent-line p{margin:3px 0 0;color:var(--muted);font-size:11px}.agent-controls{display:flex;gap:7px}.toggle{width:38px;height:22px;border-radius:999px;background:#d7d7d0;position:relative;border:0;padding:0}.toggle:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;left:3px;top:3px;transition:.2s}.toggle.on{background:#8076ff}.toggle.on:after{left:19px}.config{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:11px}
+.material-toolbar{display:flex;gap:8px;margin-bottom:12px}.material-toolbar input{flex:1;border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 11px;outline:0}.materials{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}.material-row{display:grid;grid-template-columns:32px 1fr auto;gap:12px;padding:15px 16px;border-bottom:1px solid #efefe9}.material-row:last-child{border-bottom:0}.material-icon{width:30px;height:30px;border-radius:8px;background:#efefe9;display:grid;place-items:center;font-size:11px}.material-row strong{font-size:13px}.material-row p{margin:3px 0 0;color:var(--muted);font-size:11px}.material-row small{font-size:10px;color:#98988f}
+.toast{position:fixed;right:24px;bottom:24px;background:#111;color:#fff;border-radius:12px;padding:11px 13px;font-size:12px;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:50}.toast.show{opacity:1;transform:none}
+.drawer{position:fixed;inset:0;background:rgba(0,0,0,.22);display:none;justify-content:flex-end;z-index:60}.drawer.show{display:flex}.drawer-panel{width:min(460px,92vw);height:100%;background:#fff;padding:24px;box-shadow:-18px 0 40px rgba(0,0,0,.08);overflow:auto}.drawer-head{display:flex;justify-content:space-between;align-items:center}.drawer-head h2{font-size:18px;margin:0}.close{border:0;background:#f1f1ed;width:32px;height:32px;border-radius:9px}.drawer-section{margin-top:24px}.drawer-section h3{font-size:12px;margin:0 0 8px}.drawer-section p{font-size:12px;color:var(--muted);margin:0}.prov{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}.prov strong{display:block;font-size:11px}.prov span{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+@media(max-width:1100px){.layout{grid-template-columns:190px 1fr}.rightbar{display:none}.main{padding:34px 28px 54px}}
+@media(max-width:760px){.topbar{height:auto;min-height:60px;padding:11px 14px;flex-wrap:wrap}.brand{min-width:auto}.brandcopy span,.quiet{display:none}.nav{order:3;width:100%;overflow:auto}.layout{display:block}.sidebar{display:none}.main{padding:26px 14px 48px}.page-title{font-size:29px}.steps{grid-template-columns:1fr 1fr}.delegate textarea{font-size:16px}.result-headline{display:block}.result-count{display:inline-block;margin-top:10px}.agent-line{grid-template-columns:32px 1fr}.agent-controls{grid-column:2}.topmeta{margin-left:auto}}
 </style>
 </head>
 <body>
-<div class="shell">
-<header class="header">
-  <div class="brand"><div class="mark">М</div><div><strong>Яндекс Мед</strong><small>Кардиология · agent-first demo</small></div></div>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><div class="brandmark">М</div><div class="brandcopy"><strong>Яндекс Мед</strong><span>Кардиология · workspace</span></div></div>
   <nav class="nav"><button class="active" data-tab="home">Главное</button><button data-tab="agents">Мои агенты</button><button data-tab="materials">Мои материалы</button></nav>
-  <div class="demo-pill">PUBLIC DEMO</div><div class="boundary">Без доступа к МИС и данным пациента</div>
+  <div class="topmeta"><span class="demo">PUBLIC DEMO</span><span class="quiet">Без данных пациента</span></div>
 </header>
-<main class="content">
-<section id="tab-home">
-  <div class="hero">
-    <span class="eyebrow">Рабочее пространство врача</span>
-    <div class="hero-grid"><div><h1>Что хотите делегировать?</h1><p>Опишите профессиональную задачу. Система выберет агента, покажет доступные источники и сохранит provenance результата.</p></div><div class="trust"><strong>Источник не теряется</strong><span>Каждый результат показывает источник и статус проверки. Внешние действия требуют подтверждения.</span></div></div>
-    <div class="composer"><textarea id="task" placeholder="Например: проверь, что изменилось в рекомендациях по ХСН"></textarea><div class="toolbar"><select id="agentSelect"></select><button class="primary" id="runBtn">Запустить</button></div></div>
-    <div id="homeNotice" class="notice hidden"></div>
+<div class="layout">
+<aside class="sidebar">
+  <div class="side-label">Работа</div>
+  <div class="side-list">
+    <button class="side-item active" data-tab="home"><span class="dot"></span>Сегодня</button>
+    <button class="side-item" data-agent="whats-new"><span class="dot"></span>Что изменилось</button>
+    <button class="side-item" data-agent="guideline-change"><span class="dot"></span>Рекомендации</button>
+    <button class="side-item" data-agent="drug-change"><span class="dot"></span>Препараты</button>
+    <button class="side-item" data-agent="events"><span class="dot"></span>События</button>
   </div>
-  <div class="section"><div class="section-head"><div><span class="eyebrow">Ваши задачи</span><h2>Агенты</h2></div><button class="ghost" data-tab="agents">Настроить</button></div><div id="agentGrid" class="grid"></div></div>
-  <div id="resultSection" class="section hidden"><div class="result"><div class="section-head"><div><span class="eyebrow">Последний результат</span><h2 id="resultTitle"></h2></div><span class="tag ok">Демо выполнено</span></div><p id="resultSummary"></p><div id="resultMeta" class="result-meta"></div><div id="resultItems"></div></div></div>
+  <div class="side-spacer"></div>
+  <div class="side-label">Система</div>
+  <div class="side-list">
+    <button class="side-item" data-tab="agents"><span class="dot"></span>Агенты</button>
+    <button class="side-item" data-tab="materials"><span class="dot"></span>Материалы</button>
+  </div>
+  <div class="profile-mini"><strong>Профиль врача</strong><span>Кардиология · 5 тем · 4 источника</span></div>
+</aside>
+<main class="main">
+<section class="tab-panel active" id="panel-home">
+  <div class="eyebrow">Персональное рабочее пространство</div>
+  <h1 class="page-title">Что сегодня можно снять с вас?</h1>
+  <p class="lead">Опишите задачу обычным языком. Система сама выберет агента, проверит доступные источники и покажет только то, что требует вашего внимания.</p>
+
+  <div class="delegate">
+    <textarea id="task" placeholder="Например: что изменилось по ХСН и SGLT2 с моего прошлого просмотра?">Что изменилось по ХСН и SGLT2 с моего прошлого просмотра?</textarea>
+    <div class="delegate-foot">
+      <button class="attach" id="attachBtn">＋ Файл</button>
+      <div class="agent-choice"><span style="font-size:10px;color:#8c8c84">Агент</span><select id="agentSelect"></select></div>
+      <button class="run" id="runBtn">Запустить <span>↗</span></button>
+    </div>
+  </div>
+
+  <div class="quick-wrap">
+    <div class="quick-head"><strong>Быстро делегировать</strong><span>под ваш профиль</span></div>
+    <div class="quick" id="quickActions"></div>
+  </div>
+
+  <div class="trace" id="trace">
+    <div class="trace-top"><strong>Агент работает</strong><span class="trace-status" id="traceStatus">маршрутизация запроса</span></div>
+    <div class="steps">
+      <div class="step" data-step="0"><small>01</small><span>Понять задачу</span></div>
+      <div class="step" data-step="1"><small>02</small><span>Найти источники</span></div>
+      <div class="step" data-step="2"><small>03</small><span>Проверить факты</span></div>
+      <div class="step" data-step="3"><small>04</small><span>Собрать вывод</span></div>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-head">
+      <div class="result-headline"><div><div class="result-label">Результат агента</div><h2 id="resultTitle">Что изменилось по ХСН и SGLT2</h2><p id="resultSummary"></p></div><div class="result-count" id="resultCount">2 изменения</div></div>
+    </div>
+    <div id="findings"></div>
+  </div>
+
+  <section class="section" id="streamSection">
+    <div class="section-head"><div><div class="eyebrow">Сигналы</div><h2>Требует внимания</h2></div><button class="linkbtn" data-agent="whats-new">Проверить всё →</button></div>
+    <div class="stream" id="stream"></div>
+  </section>
 </section>
-<section id="tab-agents" class="hidden">
-  <div class="section-head"><div><span class="eyebrow">Персонализация без промптов</span><h2>Мои агенты</h2></div></div>
-  <div class="agent-settings"><div id="settingsList" class="settings-list"></div><div class="settings-panel"><span class="eyebrow">Настройки агента</span><h2 id="settingsTitle"></h2><p id="settingsJob" style="color:var(--muted)"></p><h3>Темы</h3><div id="topicChips" class="chips"></div><h3>Источники</h3><div id="sourceChips" class="chips"></div><h3>Частота</h3><div id="freqChips" class="chips"></div><div class="notice">В демо настройки сохраняются только в этом браузере.</div></div></div>
+
+<section class="tab-panel" id="panel-agents">
+  <div class="eyebrow">Поведение системы</div><h1 class="page-title">Мои агенты</h1>
+  <p class="lead">Настройте не промпты, а правила работы: что отслеживать, когда беспокоить и какие источники считать приоритетными.</p>
+  <div class="agent-list-modern" id="agentsModern"></div>
 </section>
-<section id="tab-materials" class="hidden">
-  <div class="section-head"><div><span class="eyebrow">Личная база знаний</span><h2>Мои материалы</h2></div><span class="tag warn">локальный demo-mode</span></div>
-  <div class="materials-panel"><form id="materialForm" class="material-form"><input id="materialTitle" placeholder="Название" required/><input id="materialBody" placeholder="Заметка или ссылка" required/><button class="smallbtn dark" type="submit">Добавить</button></form><div id="materialsList"></div></div>
+
+<section class="tab-panel" id="panel-materials">
+  <div class="eyebrow">Личная рабочая память</div><h1 class="page-title">Мои материалы</h1>
+  <p class="lead">Сохранённые результаты агентов, ссылки и ваши документы — в одном месте. В публичной демо-версии всё хранится только в этом браузере.</p>
+  <div class="material-toolbar"><input id="materialInput" placeholder="Добавить ссылку или заметку"><button class="run" id="addMaterial">Добавить</button></div>
+  <div class="materials" id="materials"></div>
 </section>
-<div class="footer-note">Демонстрационный режим: сценарии интерактивны, результаты предзаданы и явно не являются live-медицинским поиском. Production и main не изменяются.</div>
 </main>
+
+<aside class="rightbar">
+  <h3 class="context-title">Ваш рабочий контекст</h3>
+  <div class="context-block"><div class="context-k">Специальность</div><div class="context-v">Кардиология</div></div>
+  <div class="context-block"><div class="context-k">Фокус</div><div class="chips"><span class="chip">ХСН</span><span class="chip">ФП</span><span class="chip">АГ</span><span class="chip">Липиды</span><span class="chip">SGLT2</span></div></div>
+  <div class="context-block"><div class="context-k">Источники</div><div class="source-row"><span>РКО / ESC</span><span class="ok">подключено</span></div><div class="source-row"><span>Golden Set</span><span class="ok">подключено</span></div><div class="source-row"><span>PubMed</span><span>в демо недоступно</span></div></div>
+  <div class="context-block"><div class="context-k">Принцип</div><div class="context-v">Показываем только найденное в доступных источниках. Недоступные интеграции не имитируются.</div></div>
+</aside>
 </div>
-<div id="overlay" class="overlay"><div class="modal"><span class="eyebrow">Confirm before act</span><h3>Подтвердить внешнее действие?</h3><p>Добавить событие в календарь.</p><div class="notice">Calendar connector в публичном demo не подключён. После подтверждения система честно покажет UNAVAILABLE.</div><div class="actions"><button class="smallbtn" id="cancelModal">Отмена</button><button class="smallbtn dark" id="confirmModal">Подтвердить</button></div></div></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="drawer" id="drawer"><div class="drawer-panel"><div class="drawer-head"><h2>Источник и проверка</h2><button class="close" id="closeDrawer">×</button></div><div id="drawerBody"></div></div></div>
 <script>
 const agents=[
-{id:'whats-new',name:'Что нового для меня',job:'Показать, что существенно изменилось в интересующих темах с прошлого просмотра.',action:'Проверить изменения',task:'Что существенно изменилось по моим темам?'},
-{id:'guideline-change',name:'Изменения рекомендаций',job:'Найти новые версии рекомендаций и показать изменения, которые стоит проверить врачу.',action:'Сравнить обновления',task:'Проверь изменения рекомендаций по ХСН'},
-{id:'drug-change',name:'Препараты',job:'Отслеживать значимые изменения вокруг препаратов по выбранным темам.',action:'Проверить изменения',task:'Что изменилось по антикоагулянтам с прошлого просмотра?'},
-{id:'research',name:'Исследовать тему',job:'Исследовать профессиональный вопрос и вернуть проверяемую подборку с источниками.',action:'Исследовать',task:'Найди материалы по сердечной недостаточности и SGLT2'},
-{id:'events',name:'События',job:'Найти релевантные профессиональные события и подготовить следующий доступный шаг.',action:'Найти события',task:'Найди ближайшие события по кардиологии'},
-{id:'learning',name:'Моё обучение',job:'Собрать учебный маршрут из профессиональных материалов по выбранной цели.',action:'Собрать маршрут',task:'Собери материалы для обновления знаний по ФП'},
-{id:'materials',name:'Мои материалы',job:'Использовать документы, ссылки и результаты, которые врач сам добавил или сохранил.',action:'Открыть материалы',task:''}
+{id:'whats-new',name:'Что нового для меня',short:'Что нового',job:'Отслеживает существенные изменения по вашим темам и источникам.',task:'Что существенно изменилось по моим темам с прошлого просмотра?'},
+{id:'guideline-change',name:'Изменения рекомендаций',short:'Рекомендации',job:'Сравнивает новые версии рекомендаций и выделяет только значимые изменения.',task:'Что изменилось в рекомендациях по ХСН?'},
+{id:'drug-change',name:'Препараты',short:'Препараты',job:'Следит за изменениями вокруг препаратов и классов, а не показывает справочник.',task:'Что изменилось по SGLT2 и антикоагулянтам?'},
+{id:'research',name:'Исследовать тему',short:'Исследовать',job:'Собирает проверяемый обзор профессиональной темы с provenance.',task:'Собери обзор по ХСН и SGLT2'},
+{id:'events',name:'События',short:'События',job:'Ищет релевантные профессиональные события и объясняет, почему они вам подходят.',task:'Какие ближайшие события по кардиологии мне релевантны?'},
+{id:'learning',name:'Моё обучение',short:'Обучение',job:'Собирает персональный маршрут обновления знаний из доступных материалов.',task:'Собери короткий план обновления знаний по ФП'}
 ];
-const results={
-'research':{title:'Подборка по сердечной недостаточности и SGLT2',summary:'В доступном каталоге найдены материалы, которые можно проверить по первичным источникам.',modes:['Каталог: LIVE','PubMed: UNAVAILABLE','FactCheck: LIVE'],items:[{title:'SGLT2 и сердечная недостаточность: клинический обзор',summary:'Материал из Golden Set по терапии сердечной недостаточности.',source:'Профессиональный источник · provenance сохранён',status:'SUPPORTED'},{title:'Обновление подходов к терапии ХСН',summary:'Карточка с указанием источника и необходимостью клинической проверки.',source:'Guideline-derived material · requires review',status:'PARTIALLY_SUPPORTED'}]},
-'guideline-change':{title:'Изменения рекомендаций по ХСН',summary:'Показаны только объекты рекомендаций из доступного каталога. Система не утверждает изменения, которых нет в данных.',modes:['GuidelineDiff: DEMO','Каталог: LIVE','PubMed: UNAVAILABLE'],items:[{title:'Рекомендации по хронической сердечной недостаточности',summary:'Найдена версия документа в каталоге; требуется сравнение с предыдущей редакцией.',source:'Профессиональное общество · исходная ссылка сохраняется',status:'SUPPORTED'}]},
-'drug-change':{title:'Что изменилось по антикоагулянтам',summary:'Change-oriented представление: новые материалы и ограничения, а не справочник препаратов.',modes:['DrugChange: DEMO','Каталог: LIVE','RiskCheck: LIVE'],items:[{title:'Антикоагулянты: новое в доступных материалах',summary:'Результат показывает факт появления материала и provenance, без назначения лечения.',source:'Каталог Kardio · профессиональный контент',status:'PARTIALLY_SUPPORTED'}]},
-'whats-new':{title:'Что нового по вашим темам',summary:'Изменения ранжированы по релевантности и объясняют, почему были показаны.',modes:['Каталог: LIVE','Ranking: DEMO','FactCheck: LIVE'],items:[{title:'Обновление по сердечной недостаточности',summary:'Релевантно выбранной теме и появилось позже сохранённой отметки прошлого просмотра.',source:'Golden Set · timestamp-based comparison',status:'SUPPORTED'},{title:'Материал по фибрилляции предсердий',summary:'Показан как новый профессиональный объект для проверки.',source:'Профессиональный источник',status:'SUPPORTED'}]},
-'events':{title:'События по кардиологии',summary:'События нормализованы и ранжированы по релевантности. Регистрация и календарь не имитируются.',modes:['Events catalog: LIVE','Calendar: UNAVAILABLE','Email: UNAVAILABLE'],items:[{title:'Профессиональное кардиологическое событие',summary:'Демо-карточка показывает сценарий discovery → relevance → source → action.',source:'Источник события · provenance сохранён',status:'SUPPORTED',act:true}]},
-'learning':{title:'Маршрут обновления знаний по ФП',summary:'Собран демонстрационный учебный маршрут из доступных профессиональных материалов.',modes:['Каталог: LIVE','LearningPlan: DEMO'],items:[{title:'1. Обновить базовые рекомендации',summary:'Начать с источников и рекомендаций, затем перейти к свежим обзорам.',source:'Профессиональный каталог',status:'SUPPORTED'},{title:'2. Проверить практические разборы',summary:'Сохранить релевантные материалы в личную базу.',source:'Клинические и образовательные материалы',status:'PARTIALLY_SUPPORTED'}]}
+const data={
+'research':{title:'ХСН и SGLT2: что стоит проверить',summary:'Нашли два материала в подключённом каталоге. Один подтверждён первичным источником, второй требует клинической проверки.',items:[
+{t:'SGLT2 и сердечная недостаточность: клинический обзор',d:'Материал из Golden Set по терапии сердечной недостаточности. Полезен как точка входа в тему и для проверки первоисточника.',status:'Подтверждено источником',kind:'good',source:'Golden Set · профессиональный источник',date:'актуальность проверена',url:'#'},
+{t:'Обновление подходов к терапии ХСН',d:'Guideline-derived материал. В текущем демо показываем его как сигнал для проверки, а не как готовую рекомендацию.',status:'Нужна проверка',kind:'review',source:'Guideline-derived material',date:'requires review',url:'#'}]},
+'whats-new':{title:'3 сигнала с прошлого просмотра',summary:'Отобрали только изменения по вашим темам. Остальные материалы не попали в выдачу.',items:[
+{t:'Обновился материал по терапии ХСН',d:'Изменение связано с вашим фокусом на ХСН и отмечено как требующее проверки первоисточника.',status:'Нужно посмотреть',kind:'review',source:'РКО / Golden Set',date:'новое',url:'#'},
+{t:'Новый обзор по SGLT2',d:'Материал совпадает с вашим интересом и сохранённым контекстом последней сессии.',status:'Подтверждено',kind:'good',source:'Профессиональный каталог',date:'новое',url:'#'},
+{t:'Событие по сердечной недостаточности',d:'Событие попало в подборку из-за темы ХСН и вашего профиля кардиолога.',status:'Релевантно профилю',kind:'good',source:'Профессиональные события',date:'скоро',url:'#'}]},
+'guideline-change':{title:'Изменения рекомендаций по ХСН',summary:'Найден один материал, который стоит сравнить с предыдущей версией. Автоматически превращать его в клиническое решение нельзя.',items:[
+{t:'Новая версия материала по ХСН',d:'Система обнаружила обновление версии и выделила его для ручной проверки врачом.',status:'Версия изменилась',kind:'review',source:'Guideline index',date:'обновлено',url:'#'}]},
+'drug-change':{title:'Что изменилось вокруг SGLT2',summary:'Показываем change detection, а не карточку препарата: новые материалы, обновления и сигналы из доступных источников.',items:[
+{t:'Новый обзор класса SGLT2',d:'Появился материал по применению класса в контексте сердечной недостаточности.',status:'Подтверждено',kind:'good',source:'Golden Set',date:'новое',url:'#'},
+{t:'Сигнал для повторной проверки',d:'Материал требует сверки с первичным источником перед практическим использованием.',status:'Нужна проверка',kind:'review',source:'Guideline-derived',date:'review',url:'#'}]},
+'events':{title:'События, которые подходят вашему профилю',summary:'Система объясняет релевантность и готовит следующий шаг. Регистрация и календарь в публичном демо не подключены.',items:[
+{t:'Практическая кардиология: обновления по ХСН',d:'Совпадает со специальностью и текущим интересом ХСН.',status:'Высокая релевантность',kind:'good',source:'Каталог событий',date:'ближайшее',url:'#'}]},
+'learning':{title:'Короткий маршрут по ФП',summary:'Три шага для обновления знаний на базе доступных материалов.',items:[
+{t:'1. Проверить изменения рекомендаций',d:'Начать с последних доступных guideline-derived материалов.',status:'Шаг 1',kind:'good',source:'Guideline index',date:'10 мин',url:'#'},
+{t:'2. Сверить обзор терапии',d:'Проверить профессиональный обзор и первичные ссылки.',status:'Шаг 2',kind:'good',source:'Golden Set',date:'15 мин',url:'#'},
+{t:'3. Сохранить выводы',d:'Добавить важные результаты в личную рабочую память.',status:'Шаг 3',kind:'good',source:'Мои материалы',date:'5 мин',url:'#'}]}
 };
-let currentAgent='research';let settingsAgent='research';
-const prefs=JSON.parse(localStorage.getItem('kardioDemoPrefs')||'{}');
-let materials=JSON.parse(localStorage.getItem('kardioDemoMaterials')||'[]');
-const topics=['ИБС','ХСН','Артериальная гипертензия','Липидология','ФП'];const sources=['РКО','ESC','PubMed','NEJM'];const freqs=['Важное','Раз в неделю','По запросу'];
-function el(id){return document.getElementById(id)}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function showTab(tab){['home','agents','materials'].forEach(x=>el('tab-'+x).classList.toggle('hidden',x!==tab));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='materials')renderMaterials()}
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-function init(){el('agentSelect').innerHTML=agents.filter(a=>a.id!=='materials').map(a=>`<option value="${a.id}">${a.name}</option>`).join('');el('agentSelect').value=currentAgent;el('task').value=agents.find(a=>a.id===currentAgent).task;renderAgents();renderSettings();renderMaterials()}
-function renderAgents(){el('agentGrid').innerHTML=agents.map(a=>`<article class="card"><span class="state">${prefs[a.id]?'Настроен':'По умолчанию'}</span><div class="icon">${a.name.slice(0,1)}</div><h3>${a.name}</h3><p>${a.job}</p><button class="card-action" data-agent="${a.id}">${a.action} →</button></article>`).join('');document.querySelectorAll('[data-agent]').forEach(b=>b.onclick=()=>chooseAgent(b.dataset.agent))}
-function chooseAgent(id){if(id==='materials'){showTab('materials');return}currentAgent=id;el('agentSelect').value=id;el('task').value=agents.find(a=>a.id===id).task;showTab('home');el('task').focus()}
-el('agentSelect').onchange=e=>{currentAgent=e.target.value};
-el('runBtn').onclick=()=>run();
-function run(){currentAgent=el('agentSelect').value;const btn=el('runBtn');btn.disabled=true;btn.textContent='Выполняю…';el('homeNotice').classList.add('hidden');setTimeout(()=>{btn.disabled=false;btn.textContent='Запустить';renderResult(results[currentAgent]||results.research)},550)}
-function renderResult(r){el('resultSection').classList.remove('hidden');el('resultTitle').textContent=r.title;el('resultSummary').textContent=r.summary;el('resultMeta').innerHTML=r.modes.map(x=>`<span class="tag ${x.includes('UNAVAILABLE')?'warn':'ok'}">${x}</span>`).join('');el('resultItems').innerHTML=r.items.map((it,i)=>`<div class="result-item"><h3>${esc(it.title)}</h3><p>${esc(it.summary)}</p><div class="evidence"><strong>${it.status==='SUPPORTED'?'Подтверждено источником':'Нужна проверка'}</strong><br>${esc(it.source)}</div><div class="actions"><button class="smallbtn" data-save="${i}">Сохранить</button>${it.act?`<button class="smallbtn dark" data-act="${i}">Добавить в календарь</button>`:''}</div></div>`).join('');document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>saveItem(r.items[+b.dataset.save]));document.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>el('overlay').classList.add('show'));el('resultSection').scrollIntoView({behavior:'smooth',block:'start'})}
-function saveItem(it){materials.unshift({title:it.title,body:it.summary,created:new Date().toLocaleString('ru-RU')});localStorage.setItem('kardioDemoMaterials',JSON.stringify(materials));el('homeNotice').textContent='Результат сохранён в «Мои материалы» в этом браузере.';el('homeNotice').classList.remove('hidden')}
-function renderSettings(){el('settingsList').innerHTML=agents.filter(a=>a.id!=='materials').map(a=>`<button data-setting="${a.id}" class="${a.id===settingsAgent?'active':''}">${a.name}</button>`).join('');document.querySelectorAll('[data-setting]').forEach(b=>b.onclick=()=>{settingsAgent=b.dataset.setting;renderSettings()});const a=agents.find(x=>x.id===settingsAgent);el('settingsTitle').textContent=a.name;el('settingsJob').textContent=a.job;const p=prefs[settingsAgent]||{topics:[],sources:[],freq:'Важное'};el('topicChips').innerHTML=topics.map(x=>`<button class="chip ${p.topics.includes(x)?'on':''}" data-pref="topic" data-value="${x}">${x}</button>`).join('');el('sourceChips').innerHTML=sources.map(x=>`<button class="chip ${p.sources.includes(x)?'on':''}" data-pref="source" data-value="${x}">${x}</button>`).join('');el('freqChips').innerHTML=freqs.map(x=>`<button class="chip ${p.freq===x?'on':''}" data-pref="freq" data-value="${x}">${x}</button>`).join('');document.querySelectorAll('[data-pref]').forEach(b=>b.onclick=()=>togglePref(b.dataset.pref,b.dataset.value))}
-function togglePref(kind,value){const p=prefs[settingsAgent]||{topics:[],sources:[],freq:'Важное'};if(kind==='topic')p.topics=p.topics.includes(value)?p.topics.filter(x=>x!==value):[...p.topics,value];if(kind==='source')p.sources=p.sources.includes(value)?p.sources.filter(x=>x!==value):[...p.sources,value];if(kind==='freq')p.freq=value;prefs[settingsAgent]=p;localStorage.setItem('kardioDemoPrefs',JSON.stringify(prefs));renderSettings();renderAgents()}
-function renderMaterials(){el('materialsList').innerHTML=materials.length?materials.map(m=>`<div class="material"><strong>${esc(m.title)}</strong><div>${esc(m.body)}</div><small>${esc(m.created)}</small></div>`).join(''):`<div class="empty">Пока пусто. Сохраните результат агента или добавьте свою заметку.</div>`}
-el('materialForm').onsubmit=e=>{e.preventDefault();materials.unshift({title:el('materialTitle').value.trim(),body:el('materialBody').value.trim(),created:new Date().toLocaleString('ru-RU')});localStorage.setItem('kardioDemoMaterials',JSON.stringify(materials));el('materialTitle').value='';el('materialBody').value='';renderMaterials()};
-el('cancelModal').onclick=()=>el('overlay').classList.remove('show');el('confirmModal').onclick=()=>{el('overlay').classList.remove('show');el('homeNotice').textContent='Действие подтверждено, но Calendar connector = UNAVAILABLE. Ничего не было отправлено наружу.';el('homeNotice').classList.remove('hidden')};
+const streamItems=[
+{icon:'Р',title:'Изменился материал по рекомендациям ХСН',desc:'Система обнаружила новую версию в отслеживаемом источнике.',meta:['ХСН','Рекомендации','с прошлого просмотра'],badge:'проверить'},
+{icon:'S',title:'Новый обзор по SGLT2',desc:'Совпадает с вашим текущим профессиональным фокусом.',meta:['SGLT2','Исследования'],badge:'новое'},
+{icon:'С',title:'Событие по сердечной недостаточности',desc:'Релевантно специальности и выбранным темам.',meta:['События','ХСН'],badge:'скоро'}
+];
+const qs=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
+const agentSelect=qs('#agentSelect'), task=qs('#task'), runBtn=qs('#runBtn'), trace=qs('#trace'), result=qs('#result'), findings=qs('#findings'), toast=qs('#toast'), drawer=qs('#drawer');
+let current='research';
+function init(){
+ agents.forEach(a=>agentSelect.insertAdjacentHTML('beforeend',`<option value="${a.id}">${a.name}</option>`)); agentSelect.value=current;
+ qs('#quickActions').innerHTML=agents.filter(a=>a.id!=='learning').map(a=>`<button data-agent="${a.id}">${a.short}</button>`).join('');
+ qs('#stream').innerHTML=streamItems.map(x=>`<div class="stream-row"><div class="stream-icon">${x.icon}</div><div><div class="stream-title">${x.title}</div><div class="stream-desc">${x.desc}</div><div class="stream-meta">${x.meta.map(m=>`<span class="meta">${m}</span>`).join('')}</div></div><span class="badge-new">${x.badge}</span></div>`).join('');
+ qs('#agentsModern').innerHTML=agents.map((a,i)=>`<div class="agent-line"><div class="agent-ico">${a.short[0]}</div><div><h3>${a.name}</h3><p>${a.job}</p></div><div class="agent-controls"><button class="config" data-agent="${a.id}">Настроить</button><button class="toggle ${i<4?'on':''}" aria-label="toggle"></button></div></div>`).join('');
+ renderMaterials(); bind();
+}
+function bind(){
+ qsa('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+ qsa('[data-agent]').forEach(b=>b.onclick=()=>chooseAgent(b.dataset.agent));
+ qsa('.toggle').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+ runBtn.onclick=()=>run(); agentSelect.onchange=()=>{current=agentSelect.value; const a=agents.find(x=>x.id===current); if(a) task.value=a.task};
+ qs('#attachBtn').onclick=()=>showToast('В публичном демо загрузка файла не отправляет данные на сервер');
+ qs('#addMaterial').onclick=addMaterial; qs('#closeDrawer').onclick=()=>drawer.classList.remove('show'); drawer.onclick=e=>{if(e.target===drawer)drawer.classList.remove('show')};
+}
+function switchTab(tab){qsa('.tab-panel').forEach(p=>p.classList.remove('active')); qs(`#panel-${tab}`).classList.add('active'); qsa('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab)); window.scrollTo({top:0,behavior:'smooth'})}
+function chooseAgent(id){const a=agents.find(x=>x.id===id); if(!a)return; current=id; agentSelect.value=id; task.value=a.task; switchTab('home'); setTimeout(()=>run(),140)}
+function run(){const a=agents.find(x=>x.id===agentSelect.value)||agents[3]; current=a.id; const d=data[a.id]||data.research; runBtn.classList.add('loading'); runBtn.innerHTML='Работаю…'; trace.classList.add('show'); result.classList.remove('show'); qsa('.step').forEach(s=>s.classList.remove('done')); const labels=['понимаю задачу','собираю доступные источники','проверяю provenance','готовлю краткий вывод']; [0,1,2,3].forEach((i)=>setTimeout(()=>{qsa('.step')[i].classList.add('done'); qs('#traceStatus').textContent=labels[i]},260+i*330)); setTimeout(()=>{renderResult(d); trace.classList.remove('show'); result.classList.add('show'); runBtn.classList.remove('loading'); runBtn.innerHTML='Запустить <span>↗</span>'; result.scrollIntoView({behavior:'smooth',block:'start'})},1650)}
+function renderResult(d){qs('#resultTitle').textContent=d.title; qs('#resultSummary').textContent=d.summary; qs('#resultCount').textContent=`${d.items.length} ${d.items.length===1?'результат':'результата'}`; findings.innerHTML=d.items.map((x,i)=>`<article class="finding"><div class="finding-top"><div><h3>${x.t}</h3><p>${x.d}</p></div></div><div class="evidence-line"><span class="evidence-pill ${x.kind}">${x.status}</span><span class="evidence-pill">${x.source}</span><span class="evidence-pill">${x.date}</span></div><div class="finding-actions"><button class="mini primary save" data-i="${i}">Сохранить</button><button class="mini evidence" data-i="${i}">Почему это здесь</button></div></article>`).join(''); qsa('.save').forEach(b=>b.onclick=()=>{saveMaterial(d.items[+b.dataset.i]);showToast('Сохранено в «Мои материалы»')}); qsa('.evidence').forEach(b=>b.onclick=()=>openEvidence(d.items[+b.dataset.i]))}
+function openEvidence(x){qs('#drawerBody').innerHTML=`<div class="drawer-section"><div class="eyebrow">Почему показано</div><h3>${x.t}</h3><p>${x.d}</p></div><div class="drawer-section"><h3>Provenance</h3><div class="prov"><strong>${x.source}</strong><span>${x.status} · ${x.date}</span></div></div><div class="drawer-section"><h3>Граница демо</h3><p>Публичная версия использует предзаданные результаты и не выдаёт недоступные внешние интеграции за live-поиск.</p></div>`;drawer.classList.add('show')}
+function getMaterials(){try{return JSON.parse(localStorage.getItem('kardio.demo.materials')||'[]')}catch{return[]}}
+function setMaterials(v){localStorage.setItem('kardio.demo.materials',JSON.stringify(v));renderMaterials()}
+function saveMaterial(x){const list=getMaterials();list.unshift({title:x.t,body:x.d,meta:x.source,time:new Date().toLocaleString('ru-RU')});setMaterials(list)}
+function addMaterial(){const input=qs('#materialInput');const v=input.value.trim();if(!v)return;const list=getMaterials();list.unshift({title:v.startsWith('http')?'Сохранённая ссылка':'Заметка врача',body:v,meta:'Добавлено вручную',time:new Date().toLocaleString('ru-RU')});setMaterials(list);input.value='';showToast('Добавлено')}
+function renderMaterials(){const list=getMaterials();qs('#materials').innerHTML=list.length?list.map(x=>`<div class="material-row"><div class="material-icon">M</div><div><strong>${x.title}</strong><p>${x.body}</p></div><small>${x.meta}</small></div>`).join(''):`<div style="padding:28px;text-align:center;color:#8d8d86;font-size:12px">Пока пусто. Сохраните результат агента — он появится здесь.</div>`}
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800)}
 init();
 </script>
-</body></html>
+</body>
+</html>
