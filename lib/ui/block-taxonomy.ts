@@ -1,6 +1,8 @@
 export type ProductBlockKind =
   | "hero_knowledge"
   | "knowledge_shelf"
+  | "evidence_shelf"
+  | "clinical_shelf"
   | "guideline_shelf"
   | "tool_shelf"
   | "reference_shelf"
@@ -25,11 +27,13 @@ export interface ProductBlockDefinition {
 
 export const productBlockTaxonomy: Record<ProductBlockKind, ProductBlockDefinition> = {
   hero_knowledge: { kind: "hero_knowledge", region: "primary", userControllable: true, purpose: "Один главный профессиональный объект для входа в тему." },
-  knowledge_shelf: { kind: "knowledge_shelf", region: "primary", userControllable: true, purpose: "Набор статей, клинических материалов или других knowledge objects." },
+  knowledge_shelf: { kind: "knowledge_shelf", region: "primary", userControllable: true, purpose: "Универсальный резервный набор knowledge objects, когда отдельный профессиональный тип не выделен." },
+  evidence_shelf: { kind: "evidence_shelf", region: "primary", userControllable: true, purpose: "Исследования, статьи и другие evidence-oriented knowledge objects." },
+  clinical_shelf: { kind: "clinical_shelf", region: "primary", userControllable: true, purpose: "Клинические материалы и source-grounded case-oriented objects без пациентского профиля." },
   guideline_shelf: { kind: "guideline_shelf", region: "primary", userControllable: true, purpose: "Текущие рекомендации и их версии." },
   tool_shelf: { kind: "tool_shelf", region: "full", userControllable: true, purpose: "Рабочие инструменты, калькуляторы и быстрые действия." },
   reference_shelf: { kind: "reference_shelf", region: "primary", userControllable: true, purpose: "Справочные и инструментальные объекты каталога." },
-  event_rail: { kind: "event_rail", region: "rail", userControllable: true, purpose: "Ближайшие или релевантные профессиональные события." },
+  event_rail: { kind: "event_rail", region: "rail", userControllable: true, purpose: "Source-grounded профессиональные события без автоматического вывода актуальности." },
   source_shelf: { kind: "source_shelf", region: "rail", userControllable: true, purpose: "Профессиональные источники и маршруты к первоисточникам." },
   learning_shelf: { kind: "learning_shelf", region: "primary", userControllable: true, purpose: "Лекции, курсы и образовательные материалы." },
   saved_shelf: { kind: "saved_shelf", region: "rail", userControllable: true, purpose: "Пользовательские сохранения и закреплённые материалы." },
