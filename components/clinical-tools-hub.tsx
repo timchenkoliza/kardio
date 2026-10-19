@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
-import { Check, ExternalLink, HeartPulse, ImageIcon, Layers3, ScanLine, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, ExternalLink, HeartPulse, Layers3 } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { cha2Ds2VaLabel, hasBledLabel, scoreCha2Ds2Va, scoreHasBled } from "@/lib/ui/clinical-calculators";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
+import { PrototypeCineViewer } from "@/components/prototype-cine-viewer";
 
 function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (checked: boolean) => void; children: React.ReactNode }) {
   return <label className={checked ? "tool-check selected" : "tool-check"}><input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} /><span className="tool-check-mark">{checked && <Check size={14} />}</span><span>{children}</span></label>;
@@ -78,55 +79,22 @@ function OncologyExternalTools() {
 }
 
 export function ImagingWorkspace({ specialty }: { specialty: SpecialtyId }) {
-  const [confirmed, setConfirmed] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [format, setFormat] = useState("");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inobitec = useMemo(() => curatedSourcesForSpecialty(specialty).find(source => source.id === "inobitec"), [specialty]);
   const isCardiology = specialty === "cardiology";
 
-  useEffect(() => () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
-
-  function selectImage(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || !confirmed) return;
-
-    setFileName(file.name);
-    const lower = file.name.toLowerCase();
-    const detectedFormat = lower.endsWith(".nii.gz")
-      ? "NIfTI"
-      : lower.endsWith(".dcm") || lower.endsWith(".dicom")
-        ? "DICOM"
-        : lower.split(".").pop()?.toUpperCase() ?? "FILE";
-    setFormat(detectedFormat);
-
-    const browserPreview = /\.(png|jpe?g|webp)$/i.test(file.name);
-    setPreviewUrl(browserPreview ? URL.createObjectURL(file) : null);
-  }
-
   return <div className="imaging-hub">
-    <header className="tools-intro"><span className="eyebrow">{isCardiology ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>{isCardiology ? "Локальный просмотр обезличенных или учебных изображений и подготовленное место для будущей 3D-анатомии сердца." : "Локальный просмотр обезличенных или учебных изображений и подготовленное место для будущей 3D-реконструкции и сегментации."}</p></header>
+    <header className="tools-intro"><span className="eyebrow">{isCardiology ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>{isCardiology ? "3D-анатомия, реальные материалы медиабанка и локальный просмотр обезличенных или учебных изображений." : "Локальный просмотр обезличенных или учебных изображений и подготовленное место для будущей 3D-реконструкции и сегментации."}</p></header>
 
-    <div className="imaging-grid">
+    <div className="imaging-grid imaging-grid-media-pass">
       <section className="heart-3d-card heart-3d-cold-start">
-        <div className="heart-3d-copy"><div className="visual-icon">{isCardiology ? <HeartPulse size={24} /> : <Layers3 size={24} />}</div><span className="eyebrow">3D · пока без модели</span><h2>{isCardiology ? "Анатомия сердца" : "3D и сегментация"}</h2><p>{isCardiology ? "Интерактивная модель пока не подключена. Без лицензированного или собственного 3D-ресурса мы не имитируем работающий просмотрщик." : "Объёмная реконструкция и сегментация пока не подключены. Без специализированного рендерера и проверенного учебного набора мы не имитируем диагностическую функцию."}</p><div className="layer-chips planned-layers" aria-label="Планируемые слои">{isCardiology ? <><span>Миокард</span><span>Камеры</span><span>Клапаны</span><span>Коронарные артерии</span></> : <><span>КТ / МРТ</span><span>Серии</span><span>Контуры</span><span>3D-реконструкция</span></>}</div></div>
+        <div className="heart-3d-copy"><div className="visual-icon">{isCardiology ? <HeartPulse size={24} /> : <Layers3 size={24} />}</div><span className="eyebrow">3D · пока без модели</span><h2>{isCardiology ? "Анатомия сердца" : "3D и сегментация"}</h2><p>{isCardiology ? "Место и слои для интерактивной модели готовы, но лицензированный или собственный 3D-asset ещё не подключён. Поэтому мы не подменяем его нарисованным «работающим» сердцем." : "Объёмная реконструкция и сегментация пока не подключены. Без специализированного рендерера и проверенного учебного набора мы не имитируем диагностическую функцию."}</p><div className="layer-chips planned-layers" aria-label="Планируемые слои">{isCardiology ? <><span>Миокард</span><span>Камеры</span><span>Клапаны</span><span>Коронарные артерии</span></> : <><span>КТ / МРТ</span><span>Серии</span><span>Контуры</span><span>3D-реконструкция</span></>}</div></div>
         <div className="heart-stage" aria-label={isCardiology ? "3D-модель сердца пока не подключена" : "3D-реконструкция пока не подключена"}><div className="heart-stage-orbit orbit-one" /><div className="heart-stage-orbit orbit-two" /><div className="heart-volume">{isCardiology ? <HeartPulse size={72} /> : <Layers3 size={72} />}</div><span><Layers3 size={15} /> {isCardiology ? "3D-модель пока не подключена" : "3D-реконструкция пока не подключена"}</span></div>
       </section>
 
-      <section className="image-reader-card">
-        <div className="image-reader-head"><div><span className="eyebrow">Локально в браузере</span><h2>Просмотр изображения</h2></div><ScanLine size={26} /></div>
-        <div className="image-reader-viewports local-preview-grid">
-          <div className={previewUrl ? "local-preview has-preview" : "local-preview"} style={previewUrl ? { backgroundImage: `url(${previewUrl})` } : undefined}><span>{previewUrl ? "PREVIEW" : "LOCAL"}</span>{!previewUrl && <ImageIcon size={30} />}</div>
-          <div className="local-format-state"><span>FORMAT</span><strong>{format || "—"}</strong><small>{fileName ? (previewUrl ? "Предпросмотр готов" : "Файл выбран; рендерер формата не подключён") : "Выберите обезличенный или учебный файл"}</small></div>
-        </div>
-        <div className="image-reader-controls"><label className="viewer-confirm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><ShieldCheck size={16} /><span>Только обезличенный или учебный файл</span></label><label className={confirmed ? "secondary-button viewer-file" : "secondary-button viewer-file disabled"}>Выбрать локальный файл<input type="file" disabled={!confirmed} accept=".dcm,.dicom,.nii,.nii.gz,.nrrd,.mha,.mhd,.png,.jpg,.jpeg,.webp,.pdf" onChange={selectImage} /></label>{fileName && <div className="viewer-file-state"><strong>{fileName}</strong><span>{format} · локально, без отправки{previewUrl ? " · предпросмотр готов" : " · визуальный рендерер пока не подключён"}</span></div>}</div>
-        <div className="viewer-formats">Встроенный предпросмотр: PNG · JPEG · WebP. DICOM · NIfTI · NRRD · MHA/MHD · PDF можно выбрать локально, но специализированный рендерер в прототип пока не встроен.</div>
-        {inobitec && <a className="tool-source-link" href={inobitec.url} target="_blank" rel="noreferrer">Референс · {inobitec.name} <ExternalLink size={14} /></a>}
-      </section>
+      <PrototypeCineViewer specialty={specialty} />
     </div>
-    <p className="tools-footnote">Просмотрщик не интерпретирует снимок и не выдаёт диагностическое заключение. Для DICOM/NIfTI и других специализированных форматов требуется отдельный медицинский рендерер.</p>
+
+    {inobitec && <a className="tool-source-link imaging-reference-link" href={inobitec.url} target="_blank" rel="noreferrer">Референс просмотрщика · {inobitec.name} <ExternalLink size={14} /></a>}
+    <p className="tools-footnote">Просмотрщик не интерпретирует снимок и не выдаёт диагностическое заключение. Реальные диагностические изображения сохраняют исходную цветопередачу; права на прототипные материалы проверяются отдельно.</p>
   </div>;
 }
