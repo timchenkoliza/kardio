@@ -71,4 +71,12 @@ describe("de-identification", () => {
     expect(result.text).toContain("Пациенту назначили");
     expect(result.redactions).toContain("phone");
   });
+
+  it("redacts labelled Cyrillic identifiers (ФИО, address, date of birth)", async () => {
+    const { deidentify } = await import("@/server/agents/services/risk");
+    const result = deidentify("Пациент: Петров Пётр Петрович\nАдрес: Москва, ул. Ленина, 5\nдата рождения: 12.03.1961\nХСН, ФВ 35%");
+    expect(result.text).not.toMatch(/Петров|Ленина|1961/);
+    expect(result.text).toContain("ХСН, ФВ 35%");
+    expect(result.redactions).toEqual(expect.arrayContaining(["fio", "address", "birth_date"]));
+  });
 });
