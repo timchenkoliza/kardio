@@ -10,7 +10,7 @@
 }
 .workspace-case-header h1 {
   margin: 5px 0 6px;
-  font-size: clamp(34px, 3.2vw, 54px);
+  font-size: var(--font-size-display-xl);
   line-height: 1;
   letter-spacing: -.045em;
 }
@@ -96,7 +96,7 @@
   place-items: center;
   border: 0;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-inverse-text);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
@@ -267,7 +267,7 @@
 }
 
 @media (max-width: 620px) {
-  .workspace-case-header h1 { font-size: 34px; }
+  .workspace-case-header h1 { font-size: var(--font-size-heading-1); }
   .workspace-case-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
   .workspace-case-chips span { flex: 0 0 auto; }
   .workspace-summary-card { grid-template-columns: 40px minmax(0, 1fr); }

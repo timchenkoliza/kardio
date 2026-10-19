@@ -2,6 +2,7 @@
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
 import { prototypeMediaForContent } from "@/lib/ui/prototype-media-bank";
+import { approvedEditorialMediaForContent } from "@/lib/ui/approved-medical-media";
 
 function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
   const explicitText = [content.title, ...content.tags, ...content.topics].join(" ");
@@ -26,7 +27,8 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
   fallback?: boolean;
 }) {
   const prototypeAsset = content.specialty === specialty && !content.asset?.url ? prototypeMediaForContent(content) : null;
-  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? null;
+  const approvedAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset ? approvedEditorialMediaForContent(content) : null;
+  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? approvedAsset?.src ?? null;
 
   if (!mediaUrl) {
     if (!fallback) return null;
@@ -49,23 +51,25 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
     );
   }
 
-  const isPrototype = Boolean(prototypeAsset);
+  const mediaState = content.asset?.url ? "real" : prototypeAsset ? "prototype" : "approved-fallback";
+  const alt = content.asset?.caption ?? prototypeAsset?.alt ?? approvedAsset?.alt ?? "";
+  const credit = content.asset?.credit ?? approvedAsset?.credit ?? null;
 
   return (
     <figure
       className={compact ? "editorial-media compact has-image" : "editorial-media has-image"}
       data-media-treatment={mediaTreatment(content)}
-      data-media-state={isPrototype ? "prototype" : "real"}
+      data-media-state={mediaState}
     >
       <img
         src={mediaUrl}
-        alt={prototypeAsset?.alt ?? content.asset?.caption ?? ""}
+        alt={alt}
         loading="lazy"
         decoding="async"
         width={content.asset?.width ?? undefined}
         height={content.asset?.height ?? undefined}
       />
-      {content.asset?.credit && <figcaption>{content.asset.credit}</figcaption>}
+      {credit && <figcaption>{credit}</figcaption>}
     </figure>
   );
 }
