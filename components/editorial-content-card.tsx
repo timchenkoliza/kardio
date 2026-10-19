@@ -7,7 +7,17 @@ import { EditorialMedia } from "./editorial-media";
 
 export type EditorialPresentation = "standard" | "hero" | "guideline" | "clinical" | "evidence" | "learning" | "event";
 
-const decorativeFallbackPresentations = new Set<EditorialPresentation>(["standard", "evidence", "learning"]);
+function presentationForContent(content: ContentObject, featured: boolean): EditorialPresentation {
+  if (featured) return "hero";
+  switch (content.kind) {
+    case "guideline": return "guideline";
+    case "clinical": return "clinical";
+    case "article": return "evidence";
+    case "video": return "learning";
+    case "event": return "event";
+    default: return "standard";
+  }
+}
 
 export function EditorialContentCard({ content, specialty, featured = false, position, presentation }: {
   content: ContentObject;
@@ -18,16 +28,21 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
 }) {
   const partner = isPartner(content);
   const exceptionalState = content.currentness !== "current";
-  const resolvedPresentation: EditorialPresentation = presentation ?? (featured ? "hero" : "standard");
+  const resolvedPresentation = presentation ?? presentationForContent(content, featured);
   const hero = featured || resolvedPresentation === "hero";
-  const allowDecorativeFallback = decorativeFallbackPresentations.has(resolvedPresentation);
-  const hasMedia = Boolean(content.asset?.url) || allowDecorativeFallback;
+  const hasMedia = Boolean(content.asset?.url);
+  const className = [
+    "editorial-card",
+    hero ? "featured-card" : "",
+    hasMedia ? "has-media-card" : "no-media-card",
+  ].filter(Boolean).join(" ");
 
   return (
     <article
-      className={hero ? "editorial-card featured-card" : "editorial-card"}
+      className={className}
       data-kind={content.kind}
       data-presentation={resolvedPresentation}
+      data-media-state={hasMedia ? "real" : "none"}
       data-rank-position={position}
     >
       <div className="editorial-card-meta">
@@ -43,7 +58,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
           <h2>{content.title}</h2>
           {content.summary && <p>{content.summary}</p>}
         </Link>
-        {hasMedia && <EditorialMedia content={content} specialty={specialty} compact={!hero} fallback={allowDecorativeFallback} />}
+        {hasMedia && <EditorialMedia content={content} specialty={specialty} compact={!hero} fallback={false} />}
       </div>
 
       <div className="editorial-card-footer">
