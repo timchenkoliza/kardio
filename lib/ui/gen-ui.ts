@@ -1,8 +1,10 @@
 import type { Shell, SpecialtyId, UiBlockPreference } from "@/lib/domain/types";
+import type { ProductBlockKind } from "@/lib/ui/block-taxonomy";
 
 export interface GenUiBlockDescriptor<T = unknown> {
   id: string;
   label: string;
+  kind: ProductBlockKind;
   value: T;
 }
 
