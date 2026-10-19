@@ -46,22 +46,24 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
     if (localUrl) URL.revokeObjectURL(localUrl);
   }, [localUrl]);
 
-  useEffect(() => {
+  function resetPlaybackState() {
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-  }, [mediaSrc]);
+  }
 
   function clearLocalPreview() {
     if (localUrl) URL.revokeObjectURL(localUrl);
     setLocalUrl(null);
     setLocalFileName("");
     setLocalKind(null);
+    resetPlaybackState();
   }
 
   function selectBankAsset(id: string) {
     clearLocalPreview();
     setSelectedBankId(id);
+    resetPlaybackState();
   }
 
   function selectLocalMedia(event: ChangeEvent<HTMLInputElement>) {
@@ -74,6 +76,7 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
     const isImage = /\.(png|jpe?g|webp)$/iu.test(file.name) || file.type.startsWith("image/");
     if (!isVideo && !isImage) return;
 
+    resetPlaybackState();
     setLocalFileName(file.name);
     setLocalKind(isVideo ? "video" : "image");
     setLocalUrl(URL.createObjectURL(file));
