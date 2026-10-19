@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Яндекс Мед · Профессиональная среда врача</title>
+<link rel="stylesheet" href="./workbench-contract.css">
+<link rel="stylesheet" href="./kardio-real.css">
+<link rel="stylesheet" href="./kardio-pixel.css">
+<link rel="stylesheet" href="./specialty-surface.css">
+<link rel="stylesheet" href="./kardio-pixel-polish.css">
+<script>window.KARDIO_GOLDENSET_CHUNKS=[];</script>
+<script src="../data/goldenset-chunk-01.js"></script>
+<script src="../data/goldenset-chunk-02.js"></script>
+<script src="../data/goldenset-chunk-03.js"></script>
+<script src="../data/goldenset-chunk-04.js"></script>
+<script src="../data/goldenset-chunk-05.js"></script>
+<script src="../data/cardio_goldenset_loader.js"></script>
+<script src="../data/cardio-evaluation-slice-v1.bundle.js"></script>
+<script src="../data/echo-asset.bundle.js"></script>
+<script src="../data/content-image-enrichment.bundle.js"></script>
+<script src="./content-runtime.js"></script>
+</head>
+<body data-specialty="cardiology">
+<header class="global">
+  <div class="brand"><span class="brand-mark" aria-hidden>М</span><span class="brand-product">Яндекс Мед</span></div>
+  <button class="specialty-chip" id="chooseSpecialty" type="button" aria-label="Сменить специальность"><span class="specialty-dot" aria-hidden></span><span id="specialtyLabel">Кардиология</span></button>
+  <span class="shell-label">Режим</span><span class="shell-name" id="shellName">—</span>
+  <div class="grow"></div>
+  <button class="ghost" id="debugToggle">ID</button>
+  <button class="ghost" id="chooseShell">Сменить режим</button>
+</header>
+<div id="root" class="root"></div>
+
+<div id="overlay" class="overlay">
+  <section class="chooser" aria-live="polite">
+    <div class="chooser-stage" id="introStage" hidden>
+      <div class="eyebrow">Лента Яндекс Мед</div>
+      <h1>Медицинская информация, которой можно доверять</h1>
+      <p>Яндекс Мед помогает врачам искать информацию в проверенной медицинской базе и следить за важными обновлениями по своей специальности.</p>
+      <div class="onboarding-points">
+        <div class="onboarding-point"><span>1</span><span>Найти ответ</span></div>
+        <div class="onboarding-point"><span>2</span><span>Проверить источник</span></div>
+        <div class="onboarding-point"><span>3</span><span>Следить за обновлениями</span></div>
+      </div>
+      <div class="onboarding-actions"><button class="onboarding-primary" id="introContinue" type="button">Продолжить</button></div>
+    </div>
+
+    <div class="chooser-stage" id="specialtyStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-onboarding-back="intro" aria-label="Назад">←</button><div><div class="eyebrow">Настройка Ленты</div><h1>Какая у вас специальность?</h1></div></div>
+      <p>Выберите основную специальность. Она определяет профессиональный контекст Ленты, а не ограничивает доступ к остальным материалам.</p>
+      <div class="specialty-list">
+        <button class="specialty-row specialty-row--cardiology" type="button" data-specialty-choice="cardiology">
+          <span class="specialty-row__swatch" aria-hidden></span>
+          <span><b>Кардиология</b><small>Клинические рекомендации, исследования, обучение и профессиональные источники</small></span>
+          <span class="specialty-row__arrow">→</span>
+        </button>
+        <button class="specialty-row specialty-row--oncology" type="button" data-specialty-choice="oncology">
+          <span class="specialty-row__swatch" aria-hidden></span>
+          <span><b>Онкология</b><small>Визуальная система готова; source-grounded dataset ещё не подключён</small></span>
+          <span class="specialty-row__arrow">→</span>
+        </button>
+      </div>
+      <div class="onboarding-actions"><button class="onboarding-secondary" type="button" id="specialtySkip">Пропустить</button></div>
+    </div>
+
+    <div class="chooser-stage" id="safetyStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-onboarding-back="specialty" aria-label="Назад">←</button><div><div class="eyebrow">Перед началом</div><h1>Теперь про безопасность</h1></div></div>
+      <div class="safety-list">
+        <div class="safety-item">Яндекс Мед — справочный инструмент для медицинских специалистов.</div>
+        <div class="safety-item">ИИ может ошибаться — клиническое решение всегда принимает врач.</div>
+        <div class="safety-item">Проверяйте важные факты по указанным источникам и не вводите персональные данные пациентов.</div>
+      </div>
+      <div class="onboarding-actions"><button class="onboarding-primary" id="safetyContinue" type="button">Понятно, продолжить</button></div>
+    </div>
+
+    <div class="chooser-stage" id="shellStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-onboarding-back="specialty" aria-label="Назад">←</button><div><div class="eyebrow">Кардиология · реальный Golden Set</div><h1>Выберите рабочий режим</h1></div></div>
+      <p>Контент, источники, сохранённое и provenance общие. Меняется только способ организации профессиональной работы.</p>
+      <div class="options">
+        <button class="option" data-shell="search_first"><div class="eyebrow">A</div><h2>Search-first Navigator</h2><p>Поиск как главный вход: материал → источник → действие.</p><span class="pick">Выбрать</span></button>
+        <button class="option" data-shell="toolbelt"><div class="eyebrow">B</div><h2>Professional Toolbelt</h2><p>Компактные профессиональные возможности и источники постоянно под рукой.</p><span class="pick">Выбрать</span></button>
+        <button class="option" data-shell="workspace"><div class="eyebrow">C</div><h2>Knowledge Workspace</h2><p>Темы, источники и коллекции как долговременное рабочее пространство.</p><span class="pick">Выбрать</span></button>
+      </div>
+    </div>
+
+    <div class="chooser-stage" id="oncologyStage" hidden>
+      <div class="chooser-stage-head"><button class="stage-back" type="button" data-onboarding-back="specialty" aria-label="Назад">←</button><div><div class="eyebrow">Онкология · Cell / Precision</div><h1>Айдентика готова, данные — нет</h1></div></div>
+      <p>Мы не подменяем контекст: кардиологический Golden Set нельзя показывать как онкологический. Для полноценного входа нужен отдельный source-grounded oncology dataset.</p>
+      <div class="specialty-gap"><b>Уже определено:</b> palette, CLUSTER / TARGET visual physics, typography и component tokens. <b>Не выдумываем:</b> клинический контент, источники и ranking.</div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* Local visual-QA hook only. Production behavior is unchanged unless ?qaShell=A|B|C is present. */
+(()=>{
+  const requested=new URLSearchParams(location.search).get('qaShell');
+  if(!requested)return;
+  const shell={A:'search_first',B:'toolbelt',C:'workspace',search_first:'search_first',toolbelt:'toolbelt',workspace:'workspace'}[requested];
+  if(!shell)return;
+  try{
+    const key='kardio.realcontent.v1';
+    const state={...JSON.parse(localStorage.getItem(key)||'{}'),shell,view:'home',debug:false};
+    localStorage.setItem(key,JSON.stringify(state));
+    localStorage.setItem('yamed.feed.onboarding.v1','done');
+    localStorage.setItem('yamed.feed.specialty.v1','cardiology');
+  }catch{}
+})();
+</script>
+<script src="./kardio-app.js"></script>
+<script src="./specialty-theme.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+:root {
+  --font-sans: "YS Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+
+  --font-size-display-xl: 44px;
+  --font-size-display-lg: 36px;
+  --font-size-heading-1: 32px;
+  --font-size-heading-2: 24px;
+  --font-size-heading-3: 20px;
+  --font-size-title: 18px;
+  --font-size-body: 16px;
+  --font-size-body-compact: 15px;
+  --font-size-label: 14px;
+  --font-size-caption: 13px;
+  --font-size-metadata: 12px;
+  --font-size-micro: 10px;
+  --font-size-feature: clamp(26px, 3vw, 38px);
+  --font-size-feature-mobile: 26px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --shadow-subtle: 0 1px 2px rgb(16 24 40 / 6%);
+  --shadow-raised: 0 8px 24px rgb(16 24 40 / 8%);
+  --shadow-floating: 0 18px 50px rgb(50 50 80 / 10%);
+  --shadow-card: 0 1px 0 rgb(23 23 28 / 5%), 0 8px 28px rgb(23 23 28 / 4%);
+  --shadow-card-hover: 0 14px 34px rgb(23 23 28 / 8%);
+  --shadow-card-featured: 0 1px 0 rgb(23 23 28 / 4%), 0 14px 42px rgb(23 23 28 / 5%);
+  --shadow-focus: 0 0 0 2px var(--color-accent-soft);
+
+  --color-canvas: #f8f8fb;
+  --color-canvas-lilac: #f4f3ff;
+  --color-canvas-blue: #f5f9ff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f2f7;
+  --color-surface-hover: #f7f7fb;
+  --color-text: #17171c;
+  --color-text-secondary: #686872;
+  --color-text-tertiary: #8b8b96;
+  --color-border: #e4e4eb;
+  --color-border-strong: #d6d6e2;
+  --color-accent: #989bfb;
+  --color-accent-strong: #7478e8;
+  --color-accent-ink: #4d50b8;
+  --color-accent-soft: #ececff;
+  --color-accent-wash: #f3f2ff;
+  --color-danger: #b42318;
+  --color-danger-soft: #fff1ef;
+  --color-warning: #8a5a10;
+  --color-warning-soft: #fff7e7;
+  --color-success: #157a55;
+  --color-success-soft: #edf8f3;
+  --color-overlay: #17171c66;
+  --color-overlay-strong: #17171cb8;
+  --color-inverse-surface: #111217;
+  --color-inverse-text: #ffffff;
+  --color-inverse-text-secondary: #b8bac4;
+
+  --specialty-art-1: #d9dbff;
+  --specialty-art-2: #b9c8ff;
+  --specialty-art-3: #eef0ff;
+  --specialty-art-ink: #4d50b8;
+  --rail-highlight: #fff5dc;
+
+  --art-guideline-bg: #efeaff;
+  --art-guideline-1: #b6a8ff;
+  --art-guideline-2: #d9d2ff;
+  --art-guideline-ink: #5447b9;
+  --art-article-bg: #eaf4ff;
+  --art-article-1: #8fc7ff;
+  --art-article-2: #c5e2ff;
+  --art-article-ink: #2f67a6;
+  --art-video-bg: #fff0df;
+  --art-video-1: #ffad6d;
+  --art-video-2: #ffd2ae;
+  --art-video-ink: #9b571e;
+  --art-clinical-bg: #e9f7ef;
+  --art-clinical-1: #8bd0aa;
+  --art-clinical-2: #c7ead7;
+  --art-clinical-ink: #2f7750;
+  --art-event-bg: #fff2f3;
+  --art-event-1: #f39aaa;
+  --art-event-2: #ffd1d9;
+  --art-event-ink: #9e4355;
+}
+
+.product[data-specialty="cardiology"] {
+  --color-canvas: #f7f5f1;
+  --color-canvas-lilac: #f7eee9;
+  --color-canvas-blue: #eef3f6;
+  --color-accent: #8b2433;
+  --color-accent-strong: #651823;
+  --color-accent-ink: #4d111b;
+  --color-accent-soft: #f0d7da;
+  --color-accent-wash: #f8ece9;
+  --specialty-art-1: #c94d5f;
+  --specialty-art-2: #b9cbd6;
+  --specialty-art-3: #f2e7d6;
+  --specialty-art-ink: #5c1823;
+  --rail-highlight: #f1e2bc;
+
+  --art-guideline-bg: #f6ece8;
+  --art-guideline-1: #8b2433;
+  --art-guideline-2: #e7c5c8;
+  --art-guideline-ink: #5c1823;
+  --art-article-bg: #eaf0f4;
+  --art-article-1: #9eb9c9;
+  --art-article-2: #ccd9e0;
+  --art-article-ink: #365568;
+  --art-video-bg: #f5e6cc;
+  --art-video-1: #c94d5f;
+  --art-video-2: #eab5a8;
+  --art-video-ink: #74303a;
+  --art-clinical-bg: #edf2f4;
+  --art-clinical-1: #b5c9d2;
+  --art-clinical-2: #dde4e7;
+  --art-clinical-ink: #405b63;
+  --art-event-bg: #f8e8e8;
+  --art-event-1: #c94d5f;
+  --art-event-2: #e9b1b8;
+  --art-event-ink: #7d2330;
+}
+
+.product[data-specialty="oncology"] {
+  --color-canvas: #f6f6f2;
+  --color-canvas-lilac: #f0f0f8;
+  --color-canvas-blue: #eef5f3;
+  --color-accent: #5652ad;
+  --color-accent-strong: #35327d;
+  --color-accent-ink: #28255d;
+  --color-accent-soft: #e6e5f7;
+  --color-accent-wash: #f0f0f8;
+  --specialty-art-1: #7e79c9;
+  --specialty-art-2: #9fc6bb;
+  --specialty-art-3: #ecebf7;
+  --specialty-art-ink: #34316e;
+  --rail-highlight: #e7f0ec;
+
+  --art-guideline-bg: #ecebf8;
+  --art-guideline-1: #5e58b5;
+  --art-guideline-2: #c7c3eb;
+  --art-guideline-ink: #34316e;
+  --art-article-bg: #eaf2f1;
+  --art-article-1: #83ada3;
+  --art-article-2: #c8deda;
+  --art-article-ink: #365f58;
+  --art-video-bg: #f0edf9;
+  --art-video-1: #8178c9;
+  --art-video-2: #d2ccee;
+  --art-video-ink: #4a427e;
+  --art-clinical-bg: #edf3ef;
+  --art-clinical-1: #92b8a9;
+  --art-clinical-2: #d1e1da;
+  --art-clinical-ink: #3d665a;
+  --art-event-bg: #f3f0e7;
+  --art-event-1: #d4b671;
+  --art-event-2: #eadbb7;
+  --art-event-ink: #6d5a2a;
+}

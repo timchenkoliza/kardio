@@ -1,0 +1,198 @@
+/* Pixel-first refinement: fewer explanations, stronger visual hierarchy. */
+
+/* Explore: imagery and hierarchy carry more meaning than prose. */
+.explore-layout .source-lockup small,
+.explore-layout .editorial-card-link p {
+  display: none;
+}
+
+.featured-card .editorial-card-main.with-media {
+  grid-template-columns: minmax(0, 1.06fr) minmax(280px, .94fr);
+  gap: 24px;
+}
+
+.featured-card .editorial-media {
+  min-height: 250px;
+}
+
+.editorial-card.featured-card h2 {
+  font-size: var(--font-size-heading-1);
+  line-height: 1.02;
+}
+
+.editorial-card:not(.featured-card) .editorial-card-main.with-media {
+  grid-template-rows: 144px auto;
+}
+
+.editorial-card:not(.featured-card) .editorial-media {
+  min-height: 144px;
+}
+
+/* Deterministic composition variants: same taxonomy, less repetition. */
+.editorial-art[data-variant="1"]::before {
+  inset: auto 12% -36% -24%;
+  height: 86%;
+  transform: rotate(13deg);
+}
+.editorial-art[data-variant="1"]::after { right: -8px; top: -12px; }
+.editorial-art[data-variant="1"] .editorial-art-orbit.one { left: 52%; top: 18%; }
+.editorial-art[data-variant="1"] .editorial-art-orbit.two { left: 18%; top: -18%; }
+
+.editorial-art[data-variant="2"]::before {
+  inset: -22% -24% auto 42%;
+  height: 84%;
+  transform: rotate(-18deg);
+}
+.editorial-art[data-variant="2"]::after { right: auto; left: 18px; top: auto; bottom: 14px; }
+.editorial-art[data-variant="2"] .editorial-art-orbit.one { left: auto; right: -34px; top: 18px; }
+.editorial-art[data-variant="2"] .editorial-art-orbit.two { left: 42%; top: 42%; }
+
+.editorial-art[data-variant="3"]::before {
+  inset: auto -34% -18% -4%;
+  height: 58%;
+  transform: rotate(4deg);
+}
+.editorial-art[data-variant="3"]::after { right: 14%; top: 18%; width: 72px; height: 72px; }
+.editorial-art[data-variant="3"] .editorial-art-orbit.one { left: -16px; top: 28%; }
+.editorial-art[data-variant="3"] .editorial-art-orbit.two { left: auto; right: 18%; top: -22px; }
+
+.editorial-art[data-variant="4"]::before {
+  inset: 22% -12% auto 22%;
+  height: 64%;
+  transform: rotate(-28deg);
+}
+.editorial-art[data-variant="4"]::after { right: auto; left: -18px; top: -12px; }
+.editorial-art[data-variant="4"] .editorial-art-orbit.one { left: 58%; top: 4%; }
+.editorial-art[data-variant="4"] .editorial-art-orbit.two { left: 28%; top: 62%; }
+
+.editorial-art[data-variant="5"]::before {
+  inset: auto 30% -42% -30%;
+  height: 92%;
+  transform: rotate(20deg);
+}
+.editorial-art[data-variant="5"]::after { right: 12px; top: 46%; }
+.editorial-art[data-variant="5"] .editorial-art-orbit.one { left: 22%; top: -48px; }
+.editorial-art[data-variant="5"] .editorial-art-orbit.two { left: auto; right: 28%; top: 12%; }
+
+/* Practice: task tiles are the visual index. */
+.practice-hero {
+  padding: 22px 24px;
+  background: transparent;
+  border: 0;
+}
+.practice-hero p,
+.practice-hero .mode-stats {
+  display: none;
+}
+.practice-launcher > a {
+  min-height: 112px;
+  border: 0;
+}
+.practice-launcher > a:nth-child(1) { background: var(--art-guideline-bg); }
+.practice-launcher > a:nth-child(2) { background: var(--art-article-bg); }
+.practice-launcher > a:nth-child(3) { background: var(--art-clinical-bg); }
+.practice-launcher > a:nth-child(4) { background: var(--art-video-bg); }
+.practice-launcher > a:nth-child(1) > svg:first-child { color: var(--art-guideline-ink); }
+.practice-launcher > a:nth-child(2) > svg:first-child { color: var(--art-article-ink); }
+.practice-launcher > a:nth-child(3) > svg:first-child { color: var(--art-clinical-ink); }
+.practice-launcher > a:nth-child(4) > svg:first-child { color: var(--art-video-ink); }
+.practice-primary,
+.practice-personal {
+  border: 0;
+}
+.practice-personal {
+  background: var(--color-accent-wash);
+}
+.practice-launcher small,
+.practice-primary .mode-content-copy > span,
+.practice-primary .mode-content-copy p {
+  display: none;
+}
+.practice-primary .mode-content-row {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* Workspace: make the agent feel like a tool, not documentation. */
+.workspace-hero {
+  padding: 22px 24px;
+  border: 0;
+}
+.workspace-hero p,
+.workspace-hero .mode-stats,
+.workspace-agent-head p,
+.workspace-pbz-demo p,
+.workspace-local-note,
+.workspace-expert-route > p,
+.workspace-expert-rule span {
+  display: none;
+}
+.workspace-agent {
+  padding: 20px;
+  border: 0;
+}
+.workspace-agent-head {
+  align-items: center;
+}
+.workspace-pbz-demo {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 0;
+}
+.workspace-agent-inputs {
+  margin-top: 12px;
+}
+.workspace-agent-interest-panel,
+.workspace-agent-upload {
+  border: 0;
+}
+.workspace-reading-route,
+.workspace-expert-route {
+  border: 0;
+}
+.workspace-expert-route {
+  background: var(--art-guideline-bg);
+}
+
+/* Personalization strip stays quiet: context, not a campaign banner. */
+.pbz-context-strip {
+  min-height: 42px;
+  margin-top: 10px;
+}
+.pbz-context-icon,
+.demo-badge,
+.pbz-context-title-row .section-help {
+  display: none;
+}
+.pbz-context-copy {
+  gap: 0;
+}
+.pbz-context-title-row strong {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+.pbz-context-chips a {
+  min-height: 26px;
+  box-shadow: none;
+}
+
+@media (max-width: 980px) {
+  .featured-card .editorial-card-main.with-media {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .featured-card .editorial-card-main.with-media {
+    grid-template-columns: 1fr;
+  }
+  .featured-card .editorial-media {
+    min-height: 210px;
+    order: -1;
+  }
+  .practice-hero,
+  .workspace-hero {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

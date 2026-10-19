@@ -1,0 +1,392 @@
+/*
+ * KARDIO real-content editorial polish.
+ * Final cardiology-only layer, loaded after specialty-surface.css.
+ * Keeps YS Text + approved cardiology palette; removes card/pill/gradient excess.
+ * Does not change A/B/C content, ranking or interaction logic.
+ */
+
+body[data-specialty="cardiology"]{
+  background:#f8f6f7;
+  overflow-x:hidden;
+}
+body[data-specialty="cardiology"] .root{
+  background:#fbf9fa;
+  overflow-x:clip;
+}
+body[data-specialty="cardiology"] .global{
+  height:56px;
+  padding:0 18px;
+  gap:10px;
+  background:rgba(255,253,254,.97);
+  border-bottom:1px solid #eadfe2;
+}
+body[data-specialty="cardiology"] .brand{font-size:18px;letter-spacing:-.02em}
+body[data-specialty="cardiology"] .brand-mark{width:22px;height:22px;font-size:11px}
+body[data-specialty="cardiology"] .shell-label{font-size:11px;color:#96858a}
+body[data-specialty="cardiology"] .shell-name{font-size:12px;color:#665a5e}
+body[data-specialty="cardiology"] .specialty-chip,
+body[data-specialty="cardiology"] .global .ghost,
+body[data-specialty="cardiology"] .global .solid{
+  height:34px;min-height:34px;padding:0 11px;border-radius:9px;font-size:12px;
+}
+body[data-specialty="cardiology"] .specialty-chip{border-color:#dfcfd4;background:#fffafb}
+
+/* Typography: one deliberate scale. */
+body[data-specialty="cardiology"] .eyebrow{
+  font-size:10px;line-height:1.25;letter-spacing:.075em;font-weight:500;color:#8b737a;
+}
+body[data-specialty="cardiology"] .content{
+  max-width:1180px;padding:26px 28px 72px;
+}
+body[data-specialty="cardiology"] .section-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  padding:38px 0 20px;margin-bottom:16px;border-bottom:1px solid #eadfe2;
+}
+body[data-specialty="cardiology"] .section-head__copy{max-width:900px;min-width:0}
+body[data-specialty="cardiology"] .section-head h1{
+  margin:7px 0 0;font-size:clamp(30px,3.8vw,44px);line-height:1.06;letter-spacing:-.034em;
+  overflow-wrap:anywhere;
+}
+body[data-specialty="cardiology"] .section-head p{
+  max-width:720px;margin:9px 0 0;color:#70666a;font-size:14px;line-height:1.5;
+}
+
+/* Search: professional control, not decorative pill. */
+body[data-specialty="cardiology"] .search{
+  min-height:50px;margin-bottom:14px;border:1px solid #ddcdd2;border-radius:11px;
+  background:#fff;box-shadow:none;
+}
+body[data-specialty="cardiology"] .search:focus-within{
+  background:#fff;border-color:#b65b70;box-shadow:0 0 0 3px rgba(182,91,112,.09);
+}
+body[data-specialty="cardiology"] .search input{padding:0 15px;font-size:15px}
+body[data-specialty="cardiology"] .search button{
+  min-width:84px;height:42px;margin-right:4px;border-radius:8px;background:#741e31;font-size:12px;
+}
+body[data-specialty="cardiology"] .search button:hover{background:#491923}
+
+/* Home/feed frame. */
+body[data-specialty="cardiology"] .feed-shell{
+  max-width:840px;margin:0 auto;padding:30px 22px 76px;
+}
+body[data-specialty="cardiology"] .feed-titlebar{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:12px;
+}
+body[data-specialty="cardiology"] .feed-titlebar h1{
+  margin:0;font-size:32px;line-height:1.04;letter-spacing:-.034em;
+}
+body[data-specialty="cardiology"] .feed-count{font-size:11px;color:#99888d;white-space:nowrap}
+
+/* Tabs are navigation, not badges. */
+body[data-specialty="cardiology"] .feed-tabs{
+  display:flex;gap:20px;flex-wrap:nowrap;overflow:auto;margin:0 0 18px;
+  border-bottom:1px solid #e7dadd;scrollbar-width:none;
+}
+body[data-specialty="cardiology"] .feed-tabs::-webkit-scrollbar{display:none}
+body[data-specialty="cardiology"] .feed-tab{
+  min-height:38px;padding:0;border:0;border-radius:0;border-bottom:2px solid transparent;
+  background:transparent;color:#7f6f74;font-size:13px;white-space:nowrap;
+}
+body[data-specialty="cardiology"] .feed-tab:hover{background:transparent;color:#491923}
+body[data-specialty="cardiology"] .feed-tab.active{
+  background:transparent;color:#321117;font-weight:500;border-bottom-color:#741e31;
+}
+
+/* Quick jobs: a compact segmented tool row. */
+body[data-specialty="cardiology"] .quick-tools{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 24px;
+  border:1px solid #e0d1d5;border-radius:10px;overflow:hidden;background:#fff;
+}
+body[data-specialty="cardiology"] .quick-tool{
+  min-height:48px;padding:8px 10px;border:0;border-right:1px solid #e8dce0;border-radius:0;
+  background:#fff;color:#5e3b44;text-align:left;font-size:11px;line-height:1.28;
+}
+body[data-specialty="cardiology"] .quick-tool:last-child{border-right:0}
+body[data-specialty="cardiology"] .quick-tool:hover{background:#faf3f5;color:#491923}
+
+/* Lead story becomes an editorial section, not a large rounded AI card. */
+body[data-specialty="cardiology"] .spotlight{
+  position:relative;overflow:visible;margin:0 0 8px;padding:23px 0 21px;
+  border:0;border-top:1px solid #dccbd0;border-bottom:1px solid #dccbd0;border-radius:0;
+  background:transparent;
+}
+body[data-specialty="cardiology"] .spotlight:before{display:none}
+body[data-specialty="cardiology"] .spotlight-meta{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;color:#835263;font-size:11px;
+}
+body[data-specialty="cardiology"] .spotlight h2{
+  max-width:760px;margin:0 0 9px;font-size:clamp(25px,3vw,32px);line-height:1.14;
+  letter-spacing:-.026em;overflow-wrap:anywhere;
+}
+body[data-specialty="cardiology"] .spotlight-summary{
+  max-width:720px;margin:0;color:#5f5659;font-size:15px;line-height:1.52;
+}
+body[data-specialty="cardiology"] .practice,
+body[data-specialty="cardiology"] .feed-card__practice{
+  margin-top:10px;padding:0 0 0 10px;border-left:2px solid #86a9b9;border-radius:0;
+  background:transparent;color:#52636a;font-size:12px;line-height:1.45;
+}
+body[data-specialty="cardiology"] .spotlight-actions{
+  display:flex;gap:10px;align-items:center;padding:0;margin-top:15px;
+}
+body[data-specialty="cardiology"] .spotlight-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;
+  margin:20px 0 0;border-top:1px solid #eadfe2;
+}
+body[data-specialty="cardiology"] .spotlight-mini{
+  min-width:0;min-height:0;padding:13px 14px 2px 0;border:0;border-right:1px solid #eadfe2;
+  background:transparent;
+}
+body[data-specialty="cardiology"] .spotlight-mini + .spotlight-mini{padding-left:14px}
+body[data-specialty="cardiology"] .spotlight-mini:last-child{border-right:0;padding-right:0}
+body[data-specialty="cardiology"] .spotlight-mini .micro-meta{
+  margin-bottom:5px;color:#8d777d;font-size:10px;white-space:normal;
+}
+body[data-specialty="cardiology"] .spotlight-mini b{
+  display:block;margin:0;font-size:13px;line-height:1.34;font-weight:500;
+  -webkit-line-clamp:unset;overflow:visible;
+}
+body[data-specialty="cardiology"] .spotlight-mini p{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
+  margin:6px 0 0;color:#74696c;font-size:11px;line-height:1.42;
+}
+
+/* Real content list: source-first editorial rhythm. */
+body[data-specialty="cardiology"] .feed-list{display:grid;grid-template-columns:1fr;gap:0}
+body[data-specialty="cardiology"] .feed-card,
+body[data-specialty="cardiology"] .feed-card:nth-child(3n+2){
+  display:grid;grid-template-columns:minmax(0,1fr);position:relative;overflow:visible;
+  border:0!important;border-bottom:1px solid #e7dadd!important;border-radius:0;
+  background:transparent;box-shadow:none;
+}
+body[data-specialty="cardiology"] .feed-card:hover,
+body[data-specialty="cardiology"] .feed-card--guideline,
+body[data-specialty="cardiology"] .feed-card--clinical-card,
+body[data-specialty="cardiology"] .feed-card--journal{
+  box-shadow:none;
+}
+body[data-specialty="cardiology"] .feed-card__body{padding:19px 0 18px;min-width:0}
+body[data-specialty="cardiology"] .feed-card__meta{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;
+  color:#8c8084;font-size:10.5px;line-height:1.35;
+}
+body[data-specialty="cardiology"] .feed-card__type{color:#7b4352;font-weight:500}
+body[data-specialty="cardiology"] .feed-card__source{color:#6b5960}
+body[data-specialty="cardiology"] .feed-card__title{
+  max-width:760px;margin:0 0 7px;font-size:19px;line-height:1.27;letter-spacing:-.017em;
+  overflow-wrap:anywhere;hyphens:auto;
+}
+body[data-specialty="cardiology"] .feed-card--featured .feed-card__body{padding:21px 0 20px}
+body[data-specialty="cardiology"] .feed-card--featured .feed-card__title{
+  max-width:790px;font-size:23px;line-height:1.2;
+}
+body[data-specialty="cardiology"] .feed-card__summary{
+  max-width:720px;margin:0;color:#665d60;font-size:13px;line-height:1.5;overflow-wrap:anywhere;
+}
+body[data-specialty="cardiology"] .feed-card__status{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:10px;
+}
+body[data-specialty="cardiology"] .feed-card__foot{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px;padding-top:0;border-top:0;
+}
+body[data-specialty="cardiology"] .feed-card--superseded .feed-card__title{color:#766d70}
+
+/* Clinical media: semantically matched, never aggressively cropped. */
+body[data-specialty="cardiology"] .feed-card--image{
+  grid-template-columns:minmax(0,1fr) minmax(190px,260px);column-gap:20px;align-items:start;
+}
+body[data-specialty="cardiology"] .feed-card--image .feed-card__media{
+  order:0;grid-column:2;grid-row:1;margin:19px 0 14px;border:1px solid #dce5e8;
+  border-radius:8px;overflow:hidden;background:#eef3f5;min-height:0;
+}
+body[data-specialty="cardiology"] .feed-card__media img{
+  display:block;width:100%;height:auto;min-height:0;max-height:230px;object-fit:contain;background:#eef3f5;
+}
+body[data-specialty="cardiology"] .feed-card--image .image-note{
+  grid-column:2;grid-row:1;align-self:end;margin:0 0 14px;padding:5px 7px;
+  border:1px solid #dce5e8;border-radius:0 0 8px 8px;background:rgba(255,255,255,.95);
+  color:#78858a;font-size:9px;line-height:1.3;
+}
+
+/* Status metadata: compact labels, no pill zoo. */
+body[data-specialty="cardiology"] .badge{
+  display:inline-flex;align-items:center;min-height:20px;padding:2px 6px;
+  border:1px solid #dfd6d9;border-radius:5px;background:transparent;color:#786d71;
+  font-size:9.5px;line-height:1.3;
+}
+body[data-specialty="cardiology"] .badge:not(.current):not(.superseded):not(.review):not(.archive),
+body[data-specialty="cardiology"] .badge.official{
+  background:#f1f5f6!important;border-color:#d7e2e6;color:#4f6c78!important;
+}
+body[data-specialty="cardiology"] .badge.current{background:#eef8f2;border-color:#d5eadc;color:#246e4b}
+body[data-specialty="cardiology"] .badge.review{background:#fcf7ec;border-color:#eee0bd;color:#806021}
+body[data-specialty="cardiology"] .badge.superseded{background:#fff1f0;border-color:#f0d0ce;color:#a93636}
+body[data-specialty="cardiology"] .badge.archive{background:#f3f3f5;border-color:#e1e1e6;color:#70727e}
+body[data-specialty="cardiology"] .mini{
+  min-height:28px;padding:0 8px;border:1px solid #ddcfd3;border-radius:7px;background:#fff;
+  color:#69585e;font-size:10.5px;
+}
+body[data-specialty="cardiology"] .mini:hover{background:#f7f1f3}
+body[data-specialty="cardiology"] .mini.on{background:#491923;border-color:#491923;color:#fff}
+body[data-specialty="cardiology"] .source-link{
+  margin-left:auto;color:#741e31;font-size:11px;font-weight:500;text-decoration:none;white-space:nowrap;
+}
+body[data-specialty="cardiology"] .source-link:hover{text-decoration:underline;text-underline-offset:3px}
+body[data-specialty="cardiology"] .provenance{
+  margin-top:10px;padding:9px 10px;border:1px solid #d7e2e6;border-radius:7px;
+  background:#f1f5f6;color:#52666e;font-size:11px;line-height:1.42;
+}
+
+/* Filters, sources, data gaps. */
+body[data-specialty="cardiology"] .filters{
+  display:flex;gap:7px;flex-wrap:wrap;margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid #e8dde0;
+}
+body[data-specialty="cardiology"] .filters select{
+  min-height:34px;padding:6px 9px;border:1px solid #ded3d6;border-radius:7px;background:#fff;font-size:11px;
+}
+body[data-specialty="cardiology"] .panel,
+body[data-specialty="cardiology"] .tile,
+body[data-specialty="cardiology"] .empty,
+body[data-specialty="cardiology"] .source-list{
+  border:1px solid #e2d7da!important;border-radius:10px;background:#fff;box-shadow:none;
+}
+body[data-specialty="cardiology"] .panel{padding:15px}
+body[data-specialty="cardiology"] .tile{min-height:94px;padding:13px;text-align:left}
+body[data-specialty="cardiology"] .tile b{font-size:14px;line-height:1.3}
+body[data-specialty="cardiology"] .tile small{font-size:10.5px;line-height:1.35}
+body[data-specialty="cardiology"] .empty{padding:22px;color:#786d71;font-size:13px;line-height:1.5}
+body[data-specialty="cardiology"] .row{padding:12px 0;border-color:#ece3e5}
+
+/* Shell B retains a compact tool rail. */
+body[data-specialty="cardiology"] .toolbelt{grid-template-columns:82px minmax(0,1fr) 280px;min-height:calc(100vh - 56px)}
+body[data-specialty="cardiology"] .rail{
+  top:56px;height:calc(100vh - 56px);padding:10px 6px;gap:4px;
+  background:#f1eaec;border-right:1px solid #e2d6da;
+}
+body[data-specialty="cardiology"] .rail button{
+  padding:9px 5px;border-radius:7px;color:#735e65;font-size:10.5px;
+}
+body[data-specialty="cardiology"] .rail button.active,
+body[data-specialty="cardiology"] .rail button:hover{
+  background:#e3d4d8;color:#491923;
+}
+body[data-specialty="cardiology"] .tool-main{padding:0 28px 72px}
+body[data-specialty="cardiology"] .tool-main>.feed-shell{max-width:820px;padding-left:0;padding-right:0}
+body[data-specialty="cardiology"] .side{
+  padding:20px 16px;background:#f2f6f7;border-left:1px solid #dce6e9;font-size:12px;
+}
+body[data-specialty="cardiology"] .side h3{font-size:14px;line-height:1.35;margin:7px 0}
+
+/* Shell C reads as a knowledge structure, not another card dashboard. */
+body[data-specialty="cardiology"] .workspace{grid-template-columns:205px minmax(0,1fr) 250px;min-height:calc(100vh - 56px)}
+body[data-specialty="cardiology"] .leftnav{
+  top:56px;height:calc(100vh - 56px);padding:16px 10px;
+  background:#f3edef;border-right:1px solid #e3d7da;
+}
+body[data-specialty="cardiology"] .leftnav button{
+  padding:9px 10px;border-radius:7px;color:#6f5d63;font-size:11px;
+}
+body[data-specialty="cardiology"] .leftnav button.active,
+body[data-specialty="cardiology"] .leftnav button:hover{
+  background:#fff;border-color:#dfd2d6;color:#491923;box-shadow:none;
+}
+body[data-specialty="cardiology"] .workspace-main{padding:0 28px 72px}
+body[data-specialty="cardiology"] .workspace-main>.feed-shell{max-width:820px;padding-left:0;padding-right:0}
+body[data-specialty="cardiology"] .collections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+
+/* Detail view. */
+body[data-specialty="cardiology"] .detail{max-width:800px;margin:0 auto}
+body[data-specialty="cardiology"] .detail .section-head{padding-top:30px}
+body[data-specialty="cardiology"] .detail .section-head h1{font-size:clamp(30px,4vw,43px);line-height:1.08}
+body[data-specialty="cardiology"] .detail .feed-card__summary{font-size:15px!important;line-height:1.58;max-width:760px}
+body[data-specialty="cardiology"] .detail-media{
+  margin:18px 0;border:1px solid #dce5e8;border-radius:10px;background:#eef3f5;overflow:hidden;
+}
+body[data-specialty="cardiology"] .detail-media img{display:block;width:100%;max-height:520px;object-fit:contain}
+body[data-specialty="cardiology"] .kv{grid-template-columns:140px minmax(0,1fr);gap:8px 14px;padding:9px 0;border-color:#ece3e5;font-size:12px}
+
+@media(max-width:1180px){
+  body[data-specialty="cardiology"] .toolbelt{grid-template-columns:76px minmax(0,1fr)}
+  body[data-specialty="cardiology"] .toolbelt>.side{display:none}
+  body[data-specialty="cardiology"] .workspace{grid-template-columns:180px minmax(0,1fr)}
+  body[data-specialty="cardiology"] .workspace>.side{display:none}
+}
+
+@media(max-width:900px){
+  body[data-specialty="cardiology"] .content{padding:22px 22px 68px}
+  body[data-specialty="cardiology"] .feed-shell{padding:26px 20px 72px}
+  body[data-specialty="cardiology"] .quick-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body[data-specialty="cardiology"] .quick-tool:nth-child(2){border-right:0}
+  body[data-specialty="cardiology"] .quick-tool:nth-child(-n+2){border-bottom:1px solid #e8dce0}
+  body[data-specialty="cardiology"] .spotlight-grid{grid-template-columns:1fr}
+  body[data-specialty="cardiology"] .spotlight-mini,
+  body[data-specialty="cardiology"] .spotlight-mini + .spotlight-mini{
+    border-right:0;border-bottom:1px solid #eadfe2;padding:12px 0;
+  }
+  body[data-specialty="cardiology"] .spotlight-mini:last-child{border-bottom:0}
+  body[data-specialty="cardiology"] .feed-card--image{grid-template-columns:minmax(0,1fr) 210px;column-gap:15px}
+}
+
+@media(max-width:720px){
+  body[data-specialty="cardiology"] .global{height:52px;padding:0 10px;gap:7px}
+  body[data-specialty="cardiology"] .root{min-height:calc(100vh - 52px)}
+  body[data-specialty="cardiology"] .brand-product{display:none}
+  body[data-specialty="cardiology"] .shell-label{display:none}
+  body[data-specialty="cardiology"] .shell-name{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body[data-specialty="cardiology"] .content,
+  body[data-specialty="cardiology"] .tool-main,
+  body[data-specialty="cardiology"] .workspace-main{padding:0 14px 78px}
+  body[data-specialty="cardiology"] .feed-shell{padding:22px 14px 76px}
+  body[data-specialty="cardiology"] .feed-titlebar h1{font-size:29px}
+  body[data-specialty="cardiology"] .feed-count{display:none}
+  body[data-specialty="cardiology"] .section-head{padding:28px 0 17px;margin-bottom:14px}
+  body[data-specialty="cardiology"] .section-head h1{font-size:31px;line-height:1.08}
+  body[data-specialty="cardiology"] .spotlight{padding:19px 0}
+  body[data-specialty="cardiology"] .spotlight h2{font-size:24px}
+  body[data-specialty="cardiology"] .feed-card__body{padding:17px 0}
+  body[data-specialty="cardiology"] .feed-card__title,
+  body[data-specialty="cardiology"] .feed-card--featured .feed-card__title{font-size:18px;line-height:1.28}
+  body[data-specialty="cardiology"] .feed-card__summary{font-size:12.5px;line-height:1.48}
+  body[data-specialty="cardiology"] .feed-card--image{grid-template-columns:1fr}
+  body[data-specialty="cardiology"] .feed-card--image .feed-card__media{
+    grid-column:1;grid-row:auto;margin:0 0 4px;max-width:100%;
+  }
+  body[data-specialty="cardiology"] .feed-card--image .image-note{
+    grid-column:1;grid-row:auto;align-self:auto;margin:0 0 11px;padding:4px 0;border:0;background:transparent;
+  }
+  body[data-specialty="cardiology"] .source-link{margin-left:0}
+  body[data-specialty="cardiology"] .toolbelt,
+  body[data-specialty="cardiology"] .workspace{display:block}
+  body[data-specialty="cardiology"] .rail,
+  body[data-specialty="cardiology"] .leftnav{display:none}
+  body[data-specialty="cardiology"] .bottom{
+    left:8px;right:8px;bottom:8px;padding:5px;border-radius:11px;background:rgba(73,25,35,.96);
+  }
+  body[data-specialty="cardiology"] .bottom button{padding:8px 2px;border-radius:7px;font-size:10px}
+  body[data-specialty="cardiology"] .bottom button.active{background:rgba(255,255,255,.16)}
+  body[data-specialty="cardiology"] .collections{grid-template-columns:1fr}
+  body[data-specialty="cardiology"] .kv{grid-template-columns:1fr;gap:2px}
+}
+
+@media(max-width:430px){
+  body[data-specialty="cardiology"] .specialty-chip{max-width:112px;overflow:hidden}
+  body[data-specialty="cardiology"] .shell-name{display:none}
+  body[data-specialty="cardiology"] .global .ghost{padding:0 8px}
+  body[data-specialty="cardiology"] .feed-shell,
+  body[data-specialty="cardiology"] .content{padding-left:12px;padding-right:12px}
+  body[data-specialty="cardiology"] .feed-tabs{gap:16px}
+  body[data-specialty="cardiology"] .quick-tool{font-size:10.5px;padding:8px}
+  body[data-specialty="cardiology"] .search input{font-size:14px;padding:0 12px}
+  body[data-specialty="cardiology"] .search button{min-width:70px;padding:0 11px}
+  body[data-specialty="cardiology"] .spotlight-summary{font-size:13.5px}
+  body[data-specialty="cardiology"] .filters{overflow:auto;flex-wrap:nowrap;scrollbar-width:none}
+  body[data-specialty="cardiology"] .filters::-webkit-scrollbar{display:none}
+  body[data-specialty="cardiology"] .filters select{flex:0 0 auto}
+  body[data-specialty="cardiology"] .source-link{width:100%;margin-top:2px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  body[data-specialty="cardiology"] *,
+  body[data-specialty="cardiology"] *:before,
+  body[data-specialty="cardiology"] *:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}

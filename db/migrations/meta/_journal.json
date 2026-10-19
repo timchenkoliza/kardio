@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792351988474,
+      "tag": "0000_numerous_wonder_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792353121892,
+      "tag": "0001_good_havok",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792353755285,
+      "tag": "0002_luxuriant_violations",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792355087635,
+      "tag": "0003_overrated_silver_sable",
+      "breakpoints": true
+    }
+  ]
+}

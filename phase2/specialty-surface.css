@@ -1,0 +1,175 @@
+/*
+ * Full specialty surface pass.
+ * Cardiology must read as a complete environment, not a white product with burgundy CTAs.
+ * Semantic status colours remain semantic; specialty colour owns canvas, rails, cards, navigation and content accents.
+ */
+
+body[data-specialty="cardiology"]{
+  background:#f8f0f2;
+}
+body[data-specialty="cardiology"] .global{
+  background:rgba(255,250,251,.96);
+  border-bottom-color:#ead9de;
+}
+body[data-specialty="cardiology"] .root{
+  background:
+    radial-gradient(900px 560px at 88% -8%,rgba(134,169,185,.30),transparent 68%),
+    radial-gradient(820px 600px at 2% 8%,rgba(182,91,112,.20),transparent 72%),
+    linear-gradient(135deg,#f5e7eb 0%,#fff8fa 48%,#eaf1f4 100%);
+}
+body[data-specialty="cardiology"] .feed-shell,
+body[data-specialty="cardiology"] .content,
+body[data-specialty="cardiology"] .tool-main,
+body[data-specialty="cardiology"] .workspace-main{
+  background:transparent;
+}
+body[data-specialty="cardiology"] .rail,
+body[data-specialty="cardiology"] .leftnav{
+  background:linear-gradient(180deg,#f4e6ea 0%,#f9f0f2 52%,#edf3f5 100%);
+  border-color:#e5d2d8;
+}
+body[data-specialty="cardiology"] .side{
+  background:linear-gradient(180deg,#eaf1f4 0%,#f5e9ec 100%);
+  border-color:#d9e4e8;
+}
+body[data-specialty="cardiology"] .rail button.active,
+body[data-specialty="cardiology"] .rail button:hover,
+body[data-specialty="cardiology"] .leftnav button.active,
+body[data-specialty="cardiology"] .leftnav button:hover{
+  background:#ead6dc;
+  color:#491923;
+}
+body[data-specialty="cardiology"] .search{
+  background:rgba(255,248,250,.90);
+  border-color:#dfc5cd;
+}
+body[data-specialty="cardiology"] .search:focus-within{
+  background:#fff;
+  border-color:#b65b70;
+  box-shadow:0 0 0 3px rgba(182,91,112,.13);
+}
+body[data-specialty="cardiology"] .feed-tab.active,
+body[data-specialty="cardiology"] .quick-tool:hover{
+  background:#ead6dc;
+  color:#491923;
+}
+body[data-specialty="cardiology"] .quick-tool{
+  background:rgba(255,250,251,.76);
+  border-color:#e0c9d0;
+}
+body[data-specialty="cardiology"] .spotlight{
+  border-color:#dcbfc8;
+  background:
+    radial-gradient(420px 190px at 94% 0%,rgba(134,169,185,.34),transparent 70%),
+    linear-gradient(135deg,#ead6dc 0%,#f8edef 52%,#e7eff3 100%);
+}
+body[data-specialty="cardiology"] .spotlight-mini{
+  background:rgba(255,250,251,.82);
+  border-color:#dfcbd1;
+}
+body[data-specialty="cardiology"] .feed-card,
+body[data-specialty="cardiology"] .panel,
+body[data-specialty="cardiology"] .tile,
+body[data-specialty="cardiology"] .empty,
+body[data-specialty="cardiology"] .source-list{
+  background:rgba(255,250,251,.88);
+  border-color:#dfcbd1!important;
+}
+body[data-specialty="cardiology"] .feed-card:nth-child(3n+2){
+  background:rgba(247,251,252,.90);
+  border-color:#d4e1e6!important;
+}
+body[data-specialty="cardiology"] .feed-card__practice,
+body[data-specialty="cardiology"] .practice{
+  background:rgba(243,229,232,.78);
+}
+body[data-specialty="cardiology"] .feed-card__media{
+  background:#dfeaed;
+}
+body[data-specialty="cardiology"] .badge:not(.current):not(.superseded):not(.review):not(.archive){
+  background:#f3e5e8;
+  border-color:#e4cfd5;
+  color:#5d2633;
+}
+body[data-specialty="cardiology"] .badge.official{
+  background:#e3edf1!important;
+  color:#395665!important;
+}
+body[data-specialty="cardiology"] .source-link,
+body[data-specialty="cardiology"] .feed-card__type,
+body[data-specialty="cardiology"] .feed-card__source{
+  color:#741e31;
+}
+body[data-specialty="cardiology"] .mini{
+  border-color:#dec8ce;
+  background:#fffafb;
+}
+body[data-specialty="cardiology"] .mini:hover{
+  background:#f0dfe4;
+}
+body[data-specialty="cardiology"] .mini.on{
+  background:#741e31;
+  border-color:#741e31;
+  color:#fff;
+}
+body[data-specialty="cardiology"] .provenance{
+  background:#e8f0f3;
+  border-color:#cfdee4;
+  color:#4c626d;
+}
+body[data-specialty="cardiology"] .section-head .eyebrow,
+body[data-specialty="cardiology"] .feed-count{
+  color:#8c6670;
+}
+
+/* The chooser is part of the product, but remains Yandex Med until a specialty is selected. */
+body[data-specialty="cardiology"] #shellStage .option{
+  background:linear-gradient(160deg,#fffafb 0%,#f7eaee 100%);
+  border-color:#dfc7ce;
+}
+body[data-specialty="cardiology"] #shellStage .option:nth-child(2){
+  background:linear-gradient(160deg,#fff 0%,#edf3f5 100%);
+}
+body[data-specialty="cardiology"] #shellStage .option:nth-child(3){
+  background:linear-gradient(160deg,#fffafb 0%,#eee3e7 62%,#e9f0f3 100%);
+}
+
+/* Oncology preview uses its own complete surface vocabulary when/if its data layer is activated. */
+body[data-specialty="oncology"] .global{background:rgba(255,251,255,.96);border-bottom-color:#e3dbe6}
+body[data-specialty="oncology"] .root{
+  background:
+    radial-gradient(780px 520px at 88% 0%,rgba(168,186,178,.30),transparent 68%),
+    radial-gradient(820px 600px at 5% 8%,rgba(153,133,166,.22),transparent 72%),
+    linear-gradient(135deg,#f0e9f2 0%,#fffaff 48%,#e9f0ed 100%);
+}
+body[data-specialty="oncology"] .rail,
+body[data-specialty="oncology"] .leftnav{background:linear-gradient(180deg,#eee6f0,#edf2ef);border-color:#ddd3e1}
+body[data-specialty="oncology"] .side{background:linear-gradient(180deg,#e8efec,#f1eaf2);border-color:#d7e1dc}
+body[data-specialty="oncology"] .feed-card,
+body[data-specialty="oncology"] .panel,
+body[data-specialty="oncology"] .tile{background:rgba(255,251,255,.90);border-color:#ddd2e1!important}
+body[data-specialty="oncology"] .source-link,
+body[data-specialty="oncology"] .feed-card__type,
+body[data-specialty="oncology"] .feed-card__source{color:#5b4966}
+
+/* YS Text is non-negotiable throughout the product surface. */
+body,
+button,
+input,
+select,
+textarea,
+.global,
+.chooser,
+.feed-shell,
+.feed-card,
+.panel,
+.tile,
+.rail,
+.leftnav,
+.side{
+  font-family:"YS Text",Arial,sans-serif!important;
+}
+h1,h2,h3,h4,.brand,.feed-card__title{
+  font-family:"YS Text",Arial,sans-serif!important;
+  font-weight:500!important;
+}

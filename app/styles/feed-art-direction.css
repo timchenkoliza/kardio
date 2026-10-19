@@ -1,0 +1,368 @@
+/*
+ * Explore/feed art direction.
+ * This is a semantic surface layer, not another global palette pass:
+ * stronger lead, compact utility rail, and visibly different block morphologies.
+ */
+
+.product .gen-ui-stack[data-shell="explore"] {
+  grid-template-columns: minmax(0, 2.55fr) minmax(214px, .62fr);
+  gap: 16px 18px;
+}
+
+/* Lead: one strong specialty-colored editorial object, with real media when available
+ * and a typographic art-directed panel when rights-safe media is absent. */
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+  min-height: 372px;
+  padding: 26px;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-accent-strong);
+  box-shadow: var(--shadow-card-featured);
+  color: var(--color-inverse-text);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"]:hover {
+  background: var(--color-accent-strong);
+  box-shadow: var(--shadow-raised);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-mark {
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-lockup strong,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+  color: var(--color-inverse-text);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-lockup small,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link p,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-footer {
+  color: var(--color-inverse-text-secondary);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+  max-width: 14ch;
+  font-size: var(--font-size-display-lg);
+  line-height: .98;
+  letter-spacing: -.05em;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link p {
+  max-width: 44ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-main.with-media {
+  grid-template-columns: minmax(0, 1.04fr) minmax(258px, .96fr);
+  gap: 26px;
+  align-items: stretch;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-media {
+  min-height: 246px;
+  border-radius: var(--radius-lg);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-typographic {
+  min-height: 246px;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  align-content: stretch;
+  padding: 20px;
+  border: 0;
+  background: var(--color-surface);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-kicker,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-monogram {
+  color: var(--color-accent-strong);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-monogram {
+  align-self: end;
+  font-size: var(--font-size-display-xl);
+  letter-spacing: -.07em;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-topic {
+  max-width: 26ch;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-source {
+  max-width: 26ch;
+  color: var(--color-text-secondary);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .save-button.compact,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] > .gen-ui-menu > summary {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  color: var(--color-accent-strong);
+  border-color: transparent;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .card-open-icon {
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+}
+
+/* Utility rail: navigation, not a second content card. */
+.product .explore-route-module {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-accent-soft));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 58%, var(--color-accent-wash));
+  box-shadow: none;
+}
+
+.product .explore-route-module > .eyebrow {
+  display: block;
+  margin: 0 0 5px;
+}
+
+.product .explore-route-module h2 {
+  font-size: var(--font-size-body-lg);
+}
+
+.product .explore-route-module .quick-job-list {
+  display: grid;
+  gap: 0;
+}
+
+.product .explore-route-module .quick-job-list a {
+  min-height: 36px;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  gap: 7px;
+  margin: 0;
+  padding: 4px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+.product .explore-route-module .quick-job-list a:last-child {
+  border-bottom: 0;
+}
+
+.product .explore-route-module .quick-job-list strong {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The second visual beat spans the content width, like the reference's current-cardiology strip. */
+.product .gen-ui-stack[data-shell="explore"] .gen-ui-block[data-block-kind="clinical_shelf"] {
+  grid-column: 1 / -1;
+}
+
+/* Clinical shelf: one visual lead + three compact supporting objects. */
+.product .editorial-shelf[data-presentation="clinical"] .editorial-shelf-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] {
+  grid-column: 1 / -1;
+  min-height: 218px;
+  padding: 20px;
+  border-left: 0;
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-accent-wash));
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1.22fr) minmax(220px, .78fr);
+  grid-template-rows: none;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-media {
+  order: 0;
+  min-height: 150px;
+  height: 100%;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-art-typographic {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  background: var(--color-surface);
+  border-left: 0;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-art-topic {
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-semibold);
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-link h2 {
+  max-width: 30ch;
+  font-size: var(--font-size-heading-2);
+  line-height: 1.04;
+  letter-spacing: -.03em;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card:not([data-rank-position="1"]) {
+  min-height: 132px;
+  padding: 14px 15px;
+  border-left: 0;
+  border-top: 2px solid var(--color-accent-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card:not([data-rank-position="1"]) .source-lockup small {
+  display: none;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card:not([data-rank-position="1"]) .editorial-card-link h2 {
+  font-size: var(--font-size-body-compact);
+  line-height: 1.2;
+}
+
+/* Recommendations: first object is the visual anchor, the rest become a compact 2-column shelf. */
+.product .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] {
+  grid-column: 1 / -1;
+  min-height: 148px;
+  padding: 20px;
+  border-left: 0;
+  border-top: 4px solid var(--color-accent-strong);
+  background: var(--color-accent-wash);
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] .editorial-card-link h2 {
+  max-width: 32ch;
+  font-size: var(--font-size-heading-3);
+  line-height: 1.08;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) {
+  min-height: 112px;
+  padding: 14px 15px;
+  border-left: 0;
+  border-top: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) .source-mark {
+  width: 24px;
+  height: 24px;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) .editorial-card-link h2 {
+  font-size: var(--font-size-body-compact);
+  line-height: 1.24;
+}
+
+/* Events should read as calendar objects, not recommendation rows. */
+.product .editorial-shelf[data-presentation="event"] .editorial-card {
+  min-height: 116px;
+  padding: 15px 16px;
+  border: 0;
+  border-left: 4px solid var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-surface) 78%, var(--art-event-bg));
+}
+
+.product .editorial-shelf[data-presentation="event"] .source-mark {
+  background: var(--color-accent-strong);
+  color: var(--color-inverse-text);
+}
+
+.product .editorial-shelf[data-presentation="event"] .editorial-card-link h2 {
+  max-width: 30ch;
+  font-size: var(--font-size-body-compact);
+  line-height: 1.2;
+}
+
+/* Evidence remains editorial and spacious; learning is media-led when real media exists. */
+.product .editorial-shelf[data-presentation="evidence"] .editorial-card,
+.product .editorial-shelf[data-presentation="learning"] .editorial-card {
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.product .editorial-shelf[data-presentation="evidence"] .editorial-card:hover,
+.product .editorial-shelf[data-presentation="learning"] .editorial-card:hover {
+  box-shadow: var(--shadow-subtle);
+}
+
+@media (max-width: 1180px) {
+  .product .gen-ui-stack[data-shell="explore"] {
+    grid-template-columns: minmax(0, 1fr) minmax(210px, .7fr);
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-shelf-grid,
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"],
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  .product .gen-ui-stack[data-shell="explore"] {
+    grid-template-columns: 1fr;
+  }
+
+  .product .gen-ui-stack[data-shell="explore"] .gen-ui-block[data-block-region] {
+    grid-column: 1;
+  }
+
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+    min-height: 312px;
+  }
+
+  .product .explore-route-module .quick-job-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+    grid-template-columns: minmax(0, 1.1fr) minmax(190px, .9fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-main.with-media,
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+    grid-template-columns: 1fr;
+  }
+
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+    max-width: none;
+    font-size: var(--font-size-heading-1);
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-shelf-grid,
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid,
+  .product .explore-route-module .quick-job-list {
+    grid-template-columns: 1fr;
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"],
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] {
+    grid-column: 1;
+  }
+}

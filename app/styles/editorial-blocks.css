@@ -1,0 +1,245 @@
+/* Typed editorial surfaces. Visual differences follow professional object semantics. */
+.editorial-shelf {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.editorial-shelf-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 4px;
+}
+
+.editorial-shelf-head h2 {
+  margin: 4px 0 0;
+  font-size: var(--font-size-heading-2);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+
+.editorial-shelf-head > a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-accent-ink);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.editorial-shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid,
+.editorial-shelf[data-presentation="event"] .editorial-shelf-grid,
+.editorial-shelf[data-presentation="learning"] .editorial-shelf-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* Real media is optional. When it is absent, the card becomes a text composition rather than an image placeholder. */
+.editorial-card.no-media-card {
+  gap: 14px;
+}
+
+.editorial-card.no-media-card .editorial-card-main.text-only {
+  min-height: 0;
+  display: grid;
+  align-content: center;
+}
+
+.editorial-card.no-media-card .editorial-card-link p {
+  -webkit-line-clamp: 3;
+}
+
+.editorial-card[data-presentation="hero"] {
+  min-height: 292px;
+  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-accent-wash));
+}
+
+.editorial-card[data-presentation="hero"].no-media-card {
+  min-height: 270px;
+  background: color-mix(in srgb, var(--color-surface) 84%, var(--color-accent-wash));
+  border-top: 5px solid var(--color-accent-strong);
+}
+
+.editorial-card[data-presentation="hero"] .editorial-card-main.text-only {
+  max-width: 720px;
+  min-height: 176px;
+  align-content: center;
+}
+
+.editorial-card[data-presentation="hero"].no-media-card .editorial-card-main.text-only {
+  min-height: 142px;
+  padding-right: 8%;
+}
+
+.editorial-card[data-presentation="hero"] .editorial-card-main.with-media {
+  grid-template-columns: minmax(0, 1.16fr) minmax(230px, .84fr);
+}
+
+.editorial-card[data-presentation="clinical"] {
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-accent-wash));
+  border-left: 3px solid var(--color-accent);
+}
+
+.editorial-card[data-presentation="clinical"].no-media-card {
+  min-height: 164px;
+  background: var(--color-surface);
+  border-left-color: var(--color-accent-strong);
+}
+
+.editorial-card[data-presentation="clinical"] .editorial-card-main.text-only {
+  min-height: 118px;
+  align-content: center;
+}
+
+.editorial-card[data-presentation="clinical"].no-media-card .editorial-card-main.text-only {
+  min-height: 82px;
+}
+
+.editorial-card[data-presentation="clinical"]:has(.editorial-media.has-image) .editorial-card-main.with-media {
+  grid-template-rows: minmax(150px, 190px) auto;
+}
+
+.editorial-card[data-presentation="clinical"]:has(.editorial-media.has-image) .editorial-media {
+  order: -1;
+  min-height: 150px;
+}
+
+.editorial-card[data-presentation="guideline"] {
+  min-height: 0;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-accent-strong);
+  box-shadow: none;
+}
+
+.editorial-card[data-presentation="guideline"]:hover {
+  transform: none;
+  background: var(--color-surface-hover);
+}
+
+.editorial-card[data-presentation="guideline"] .editorial-card-main.text-only {
+  display: block;
+}
+
+.editorial-card[data-presentation="guideline"] .editorial-card-link {
+  gap: 6px;
+}
+
+.editorial-card[data-presentation="guideline"] .editorial-card-link p {
+  -webkit-line-clamp: 2;
+}
+
+.editorial-card[data-presentation="guideline"] .editorial-card-footer {
+  min-height: 22px;
+}
+
+.editorial-card[data-presentation="evidence"] {
+  background: var(--color-surface);
+}
+
+.editorial-card[data-presentation="evidence"].no-media-card {
+  min-height: 188px;
+  border-top: 3px solid var(--color-accent-soft);
+}
+
+.editorial-card[data-presentation="evidence"] .editorial-media {
+  min-height: 132px;
+}
+
+.editorial-card[data-presentation="learning"] {
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--art-video-bg));
+}
+
+.editorial-card[data-presentation="learning"].no-media-card {
+  min-height: 154px;
+  background: var(--color-surface);
+  border-top: 3px solid var(--color-accent-soft);
+}
+
+.editorial-card[data-presentation="learning"] .editorial-card-main.with-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, .8fr);
+  align-items: stretch;
+  gap: 18px;
+}
+
+.editorial-card[data-presentation="learning"] .editorial-media {
+  min-height: 136px;
+}
+
+.editorial-card[data-presentation="event"] {
+  min-height: 0;
+  gap: 10px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--art-event-bg));
+  box-shadow: none;
+}
+
+.editorial-card[data-presentation="event"]:hover {
+  transform: none;
+  background: var(--art-event-bg);
+}
+
+.editorial-card[data-presentation="event"] .editorial-card-main.text-only {
+  display: block;
+}
+
+.editorial-card[data-presentation="event"] .editorial-card-link p {
+  display: none;
+}
+
+.editorial-card[data-presentation="event"] .editorial-card-meta {
+  padding-right: 30px;
+}
+
+.gen-ui-block[data-block-kind="event_rail"] .editorial-shelf-head h2 {
+  font-size: var(--font-size-heading-3);
+}
+
+.gen-ui-block[data-block-kind="event_rail"] .editorial-shelf-head > a {
+  display: none;
+}
+
+.gen-ui-block[data-block-kind="event_rail"] .source-lockup small,
+.gen-ui-block[data-block-kind="event_rail"] .editorial-card-footer .currentness {
+  display: none;
+}
+
+.gen-ui-block[data-block-kind="event_rail"] .editorial-card-link h2 {
+  font-size: var(--font-size-body-compact);
+}
+
+@media (max-width: 1180px) {
+  .editorial-shelf-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .editorial-shelf-head {
+    align-items: start;
+  }
+
+  .editorial-shelf-head > a {
+    display: none;
+  }
+
+  .editorial-card[data-presentation="hero"] .editorial-card-main.with-media,
+  .editorial-card[data-presentation="learning"] .editorial-card-main.with-media {
+    grid-template-columns: 1fr;
+  }
+
+  .editorial-card[data-presentation="hero"].no-media-card .editorial-card-main.text-only {
+    padding-right: 0;
+  }
+}

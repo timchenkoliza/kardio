@@ -1,0 +1,19 @@
+{
+  "name": "Cardio Golden Set v2 runtime manifest",
+  "canonical_source": "user-provided cardio_goldenset_content_db_v2.json / xlsx",
+  "raw_source_sha256": "eb488a8c98bcebef78afbb82d976a80c52ce33604c71cda51e23a3be328a9636",
+  "normalized_runtime_json_sha256": "1b0bd273b8652856209201e72474f40824b3fb987e16fc192863f376efafd7af",
+  "content_count": 54,
+  "source_count": 18,
+  "runtime_transport": "gzip+base64 split into five generated chunks",
+  "runtime_files": [
+    "goldenset-chunk-01.js",
+    "goldenset-chunk-02.js",
+    "goldenset-chunk-03.js",
+    "goldenset-chunk-04.js",
+    "goldenset-chunk-05.js",
+    "cardio_goldenset_loader.js"
+  ],
+  "object_equivalence_to_user_json": true,
+  "note": "The browser transport is a generated, non-authoritative serialization of the user-supplied canonical Golden Set. Do not edit facts in generated chunk files."
+}

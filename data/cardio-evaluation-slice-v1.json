@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "name": "KARDIO fixed cross-concept evaluation slice",
+    "version": "v1",
+    "purpose": "Concepts A, B and C must initially render these same real Golden Set objects before concept-specific ranking/grouping.",
+    "count": 24
+  },
+  "golden_ids": [
+    "gl-vt-2025",
+    "gl-vt-2020",
+    "gl-ph-2024",
+    "gl-ph-2020",
+    "gl-ar-2025",
+    "gl-af-export",
+    "video-vt-current",
+    "video-ar-current",
+    "video-ah-current",
+    "video-stemi-2020",
+    "video-af-2020",
+    "rkj-2026-09-29",
+    "rkj-edu-2026-07-12",
+    "rkj-2026-06-01",
+    "rkj-2026-05-01",
+    "rko-tv-rnkk-2026",
+    "rko-plenary-2026",
+    "rko-heart-days-2025",
+    "fact-ah-followup-2024",
+    "fact-ah-score2-2024",
+    "fact-ar-echo-2025",
+    "fact-vt-2025-sections",
+    "rko-project-metabolic-2026",
+    "rko-service-grants"
+  ]
+}

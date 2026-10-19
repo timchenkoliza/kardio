@@ -1,0 +1,53 @@
+export type RatingDimension = "overall" | "efficacy" | "safety" | "tolerability" | "accessibility" | "adherence";
+
+export type DrugAggregate = {
+  ratingCount: number;
+  overall: number;
+  efficacy: number;
+  safety: number;
+  tolerability: number;
+  accessibility: number;
+  adherence: number;
+  comments: string[];
+};
+
+export type DrugDemo = {
+  id: string;
+  tradeName: string;
+  inn: string;
+  drugClass: string;
+  indications: string[];
+  ratingsByIndication: Record<string, DrugAggregate>;
+};
+
+export const MIN_RATINGS_TO_DISPLAY = 5;
+
+export const ratingDimensionLabel: Record<RatingDimension, string> = {
+  overall: "Общая оценка",
+  efficacy: "Эффективность",
+  safety: "Безопасность",
+  tolerability: "Переносимость",
+  accessibility: "Доступность",
+  adherence: "Приверженность",
+};
+
+export const drugDemoData: DrugDemo[] = [
+  { id: "apixaban", tradeName: "Эликвис", inn: "апиксабан", drugClass: "Прямой ингибитор фактора Xa", indications: ["Профилактика инсульта при ФП"], ratingsByIndication: { "Профилактика инсульта при ФП": { ratingCount: 12, overall: 4.4, efficacy: 4.6, safety: 4.3, tolerability: 4.5, accessibility: 3.8, adherence: 4.6, comments: ["Удобный режим приёма, но доступность зависит от региона."] } } },
+  { id: "rivaroxaban", tradeName: "Ксарелто", inn: "ривароксабан", drugClass: "Прямой ингибитор фактора Xa", indications: ["Профилактика инсульта при ФП"], ratingsByIndication: { "Профилактика инсульта при ФП": { ratingCount: 9, overall: 4.1, efficacy: 4.4, safety: 3.9, tolerability: 4.1, accessibility: 3.9, adherence: 4.4, comments: ["Удобен для части пациентов за счёт кратности приёма."] } } },
+  { id: "dabigatran", tradeName: "Прадакса", inn: "дабигатран", drugClass: "Прямой ингибитор тромбина", indications: ["Профилактика инсульта при ФП"], ratingsByIndication: { "Профилактика инсульта при ФП": { ratingCount: 4, overall: 4, efficacy: 4.2, safety: 3.8, tolerability: 3.9, accessibility: 3.7, adherence: 4, comments: [] } } },
+  { id: "sacubitril-valsartan", tradeName: "Юперио", inn: "сакубитрил/валсартан", drugClass: "ARNI", indications: ["Хроническая сердечная недостаточность"], ratingsByIndication: { "Хроническая сердечная недостаточность": { ratingCount: 8, overall: 4.5, efficacy: 4.7, safety: 4.1, tolerability: 4.2, accessibility: 3.5, adherence: 4.4, comments: ["Нужен контроль давления и переносимости в начале терапии."] } } },
+];
+
+export function hasDisplayableAggregate(aggregate: DrugAggregate): boolean {
+  return aggregate.ratingCount >= MIN_RATINGS_TO_DISPLAY;
+}
+
+export function sortDrugs(drugs: DrugDemo[], indication: string, dimension: RatingDimension): DrugDemo[] {
+  return [...drugs].filter(drug => drug.ratingsByIndication[indication]).sort((a, b) => {
+    const ar = a.ratingsByIndication[indication];
+    const br = b.ratingsByIndication[indication];
+    const av = hasDisplayableAggregate(ar) ? ar[dimension] : -1;
+    const bv = hasDisplayableAggregate(br) ? br[dimension] : -1;
+    return bv - av || b.tradeName.localeCompare(a.tradeName, "ru");
+  });
+}
