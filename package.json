@@ -35,6 +35,7 @@
     "resolution:event-role-inspect": "tsx scripts/inspect-event-semantic-roles.ts",
     "resolution:event-calendar-inspect": "tsx scripts/inspect-event-calendar-evidence.ts",
     "resolution:media-inspect": "tsx scripts/inspect-telegram-media-resolution.ts",
+    "resolution:article-motion-inspect": "tsx scripts/inspect-article-motion-candidates.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
