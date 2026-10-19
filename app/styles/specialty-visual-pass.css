@@ -1,0 +1,98 @@
+/* Pixel-first specialty layer: Cardiology = blood/bone/carbon; Oncology = indigo/sage/ivory. */
+
+.product[data-specialty="cardiology"] .editorial-card[data-presentation="hero"] {
+  border-top: 6px solid var(--color-accent-strong);
+  background: var(--color-surface);
+}
+
+.product[data-specialty="cardiology"] .editorial-card[data-presentation="hero"] h2,
+.product[data-specialty="cardiology"] .tools-intro h1,
+.product[data-specialty="cardiology"] .mode-hero h1 {
+  color: var(--color-text);
+}
+
+.product[data-specialty="cardiology"] .context-module {
+  border-color: color-mix(in srgb, var(--color-accent-soft) 52%, var(--color-border));
+}
+
+.product[data-specialty="cardiology"] .context-module:not(.quiet-module) {
+  background: color-mix(in srgb, var(--rail-highlight) 72%, var(--color-surface));
+}
+
+.product[data-specialty="cardiology"] .editorial-shelf[data-presentation="guideline"] .editorial-shelf-head,
+.product[data-specialty="cardiology"] .editorial-shelf[data-presentation="clinical"] .editorial-shelf-head {
+  color: var(--color-accent-ink);
+}
+
+.product[data-specialty="cardiology"] .calculator-card-primary,
+.product[data-specialty="cardiology"] .reference-card-native:first-child {
+  background: var(--color-accent-wash);
+}
+
+.product[data-specialty="cardiology"] .score-orb:not(.secondary) {
+  background: var(--color-accent-strong);
+}
+
+.product[data-specialty="cardiology"] .heart-3d-card {
+  background: color-mix(in srgb, var(--color-surface) 66%, var(--color-accent-wash));
+}
+
+.product[data-specialty="oncology"] .editorial-card[data-presentation="hero"] {
+  border-top: 6px solid var(--color-accent-strong);
+  background: var(--color-surface);
+}
+
+.product[data-specialty="oncology"] .feed-tab.active,
+.product[data-specialty="oncology"] .primary-source-button {
+  background: var(--color-accent-strong);
+  color: var(--color-surface);
+}
+
+.product[data-specialty="oncology"] .context-module:not(.quiet-module) {
+  background: color-mix(in srgb, var(--rail-highlight) 72%, var(--color-surface));
+}
+
+.product[data-specialty="oncology"] .heart-3d-card {
+  background: color-mix(in srgb, var(--color-surface) 68%, var(--color-canvas-blue));
+}
+
+/* Editorial photography may be gently harmonised with the specialty palette. */
+.editorial-media.has-image[data-media-treatment="editorial"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--color-accent-soft);
+  mix-blend-mode: color;
+  opacity: .14;
+}
+
+.editorial-media.has-image[data-media-treatment="editorial"] img {
+  filter: saturate(.82) contrast(1.02);
+}
+
+/* Diagnostic/case imagery must remain optically faithful: no palette tint or filter. */
+.editorial-media.has-image[data-media-treatment="diagnostic"]::after {
+  display: none;
+}
+
+.editorial-media.has-image[data-media-treatment="diagnostic"] img {
+  filter: none;
+}
+
+.product[data-specialty="cardiology"] .editorial-art {
+  background: var(--specialty-art-3);
+}
+
+.product[data-specialty="oncology"] .editorial-art {
+  background: var(--specialty-art-3);
+}
+
+.product[data-specialty="oncology"] .editorial-art::before {
+  background: var(--specialty-art-2);
+  transform: rotate(8deg);
+}
+
+.product[data-specialty="oncology"] .editorial-art::after {
+  border-color: var(--specialty-art-1);
+}
