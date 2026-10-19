@@ -7,6 +7,12 @@ function visualVariant(id: string): number {
   return Math.abs(hash) % 6;
 }
 
+function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
+  const explicitText = [content.title, ...content.tags, ...content.topics].join(" ");
+  const explicitDiagnosticFormat = /(?:\bКТ\b|\bМРТ\b|\bУЗИ\b|\bЭКГ\b|эхокар|эхо[- ]?кг|ангиограф|рентген|томограф|dicom|ultrasound|echocardi|ct\b|mri\b)/iu.test(explicitText);
+  return content.kind === "clinical" || explicitDiagnosticFormat ? "diagnostic" : "editorial";
+}
+
 export function EditorialMedia({ content, specialty, compact = false, fallback = true }: {
   content: ContentObject;
   specialty: SpecialtyId;
@@ -15,7 +21,7 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
 }) {
   if (content.asset?.url) {
     return (
-      <figure className={compact ? "editorial-media compact has-image" : "editorial-media has-image"}>
+      <figure className={compact ? "editorial-media compact has-image" : "editorial-media has-image"} data-media-treatment={mediaTreatment(content)}>
         <img
           src={content.asset.url}
           alt={content.asset.caption ?? ""}
