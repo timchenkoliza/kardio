@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, CalendarDays, Library, Search } from "lucide-react";
+import { ArrowRight, Bookmark, BookOpen, CalendarDays, Library, Search } from "lucide-react";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { buildExploreComposition } from "@/lib/ui/explore-composition";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { EditorialShelf } from "@/components/editorial-shelf";
 import { GenUiStack, type GenUiBlock } from "@/components/gen-ui-stack";
-import { SectionHelp } from "@/components/section-help";
 
 export function ExploreGenUiSurface({ specialty, content, sources }: { specialty: SpecialtyId; content: ContentObject[]; sources: Source[] }) {
   const model = buildExploreComposition(content);
@@ -18,9 +17,9 @@ export function ExploreGenUiSurface({ specialty, content, sources }: { specialty
     }] : []),
     {
       id: "explore-routes",
-      label: "Исследовать",
+      label: "Быстрый доступ",
       kind: "topic_cluster",
-      content: <aside className="context-module" aria-label="Быстрые маршруты"><span className="eyebrow">Куда дальше</span><div className="heading-with-help"><h2>Исследовать</h2><SectionHelp text="Быстрые маршруты в соседние разделы каталога. Они не меняют ваши сохранения и рабочий режим." /></div><div className="quick-job-list"><Link href={`/${specialty}?kind=guideline`}><BookOpen size={18} /><span><strong>Рекомендации</strong><small>Текущие версии и архив</small></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=events`}><CalendarDays size={18} /><span><strong>События</strong><small>Только подтверждённые объекты каталога</small></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=sources`}><Library size={18} /><span><strong>Источники</strong><small>{sources.length} в каталоге</small></span><ArrowRight size={16} /></Link></div></aside>,
+      content: <aside className="context-module explore-route-module" aria-label="Быстрый доступ"><h2>Быстро</h2><div className="quick-job-list"><Link href={`/${specialty}?kind=guideline`}><BookOpen size={18} /><span><strong>Рекомендации</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=events`}><CalendarDays size={18} /><span><strong>События</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=saved`}><Bookmark size={18} /><span><strong>Мои материалы</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=sources`}><Library size={18} /><span><strong>Источники</strong><small>{sources.length} в каталоге</small></span><ArrowRight size={16} /></Link></div></aside>,
     },
     ...(model.clinical.length ? [{
       id: "explore-clinical",
@@ -44,7 +43,7 @@ export function ExploreGenUiSurface({ specialty, content, sources }: { specialty
       id: "explore-search-prompt",
       label: "Поиск по теме",
       kind: "context_prompt",
-      content: <aside className="context-module quiet-module"><Search size={20} aria-hidden="true" /><div className="heading-with-help"><h2>Ищите по теме</h2><SectionHelp text="Поиск учитывает заголовки, темы, источники и описания. Порядок результатов строится по явным признакам каталога, без скрытого профилирования." /></div><p>Поиск работает по заголовкам, темам, источникам и описаниям.</p></aside>,
+      content: <aside className="context-module explore-search-entry"><Search size={20} aria-hidden="true" /><div><h2>Поиск по теме</h2><p>Введите тему, рекомендацию или вопрос в строке сверху.</p></div></aside>,
     },
     ...(model.evidence.length ? [{
       id: "explore-evidence",
