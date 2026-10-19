@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { ArrowRight, BookOpen, Bot, CalendarDays, Check, CirclePause, FileText, FlaskConical, Library, Pause, Play, Plus, Search, Settings2, Sparkles, Trash2 } from "lucide-react";
 import type { ContentObject, ProfessionalAgent, Source, SpecialtyId } from "@/lib/domain/types";
-import { CARDIOLOGY_AGENT_TEMPLATES } from "@/lib/agents/templates";
+import {
+  AGENT_AVAILABILITY_LABELS,
+  AGENT_FAMILY_LABELS,
+  CARDIOLOGY_AGENT_FAMILIES,
+  CARDIOLOGY_AGENT_TEMPLATES,
+  pharmaFormatLabel,
+  templateForAgentKind,
+  type ProfessionalAgentFamily,
+} from "@/lib/agents/templates";
 import { useProduct } from "@/components/product-provider";
 
 const cadenceLabel = {
@@ -63,8 +71,10 @@ export function DoctorAgentHome({
   const { state, pending, mutate, track } = useProduct();
   const templates = specialty === "cardiology" ? CARDIOLOGY_AGENT_TEMPLATES : [];
   const [mode, setMode] = useState<"ask" | "watch">("watch");
+  const [family, setFamily] = useState<ProfessionalAgentFamily>(templates[0]?.family ?? "knowledge");
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const selectedTemplate = templates.find(template => template.id === templateId) ?? templates[0];
+  const familyTemplates = templates.filter(template => template.family === family);
   const [instruction, setInstruction] = useState(selectedTemplate?.instruction ?? "");
   const [selectedTopics, setSelectedTopics] = useState<string[]>(selectedTemplate?.topics ?? []);
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
@@ -80,10 +90,17 @@ export function DoctorAgentHome({
     const template = templates.find(value => value.id === nextId);
     if (!template) return;
     setTemplateId(nextId);
+    setFamily(template.family);
     setInstruction(template.instruction);
     setSelectedTopics(template.topics);
     setSelectedSourceIds([]);
     setSavedMessage("");
+  }
+
+  function selectFamily(nextFamily: ProfessionalAgentFamily) {
+    setFamily(nextFamily);
+    const first = templates.find(template => template.family === nextFamily);
+    if (first) selectTemplate(first.id);
   }
 
   function toggleTopic(topic: string) {
@@ -107,6 +124,7 @@ export function DoctorAgentHome({
       return;
     }
 
+    const needsConnector = selectedTemplate.availability !== "ready";
     const changed = await mutate({
       action: "createProfessionalAgent",
       agent: {
@@ -115,17 +133,19 @@ export function DoctorAgentHome({
         name: selectedTemplate.title,
         instruction: value,
         topics: selectedTopics,
-        sourceIds: selectedSourceIds,
+        sourceIds: selectedTemplate.commercial ? [] : selectedSourceIds,
         cadence: selectedTemplate.cadence,
         outputFormat: selectedTemplate.outputFormat,
-        status: "configured",
+        status: needsConnector ? "draft" : "configured",
         commercial: selectedTemplate.commercial,
         sponsorName: selectedTemplate.sponsorName,
       },
     });
     if (changed) {
       track("professional_agent_configured");
-      setSavedMessage("Агент настроен. Фоновый запуск появится после подключения runtime.");
+      setSavedMessage(needsConnector
+        ? `Черновик сохранён. ${AGENT_AVAILABILITY_LABELS[selectedTemplate.availability]}.`
+        : "Агент настроен. Фоновый запуск появится после подключения runtime.");
     }
   }
 
@@ -139,10 +159,10 @@ export function DoctorAgentHome({
 
   return <div className="doctor-os" data-focus={focus}>
     <section className="doctor-os-intro">
-      <span className="eyebrow">Кардиология · professional intelligence workspace</span>
+      <span className="eyebrow">Кардиология · professional intelligence harness</span>
       <h1>{focus === "agents" ? "Агенты" : "Главное"}</h1>
       <p>{focus === "agents"
-        ? "Каждый агент — сохранённая профессиональная задача: что отслеживать, по каким источникам и в каком виде возвращать результат."
+        ? `${templates.length} сценария собраны в один Harness: врач выбирает job, а система подключает нужные источники, инструменты и правила вместо зоопарка отдельных продуктов.`
         : "Сформулируйте задачу один раз. Система сохранит правила, источники и формат результата — как рабочий контекст, а не как очередной раздел портала."}</p>
     </section>
 
@@ -155,13 +175,22 @@ export function DoctorAgentHome({
         </div>
       </div>
 
-      {mode === "watch" && <div className="doctor-template-strip" aria-label="Шаблоны агентов">
-        {templates.map(template => <button key={template.id} type="button" className={template.id === templateId ? "selected" : ""} onClick={() => selectTemplate(template.id)}>
-          {template.commercial ? <Sparkles size={15} /> : <Bot size={15} />}
-          <span>{template.title}</span>
-          {template.commercial && <small>партнёрский</small>}
-        </button>)}
-      </div>}
+      {mode === "watch" && <>
+        <div className="doctor-config-block">
+          <strong>Класс агента</strong>
+          <div className="doctor-chip-list" aria-label="Классы агентов">
+            {CARDIOLOGY_AGENT_FAMILIES.map(value => <button type="button" key={value} className={family === value ? "selected" : ""} onClick={() => selectFamily(value)}>{family === value && <Check size={13} />}{AGENT_FAMILY_LABELS[value]}</button>)}
+          </div>
+        </div>
+        <div className="doctor-template-strip" aria-label="Шаблоны агентов">
+          {familyTemplates.map(template => <button key={template.id} type="button" className={template.id === templateId ? "selected" : ""} onClick={() => selectTemplate(template.id)}>
+            {template.commercial ? <Sparkles size={15} /> : <Bot size={15} />}
+            <span>{template.title}</span>
+            {template.commercialFormat && <small>{pharmaFormatLabel(template.commercialFormat)}</small>}
+            {!template.commercial && template.availability !== "ready" && <small>коннектор</small>}
+          </button>)}
+        </div>
+      </>}
 
       <form className="doctor-command-form" onSubmit={event => void submit(event)}>
         <textarea
@@ -181,21 +210,30 @@ export function DoctorAgentHome({
             </div>
           </div>
           <div className="doctor-config-block">
-            <strong>Источники</strong>
-            <p>{selectedSourceIds.length ? `Выбрано: ${selectedSourceIds.length}` : "Не выбраны — агент сохранится без автоматического доступа к источникам."}</p>
-            <div className="doctor-source-picker">
-              {visibleSources.map(source => <label key={source.id}><input type="checkbox" checked={selectedSourceIds.includes(source.id)} onChange={() => toggleSource(source.id)} /><span>{sourceDisplay(source)}</span></label>)}
-            </div>
+            <strong>{selectedTemplate.commercial ? "Партнёрский корпус" : "Источники"}</strong>
+            {selectedTemplate.commercial ? (
+              <p>Партнёрский approved corpus подключается отдельно. Независимые медицинские источники сюда не подмешиваются.</p>
+            ) : <>
+              <p>{selectedSourceIds.length ? `Выбрано: ${selectedSourceIds.length}` : "Не выбраны — агент сохранится без автоматического доступа к источникам."}</p>
+              <div className="doctor-source-picker">
+                {visibleSources.map(source => <label key={source.id}><input type="checkbox" checked={selectedSourceIds.includes(source.id)} onChange={() => toggleSource(source.id)} /><span>{sourceDisplay(source)}</span></label>)}
+              </div>
+            </>}
           </div>
           <div className="doctor-config-summary">
             <span><Settings2 size={15} /> {cadenceLabel[selectedTemplate.cadence]}</span>
             <span><FileText size={15} /> {outputLabel[selectedTemplate.outputFormat]}</span>
-            {selectedTemplate.commercial && <span className="sponsored"><Sparkles size={15} /> {selectedTemplate.sponsorName}</span>}
+            <span><Bot size={15} /> {AGENT_AVAILABILITY_LABELS[selectedTemplate.availability]}</span>
+            {selectedTemplate.commercialFormat && <span className="sponsored"><Sparkles size={15} /> КП · {pharmaFormatLabel(selectedTemplate.commercialFormat)}</span>}
           </div>
         </div>}
 
         <div className="doctor-command-actions">
-          <p>{mode === "watch" ? "Сохраняем конфигурацию. Фоновый мониторинг пока не имитируем." : "Одноразовый запрос использует текущий поиск и каталог."}</p>
+          <p>{mode === "watch"
+            ? selectedTemplate?.availability === "ready"
+              ? "Сохраняем конфигурацию. Фоновый мониторинг пока не имитируем."
+              : "Сценарий доступен в каталоге 2027, но останется черновиком до подключения нужного коннектора."
+            : "Одноразовый запрос использует текущий поиск и каталог."}</p>
           <button className="primary-button" type="submit" disabled={pending || !instruction.trim()}>{mode === "watch" ? <><Plus size={16} /> Настроить агента</> : <>Найти <ArrowRight size={16} /></>}</button>
         </div>
         {savedMessage && <p className="doctor-command-status" role="status">{savedMessage}</p>}
@@ -205,7 +243,7 @@ export function DoctorAgentHome({
     <section className="doctor-agent-section" aria-labelledby="configured-agents-title">
       <div className="doctor-section-head"><div><span className="eyebrow">Ваши правила</span><h2 id="configured-agents-title">Настроенные агенты</h2></div><span className="doctor-count">{agents.length}</span></div>
       {independentAgents.length ? <div className="doctor-agent-grid">{independentAgents.map(agent => <AgentCard key={agent.id} agent={agent} sourceCount={agent.sourceIds.length} pending={pending} onStatus={setStatus} onDelete={removeAgent} />)}</div> : <div className="doctor-empty-agent"><Bot size={22} /><div><strong>Пока нет настроенных агентов</strong><p>Выберите сценарий выше и задайте свои темы и источники.</p></div></div>}
-      {partnerAgents.length > 0 && <div className="doctor-partner-zone"><div className="doctor-partner-zone-head"><span className="eyebrow">Подключено отдельно</span><h3>Партнёрские каналы</h3><p>Их материалы не смешиваются с независимыми медицинскими агентами.</p></div><div className="doctor-agent-grid">{partnerAgents.map(agent => <AgentCard key={agent.id} agent={agent} sourceCount={agent.sourceIds.length} pending={pending} onStatus={setStatus} onDelete={removeAgent} />)}</div></div>}
+      {partnerAgents.length > 0 && <div className="doctor-partner-zone"><div className="doctor-partner-zone-head"><span className="eyebrow">Commercial layer · отдельно от evidence</span><h3>Партнёрские форматы</h3><p>Только форматы КП: Статья, Полезное, Медиа, Событие и Performance-продвижение. Они не влияют на независимый медицинский ranking.</p></div><div className="doctor-agent-grid">{partnerAgents.map(agent => <AgentCard key={agent.id} agent={agent} sourceCount={agent.sourceIds.length} pending={pending} onStatus={setStatus} onDelete={removeAgent} />)}</div></div>}
     </section>
 
     {focus === "home" && <>
@@ -240,12 +278,13 @@ function AgentCard({
   onStatus: (agent: ProfessionalAgent, status: "configured" | "paused") => Promise<void>;
   onDelete: (agent: ProfessionalAgent) => Promise<void>;
 }) {
+  const template = templateForAgentKind(agent.kind);
   return <article className={`doctor-agent-card ${agent.commercial ? "commercial" : ""}`}>
     <div className="doctor-agent-card-head"><span className="doctor-agent-icon">{agent.commercial ? <Sparkles size={17} /> : <Bot size={17} />}</span><div><span className="doctor-agent-status">{statusLabel(agent)}</span><h3>{agent.name}</h3></div></div>
     <p>{agent.instruction}</p>
-    <div className="doctor-agent-meta"><span>{cadenceLabel[agent.cadence]}</span><span>{outputLabel[agent.outputFormat]}</span><span>{sourceCount ? `${sourceCount} источн.` : "источники не выбраны"}</span></div>
+    <div className="doctor-agent-meta"><span>{cadenceLabel[agent.cadence]}</span><span>{outputLabel[agent.outputFormat]}</span><span>{sourceCount ? `${sourceCount} источн.` : "источники не выбраны"}</span>{template && <span>{AGENT_AVAILABILITY_LABELS[template.availability]}</span>}{template?.commercialFormat && <span>КП · {pharmaFormatLabel(template.commercialFormat)}</span>}</div>
     {agent.topics.length > 0 && <div className="doctor-agent-topics">{agent.topics.slice(0, 4).map(topic => <span key={topic}>{topic}</span>)}</div>}
-    {agent.commercial && <div className="doctor-sponsor-disclosure">Партнёрский канал · {agent.sponsorName}</div>}
+    {agent.commercial && <div className="doctor-sponsor-disclosure">Партнёрский формат · {agent.sponsorName}{template?.commercialFormat ? ` · ${pharmaFormatLabel(template.commercialFormat)}` : ""}</div>}
     <div className="doctor-agent-actions">
       {agent.status === "paused"
         ? <button type="button" disabled={pending} onClick={() => void onStatus(agent, "configured")}><Play size={14} /> Вернуть</button>
