@@ -21,6 +21,7 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
   const [sortBy, setSortBy] = useState<RatingDimension>("overall");
   const [selectedId, setSelectedId] = useState(drugDemoData[0]?.id ?? "");
   const [myRatings, setMyRatings] = useState<Record<string, MyRating>>(readStored);
+  const [savedNotice, setSavedNotice] = useState(false);
   const selected = drugDemoData.find(drug => drug.id === selectedId) ?? drugDemoData[0];
   const indication = selected?.indications[0] ?? "";
   const rankingIndication = indication || drugDemoData[0]?.indications[0] || "";
@@ -37,6 +38,7 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
   const stored = myRatings[selected.id] ?? {};
 
   function setMyScore(dimension: RatingDimension, value: number | null) {
+    setSavedNotice(false);
     setMyRatings(current => ({ ...current, [selected.id]: { ...current[selected.id], indication, [dimension]: value } }));
   }
 
@@ -44,6 +46,7 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
     const next = { ...myRatings, [selected.id]: { ...myRatings[selected.id], indication } };
     setMyRatings(next);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setSavedNotice(true);
   }
 
   const consiliumHref = `/${specialty}?view=consilium&drug=${encodeURIComponent(selected.id)}&indication=${encodeURIComponent(indication)}`;
@@ -65,7 +68,7 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
         {visible.map(drug => {
           const itemAggregate = drug.ratingsByIndication[rankingIndication];
           const itemDisplayable = hasDisplayableAggregate(itemAggregate);
-          return <button key={drug.id} className={`drug-row ${selected.id === drug.id ? "active" : ""}`} onClick={() => setSelectedId(drug.id)}>
+          return <button key={drug.id} className={`drug-row ${selected.id === drug.id ? "active" : ""}`} onClick={() => { setSelectedId(drug.id); setSavedNotice(false); }}>
             <span><strong>{drug.tradeName}</strong><small>{drug.inn}</small></span>
             <span className="drug-row-score">{itemDisplayable ? itemAggregate[sortBy].toFixed(1) : "—"}<small>{itemDisplayable ? `${itemAggregate.ratingCount} оценок` : `ещё ${5 - itemAggregate.ratingCount} до агрегата`}</small></span>
           </button>;
@@ -83,8 +86,9 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
     <section className="my-rating" aria-labelledby="my-rating-title">
       <div className="decision-section-head"><div><span className="eyebrow">Локально в этом браузере</span><h2 id="my-rating-title">Моя оценка</h2></div><span>не попадает в Golden Set</span></div>
       <div className="my-rating-grid">{SCORE_DIMENSIONS.map(dimension => <fieldset key={dimension}><legend>{ratingDimensionLabel[dimension]}</legend><div className="score-buttons">{[1,2,3,4,5].map(value => <button type="button" className={stored[dimension] === value ? "selected" : ""} key={value} onClick={() => setMyScore(dimension, value)}>{value}</button>)}<button type="button" className={stored[dimension] === null ? "selected" : ""} onClick={() => setMyScore(dimension, null)}>—</button></div></fieldset>)}</div>
-      <label className="rating-comment">Комментарий<textarea value={stored.comment ?? ""} onChange={event => setMyRatings(current => ({ ...current, [selected.id]: { ...current[selected.id], comment: event.target.value, indication } }))} placeholder="Необязательно" maxLength={600} /></label>
+      <label className="rating-comment">Комментарий<textarea value={stored.comment ?? ""} onChange={event => { setSavedNotice(false); setMyRatings(current => ({ ...current, [selected.id]: { ...current[selected.id], comment: event.target.value, indication } })); }} placeholder="Необязательно" maxLength={600} /></label>
       <button className="primary-button" type="button" onClick={saveRating}><Check size={16} /> Сохранить мою оценку</button>
+      {savedNotice && <p className="success-text" role="status">Оценка сохранена в этом браузере.</p>}
     </section>
   </section>;
 }
