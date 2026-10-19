@@ -7,10 +7,11 @@ function visualVariant(id: string): number {
   return Math.abs(hash) % 6;
 }
 
-export function EditorialMedia({ content, specialty, compact = false }: {
+export function EditorialMedia({ content, specialty, compact = false, fallback = true }: {
   content: ContentObject;
   specialty: SpecialtyId;
   compact?: boolean;
+  fallback?: boolean;
 }) {
   if (content.asset?.url) {
     return (
@@ -27,6 +28,8 @@ export function EditorialMedia({ content, specialty, compact = false }: {
       </figure>
     );
   }
+
+  if (!fallback) return null;
 
   return (
     <div
