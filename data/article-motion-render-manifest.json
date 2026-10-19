@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "purpose": "Batch-only registry of article-specific generated motion assets. Runtime UI reads only entries with status=ready; generation itself never happens during a physician request.",
+  "entries": []
+}
