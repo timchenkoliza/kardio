@@ -22,6 +22,7 @@ export interface ArticleMotionRenderEntry {
   prompt_version: string;
   prompt: string;
   provenance_note: string;
+  error: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
