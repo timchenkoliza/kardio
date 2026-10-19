@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-hub";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ExploreGenUiSurface } from "@/components/explore-gen-ui-surface";
+import { OncologyPracticeSurface } from "@/components/oncology-practice-surface";
 import { OncologyStarterSurface, type OncologyStarterFocus } from "@/components/oncology-starter-surface";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
@@ -83,9 +84,9 @@ export default async function SpecialtyHome({
   return <ProductProvider initialState={initialState} specialty={specialty}>
     <ProductFrame specialty={specialty}>
       <div className="alpha-shell">
-        {rootHome && specialty === "cardiology" && state.shell === "practice" ? (
-          <PracticeGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} />
-        ) : rootHome && specialty === "cardiology" && state.shell === "workspace" ? (
+        {rootHome && state.shell === "practice" ? (
+          specialty === "cardiology" ? <PracticeGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} /> : <OncologyPracticeSurface />
+        ) : rootHome && state.shell === "workspace" ? (
           <WorkspaceGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} />
         ) : (
           <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} />
