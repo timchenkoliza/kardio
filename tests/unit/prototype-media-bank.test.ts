@@ -3,16 +3,17 @@ import {
   PROTOTYPE_MEDIA_BANK,
   extractBundledImageDataUri,
   prototypeImagingMedia,
+  prototypeMediaAwaitingRightsReview,
   prototypeMediaForContent,
 } from "@/lib/ui/prototype-media-bank";
 
 describe("prototype media bank", () => {
-  it("exposes only the explicitly matched echo still to editorial content", () => {
-    const asset = prototypeMediaForContent({ id: "fact-ar-echo-2025", specialty: "cardiology" });
-    expect(asset?.id).toBe("cardiology-echo-still");
+  it("keeps the matched echo still blocked until rights are explicitly approved", () => {
+    const asset = PROTOTYPE_MEDIA_BANK.find(item => item.id === "cardiology-echo-still");
     expect(asset?.src).toBe("/api/prototype-media/echo");
     expect(asset?.rightsStatus).toBe("needs_review");
-    expect(prototypeMediaForContent({ id: "other-content", specialty: "cardiology" })).toBeNull();
+    expect(prototypeMediaForContent({ id: "fact-ar-echo-2025", specialty: "cardiology" })).toBeNull();
+    expect(prototypeMediaAwaitingRightsReview("cardiology").map(item => item.id)).toContain("cardiology-echo-still");
   });
 
   it("keeps MR and angiography clips registered but not falsely runtime-available", () => {
@@ -34,6 +35,7 @@ describe("prototype media bank", () => {
 
   it("does not invent oncology media from cardiology assets", () => {
     expect(prototypeImagingMedia("oncology")).toEqual([]);
+    expect(prototypeMediaAwaitingRightsReview("oncology")).toEqual([]);
   });
 
   it("parses only the constrained echo bundle format", () => {
