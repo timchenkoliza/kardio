@@ -29,8 +29,12 @@ import "./styles/decision-workspaces.css";
 import "./styles/layout-stability.css";
 import "./styles/media-visualization-prod.css";
 import "./styles/visualization-pixel-pass-v2.css";
+import "./styles/agent-first-workspace.css";
 
-export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
+export const metadata: Metadata = {
+  title: "Яндекс Мед · рабочее пространство врача",
+  description: "AI-агенты для профессиональных задач врача с проверяемыми источниками.",
+};
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="ru"><body>{children}</body></html>;
