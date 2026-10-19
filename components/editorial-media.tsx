@@ -3,6 +3,7 @@ import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
 import { prototypeMediaForContent } from "@/lib/ui/prototype-media-bank";
 import { approvedEditorialMediaForContent } from "@/lib/ui/approved-medical-media";
+import { readyArticleMotionForContent } from "@/lib/ui/article-motion-media";
 
 function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
   const explicitText = [content.title, ...content.tags, ...content.topics].join(" ");
@@ -27,8 +28,13 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
   fallback?: boolean;
 }) {
   const prototypeAsset = content.specialty === specialty && !content.asset?.url ? prototypeMediaForContent(content) : null;
-  const approvedAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset ? approvedEditorialMediaForContent(content) : null;
-  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? approvedAsset?.src ?? null;
+  const motionAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset
+    ? readyArticleMotionForContent(content)
+    : null;
+  const approvedAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset && !motionAsset
+    ? approvedEditorialMediaForContent(content)
+    : null;
+  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? motionAsset?.output_url ?? approvedAsset?.src ?? null;
 
   if (!mediaUrl) {
     if (!fallback) return null;
@@ -51,9 +57,22 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
     );
   }
 
-  const mediaState = content.asset?.url ? "real" : prototypeAsset ? "prototype" : "approved-fallback";
-  const alt = content.asset?.caption ?? prototypeAsset?.alt ?? approvedAsset?.alt ?? "";
-  const credit = content.asset?.credit ?? approvedAsset?.credit ?? null;
+  const mediaState = content.asset?.url
+    ? "real"
+    : prototypeAsset
+      ? "prototype"
+      : motionAsset
+        ? "generated-motion"
+        : "approved-fallback";
+  const alt = content.asset?.caption
+    ?? prototypeAsset?.alt
+    ?? (motionAsset ? `Анимированная иллюстрация к материалу «${content.title}» на основе исходного изображения` : null)
+    ?? approvedAsset?.alt
+    ?? "";
+  const credit = content.asset?.credit
+    ?? (motionAsset ? motionAsset.provenance_note : null)
+    ?? approvedAsset?.credit
+    ?? null;
 
   return (
     <figure
@@ -66,8 +85,8 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
         alt={alt}
         loading="lazy"
         decoding="async"
-        width={content.asset?.width ?? undefined}
-        height={content.asset?.height ?? undefined}
+        width={content.asset?.width ?? motionAsset?.width ?? undefined}
+        height={content.asset?.height ?? motionAsset?.height ?? undefined}
       />
       {credit && <figcaption>{credit}</figcaption>}
     </figure>
