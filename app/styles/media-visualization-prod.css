@@ -4,10 +4,10 @@
 
 .anatomy-explorer,
 .production-media-viewer {
-  background: #fff;
-  border: 1px solid rgba(87, 23, 34, 0.10);
-  border-radius: 26px;
-  box-shadow: 0 18px 50px rgba(55, 27, 32, 0.07);
+  background: var(--color-surface);
+  border: 1px solid var(--media-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-floating);
   min-width: 0;
   overflow: hidden;
 }
@@ -23,8 +23,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: linear-gradient(180deg, #fff 0%, #fff8f7 100%);
-  border-right: 1px solid rgba(87, 23, 34, 0.08);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--media-surface-warm) 100%);
+  border-right: 1px solid var(--media-border);
 }
 
 .anatomy-explorer-copy h2,
@@ -34,13 +34,13 @@
 }
 
 .anatomy-explorer-copy h2 {
-  font-size: clamp(30px, 3vw, 46px);
+  font-size: var(--font-size-display-lg);
 }
 
 .anatomy-explorer-copy p,
 .production-media-head p {
   margin: 0;
-  color: var(--text-secondary, #66636a);
+  color: var(--color-text-secondary);
   line-height: 1.45;
 }
 
@@ -52,41 +52,41 @@
 
 .anatomy-layer-list button {
   width: 100%;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  background: #f6f5f8;
-  color: #5c5862;
+  border: 1px solid var(--color-transparent);
+  border-radius: var(--radius-md);
+  background: var(--media-surface-soft);
+  color: var(--color-text-secondary);
   padding: 11px 12px;
   text-align: left;
   font: inherit;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: 150ms ease;
 }
 
 .anatomy-layer-list button:hover {
-  background: #f3e9eb;
+  background: var(--media-surface-hover);
 }
 
 .anatomy-layer-list button.active {
-  background: #761629;
-  border-color: #761629;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(118, 22, 41, 0.15);
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+  color: var(--color-inverse-text);
+  box-shadow: var(--shadow-raised);
 }
 
 .anatomy-layer-note {
   display: grid;
   gap: 3px;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: var(--font-size-caption);
 }
 
 .anatomy-layer-note span,
 .anatomy-credit,
 .production-media-credit {
-  color: #77737b;
-  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-metadata);
   line-height: 1.35;
 }
 
@@ -107,16 +107,16 @@
   padding: 38px 26px 72px;
   isolation: isolate;
   background:
-    radial-gradient(circle at 50% 46%, rgba(247, 195, 202, 0.55), transparent 31%),
-    radial-gradient(circle at 54% 52%, rgba(128, 105, 226, 0.12), transparent 48%),
-    linear-gradient(145deg, #fffafa 0%, #f7f7fb 53%, #fdf5f6 100%);
+    radial-gradient(circle at 50% 46%, var(--media-glow-pink), var(--color-transparent) 31%),
+    radial-gradient(circle at 54% 52%, var(--media-glow-violet), var(--color-transparent) 48%),
+    linear-gradient(145deg, var(--media-stage-warm) 0%, var(--media-stage-cool) 53%, var(--media-stage-blush) 100%);
 }
 
 .anatomy-glow {
   position: absolute;
   inset: 18% 13%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0));
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle, var(--media-white-glow), var(--color-transparent));
   filter: blur(15px);
   z-index: -1;
 }
@@ -127,21 +127,21 @@
   max-height: 430px;
   object-fit: contain;
   transform-origin: center;
-  filter: drop-shadow(0 28px 28px rgba(78, 18, 31, 0.13));
+  filter: drop-shadow(var(--shadow-raised));
   transition: transform 180ms ease, filter 180ms ease;
   will-change: transform;
 }
 
 .anatomy-stage[data-layer="chambers"] img {
-  filter: saturate(0.88) contrast(1.05) drop-shadow(0 28px 28px rgba(78, 18, 31, 0.13));
+  filter: saturate(0.88) contrast(1.05) drop-shadow(var(--shadow-raised));
 }
 
 .anatomy-stage[data-layer="valves"] img {
-  filter: contrast(1.08) brightness(1.02) drop-shadow(0 28px 28px rgba(78, 18, 31, 0.13));
+  filter: contrast(1.08) brightness(1.02) drop-shadow(var(--shadow-raised));
 }
 
 .anatomy-stage[data-layer="coronary"] img {
-  filter: saturate(1.12) contrast(1.04) drop-shadow(0 28px 28px rgba(78, 18, 31, 0.13));
+  filter: saturate(1.12) contrast(1.04) drop-shadow(var(--shadow-raised));
 }
 
 .anatomy-stage-label {
@@ -150,21 +150,21 @@
   right: 22px;
   display: grid;
   gap: 2px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 9px 12px;
-  background: rgba(26, 24, 30, 0.82);
-  color: #fff;
+  background: var(--media-dark-glass);
+  color: var(--color-inverse-text);
   backdrop-filter: blur(12px);
 }
 
 .anatomy-stage-label span {
-  font-weight: 750;
-  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-metadata);
 }
 
 .anatomy-stage-label small {
-  color: rgba(255,255,255,0.72);
-  font-size: 10px;
+  color: var(--media-white-muted);
+  font-size: var(--font-size-micro);
 }
 
 .anatomy-controls {
@@ -180,20 +180,20 @@
 
 .anatomy-controls button {
   min-height: 38px;
-  border: 1px solid rgba(30, 26, 34, 0.10);
-  border-radius: 12px;
+  border: 1px solid var(--media-control-border);
+  border-radius: var(--radius-md);
   padding: 8px 11px;
-  background: rgba(255,255,255,0.9);
-  color: #2d2930;
+  background: var(--media-control-bg);
+  color: var(--color-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   font: inherit;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(35, 27, 31, 0.06);
+  box-shadow: var(--shadow-raised);
 }
 
 .production-media-viewer {
@@ -216,7 +216,7 @@
 }
 
 .production-media-head h2 {
-  font-size: clamp(24px, 2.2vw, 34px);
+  font-size: var(--font-size-heading-1);
 }
 
 .production-media-tabs {
@@ -228,30 +228,30 @@
 .production-media-tabs button {
   min-width: 0;
   min-height: 54px;
-  border: 1px solid rgba(67, 57, 72, 0.08);
-  border-radius: 14px;
-  background: #f4f3f7;
-  color: #52505a;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
   padding: 9px 10px;
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .production-media-tabs button.active {
-  background: #fff1f1;
-  color: #6f1527;
-  border-color: rgba(118, 22, 41, 0.34);
+  background: var(--color-accent-wash);
+  color: var(--color-accent-ink);
+  border-color: var(--color-accent);
 }
 
 .production-media-stage {
   position: relative;
   min-height: 360px;
-  background: #17171c;
-  border-radius: 20px;
+  background: var(--color-inverse-surface);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -263,7 +263,7 @@
   max-height: 460px;
   min-height: 360px;
   object-fit: contain;
-  background: #17171c;
+  background: var(--color-inverse-surface);
 }
 
 .production-media-stage-meta {
@@ -276,9 +276,9 @@
   align-items: end;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 13px;
-  background: rgba(17,17,21,0.78);
-  color: #fff;
+  border-radius: var(--radius-md);
+  background: var(--media-stage-glass);
+  color: var(--color-inverse-text);
   backdrop-filter: blur(12px);
 }
 
@@ -288,22 +288,22 @@
 }
 
 .production-media-stage-meta strong {
-  font-size: 13px;
+  font-size: var(--font-size-caption);
 }
 
 .production-media-stage-meta span {
-  font-size: 10px;
-  color: rgba(255,255,255,0.72);
+  font-size: var(--font-size-micro);
+  color: var(--media-white-muted);
 }
 
 .production-media-stage-meta a {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
-  color: #fff;
-  background: rgba(255,255,255,0.12);
+  color: var(--color-inverse-text);
+  background: var(--media-control-glass);
 }
 
 .production-media-credit {
@@ -337,11 +337,11 @@
 
 .production-media-empty {
   min-height: 320px;
-  border-radius: 20px;
-  background: #f5f4f7;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
   display: grid;
   place-items: center;
-  color: #77727c;
+  color: var(--color-text-tertiary);
   padding: 24px;
   text-align: center;
 }
@@ -352,10 +352,10 @@
   right: 8px;
   bottom: 8px;
   padding: 4px 7px;
-  border-radius: 8px;
-  background: rgba(18, 16, 19, 0.72);
-  color: rgba(255,255,255,0.88);
-  font-size: 9px;
+  border-radius: var(--radius-sm);
+  background: var(--media-credit-bg);
+  color: var(--media-credit-text);
+  font-size: var(--font-size-micro);
   line-height: 1.2;
   backdrop-filter: blur(8px);
 }
@@ -376,7 +376,7 @@
   }
   .anatomy-explorer-copy {
     border-right: 0;
-    border-bottom: 1px solid rgba(87, 23, 34, 0.08);
+    border-bottom: 1px solid var(--media-border);
   }
   .anatomy-layer-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -396,7 +396,7 @@
 @media (max-width: 520px) {
   .anatomy-explorer,
   .production-media-viewer {
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
   }
   .anatomy-explorer-copy {
     padding: 22px 18px;
