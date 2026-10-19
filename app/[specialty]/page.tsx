@@ -85,7 +85,6 @@ export default async function SpecialtyHome({
   const kind: FeedKindFilter = isFeedKind(kindParam) ? kindParam : "all";
   const drugId = first(queryParams.drug);
   const indication = first(queryParams.indication);
-  const caseId = first(queryParams.case);
   const shellParam = first(queryParams.shell);
 
   const cookieStore = await cookies();
@@ -118,7 +117,7 @@ export default async function SpecialtyHome({
         ) : rootHome && initialState.shell === "workspace" ? (
           <WorkspaceCaseSurface specialty={specialty} recent={workspaceRecent} contextTerms={workspaceContextTerms} />
         ) : (
-          <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} caseId={caseId} />
+          <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} />
         )}
       </div>
     </ProductFrame>
@@ -135,7 +134,6 @@ function ExploreOrCatalogHome({
   kind,
   drugId,
   indication,
-  caseId,
 }: {
   specialty: SpecialtyId;
   content: ContentObject[];
@@ -146,11 +144,10 @@ function ExploreOrCatalogHome({
   kind: FeedKindFilter;
   drugId?: string;
   indication?: string;
-  caseId?: string;
 }) {
   if (view === "tools") return <ClinicalToolsHub specialty={specialty} />;
   if (view === "drugs") return <DrugIntelligenceWorkspace specialty={specialty} />;
-  if (view === "consilium") return <ConsiliumWorkspace specialty={specialty} drugId={drugId} indication={indication} caseId={caseId} />;
+  if (view === "consilium") return <ConsiliumWorkspace specialty={specialty} drugId={drugId} indication={indication} />;
   if (view === "reference") return <ReferenceHub specialty={specialty} />;
   if (view === "imaging") return <ImagingWorkspace specialty={specialty} />;
   if (view === "events") return <EventsHub specialty={specialty} content={content} />;
