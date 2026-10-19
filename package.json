@@ -23,6 +23,7 @@
     "db:drive-sync": "tsx scripts/sync-drive-inventory.ts",
     "db:article-media-sync": "tsx scripts/sync-article-media-inventory.ts",
     "db:verify": "tsx scripts/verify-db.ts",
+    "agents:metrics": "tsx scripts/agent-metrics.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "ontology:validate": "tsx scripts/validate-ontology.ts",
     "telegram:inspect": "tsx scripts/inspect-telegram-export.ts",
