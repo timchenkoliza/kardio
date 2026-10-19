@@ -19,7 +19,7 @@ export function ExploreGenUiSurface({ specialty, content, sources }: { specialty
       id: "explore-routes",
       label: "Быстрый доступ",
       kind: "topic_cluster",
-      content: <aside className="context-module explore-route-module" aria-label="Быстрый доступ"><h2>Быстро</h2><div className="quick-job-list"><Link href={`/${specialty}?kind=guideline`}><BookOpen size={18} /><span><strong>Рекомендации</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=events`}><CalendarDays size={18} /><span><strong>События</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=saved`}><Bookmark size={18} /><span><strong>Мои материалы</strong></span><ArrowRight size={16} /></Link><Link href={`/${specialty}?view=sources`}><Library size={18} /><span><strong>Источники</strong><small>{sources.length} в каталоге</small></span><ArrowRight size={16} /></Link></div></aside>,
+      content: <aside className="context-module explore-route-module" aria-label="Быстрый доступ"><span className="eyebrow">Быстро</span><div className="quick-job-list"><Link href={`/${specialty}?kind=guideline`}><BookOpen size={17} /><strong>Рекомендации</strong><ArrowRight size={15} /></Link><Link href={`/${specialty}?view=events`}><CalendarDays size={17} /><strong>События</strong><ArrowRight size={15} /></Link><Link href={`/${specialty}?view=saved`}><Bookmark size={17} /><strong>Мои материалы</strong><ArrowRight size={15} /></Link><Link href={`/${specialty}?view=sources`}><Library size={17} /><strong>Источники</strong><ArrowRight size={15} /></Link></div></aside>,
     },
     ...(model.clinical.length ? [{
       id: "explore-clinical",
