@@ -4,6 +4,7 @@ import "./styles/specialty-palettes.css";
 import "./styles/product-v1.css";
 import "./styles/shell-modes.css";
 import "./styles/workspace-agent.css";
+import "./styles/workspace-case-surface.css";
 import "./styles/workspace-professional.css";
 import "./styles/guidance.css";
 import "./styles/pbz-context.css";
