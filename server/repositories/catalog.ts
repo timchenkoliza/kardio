@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { assets, contentObjects, sources } from "@/db/schema";
 import type { Asset, ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
-import { hardcodedEditorialSource, withHardcodedTopicContent } from "@/lib/demo/hardcoded-topic-content";
+import { hardcodedEditorialSource, withHardcodedTopicContent } from "@/lib/demo/hardcoded-topic-content-v2";
 import { isSpecialty } from "@/lib/specialty";
 import { loadGoldenSet, normalizeGoldenSet } from "@/server/ingestion/goldenset";
 
