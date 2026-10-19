@@ -1,60 +1,37 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem("kardio_onboarding_v1", "1");
-    window.localStorage.removeItem("kardio.drugRatings.v1");
-    window.localStorage.removeItem("kardio.consilium.v1");
-  });
+  await page.addInitScript(() => { window.localStorage.clear(); });
 });
 
-test("drug intelligence saves a local rating and hands context to consilium", async ({ page }) => {
-  await page.goto("/cardiology?view=drugs");
-
-  await expect(page.getByRole("heading", { level: 1, name: "Препараты" })).toBeVisible();
-  await expect(page.getByText("Демо-данные · синтетические оценки")).toBeVisible();
-  await expect(page.getByText("Профилактика инсульта при ФП").first()).toBeVisible();
-
-  const efficacy = page.locator("fieldset").filter({ hasText: "Эффективность" });
-  await efficacy.getByRole("button", { name: "5", exact: true }).click();
-  await page.getByRole("button", { name: /Сохранить мою оценку/ }).click();
-  await expect(page.getByRole("status")).toHaveText("Оценка сохранена в этом браузере.");
-
-  await page.getByRole("link", { name: /Обсудить с консилиумом/ }).click();
-  await expect(page).toHaveURL(/view=consilium/);
-  await expect(page.getByText(/Обсуждаем/)).toBeVisible();
-  await expect(page.getByText(/Эликвис · Профилактика инсульта при ФП/)).toBeVisible();
+test("agent-first home replaces the legacy feed taxonomy", async ({ page }) => {
+  await page.goto("/cardiology");
+  await expect(page.getByRole("heading", { level: 1, name: "Что хотите делегировать?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Главное", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Мои агенты", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Мои материалы", exact: true })).toBeVisible();
+  await expect(page.getByText("Лента", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Консилиум", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Визуализация", { exact: true })).toHaveCount(0);
 });
 
-test("consilium produces distinct replies and preserves synthesis", async ({ page }) => {
-  await page.goto("/cardiology?view=consilium");
-
-  await expect(page.getByRole("heading", { level: 1, name: "Консилиум" })).toBeVisible();
-  await expect(page.getByText("Синтетический консилиум · ответы AI-персон")).toBeVisible();
-
-  const composer = page.locator(".composer-row textarea");
-  await composer.fill("Сравните варианты по безопасности и лекарственным взаимодействиям");
-  await page.getByRole("button", { name: /Отправить/ }).click();
-
-  await expect(page.getByText("А. Морозова").last()).toBeVisible();
-  await expect(page.getByText("Н. Белова").last()).toBeVisible();
-  await expect(page.getByText("Е. Орлова").last()).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Сходятся", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Расходятся", exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: "Спросить отдельно" }).first().click();
-  await composer.fill("Что здесь сильнее всего изменит вашу оценку?");
-  await page.getByRole("button", { name: /Отправить/ }).click();
-  await expect(page.locator(".chat-message.user").last()).toContainText("Что здесь сильнее всего изменит вашу оценку?");
+test("research agent performs a catalog-backed run with provenance", async ({ page }) => {
+  await page.goto("/cardiology");
+  const composer = page.getByRole("textbox", { name: "Задача для агента" });
+  await composer.fill("Исследуй сердечную недостаточность");
+  await page.getByRole("button", { name: "Запустить" }).click();
+  await expect(page.getByTestId("agent-result")).toBeVisible();
+  await expect(page.getByText(/catalog: подключено/)).toBeVisible();
+  await expect(page.getByText(/pubmed: не подключено/)).toBeVisible();
 });
 
-test("oncology never receives cardiology rating or persona fixtures", async ({ page }) => {
-  await page.goto("/oncology?view=drugs");
-  await expect(page.getByRole("heading", { level: 1, name: "Оценка препаратов" })).toBeVisible();
-  await expect(page.getByText(/не подменяет этот пробел кардиологическими данными/)).toBeVisible();
-  await expect(page.getByText("Эликвис")).toHaveCount(0);
-
-  await page.goto("/oncology?view=consilium");
-  await expect(page.getByText(/не переиспользует кардиологические архетипы/)).toBeVisible();
-  await expect(page.getByText("А. Морозова")).toHaveCount(0);
+test("my materials accepts a local note without pretending server indexing", async ({ page }) => {
+  await page.goto("/cardiology");
+  await page.getByRole("button", { name: "Мои материалы", exact: true }).click();
+  await page.getByPlaceholder("Например: ESC — заметки по ХСН").fill("Моя заметка");
+  await page.getByPlaceholder("Добавьте заметку или фрагмент…").fill("Личный фрагмент для локальной базы");
+  await page.getByRole("button", { name: "Добавить материал", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Моя заметка" })).toBeVisible();
+  await expect(page.getByText("INDEXED_LOCAL")).toBeVisible();
+  await expect(page.getByText(/Серверная персональная индексация пока не подключена/)).toBeVisible();
 });
