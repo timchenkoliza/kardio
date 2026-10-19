@@ -1,0 +1,127 @@
+/* Layout stabilization pass 2026-10-19.
+   Keep this file last: it resolves geometry conflicts from earlier visual passes without changing product content. */
+
+/* Keep the main canvas wide enough for dense professional content, but avoid edge-hugging. */
+.alpha-shell {
+  width: min(1240px, calc(100% - 48px));
+  padding-top: 36px;
+}
+
+/* The 3D placeholder currently gets a text column that is too narrow once it sits inside
+   the two-column Imaging surface. Stack the placeholder internally so copy never clips. */
+.imaging-grid-media-pass {
+  grid-template-columns: minmax(0, .96fr) minmax(460px, 1.12fr);
+  gap: 18px;
+}
+
+.heart-3d-card.heart-3d-cold-start {
+  grid-template-columns: 1fr;
+  min-width: 0;
+}
+
+.heart-3d-card.heart-3d-cold-start .heart-3d-copy {
+  min-width: 0;
+  padding: 24px 24px 20px;
+}
+
+.heart-3d-card.heart-3d-cold-start .heart-3d-copy p {
+  max-width: 52ch;
+}
+
+.heart-3d-card.heart-3d-cold-start .heart-stage {
+  min-height: 300px;
+}
+
+.planned-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.planned-layers > span {
+  padding: 7px 9px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-caption);
+}
+
+/* Dense directory rows should use the available canvas instead of leaving a dead right rail. */
+.source-directory {
+  max-width: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.source-row {
+  min-width: 0;
+}
+
+.source-row > div {
+  min-width: 0;
+}
+
+.source-row h2,
+.source-row p {
+  overflow-wrap: anywhere;
+}
+
+/* Education hero: give copy priority; the decorative panel must not dominate the screen. */
+.education-feature {
+  grid-template-columns: minmax(300px, .78fr) minmax(0, 1.22fr);
+}
+
+/* Reduce dead vertical space caused by the rail/primary auto-placement while preserving taxonomy. */
+.gen-ui-stack[data-shell="explore"] {
+  grid-template-columns: minmax(0, 1fr) 272px;
+  grid-auto-flow: row dense;
+  gap: 18px 20px;
+}
+
+.gen-ui-stack[data-shell="explore"] .gen-ui-block[data-block-region="rail"] {
+  align-self: start;
+}
+
+@media (max-width: 1180px) {
+  .alpha-shell {
+    width: min(100% - 36px, 1080px);
+  }
+
+  .imaging-grid-media-pass {
+    grid-template-columns: 1fr;
+  }
+
+  .source-directory {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .alpha-shell {
+    width: min(100% - 28px, 760px);
+    padding-top: 28px;
+  }
+
+  .education-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .gen-ui-stack[data-shell="explore"] {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .alpha-shell {
+    width: calc(100% - 20px);
+    padding-top: 22px;
+  }
+
+  .heart-3d-card.heart-3d-cold-start .heart-3d-copy {
+    padding: 20px;
+  }
+
+  .heart-3d-card.heart-3d-cold-start .heart-stage {
+    min-height: 240px;
+  }
+}

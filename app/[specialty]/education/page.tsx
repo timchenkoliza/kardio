@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, BookOpen, ExternalLink, GraduationCap, PlayCircle } from "lucide-react";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
-import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
+import type { ContentObject, Shell, SpecialtyId } from "@/lib/domain/types";
 import { educationContent } from "@/lib/ui/content-completeness";
 import { curatedSourcesForSurface } from "@/lib/ui/curated-external-tools";
 import { deterministicContentOrder } from "@/lib/ui/feed";
@@ -14,8 +14,16 @@ import { readState, SESSION_COOKIE } from "@/server/services/state";
 
 export const dynamic = "force-dynamic";
 
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function isSpecialty(value: string): value is SpecialtyId {
   return value === "cardiology" || value === "oncology";
+}
+
+function isShell(value: string | undefined): value is Shell {
+  return value === "explore" || value === "practice" || value === "workspace";
 }
 
 function publicationLabel(item: ContentObject): string | null {
@@ -26,19 +34,28 @@ function publicationLabel(item: ContentObject): string | null {
   return item.publicationYear ? String(item.publicationYear) : null;
 }
 
-export default async function EducationPage({ params }: { params: Promise<{ specialty: string }> }) {
+export default async function EducationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ specialty: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { specialty: rawSpecialty } = await params;
   if (!isSpecialty(rawSpecialty)) notFound();
   const specialty = rawSpecialty;
+  const queryParams = await searchParams;
+  const shellParam = first(queryParams.shell);
   const cookieStore = await cookies();
   const state = await readState(cookieStore.get(SESSION_COOKIE)?.value);
+  const activeShell = isShell(shellParam) ? shellParam : state.shell;
   const content = await listContent(specialty);
   const materials = educationContent(content).sort(deterministicContentOrder);
   const externalSources = curatedSourcesForSurface(specialty, "education");
   const featured = materials[0] ?? null;
   const rest = materials.slice(1, 9);
 
-  return <ProductProvider initialState={{ ...state, specialty }} specialty={specialty}>
+  return <ProductProvider initialState={{ ...state, specialty, shell: activeShell }} specialty={specialty}>
     <ProductFrame specialty={specialty}>
       <div className="education-hub">
         <header className="education-intro">
