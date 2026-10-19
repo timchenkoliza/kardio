@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { assets, contentObjects, sources } from "@/db/schema";
 import type { Asset, ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
+import { hardcodedEditorialSource, withHardcodedTopicContent } from "@/lib/demo/hardcoded-topic-content";
 import { isSpecialty } from "@/lib/specialty";
 import { loadGoldenSet, normalizeGoldenSet } from "@/server/ingestion/goldenset";
 
@@ -70,39 +71,39 @@ async function queryContent(specialty: SpecialtyId, id?: string): Promise<Conten
   });
 }
 
+async function baseContent(specialty: SpecialtyId): Promise<ContentObject[]> {
+  if (databaseConfigured()) return queryContent(specialty);
+  if (specialty === "cardiology") return (await staticCatalog()).content;
+  return [];
+}
+
+async function baseSources(specialty: SpecialtyId): Promise<Source[]> {
+  if (databaseConfigured()) {
+    return (await db.select().from(sources).where(eq(sources.specialty, specialty)).orderBy(asc(sources.name))).map(sourceRecord);
+  }
+  if (specialty === "cardiology") return (await staticCatalog()).sources;
+  return [];
+}
+
 export async function listContent(specialty: SpecialtyId): Promise<ContentObject[]> {
   requireSpecialty(specialty);
-  if (!databaseConfigured()) {
-    if (specialty !== "cardiology") return [];
-    return (await staticCatalog()).content;
-  }
-  return queryContent(specialty);
+  const canonical = await baseContent(specialty);
+  return withHardcodedTopicContent(specialty, canonical);
 }
 
 export async function getContent(specialty: SpecialtyId, id: string): Promise<ContentObject | null> {
   requireSpecialty(specialty);
-  if (!databaseConfigured()) {
-    if (specialty !== "cardiology") return null;
-    return (await staticCatalog()).content.find(item => item.id === id) ?? null;
-  }
-  return (await queryContent(specialty, id))[0] ?? null;
+  return (await listContent(specialty)).find(item => item.id === id) ?? null;
 }
 
 export async function listSources(specialty: SpecialtyId): Promise<Source[]> {
   requireSpecialty(specialty);
-  if (!databaseConfigured()) {
-    if (specialty !== "cardiology") return [];
-    return (await staticCatalog()).sources;
-  }
-  return (await db.select().from(sources).where(eq(sources.specialty, specialty)).orderBy(asc(sources.name))).map(sourceRecord);
+  const canonical = await baseSources(specialty);
+  const hardcoded = hardcodedEditorialSource(specialty);
+  return canonical.some(source => source.id === hardcoded.id) ? canonical : [...canonical, hardcoded];
 }
 
 export async function getSource(specialty: SpecialtyId, id: string): Promise<Source | null> {
   requireSpecialty(specialty);
-  if (!databaseConfigured()) {
-    if (specialty !== "cardiology") return null;
-    return (await staticCatalog()).sources.find(source => source.id === id) ?? null;
-  }
-  const row = (await db.select().from(sources).where(and(eq(sources.specialty, specialty), eq(sources.id, id))))[0];
-  return row ? sourceRecord(row) : null;
+  return (await listSources(specialty)).find(source => source.id === id) ?? null;
 }
