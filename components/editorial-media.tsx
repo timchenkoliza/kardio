@@ -66,7 +66,6 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
         height={content.asset?.height ?? undefined}
       />
       {content.asset?.credit && <figcaption>{content.asset.credit}</figcaption>}
-      {isPrototype && <span className="prototype-media-status">Медиа на проверке</span>}
     </figure>
   );
 }
