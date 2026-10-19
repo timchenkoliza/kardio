@@ -219,6 +219,65 @@
   display: none;
 }
 
+/* Image-free is a first-class state: no decorative pseudo-medical geometry. */
+.product .editorial-art-typographic {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.product .editorial-art-typographic::before,
+.product .editorial-art-typographic::after,
+.product .editorial-art-typographic .editorial-art-orbit,
+.product .editorial-art-typographic .editorial-art-line {
+  display: none;
+}
+
+.product .editorial-art-kicker,
+.product .editorial-art-source {
+  position: relative;
+  z-index: 1;
+  max-width: 22ch;
+  color: var(--specialty-art-ink);
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+
+.product .editorial-art-kicker {
+  text-transform: uppercase;
+  letter-spacing: .055em;
+}
+
+.product .editorial-art-monogram {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  color: var(--specialty-art-ink);
+  font-size: var(--font-size-display-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: -.06em;
+}
+
+.product .editorial-art-source {
+  color: color-mix(in srgb, var(--specialty-art-ink) 72%, var(--color-text-secondary));
+}
+
+.product[data-specialty="cardiology"] .editorial-art-typographic {
+  background: color-mix(in srgb, var(--color-surface) 44%, var(--color-accent-wash));
+  border-left: 5px solid var(--color-accent-strong);
+}
+
+.product[data-specialty="oncology"] .editorial-art-typographic {
+  background: color-mix(in srgb, var(--color-surface) 44%, var(--art-clinical-bg));
+  border-left: 5px solid var(--color-accent-strong);
+}
+
 /* Real diagnostic imagery is always neutral and never specialty-tinted. */
 .product .editorial-media.has-image[data-media-treatment="diagnostic"],
 .product .local-preview.has-preview {
@@ -258,5 +317,9 @@
 @media (max-width: 760px) {
   .product .practice-launcher > a {
     min-height: 112px;
+  }
+
+  .product .editorial-art-typographic {
+    padding: 14px;
   }
 }
