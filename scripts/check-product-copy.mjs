@@ -39,6 +39,11 @@ const requiredBoundaries = [
   ["components/product-frame.tsx", "Поисковые фразы не передаются в аналитику"],
   ["components/workspace-professional-intelligence.tsx", "Не передавайте через этот продукт медицинские данные пациента"],
   ["components/workspace-professional-intelligence.tsx", "не ориентир для решения по конкретному пациенту"],
+  ["components/drug-intelligence-workspace.tsx", "Демо-данные · синтетические оценки"],
+  ["components/drug-intelligence-workspace.tsx", "не попадает в Golden Set"],
+  ["components/consilium-workspace.tsx", "Синтетический консилиум · ответы AI-персон"],
+  ["components/consilium-workspace.tsx", "Это не медицинское решение за врача"],
+  ["components/consilium-workspace.tsx", "Не передавайте персональные данные пациента"],
 ];
 
 for (const [file, phrase] of requiredBoundaries) {
