@@ -129,9 +129,10 @@ export function AgentFirstWorkspace({ specialty }: { specialty: SpecialtyId }) {
     const file = event.target.files?.[0];
     if (!file) return;
     const text = /\.(txt|md|json|csv)$/iu.test(file.name) || file.type.startsWith("text/");
+    const fileContent = text ? await file.text() : undefined;
     setMaterials(current => [{
       id: `file:${Date.now()}`, title: file.name, kind: "file", ownership: "USER_UPLOADED",
-      createdAt: new Date().toISOString(), content: text ? await file.text() : undefined,
+      createdAt: new Date().toISOString(), content: fileContent,
       indexingStatus: text ? "INDEXED_LOCAL" : "METADATA_ONLY",
       indexingNote: text ? "Текст прочитан локально." : "PDF parsing/indexing недоступен в preview; файл не отправлен на сервер.",
     }, ...current]);
