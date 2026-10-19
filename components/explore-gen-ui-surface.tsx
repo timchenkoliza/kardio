@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Calculator, CalendarDays, ScanLine, Search } from "lucide-react";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { buildExploreComposition } from "@/lib/ui/explore-composition";
+import { CardioPartnerFormats } from "@/components/cardio-partner-formats";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { EditorialShelf } from "@/components/editorial-shelf";
 import { GenUiStack, type GenUiBlock } from "@/components/gen-ui-stack";
@@ -9,6 +10,12 @@ import { GenUiStack, type GenUiBlock } from "@/components/gen-ui-stack";
 export function ExploreGenUiSurface({ specialty, content, sources }: { specialty: SpecialtyId; content: ContentObject[]; sources: Source[] }) {
   const model = buildExploreComposition(content);
   const blocks: GenUiBlock[] = [
+    ...(specialty === "cardiology" ? [{
+      id: "explore-partners",
+      label: "Партнёрские форматы",
+      kind: "partner_shelf" as const,
+      content: <CardioPartnerFormats />,
+    }] : []),
     ...(model.lead ? [{
       id: "explore-featured",
       label: "Главный материал",
