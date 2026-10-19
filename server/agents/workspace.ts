@@ -16,6 +16,9 @@ import { isRehydrated, markRehydrationConsumed } from "./store/mirror";
  * handlers mutate. Nothing here renders UI.
  */
 
+/** Agents whose findings are "news" for the physician; on-demand agents do not inflate counters. */
+export const MONITORING_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "events"];
+
 export const AGENT_CONNECTORS: Record<AgentId, string[]> = {
   whats_new: ["catalog", "pubmed", "esc-guidelines", "regulatory-news", "partner-channel"],
   guidelines: ["catalog", "esc-guidelines"],
@@ -51,7 +54,8 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
   const preference = effectivePreference(profile, definition.id);
   const current = args.current.filter(result => eventStillRelevant(result, now));
   const organic = current.filter(result => !result.partner);
-  const fresh = organic.filter(result => isNewSinceLastSeen(result, subscription.lastSeenAt));
+  const tracksNew = MONITORING_AGENTS.includes(definition.id);
+  const fresh = tracksNew ? organic.filter(result => isNewSinceLastSeen(result, subscription.lastSeenAt)) : [];
   const href = agentHref(specialty, definition.id);
   const topics = topicLabels(specialty, preference.topics);
   const reasons = [topics.length ? `Темы: ${topics.slice(0, 3).join(", ")}${topics.length > 3 ? ` и ещё ${topics.length - 3}` : ""}` : null, preference.trustedSources.length ? `Источники: ${sourceLabels(preference.trustedSources).slice(0, 3).join(", ")}` : null].filter((value): value is string => Boolean(value));
@@ -141,6 +145,7 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
     newResults: fresh.length,
     headline,
     breakdown,
+    highlights: definition.id === "whats_new" ? (pool.length ? pool : organic).slice(0, 3).map(result => result.title) : [],
     reasons,
     primaryAction: { label: state === "needs_setup" ? "Настроить" : primaryLabel[definition.id], href },
   };
@@ -178,11 +183,20 @@ export async function getWorkspaceView(sessionId: string | null, specialty: Spec
     }
     return card;
   });
+  const seenTitles = new Set<string>();
   const recent = withNewFlags(
-    AGENT_ORDER.flatMap(agentId => currentResults(results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null))
+    MONITORING_AGENTS.flatMap(agentId => currentResults(results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null))
       .filter(result => !result.partner && eventStillRelevant(result, now)),
     profile,
-  ).sort((a, b) => Number(b.newSinceLastSeen) - Number(a.newSinceLastSeen) || b.createdAt.localeCompare(a.createdAt) || a.rank - b.rank).slice(0, 6);
+  )
+    .sort((a, b) => Number(b.newSinceLastSeen) - Number(a.newSinceLastSeen) || MONITORING_AGENTS.indexOf(a.agentId) - MONITORING_AGENTS.indexOf(b.agentId) || a.rank - b.rank)
+    .filter(result => {
+      const key = result.title.toLocaleLowerCase("ru-RU");
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    })
+    .slice(0, 6);
   return {
     specialty,
     profile,

@@ -349,6 +349,7 @@ export interface AgentCardState {
   newResults: number;
   headline: string;
   breakdown: Array<{ label: string; count: number }>;
+  highlights: string[];
   reasons: string[];
   primaryAction: { label: string; href: string };
 }

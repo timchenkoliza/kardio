@@ -28,7 +28,7 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"] },
     { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"] },
     { id: "endocarditis", label: "Инфекционный эндокардит", catalogTopics: ["infective_endocarditis"], pubmed: "endocarditis[tiab]", keywords: ["эндокардит"] },
-    { id: "prevention", label: "Профилактика", catalogTopics: ["prognosis_and_diagnostics", "treatment_strategies"], pubmed: "\"cardiovascular prevention\"[tiab] OR \"cardiovascular risk\"[tiab]", keywords: ["профилакт", "риск", "score"] },
+    { id: "prevention", label: "Профилактика", catalogTopics: ["prognosis_and_diagnostics", "treatment_strategies"], pubmed: "\"cardiovascular prevention\"[tiab] OR \"cardiovascular risk\"[tiab]", keywords: ["профилакт", "score2", "суммарн риск", "сердечно-сосудист риск"] },
     { id: "ai", label: "ИИ в кардиологии", catalogTopics: ["ai_in_cardiology"], pubmed: "\"artificial intelligence\"[tiab] AND cardiology[tiab]", keywords: ["ии", "искусственн интеллект", "нейросет"] },
   ],
   oncology: [

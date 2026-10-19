@@ -122,7 +122,7 @@ export function eventDrafts(ctx: AgentContext, events: readonly NormalizedEvent[
         dataOrigin: "curated_snapshot" as const,
       },
       actions: [
-        { kind: "open_source", label: "Подробнее", href: record.listingUrl, requiresConfirmation: true },
+        { kind: "open_source", label: "Подробнее", href: record.listingUrl, requiresConfirmation: false },
         { kind: "save", label: "Сохранить", href: null, requiresConfirmation: false },
         { kind: "calendar", label: "Добавить в календарь", href: null, requiresConfirmation: true },
         { kind: "registration", label: "Перейти к регистрации", href: registrationHref, requiresConfirmation: true },

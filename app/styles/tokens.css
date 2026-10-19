@@ -194,3 +194,71 @@
   --art-event-2: #eadbb7;
   --art-event-ink: #6d5a2a;
 }
+
+/* Agent workspace (agent-first IA). Yandex Med violet owns the interface. */
+:root {
+  --ws-max-width: 1240px;
+  --ws-gutter: 16px;
+  --ws-gutter-wide: 32px;
+  --ws-topbar-height: 64px;
+  --ws-tabbar-height: 64px;
+
+  --ws-canvas: #f6f6fb;
+  --ws-surface: #ffffff;
+  --ws-surface-raised: #fcfcff;
+  --ws-surface-muted: #f1f1f8;
+  --ws-border: #e3e3ee;
+  --ws-border-strong: #d2d2e3;
+  --ws-text: #15151c;
+  --ws-text-secondary: #5f5f6e;
+  --ws-text-tertiary: #8a8a98;
+
+  --ws-violet: #7275ff;
+  --ws-violet-strong: #5b5ef0;
+  --ws-violet-ink: #3f41b8;
+  --ws-violet-soft: #ececff;
+  --ws-violet-wash: #f5f4ff;
+  --ws-violet-focus: #b9baff;
+
+  --ws-hero-surface: #1c1a3f;
+  --ws-hero-surface-2: #26235a;
+  --ws-hero-glow: rgb(137 139 255 / 42%);
+  --ws-hero-glow-2: rgb(214 170 255 / 22%);
+  --ws-hero-text: #ffffff;
+  --ws-hero-muted: #c8c7f3;
+  --ws-hero-border: rgb(255 255 255 / 14%);
+  --ws-hero-chip: rgb(255 255 255 / 10%);
+  --ws-hero-chip-hover: rgb(255 255 255 / 18%);
+
+  --ws-success: #157a55;
+  --ws-success-soft: #e8f6ef;
+  --ws-warning: #8a5a10;
+  --ws-warning-soft: #fff4dd;
+  --ws-danger: #b42318;
+  --ws-danger-soft: #fff0ee;
+  --ws-neutral-soft: #eeeef4;
+  --ws-partner: #7a4d00;
+  --ws-partner-soft: #fff6e6;
+  --ws-partner-border: #f0d7a6;
+  --ws-new: #5b5ef0;
+  --ws-overlay: rgb(16 15 32 / 48%);
+  --ws-on-accent: #ffffff;
+
+  --ws-shadow-card: 0 1px 0 rgb(20 20 40 / 4%), 0 10px 30px rgb(40 40 90 / 6%);
+  --ws-shadow-card-hover: 0 1px 0 rgb(20 20 40 / 5%), 0 16px 40px rgb(60 60 140 / 12%);
+  --ws-shadow-hero: 0 24px 60px rgb(28 26 63 / 28%);
+  --ws-shadow-dialog: 0 30px 80px rgb(16 15 32 / 30%);
+  --ws-shadow-focus: 0 0 0 3px var(--ws-violet-focus);
+  --ws-shadow-new: inset 3px 0 0 var(--ws-new);
+}
+
+.ws-app[data-specialty="oncology"] {
+  --ws-violet: #5c58b8;
+  --ws-violet-strong: #46429e;
+  --ws-violet-ink: #2f2c72;
+  --ws-violet-soft: #e8e7f7;
+  --ws-violet-wash: #f2f1fa;
+  --ws-hero-surface: #1d1f33;
+  --ws-hero-surface-2: #262a44;
+  --ws-new: #46429e;
+}

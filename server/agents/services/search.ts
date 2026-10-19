@@ -3,6 +3,7 @@ import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { deterministicContentOrder } from "@/lib/ui/feed";
 import { rankWorkspaceResearch } from "@/lib/ui/workspace-research-agent";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
+import { contentTokens } from "@/lib/agents/text";
 import { isUnverifiedEditorialDraft } from "./evidence";
 
 /**
@@ -60,9 +61,11 @@ export function searchMedical(args: {
     if (!matchedTopics.length) continue;
     byId.set(item.id, { content: item, score: 10 * matchedTopics.length, matchedTopics, matchedTerms: [] });
   }
-  if (args.query?.trim()) {
-    for (const result of rankWorkspaceResearch(eligible, [args.query], 24)) {
+  const meaningful = args.query ? contentTokens(args.query).join(" ") : "";
+  if (meaningful) {
+    for (const result of rankWorkspaceResearch(eligible, [meaningful], 24)) {
       const existing = byId.get(result.content.id);
+      if (!existing && args.topicIds.length && result.matchedTerms.length < 2) continue;
       if (existing) {
         existing.score += result.score;
         existing.matchedTerms = result.matchedTerms;

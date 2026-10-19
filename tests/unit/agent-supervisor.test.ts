@@ -201,3 +201,13 @@ describe("learning agent", () => {
     expect(outcome.results.every(result => result.kind === "learning_module")).toBe(true);
   });
 });
+
+describe("delegated tasks are scoped by the request", () => {
+  it("research answers the question, not the standing interests", async () => {
+    const profile = profileWith("cardiology", ["metabolic", "hf", "ah"]);
+    const outcome = await runAgent({ store, sessionId: SESSION, catalog: await catalog(), pubmed: fakePubmed([]), now: () => FIXED_NOW }, { agentId: "research", specialty: "cardiology", profile, trigger: "composer", text: "Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта" });
+    expect(outcome.results.length).toBeGreaterThan(0);
+    expect(outcome.results.every(result => !/Метаболический синдром/.test(result.title))).toBe(true);
+    expect(outcome.results.some(result => /фибрилляц/i.test(result.title))).toBe(true);
+  });
+});

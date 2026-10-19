@@ -24,7 +24,7 @@ export function normalizeText(value: string): string {
 const STOP_WORDS = new Set([
   "и", "в", "во", "на", "по", "с", "со", "к", "ко", "о", "об", "от", "до", "из", "за", "для", "при", "или", "как", "что", "это", "без", "над", "под",
   "между", "после", "перед", "не", "ли", "же", "бы", "а", "но", "у", "of", "the", "and", "in", "for", "with", "to", "a", "an", "on", "by", "is", "are",
-  "мне", "мой", "мои", "моих", "найди", "покажи", "расскажи", "есть", "какие", "какой", "какая", "который", "которые", "этот", "эта", "эти",
+  "мне", "мой", "мои", "моих", "моем", "моём", "про", "материалах", "материалы", "материалов", "найди", "покажи", "расскажи", "есть", "какие", "какой", "какая", "который", "которые", "этот", "эта", "эти",
 ]);
 
 export function contentTokens(value: string): string[] {
@@ -36,7 +36,8 @@ export function contentTokens(value: string): string[] {
 
 /** Light Russian/English stemming, enough for lexical overlap checks. */
 export function stem(token: string): string {
-  if (token.length <= 5) return token;
+  if (token.length <= 4) return token;
+  if (token.length === 5) return token.replace(/[аяуюыиеоь]$/u, "");
   return token.replace(/(иями|ями|ами|ого|его|ему|ому|ыми|ими|ая|яя|ое|ее|ые|ие|ий|ый|ой|ов|ев|ам|ям|ах|ях|ом|ем|ию|ия|ии|ей|ть|ing|ed|es|s|у|ю|а|я|ы|и|е|о)$/u, "");
 }
 

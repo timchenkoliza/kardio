@@ -88,7 +88,7 @@ export function generateLearningPlan(ctx: AgentContext): ResultDraft[] {
         observedAt: update.publishedAt,
         evidence,
         source: { connectorId: "esc-guidelines", source: update.society, sourceUrl: update.primaryUrl, publisher: update.society, retrievedAt: GUIDELINE_SNAPSHOT_RETRIEVED_AT, publishedAt: update.publishedAt, version: update.title, ownership: "PUBLIC_SOURCE", dataOrigin: "curated_snapshot" },
-        actions: [{ kind: "open_source", label: "Первоисточник", href: update.primaryUrl, requiresConfirmation: true }],
+        actions: [{ kind: "open_source", label: "Первоисточник", href: update.primaryUrl, requiresConfirmation: false }],
         attributes: {},
       });
     }
@@ -138,7 +138,7 @@ export function generateLearningPlan(ctx: AgentContext): ResultDraft[] {
           observedAt: event.record.startDate,
           evidence: eventDrafts(eventContext, [event])[0]?.evidence ?? [],
           source: { connectorId: "events-listings", source: event.record.listingName, sourceUrl: event.record.listingUrl, publisher: event.record.organizer, retrievedAt: ctx.nowIso, publishedAt: null, version: null, ownership: "PUBLIC_SOURCE", dataOrigin: "curated_snapshot" },
-          actions: [{ kind: "open_source", label: "Подробнее", href: event.record.listingUrl, requiresConfirmation: true }],
+          actions: [{ kind: "open_source", label: "Подробнее", href: event.record.listingUrl, requiresConfirmation: false }],
           attributes: {},
         });
       }

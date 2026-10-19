@@ -61,3 +61,14 @@ describe("risk gate", () => {
     expect(checkUploadRisk("slide.png", "image/png").imageNotice).toMatch(/без анализа/);
   });
 });
+
+describe("de-identification", () => {
+  it("masks a patient surname written after the role word", async () => {
+    const { deidentify } = await import("@/server/agents/services/risk");
+    const result = deidentify("Пациент Иванов И.И., 67 лет, телефон +7 999 123-45-67. Пациенту назначили наблюдение.");
+    expect(result.text).not.toContain("Иванов");
+    expect(result.text).toContain("Пациент [ФИО]");
+    expect(result.text).toContain("Пациенту назначили");
+    expect(result.redactions).toContain("phone");
+  });
+});

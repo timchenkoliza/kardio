@@ -109,7 +109,7 @@ export function catalogGuidelineChanges(ctx: AgentContext): ResultDraft[] {
         source: catalogProvenance(next),
         actions: [
           { kind: "open_internal", label: "Открыть", href: `/${specialty}/content/${encodeURIComponent(next.id)}`, requiresConfirmation: false },
-          { kind: "open_source", label: "Рубрикатор КР", href: "https://cr.minzdrav.gov.ru/", requiresConfirmation: true },
+          { kind: "open_source", label: "Рубрикатор КР", href: "https://cr.minzdrav.gov.ru/", requiresConfirmation: false },
         ],
         attributes: { society: "РКО", textCompared: false },
         partner: null,
@@ -174,8 +174,8 @@ export function societyGuidelineChanges(ctx: AgentContext, specialty: SpecialtyI
         dataOrigin: "curated_snapshot",
       },
       actions: [
-        { kind: "open_source", label: "Первоисточник", href: record.primaryUrl, requiresConfirmation: true },
-        { kind: "open_source", label: `Обзор · ${record.summarySource.name}`, href: record.summarySource.url, requiresConfirmation: true },
+        { kind: "open_source", label: "Первоисточник", href: record.primaryUrl, requiresConfirmation: false },
+        { kind: "open_source", label: `Обзор · ${record.summarySource.name}`, href: record.summarySource.url, requiresConfirmation: false },
         { kind: "save", label: "Сохранить", href: null, requiresConfirmation: false },
       ],
       attributes: { society: record.society, previousVersion: record.previousVersion, publishedNote: record.publishedNote, doi: record.doi, textCompared: false },

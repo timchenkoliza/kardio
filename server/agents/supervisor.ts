@@ -1,6 +1,7 @@
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
 import { routeIntent, type RoutedIntent } from "@/lib/agents/intent";
 import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
+import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunTrigger, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
@@ -152,6 +153,19 @@ export function mergeResults(args: { drafts: readonly ResultDraft[]; existing: r
   return { results, newCount };
 }
 
+/**
+ * A delegated task is scoped by what the physician asked: topics named in the
+ * request replace the standing interests for that run; a research question
+ * without named topics is searched by its own words only.
+ */
+function scopedPreference(preference: ReturnType<typeof effectivePreference>, agentId: AgentId, routed: RoutedIntent | null, text: string | null, specialty: SpecialtyId): ReturnType<typeof effectivePreference> {
+  if (agentId === "materials") return preference;
+  const named = routed?.topics.length ? routed.topics : text ? topicsMentioned(specialty, text) : [];
+  if (named.length) return { ...preference, topics: named };
+  if (agentId === "research" && text?.trim()) return { ...preference, topics: [] };
+  return preference;
+}
+
 export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null }): Promise<RunOutcome> {
   const now = deps.now?.() ?? new Date();
   const nowIso = now.toISOString();
@@ -210,7 +224,7 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     now,
     nowIso,
     profile: request.profile,
-    preference: routed?.topics.length && request.agentId !== "materials" ? { ...preference, topics: [...new Set([...routed.topics, ...preference.topics])] } : preference,
+    preference: scopedPreference(preference, request.agentId, routed, request.text ?? null, request.specialty),
     lastSeenAt: subscription?.lastSeenAt ?? null,
     catalog: deps.catalog,
     materials,

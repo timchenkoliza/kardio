@@ -1,4 +1,3 @@
-import { DRUG_CHANGE_LABEL } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { DrugChangeType, ResultAction } from "@/lib/agents/types";
 import { topicById, topicLabels } from "@/lib/agents/vocabulary";
@@ -18,8 +17,8 @@ import { factCheck } from "./fact-check";
 const REGION_LABEL: Record<DrugChangeRecord["region"], string> = { RU: "Россия", US: "США", EU: "ЕС", INTL: "Международно" };
 
 function regulatoryActions(record: DrugChangeRecord): ResultAction[] {
-  const actions: ResultAction[] = [{ kind: "open_source", label: `Источник · ${record.source.name}`, href: record.source.url, requiresConfirmation: true }];
-  if (record.region === "RU") actions.push({ kind: "open_source", label: "Проверить в ГРЛС", href: "https://grls.rosminzdrav.ru/", requiresConfirmation: true });
+  const actions: ResultAction[] = [{ kind: "open_source", label: `Источник · ${record.source.name}`, href: record.source.url, requiresConfirmation: false }];
+  if (record.region === "RU") actions.push({ kind: "open_source", label: "Проверить в ГРЛС", href: "https://grls.rosminzdrav.ru/", requiresConfirmation: false });
   actions.push({ kind: "save", label: "Сохранить", href: null, requiresConfirmation: false });
   return actions;
 }
@@ -49,7 +48,6 @@ export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
         secondary: record.source.kind === "secondary",
         verifyIn: record.verifyIn,
       }), { dateUncertain: Boolean(record.changeDateNote && /не указан/u.test(record.changeDateNote)) }));
-      const label = DRUG_CHANGE_LABEL[record.type].title;
       return {
         key: stableId("drug", record.id),
         agentId: ctx.agentId,
@@ -58,7 +56,7 @@ export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
         category: record.type,
         title: record.title,
         summary: record.claims[0]?.claim ?? record.title,
-        reasonShown: [matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности", `${label} · ${REGION_LABEL[record.region]}`, record.status === "announced" ? "Анонс, не вступившее в силу решение" : "Вступило в силу по данным источника"],
+        reasonShown: [matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности", record.status === "announced" ? "Анонс, не вступившее в силу решение" : "Вступило в силу по данным источника"],
         observedAt: record.changeDate,
         evidence,
         source: {
@@ -103,7 +101,7 @@ export function drugStudyDrafts(ctx: AgentContext, articles: readonly PubmedArti
       evidence: [evidence],
       source: pubmedProvenance(article, ctx.nowIso),
       actions: [
-        { kind: "open_source", label: "PubMed", href: article.url, requiresConfirmation: true },
+        { kind: "open_source", label: "PubMed", href: article.url, requiresConfirmation: false },
         { kind: "save", label: "Сохранить", href: null, requiresConfirmation: false },
       ],
       attributes: { journal: article.journal, pmid: article.pmid, doi: article.doi, publicationTypes: article.publicationTypes.slice(0, 3).join(", ") },

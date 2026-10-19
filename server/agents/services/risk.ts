@@ -11,9 +11,19 @@ export interface DeidentifiedText {
   needsReview: boolean;
 }
 
+const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|а|у|ом|е)?|[Бб]ольн(?:ой|ая|ого|ому)|[Pp]atient)\s+([А-ЯЁA-Z][а-яёa-z]+(?:[-‐][А-ЯЁA-Z][а-яёa-z]+)?)(\s+[А-ЯЁA-Z]\.\s?(?:[А-ЯЁA-Z]\.)?)?/gu;
+
 export function deidentify(text: string): DeidentifiedText {
   const result = redactDirectIdentifiers(text);
-  return { text: result.redactedText, redactions: result.detectedMarkers, needsReview: result.status === "needs_review" };
+  const redactions = [...result.detectedMarkers];
+  let redacted = result.redactedText;
+  if (PATIENT_NAME.test(redacted)) {
+    PATIENT_NAME.lastIndex = 0;
+    redacted = redacted.replace(PATIENT_NAME, (_, role: string) => `${role} [ФИО]`);
+    if (!redactions.includes("fio")) redactions.push("fio");
+  }
+  PATIENT_NAME.lastIndex = 0;
+  return { text: redacted, redactions, needsReview: result.status === "needs_review" };
 }
 
 /**
