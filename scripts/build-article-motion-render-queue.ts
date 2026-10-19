@@ -86,6 +86,7 @@ try {
         prompt_version: "article-motion-v1",
         prompt: buildArticleMotionPrompt(item),
         provenance_note: `Синтетическая анимация по исходному изображению ${source.name} · ${source.sourceRegistryId}`,
+        error: null,
         created_at: prior?.created_at ?? now,
         updated_at: now,
       };
