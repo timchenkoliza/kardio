@@ -1,32 +1,18 @@
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { EDITORIAL_COPY_V2, editorialCopySourceLabel } from "@/lib/demo/editorial-copy-v2";
 
-const FALLBACK_TOPICS: Record<SpecialtyId, readonly string[]> = {
-  cardiology: [
-    "Артериальная гипертензия",
-    "Ишемическая болезнь сердца",
-    "Сердечная недостаточность",
-    "Фибрилляция предсердий",
-    "Нарушения ритма",
-    "Клапанные пороки сердца",
-    "Кардиомиопатии",
-    "Дислипидемия и профилактика",
-    "Кардиоваскулярная визуализация",
-    "Интервенционная кардиология",
-  ],
-  oncology: [
-    "Рак молочной железы",
-    "Рак лёгкого",
-    "Колоректальный рак",
-    "Рак предстательной железы",
-    "Рак шейки матки",
-    "Рак желудка",
-    "Рак мочевого пузыря",
-    "Меланома",
-    "Поддерживающая терапия",
-    "Иммунотерапия и биомаркеры",
-  ],
-};
+const CARDIOLOGY_FALLBACK_TOPICS = [
+  "Артериальная гипертензия",
+  "Ишемическая болезнь сердца",
+  "Сердечная недостаточность",
+  "Фибрилляция предсердий",
+  "Нарушения ритма",
+  "Клапанные пороки сердца",
+  "Кардиомиопатии",
+  "Дислипидемия и профилактика",
+  "Кардиоваскулярная визуализация",
+  "Интервенционная кардиология",
+] as const;
 
 function normalizeTopicKey(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
@@ -68,6 +54,8 @@ export function topicLabelsForHardcodedExpansion(
   specialty: SpecialtyId,
   existingContent: readonly ContentObject[],
 ): string[] {
+  if (specialty !== "cardiology") return [];
+
   const seen = new Set<string>();
   const labels: string[] = [];
   const add = (raw: string | null | undefined) => {
@@ -80,7 +68,7 @@ export function topicLabelsForHardcodedExpansion(
   };
 
   for (const item of existingContent) add(item.topics.at(-1));
-  for (const topic of FALLBACK_TOPICS[specialty]) add(topic);
+  for (const topic of CARDIOLOGY_FALLBACK_TOPICS) add(topic);
   return labels;
 }
 
@@ -88,6 +76,8 @@ export function hardcodedTopicContent(
   specialty: SpecialtyId,
   existingContent: readonly ContentObject[] = [],
 ): ContentObject[] {
+  if (specialty !== "cardiology") return [];
+
   const source = hardcodedEditorialSource(specialty);
   const topics = topicLabelsForHardcodedExpansion(specialty, existingContent);
 
@@ -137,6 +127,7 @@ export function withHardcodedTopicContent(
   specialty: SpecialtyId,
   existingContent: readonly ContentObject[],
 ): ContentObject[] {
+  if (specialty !== "cardiology") return [...existingContent];
   const existingIds = new Set(existingContent.map(item => item.id));
   const additions = hardcodedTopicContent(specialty, existingContent).filter(item => !existingIds.has(item.id));
   return [...existingContent, ...additions];
