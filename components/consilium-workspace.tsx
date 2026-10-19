@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Check, MessageSquareText, Plus, Send, X } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { buildConsiliumSynthesis, consiliumPersonas, deterministicConsiliumReply, type ConsiliumReply } from "@/lib/ui/consilium";
@@ -29,14 +29,15 @@ function readStored(): StoredState {
 }
 
 export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialty: SpecialtyId; drugId?: string; indication?: string }) {
-  const initial = useMemo(() => readStored(), []);
+  const drug = drugDemoData.find(item => item.id === drugId);
+  const contextLabel = drug ? `${drug.tradeName} · ${indication || drug.indications[0]}` : undefined;
+  const contextualPrompt = drug ? `На какие аспекты вы бы обратили внимание при оценке препарата ${drug.tradeName} для показания «${indication || drug.indications[0]}»?` : "";
+  const [initial] = useState<StoredState>(readStored);
   const [selectedIds, setSelectedIds] = useState(initial.selectedIds.length ? initial.selectedIds : DEFAULT_SELECTED);
   const [messages, setMessages] = useState<Message[]>(initial.messages);
   const [targetPersonaId, setTargetPersonaId] = useState<string | null>(initial.targetPersonaId);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(contextualPrompt);
 
-  const drug = drugDemoData.find(item => item.id === drugId);
-  const contextLabel = drug ? `${drug.tradeName} · ${indication || drug.indications[0]}` : undefined;
   const selected = consiliumPersonas.filter(persona => selectedIds.includes(persona.id));
   const latestReplies = messages.filter(message => message.author !== "user").slice(-selected.length).map(message => ({ personaId: message.author, body: message.body } satisfies ConsiliumReply));
   const synthesis = latestReplies.length ? buildConsiliumSynthesis(latestReplies) : null;
@@ -44,11 +45,6 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedIds, messages, targetPersonaId } satisfies StoredState));
   }, [selectedIds, messages, targetPersonaId]);
-
-  useEffect(() => {
-    if (!drug || messages.length > 0 || draft) return;
-    setDraft(`На какие аспекты вы бы обратили внимание при оценке препарата ${drug.tradeName} для показания «${indication || drug.indications[0]}»?`);
-  }, [drug, indication, messages.length, draft]);
 
   function togglePersona(id: string) {
     setSelectedIds(current => {
@@ -60,9 +56,10 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   function send() {
     const prompt = draft.trim();
     if (!prompt) return;
-    const userMessage: Message = { id: `user-${Date.now()}`, author: "user", body: prompt };
+    const base = messages.length;
+    const userMessage: Message = { id: `user-${base}`, author: "user", body: prompt };
     const responders = targetPersonaId ? consiliumPersonas.filter(persona => persona.id === targetPersonaId) : selected;
-    const replies = responders.map((persona, index): Message => ({ id: `reply-${Date.now()}-${index}`, author: persona.id, role: persona.role, body: deterministicConsiliumReply(persona, prompt, contextLabel) }));
+    const replies = responders.map((persona, index): Message => ({ id: `reply-${base}-${index}`, author: persona.id, role: persona.role, body: deterministicConsiliumReply(persona, prompt, contextLabel) }));
     setMessages(current => [...current, userMessage, ...replies]);
     setDraft("");
   }
