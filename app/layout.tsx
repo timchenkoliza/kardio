@@ -19,6 +19,7 @@ import "./styles/gen-ui.css";
 import "./styles/editorial-blocks.css";
 import "./styles/oncology-starter.css";
 import "./styles/specialty-visual-pass.css";
+import "./styles/pixel-reference-v2.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
 
