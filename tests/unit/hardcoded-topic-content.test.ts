@@ -54,7 +54,7 @@ const existing: ContentObject = {
 };
 
 describe("hardcoded topic content v2", () => {
-  it("keeps the editorial pack fixed at exactly 20 units per topic", () => {
+  it("keeps the cardiology editorial pack fixed at exactly 20 units per topic", () => {
     expect(HARD_CODED_UNITS_PER_TOPIC).toBe(20);
     const topics = topicLabelsForHardcodedExpansion("cardiology", [existing]);
     const content = hardcodedTopicContent("cardiology", [existing]);
@@ -65,16 +65,13 @@ describe("hardcoded topic content v2", () => {
     }
   });
 
-  it("seeds oncology even when its canonical catalog is empty", () => {
-    const topics = topicLabelsForHardcodedExpansion("oncology", []);
-    const content = hardcodedTopicContent("oncology", []);
-    expect(topics).toHaveLength(10);
-    expect(content).toHaveLength(200);
-    expect(new Set(content.map(item => item.id)).size).toBe(200);
+  it("does not seed oncology while the product focus is cardiology", () => {
+    expect(topicLabelsForHardcodedExpansion("oncology", [])).toEqual([]);
+    expect(hardcodedTopicContent("oncology", [])).toEqual([]);
   });
 
-  it("marks every hardcoded unit as review-only prototype copy", () => {
-    const content = hardcodedTopicContent("oncology", []);
+  it("marks every cardiology hardcoded unit as review-only prototype copy", () => {
+    const content = hardcodedTopicContent("cardiology", [existing]);
     expect(content.every(item => item.currentness === "review")).toBe(true);
     expect(content.every(item => item.requiresReview)).toBe(true);
     expect(content.every(item => item.editorialStatus === "prototype_hardcoded")).toBe(true);
