@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowUpRight, BookOpen, Bookmark, Calculator, ChevronDown, Compass, GraduationCap, Library, RotateCcw, ScanLine, Search, Settings2, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpRight, BookOpen, Bookmark, Calculator, ChevronDown, Compass, GraduationCap, HeartHandshake, Library, Pill, RotateCcw, ScanLine, Search, Settings2, SlidersHorizontal, X } from "lucide-react";
 import type { Shell, SpecialtyId } from "@/lib/domain/types";
 import { shellLabel, specialtyLabel } from "@/lib/ui/labels";
 import { ONBOARDING_STORAGE_KEY, OnboardingDialog } from "./onboarding-dialog";
@@ -12,9 +12,15 @@ import { useProduct } from "./product-provider";
 
 const secondaryNavigation = [
   { id: "saved", label: "Мои материалы", icon: Bookmark },
-  { id: "sources", label: "Источники", icon: Library }, { id: "tools", label: "Калькуляторы", icon: Calculator },
-  { id: "reference", label: "Справочник", icon: BookOpen }, { id: "imaging", label: "Визуализация", icon: ScanLine }, { id: "referral", label: "ВМП", icon: ArrowUpRight },
-  { id: "events", label: "События", icon: Compass }, { id: "education", label: "Обучение", icon: GraduationCap },
+  { id: "sources", label: "Источники", icon: Library },
+  { id: "tools", label: "Калькуляторы", icon: Calculator },
+  { id: "drugs", label: "Препараты", icon: Pill },
+  { id: "consilium", label: "Консилиум", icon: HeartHandshake },
+  { id: "reference", label: "Справочник", icon: BookOpen },
+  { id: "imaging", label: "Визуализация", icon: ScanLine },
+  { id: "referral", label: "ВМП", icon: ArrowUpRight },
+  { id: "events", label: "События", icon: Compass },
+  { id: "education", label: "Обучение", icon: GraduationCap },
 ];
 
 function navigationHref(specialty: SpecialtyId, id: string): string {
@@ -82,7 +88,7 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
       <span className="avatar" aria-label="Личное пространство без регистрации">М</span>
     </header>
     <div className="app-grid">
-      <aside className="navigation-rail"><nav aria-label="Основная навигация">{navigation.map(item => <Link key={item.id} href={navigationHref(specialty, item.id)} className={`nav-item ${view === item.id && !params.has("q") ? "active" : ""}`} aria-current={view === item.id && !params.has("q") ? "page" : undefined} onClick={() => { if (["tools", "reference", "referral", "imaging"].includes(item.id)) track("quick_job_opened"); }}><item.icon size={19} aria-hidden="true" /><span>{item.label}</span>{item.id === "saved" && state.savedIds.length > 0 && <span className="nav-count">{state.savedIds.length}</span>}</Link>)}</nav><div className="rail-bottom"><button className="quiet-button mode-control" onClick={() => settings.current?.showModal()}><SlidersHorizontal size={16} aria-hidden="true" /><span>{shellLabel[state.shell]}</span></button><p>Для профессионального<br />медицинского сообщества</p></div></aside>
+      <aside className="navigation-rail"><nav aria-label="Основная навигация">{navigation.map(item => <Link key={item.id} href={navigationHref(specialty, item.id)} className={`nav-item ${view === item.id && !params.has("q") ? "active" : ""}`} aria-current={view === item.id && !params.has("q") ? "page" : undefined} onClick={() => { if (["tools", "drugs", "consilium", "reference", "referral", "imaging"].includes(item.id)) track("quick_job_opened"); }}><item.icon size={19} aria-hidden="true" /><span>{item.label}</span>{item.id === "saved" && state.savedIds.length > 0 && <span className="nav-count">{state.savedIds.length}</span>}</Link>)}</nav><div className="rail-bottom"><button className="quiet-button mode-control" onClick={() => settings.current?.showModal()}><SlidersHorizontal size={16} aria-hidden="true" /><span>{shellLabel[state.shell]}</span></button><p>Для профессионального<br />медицинского сообщества</p></div></aside>
       <main id="main" className="main-content" tabIndex={-1}>{rootHome && <PbzContextStrip specialty={specialty} shell={state.shell} />}{children}</main>
     </div>
     <dialog ref={settings} className="settings-dialog" aria-labelledby="settings-title" onClick={event => { if (event.target === event.currentTarget) settings.current?.close(); }}>
