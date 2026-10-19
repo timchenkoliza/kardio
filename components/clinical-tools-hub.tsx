@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ExternalLink, HeartPulse, Layers3 } from "lucide-react";
+import { Check, ExternalLink, Layers3 } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { cha2Ds2VaLabel, hasBledLabel, scoreCha2Ds2Va, scoreHasBled } from "@/lib/ui/clinical-calculators";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
-import { PrototypeCineViewer } from "@/components/prototype-cine-viewer";
+import { CardiologyAnatomyExplorer } from "@/components/cardiology-anatomy-explorer";
+import { ProductionMedicalMediaViewer } from "@/components/production-medical-media-viewer";
 
 function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (checked: boolean) => void; children: React.ReactNode }) {
   return <label className={checked ? "tool-check selected" : "tool-check"}><input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} /><span className="tool-check-mark">{checked && <Check size={14} />}</span><span>{children}</span></label>;
@@ -83,18 +84,18 @@ export function ImagingWorkspace({ specialty }: { specialty: SpecialtyId }) {
   const isCardiology = specialty === "cardiology";
 
   return <div className="imaging-hub">
-    <header className="tools-intro"><span className="eyebrow">{isCardiology ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>{isCardiology ? "3D-анатомия, реальные материалы медиабанка и локальный просмотр обезличенных или учебных изображений." : "Локальный просмотр обезличенных или учебных изображений и подготовленное место для будущей 3D-реконструкции и сегментации."}</p></header>
+    <header className="tools-intro"><span className="eyebrow">{isCardiology ? "Кардиология" : "Онкология"}</span><h1>Визуализация</h1><p>{isCardiology ? "Интерактивная учебная анатомия, открытые медицинские изображения и локальный просмотр обезличенных кадров." : "Локальный просмотр обезличенных или учебных изображений и подготовленное место для будущей 3D-реконструкции и сегментации."}</p></header>
 
     <div className="imaging-grid imaging-grid-media-pass">
-      <section className="heart-3d-card heart-3d-cold-start">
-        <div className="heart-3d-copy"><div className="visual-icon">{isCardiology ? <HeartPulse size={24} /> : <Layers3 size={24} />}</div><span className="eyebrow">3D · пока без модели</span><h2>{isCardiology ? "Анатомия сердца" : "3D и сегментация"}</h2><p>{isCardiology ? "Место и слои для интерактивной модели готовы, но лицензированный или собственный 3D-asset ещё не подключён. Поэтому мы не подменяем его нарисованным «работающим» сердцем." : "Объёмная реконструкция и сегментация пока не подключены. Без специализированного рендерера и проверенного учебного набора мы не имитируем диагностическую функцию."}</p><div className="layer-chips planned-layers" aria-label="Планируемые слои">{isCardiology ? <><span>Миокард</span><span>Камеры</span><span>Клапаны</span><span>Коронарные артерии</span></> : <><span>КТ / МРТ</span><span>Серии</span><span>Контуры</span><span>3D-реконструкция</span></>}</div></div>
-        <div className="heart-stage" aria-label={isCardiology ? "3D-модель сердца пока не подключена" : "3D-реконструкция пока не подключена"}><div className="heart-stage-orbit orbit-one" /><div className="heart-stage-orbit orbit-two" /><div className="heart-volume">{isCardiology ? <HeartPulse size={72} /> : <Layers3 size={72} />}</div><span><Layers3 size={15} /> {isCardiology ? "3D-модель пока не подключена" : "3D-реконструкция пока не подключена"}</span></div>
-      </section>
+      {isCardiology ? <CardiologyAnatomyExplorer specialty={specialty} /> : <section className="heart-3d-card heart-3d-cold-start">
+        <div className="heart-3d-copy"><div className="visual-icon"><Layers3 size={24} /></div><span className="eyebrow">3D · пока без модели</span><h2>3D и сегментация</h2><p>Объёмная реконструкция и сегментация пока не подключены. Без специализированного рендерера и проверенного учебного набора мы не имитируем диагностическую функцию.</p><div className="layer-chips planned-layers"><span>КТ / МРТ</span><span>Серии</span><span>Контуры</span><span>3D-реконструкция</span></div></div>
+        <div className="heart-stage"><div className="heart-stage-orbit orbit-one" /><div className="heart-stage-orbit orbit-two" /><div className="heart-volume"><Layers3 size={72} /></div><span><Layers3 size={15} /> 3D-реконструкция пока не подключена</span></div>
+      </section>}
 
-      <PrototypeCineViewer specialty={specialty} />
+      <ProductionMedicalMediaViewer specialty={specialty} />
     </div>
 
     {inobitec && <a className="tool-source-link imaging-reference-link" href={inobitec.url} target="_blank" rel="noreferrer">Референс просмотрщика · {inobitec.name} <ExternalLink size={14} /></a>}
-    <p className="tools-footnote">Просмотрщик не интерпретирует снимок и не выдаёт диагностическое заключение. Реальные диагностические изображения сохраняют исходную цветопередачу; права на прототипные материалы проверяются отдельно.</p>
+    <p className="tools-footnote">Визуализация предназначена для учебной навигации и просмотра. Она не интерпретирует диагностические изображения и не формирует заключение; локальные файлы остаются в браузере.</p>
   </div>;
 }
