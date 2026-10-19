@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-hub";
+import { ConsiliumWorkspace } from "@/components/consilium-workspace";
+import { DrugIntelligenceWorkspace } from "@/components/drug-intelligence-workspace";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ExploreGenUiSurface } from "@/components/explore-gen-ui-surface";
 import { OncologyPracticeSurface } from "@/components/oncology-practice-surface";
@@ -28,6 +30,8 @@ const viewTitles: Record<string, string> = {
   saved: "Мои материалы",
   sources: "Источники",
   tools: "Калькуляторы",
+  drugs: "Препараты",
+  consilium: "Консилиум",
   reference: "Справочник",
   imaging: "Визуализация",
   referral: "ВМП",
@@ -74,6 +78,8 @@ export default async function SpecialtyHome({
   const view = first(queryParams.view) ?? "feed";
   const kindParam = first(queryParams.kind);
   const kind: FeedKindFilter = isFeedKind(kindParam) ? kindParam : "all";
+  const drugId = first(queryParams.drug);
+  const indication = first(queryParams.indication);
 
   const cookieStore = await cookies();
   const state = await readState(cookieStore.get(SESSION_COOKIE)?.value);
@@ -89,7 +95,7 @@ export default async function SpecialtyHome({
         ) : rootHome && state.shell === "workspace" ? (
           <WorkspaceGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} />
         ) : (
-          <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} />
+          <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} />
         )}
       </div>
     </ProductFrame>
@@ -104,6 +110,8 @@ function ExploreOrCatalogHome({
   query,
   view,
   kind,
+  drugId,
+  indication,
 }: {
   specialty: SpecialtyId;
   content: ContentObject[];
@@ -112,8 +120,12 @@ function ExploreOrCatalogHome({
   query: string;
   view: string;
   kind: FeedKindFilter;
+  drugId?: string;
+  indication?: string;
 }) {
   if (view === "tools") return <ClinicalToolsHub specialty={specialty} />;
+  if (view === "drugs") return <DrugIntelligenceWorkspace specialty={specialty} />;
+  if (view === "consilium") return <ConsiliumWorkspace specialty={specialty} drugId={drugId} indication={indication} />;
   if (view === "reference") return <ReferenceHub specialty={specialty} />;
   if (view === "imaging") return <ImagingWorkspace specialty={specialty} />;
   if (view === "events") return <EventsHub specialty={specialty} content={content} />;
