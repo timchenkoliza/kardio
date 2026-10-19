@@ -4,6 +4,12 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   turbopack: { root: process.cwd() },
+  outputFileTracingIncludes: {
+    "/**": [
+      "./data/**/*",
+      "./context/knowledge/source_registry.cardiology.json",
+    ],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },
