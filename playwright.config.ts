@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+const parsedBaseURL = new URL(baseURL);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -23,10 +24,14 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVER ? undefined : {
-    command: "npm run start",
+    command: "node scripts/start-standalone.mjs",
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { APP_ORIGIN: baseURL },
+    env: {
+      APP_ORIGIN: baseURL,
+      HOSTNAME: parsedBaseURL.hostname,
+      PORT: parsedBaseURL.port || (parsedBaseURL.protocol === "https:" ? "443" : "80"),
+    },
   },
 });
