@@ -31,7 +31,7 @@ function ExternalShelf({ kind, items }: { kind: OncologyStarterKind; items: Onco
   </section>;
 }
 
-export function OncologyStarterSurface({ focus = "all" }: { focus?: OncologyStarterFocus }) {
+export function OncologyStarterSurface({ focus = "all", showIntro = true }: { focus?: OncologyStarterFocus; showIntro?: boolean }) {
   const order: OncologyStarterKind[] = ["guideline", "clinical", "evidence", "event", "learning"];
   const kinds = focus === "all" ? order : [focus];
   const blocks: GenUiBlock[] = kinds.flatMap(kind => {
@@ -45,11 +45,11 @@ export function OncologyStarterSurface({ focus = "all" }: { focus?: OncologyStar
     }];
   });
 
-  return <div className="oncology-starter">
-    <section className="oncology-starter-intro">
+  return <div className={showIntro ? "oncology-starter" : "oncology-starter oncology-starter-compact"}>
+    {showIntro && <section className="oncology-starter-intro">
       <div><span className="eyebrow">Онкология · профессиональный стартовый слой</span><h2>Первичные источники вместо пустого раздела</h2><p>Пока собственный онкологический каталог проходит отдельную подготовку, здесь собраны проверенные точки входа в рекомендации, протоколы, обновления, обучение и события. Кардиологический контент не переиспользуется.</p></div>
       <div className="oncology-starter-proof"><ShieldCheck size={18} /><span>Внешняя навигация<br /><strong>без персональных назначений</strong></span></div>
-    </section>
+    </section>}
     <GenUiStack specialty="oncology" shell="explore" blocks={blocks} />
   </div>;
 }
