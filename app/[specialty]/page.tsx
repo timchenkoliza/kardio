@@ -137,6 +137,7 @@ function ExploreOrCatalogHome({
   const isFeedCatalog = view === "feed" && !query;
   const isExploreHome = isFeedCatalog && kind === "all";
   const isOncologyStarter = specialty === "oncology" && content.length === 0 && isFeedCatalog;
+  const isOncologyEducationStart = specialty === "oncology" && content.length === 0 && view === "education" && !query;
   const pageTitle = query ? "Поиск" : viewTitles[view] ?? (kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Лента" : "Материалы");
 
   return <>
@@ -155,6 +156,8 @@ function ExploreOrCatalogHome({
       <SourceDirectory specialty={specialty} sources={sources} />
     ) : isOncologyStarter ? (
       <OncologyStarterSurface focus={oncologyFocus(kind)} />
+    ) : isOncologyEducationStart ? (
+      <OncologyStarterSurface focus="learning" showIntro={false} />
     ) : isExploreHome && visible.length ? (
       <ExploreGenUiSurface specialty={specialty} content={content} sources={sources} />
     ) : visible.length ? (
