@@ -1,0 +1,187 @@
+.oncology-starter {
+  display: grid;
+  gap: 22px;
+}
+
+.oncology-starter-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: 24px 26px;
+  background: var(--color-accent-wash);
+  border: 1px solid var(--color-accent-soft);
+  border-radius: var(--radius-xl);
+}
+
+.oncology-starter-intro h2 {
+  max-width: 760px;
+  margin: 5px 0 8px;
+  font-size: var(--font-size-heading-1);
+  line-height: 1.04;
+  letter-spacing: -.035em;
+}
+
+.oncology-starter-intro p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.52;
+}
+
+.oncology-starter-proof {
+  min-width: 210px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  color: var(--color-accent-ink);
+}
+
+.oncology-starter-proof span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.42;
+}
+
+.oncology-starter-proof strong {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.oncology-starter-shelf {
+  min-width: 0;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.oncology-starter-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.oncology-starter-head h2 {
+  margin: 2px 0 0;
+  font-size: var(--font-size-heading-2);
+  line-height: 1.08;
+}
+
+.oncology-starter-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+}
+
+.oncology-starter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.oncology-starter-card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-height: 190px;
+  padding: 18px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.oncology-starter-card:hover {
+  transform: translateY(-2px);
+  background: var(--color-surface-hover);
+}
+
+.oncology-starter-card-meta,
+.oncology-starter-card-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-metadata);
+}
+
+.oncology-starter-card-meta span:first-child {
+  color: var(--color-accent-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.oncology-starter-card h3 {
+  margin: 0;
+  font-size: var(--font-size-title);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.oncology-starter-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+}
+
+.oncology-starter-card-footer {
+  margin-top: auto;
+  align-items: center;
+}
+
+.oncology-starter-card-footer svg {
+  color: var(--color-accent-ink);
+}
+
+.oncology-starter-event .oncology-starter-card {
+  background: var(--art-event-bg);
+}
+
+.oncology-starter-learning .oncology-starter-card {
+  background: var(--art-video-bg);
+}
+
+.oncology-starter-guideline .oncology-starter-card {
+  background: var(--art-guideline-bg);
+}
+
+.oncology-starter-clinical .oncology-starter-card {
+  background: var(--art-clinical-bg);
+}
+
+.oncology-starter-evidence .oncology-starter-card {
+  background: var(--art-article-bg);
+}
+
+@media (max-width: 900px) {
+  .oncology-starter-intro {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .oncology-starter-proof {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 680px) {
+  .oncology-starter-intro,
+  .oncology-starter-shelf {
+    padding: 18px;
+  }
+
+  .oncology-starter-grid {
+    grid-template-columns: 1fr;
+  }
+}
