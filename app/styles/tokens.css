@@ -62,12 +62,32 @@
   --color-inverse-surface: #111217;
   --color-inverse-text: #ffffff;
   --color-inverse-text-secondary: #b8bac4;
+  --color-transparent: transparent;
 
   --specialty-art-1: #d9dbff;
   --specialty-art-2: #b9c8ff;
   --specialty-art-3: #eef0ff;
   --specialty-art-ink: #4d50b8;
   --rail-highlight: #fff5dc;
+
+  --media-border: rgb(87 23 34 / 10%);
+  --media-surface-warm: #fff8f7;
+  --media-surface-soft: #f6f5f8;
+  --media-surface-hover: #f3e9eb;
+  --media-glow-pink: rgb(247 195 202 / 55%);
+  --media-glow-violet: rgb(128 105 226 / 12%);
+  --media-stage-warm: #fffafa;
+  --media-stage-cool: #f7f7fb;
+  --media-stage-blush: #fdf5f6;
+  --media-white-glow: rgb(255 255 255 / 90%);
+  --media-dark-glass: rgb(26 24 30 / 82%);
+  --media-white-muted: rgb(255 255 255 / 72%);
+  --media-control-bg: rgb(255 255 255 / 90%);
+  --media-control-border: rgb(30 26 34 / 10%);
+  --media-control-glass: rgb(255 255 255 / 12%);
+  --media-stage-glass: rgb(17 17 21 / 78%);
+  --media-credit-bg: rgb(18 16 19 / 72%);
+  --media-credit-text: rgb(255 255 255 / 88%);
 
   --art-guideline-bg: #efeaff;
   --art-guideline-1: #b6a8ff;
