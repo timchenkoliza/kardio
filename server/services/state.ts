@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { anonymousSessions } from "@/db/schema";
-import { emptyUserState, type StateCommand, type UserState } from "@/lib/domain/types";
+import { emptyUserState, type ProfessionalAgent, type StateCommand, type UserState } from "@/lib/domain/types";
 import { getContent, getSource, listContent } from "@/server/repositories/catalog";
 import { HttpError, idSchema, specialtySchema } from "@/server/http";
 
@@ -13,6 +13,26 @@ const item = { id: idSchema, enabled: z.boolean(), specialty: specialtySchema };
 const researchInterestSchema = z.string().trim().min(2).max(120).regex(/^[^\u0000-\u001f\u007f]+$/u);
 const uiBlockIdSchema = z.string().trim().min(1).max(80).regex(/^[a-z0-9:_-]+$/i);
 const uiBlockLabelSchema = z.string().trim().min(1).max(80).regex(/^[^\u0000-\u001f\u007f]+$/u);
+const agentTextSchema = z.string().trim().min(2).max(1200).regex(/^[^\u0000-\u001f\u007f]+$/u);
+const agentLabelSchema = z.string().trim().min(2).max(100).regex(/^[^\u0000-\u001f\u007f]+$/u);
+const agentKindSchema = z.enum(["guideline_delta", "research_watch", "practice_brief", "learning", "events", "source_watch", "partner_channel"]);
+const agentCadenceSchema = z.enum(["manual", "daily", "weekly", "event"]);
+const agentOutputSchema = z.enum(["delta", "brief", "comparison", "learning_plan", "watchlist"]);
+const agentStatusSchema = z.enum(["draft", "configured", "paused"]);
+const createAgentSchema = z.object({
+  specialty: specialtySchema,
+  kind: agentKindSchema,
+  name: agentLabelSchema,
+  instruction: agentTextSchema,
+  topics: z.array(agentLabelSchema).max(12),
+  sourceIds: z.array(idSchema).max(30),
+  cadence: agentCadenceSchema,
+  outputFormat: agentOutputSchema,
+  status: agentStatusSchema,
+  commercial: z.boolean(),
+  sponsorName: z.string().trim().min(2).max(100).nullable(),
+}).strict();
+
 export const stateCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("preferences"), specialty: specialtySchema.optional(), shell: z.enum(["explore", "practice", "workspace"]).optional(), onboardingCompleted: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("save"), ...item }).strict(),
@@ -26,6 +46,9 @@ export const stateCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("collectionItem"), collectionId: z.string().uuid(), contentId: idSchema, enabled: z.boolean(), specialty: specialtySchema }).strict(),
   z.object({ action: z.literal("deleteCollection"), collectionId: z.string().uuid(), specialty: specialtySchema }).strict(),
   z.object({ action: z.literal("uiPreference"), specialty: specialtySchema, shell: z.enum(["explore", "practice", "workspace"]), blockId: uiBlockIdSchema, label: uiBlockLabelSchema, mode: z.enum(["hidden", "less", "pinned", "default"]) }).strict(),
+  z.object({ action: z.literal("createProfessionalAgent"), agent: createAgentSchema }).strict(),
+  z.object({ action: z.literal("setProfessionalAgentStatus"), id: z.string().uuid(), status: agentStatusSchema, specialty: specialtySchema }).strict(),
+  z.object({ action: z.literal("deleteProfessionalAgent"), id: z.string().uuid(), specialty: specialtySchema }).strict(),
   z.object({ action: z.literal("clearHistory") }).strict(),
 ]);
 
@@ -35,6 +58,19 @@ fallbackGlobals.kardioFallbackStates = fallbackStates;
 
 function databaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
+}
+
+function isProfessionalAgent(value: unknown): value is ProfessionalAgent {
+  if (!value || typeof value !== "object") return false;
+  const agent = value as Partial<ProfessionalAgent>;
+  return typeof agent.id === "string"
+    && (agent.specialty === "cardiology" || agent.specialty === "oncology")
+    && typeof agent.name === "string"
+    && typeof agent.instruction === "string"
+    && Array.isArray(agent.topics)
+    && Array.isArray(agent.sourceIds)
+    && (agent.status === "draft" || agent.status === "configured" || agent.status === "paused")
+    && typeof agent.commercial === "boolean";
 }
 
 function normalizeState(value: Partial<UserState> | null | undefined): UserState {
@@ -60,6 +96,7 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
       && (preference.shell === "explore" || preference.shell === "practice" || preference.shell === "workspace")
       && (preference.specialty === "cardiology" || preference.specialty === "oncology")
     )) : [],
+    professionalAgents: Array.isArray(value.professionalAgents) ? value.professionalAgents.filter(isProfessionalAgent).slice(0, 30) : [],
   };
 }
 
@@ -110,6 +147,12 @@ async function validateReference(command: StateCommand) {
     if (entry.kind === "query" ? (!entry.query || entry.id) : (!entry.id || entry.query)) throw new HttpError(400, "Некорректная запись истории.");
     if (entry.kind === "content" && !await getContent(entry.specialty, entry.id!)) throw new HttpError(404, "Материал не найден.");
     if (entry.kind === "source" && !await getSource(entry.specialty, entry.id!)) throw new HttpError(404, "Источник не найден.");
+  } else if (command.action === "createProfessionalAgent") {
+    if (command.agent.commercial && !command.agent.sponsorName) throw new HttpError(400, "Для партнёрского агента нужен явный спонсор.");
+    if (!command.agent.commercial && command.agent.sponsorName) throw new HttpError(400, "Независимый агент не должен иметь спонсора.");
+    for (const sourceId of command.agent.sourceIds) {
+      if (!await getSource(command.agent.specialty, sourceId)) throw new HttpError(404, "Один из выбранных источников не найден.");
+    }
   }
 }
 
@@ -158,6 +201,32 @@ function applyCommand(state: UserState, command: StateCommand): UserState {
       }
       break;
     }
+    case "createProfessionalAgent": {
+      if (state.professionalAgents.length >= 30) throw new HttpError(400, "Можно настроить до 30 агентов.");
+      const now = new Date().toISOString();
+      state.professionalAgents.unshift({
+        ...command.agent,
+        id: randomUUID(),
+        name: command.agent.name.trim(),
+        instruction: command.agent.instruction.trim().replace(/\s+/g, " "),
+        topics: [...new Set(command.agent.topics.map(value => value.trim()).filter(Boolean))],
+        sourceIds: [...new Set(command.agent.sourceIds)],
+        createdAt: now,
+        updatedAt: now,
+        lastReviewedAt: null,
+      });
+      break;
+    }
+    case "setProfessionalAgentStatus": {
+      const agent = state.professionalAgents.find(value => value.id === command.id && value.specialty === command.specialty);
+      if (!agent) throw new HttpError(404, "Агент не найден.");
+      agent.status = command.status;
+      agent.updatedAt = new Date().toISOString();
+      break;
+    }
+    case "deleteProfessionalAgent":
+      state.professionalAgents = state.professionalAgents.filter(value => !(value.id === command.id && value.specialty === command.specialty));
+      break;
     case "clearHistory": state.recent = []; break;
   }
   return state;
