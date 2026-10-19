@@ -14,7 +14,8 @@ import { ProductProvider } from "@/components/product-provider";
 import { EventsHub, VmpHub } from "@/components/professional-destination-hubs";
 import { ReferenceHub } from "@/components/reference-hub";
 import { SectionHelp } from "@/components/section-help";
-import { PracticeGenUiSurface, WorkspaceGenUiSurface } from "@/components/shell-gen-ui-surfaces";
+import { PracticeGenUiSurface } from "@/components/shell-gen-ui-surfaces";
+import { WorkspaceCaseSurface } from "@/components/workspace-case-surface";
 import type { ContentObject, Shell, Source, SpecialtyId, UserState } from "@/lib/domain/types";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
@@ -93,13 +94,28 @@ export default async function SpecialtyHome({
   const initialState = { ...state, specialty, shell: activeShell };
   const rootHome = view === "feed" && !query && kind === "all";
 
+  const recentContentIds = initialState.recent
+    .filter(entry => entry.kind === "content" && entry.specialty === specialty && entry.id)
+    .map(entry => entry.id as string);
+  const recentWorkspaceContent = recentContentIds
+    .map(id => content.find(item => item.id === id))
+    .filter((item): item is ContentObject => Boolean(item));
+  const savedWorkspaceContent = content.filter(item => initialState.savedIds.includes(item.id));
+  const workspaceRecent = (recentWorkspaceContent.length ? recentWorkspaceContent : savedWorkspaceContent).slice(0, 5);
+  const workspaceContextTerms = [
+    ...initialState.researchInterests
+      .filter(value => value.startsWith(`${specialty}:`))
+      .map(value => value.slice(specialty.length + 1)),
+    ...initialState.followedTopics,
+  ];
+
   return <ProductProvider initialState={initialState} specialty={specialty}>
     <ProductFrame specialty={specialty}>
       <div className="alpha-shell">
         {rootHome && initialState.shell === "practice" ? (
           specialty === "cardiology" ? <PracticeGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} /> : <OncologyPracticeSurface />
         ) : rootHome && initialState.shell === "workspace" ? (
-          <WorkspaceGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} />
+          <WorkspaceCaseSurface specialty={specialty} recent={workspaceRecent} contextTerms={workspaceContextTerms} />
         ) : (
           <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} />
         )}
