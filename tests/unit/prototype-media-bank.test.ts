@@ -39,6 +39,6 @@ describe("prototype media bank", () => {
   it("parses only the constrained echo bundle format", () => {
     const uri = extractBundledImageDataUri("window.KARDIO_ECHO_IMAGE='data:image/jpeg;base64,QUJD';");
     expect(uri).toBe("data:image/jpeg;base64,QUJD");
-    expect(() => extractBundledImageDataUri("window.anything = 'QUJD'")) .toThrow(/Invalid prototype echo asset bundle/u);
+    expect(() => extractBundledImageDataUri("window.anything = 'QUJD'")).toThrow(/Invalid prototype echo asset bundle/u);
   });
 });
