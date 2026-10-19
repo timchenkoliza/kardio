@@ -93,9 +93,18 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   const council = expertTwinsCouncilForSpecialty(specialty);
   const expertParticipants = expertTwinsPanels[council];
   const participants: Participant[] = runtimeMode === "expert_twins" ? expertParticipants : consiliumPersonas;
-  const selected = participants.filter(persona => selectedIds.includes(persona.id));
+  const participantIds = new Set(participants.map(persona => persona.id));
+  const validSelectedIds = selectedIds.filter(id => participantIds.has(id));
+  const effectiveSelectedIds = validSelectedIds.length >= 2
+    ? validSelectedIds
+    : runtimeMode === "expert_twins"
+      ? participants.map(persona => persona.id)
+      : DEFAULT_SELECTED;
+  const effectiveTargetPersonaId = targetPersonaId && participantIds.has(targetPersonaId) ? targetPersonaId : null;
+  const selected = participants.filter(persona => effectiveSelectedIds.includes(persona.id));
+  const visibleMessages = messages.filter(message => message.author === "user" || participantIds.has(message.author));
 
-  const latestReplies = messages
+  const latestReplies = visibleMessages
     .filter(message => message.author !== "user")
     .slice(-Math.max(selected.length, 1))
     .map(message => ({ personaId: message.author, body: message.body } satisfies ConsiliumReply));
@@ -124,22 +133,12 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   }, [specialty]);
 
   useEffect(() => {
-    const validIds = new Set(participants.map(persona => persona.id));
-    setSelectedIds(current => {
-      const kept = current.filter(id => validIds.has(id));
-      if (kept.length >= 2) return kept;
-      return runtimeMode === "expert_twins" ? participants.map(persona => persona.id) : DEFAULT_SELECTED;
-    });
-    setTargetPersonaId(current => current && validIds.has(current) ? current : null);
-    setMessages(current => current.filter(message => message.author === "user" || validIds.has(message.author)));
-  }, [participants, runtimeMode]);
-
-  useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedIds, messages, targetPersonaId, runtime: runtimeMode, remoteSynthesis } satisfies StoredState));
   }, [selectedIds, messages, targetPersonaId, runtimeMode, remoteSynthesis]);
 
   function togglePersona(id: string) {
-    setSelectedIds(current => {
+    setSelectedIds(() => {
+      const current = effectiveSelectedIds;
       if (current.includes(id)) return current.length <= 2 ? current : current.filter(item => item !== id);
       const max = runtimeMode === "expert_twins" ? 3 : 5;
       return current.length >= max ? current : [...current, id];
@@ -156,9 +155,9 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
     setServiceError(null);
 
     if (runtimeMode === "deterministic_fallback") {
-      const responders = targetPersonaId
-        ? consiliumPersonas.filter(persona => persona.id === targetPersonaId)
-        : consiliumPersonas.filter(persona => selectedIds.includes(persona.id));
+      const responders = effectiveTargetPersonaId
+        ? consiliumPersonas.filter(persona => persona.id === effectiveTargetPersonaId)
+        : consiliumPersonas.filter(persona => effectiveSelectedIds.includes(persona.id));
       const replies = responders.map((persona, index): Message => ({
         id: `reply-${turnId}-${index}`,
         author: persona.id,
@@ -186,7 +185,7 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
 
       if (!response.ok) throw new Error(`Expert Twins ${response.status}`);
       const payload = await response.json() as ConsiliumApiResponse;
-      const allowedIds = new Set(targetPersonaId ? [targetPersonaId] : selectedIds);
+      const allowedIds = new Set(effectiveTargetPersonaId ? [effectiveTargetPersonaId] : effectiveSelectedIds);
       const expertReplies = payload.result.experts
         .filter(expert => allowedIds.has(expert.expert_id))
         .map((expert, index): Message => ({
@@ -199,7 +198,7 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
         }));
 
       setMessages(current => [...current, ...expertReplies]);
-      setRemoteSynthesis(targetPersonaId ? null : payload.result.synthesis);
+      setRemoteSynthesis(effectiveTargetPersonaId ? null : payload.result.synthesis);
     } catch {
       setServiceError("Expert Twins недоступен. Именные модельные ответы не подменяются локальным mock — повторите запрос после восстановления сервиса.");
     } finally {
@@ -225,10 +224,10 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
 
     <div className="consilium-layout">
       <aside className="consilium-personas" aria-label="Состав консилиума">
-        <div className="decision-section-head"><div><span className="eyebrow">{runtimeMode === "expert_twins" ? "2–3 модели из панели" : "2–5 участников"}</span><h2>Состав</h2></div><span>{selectedIds.length}</span></div>
+        <div className="decision-section-head"><div><span className="eyebrow">{runtimeMode === "expert_twins" ? "2–3 модели из панели" : "2–5 участников"}</span><h2>Состав</h2></div><span>{effectiveSelectedIds.length}</span></div>
         <div className="persona-list">
           {participants.map(persona => {
-            const active = selectedIds.includes(persona.id);
+            const active = effectiveSelectedIds.includes(persona.id);
             return <button key={persona.id} className={`persona-row ${active ? "active" : ""}`} onClick={() => togglePersona(persona.id)} aria-pressed={active}>
               <span className="persona-avatar" aria-hidden="true">{persona.displayName.slice(0, 1)}</span>
               <span><strong>{persona.displayName}</strong><small>{persona.role}</small><em>{persona.lens}</em></span>
@@ -239,10 +238,10 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
       </aside>
 
       <section className="consilium-chat" aria-label="Разговор">
-        <div className="decision-section-head"><div><span className="eyebrow">Рабочая сессия</span><h2>Разговор</h2></div>{messages.length > 0 && <button className="quiet-button" onClick={() => { setMessages([]); setRemoteSynthesis(null); setServiceError(null); }}><X size={14} /> Очистить</button>}</div>
+        <div className="decision-section-head"><div><span className="eyebrow">Рабочая сессия</span><h2>Разговор</h2></div>{visibleMessages.length > 0 && <button className="quiet-button" onClick={() => { setMessages([]); setRemoteSynthesis(null); setServiceError(null); }}><X size={14} /> Очистить</button>}</div>
         <div className="chat-stream">
-          {messages.length === 0 && <div className="chat-empty"><MessageSquareText size={26} /><strong>Задайте профессиональный вопрос</strong><span>{runtimeMode === "expert_twins" ? "Ответы будут отделять наблюдаемое evidence от модельного прогноза." : "Можно спросить всех или адресовать следующий вопрос одному участнику."}</span></div>}
-          {messages.map(message => {
+          {visibleMessages.length === 0 && <div className="chat-empty"><MessageSquareText size={26} /><strong>Задайте профессиональный вопрос</strong><span>{runtimeMode === "expert_twins" ? "Ответы будут отделять наблюдаемое evidence от модельного прогноза." : "Можно спросить всех или адресовать следующий вопрос одному участнику."}</span></div>}
+          {visibleMessages.map(message => {
             if (message.author === "user") return <div className="chat-message user" key={message.id}><span>Вы</span><p>{message.body}</p></div>;
             const persona = participants.find(item => item.id === message.author);
             return <div className="chat-message persona" key={message.id}>
@@ -256,8 +255,8 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
           {serviceError && <p role="status" className="muted">{serviceError}</p>}
         </div>
         <div className="chat-composer">
-          <div className="composer-targets"><button className={targetPersonaId === null ? "active" : ""} onClick={() => setTargetPersonaId(null)}>Спросить всех</button>{selected.map(persona => <button key={persona.id} className={targetPersonaId === persona.id ? "active" : ""} onClick={() => setTargetPersonaId(persona.id)}>{persona.displayName}</button>)}</div>
-          <div className="composer-row"><textarea value={draft} onChange={event => setDraft(event.target.value)} placeholder={targetPersonaId ? `Спросить ${participants.find(item => item.id === targetPersonaId)?.displayName ?? "эксперта"}` : "Спросить всех"} maxLength={1200} /><button className="primary-button" onClick={send} disabled={!draft.trim() || sending}><Send size={16} /> {sending ? "Запрашиваем…" : "Отправить"}</button></div>
+          <div className="composer-targets"><button className={effectiveTargetPersonaId === null ? "active" : ""} onClick={() => setTargetPersonaId(null)}>Спросить всех</button>{selected.map(persona => <button key={persona.id} className={effectiveTargetPersonaId === persona.id ? "active" : ""} onClick={() => setTargetPersonaId(persona.id)}>{persona.displayName}</button>)}</div>
+          <div className="composer-row"><textarea value={draft} onChange={event => setDraft(event.target.value)} placeholder={effectiveTargetPersonaId ? `Спросить ${participants.find(item => item.id === effectiveTargetPersonaId)?.displayName ?? "эксперта"}` : "Спросить всех"} maxLength={1200} /><button className="primary-button" onClick={send} disabled={!draft.trim() || sending}><Send size={16} /> {sending ? "Запрашиваем…" : "Отправить"}</button></div>
         </div>
       </section>
 
