@@ -37,9 +37,25 @@
 }
 
 .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid,
-.editorial-shelf[data-presentation="event"] .editorial-shelf-grid {
+.editorial-shelf[data-presentation="event"] .editorial-shelf-grid,
+.editorial-shelf[data-presentation="learning"] .editorial-shelf-grid {
   grid-template-columns: 1fr;
   gap: 8px;
+}
+
+/* Real media is optional. When it is absent, the card becomes a text composition rather than an image placeholder. */
+.editorial-card.no-media-card {
+  gap: 14px;
+}
+
+.editorial-card.no-media-card .editorial-card-main.text-only {
+  min-height: 0;
+  display: grid;
+  align-content: center;
+}
+
+.editorial-card.no-media-card .editorial-card-link p {
+  -webkit-line-clamp: 3;
 }
 
 .editorial-card[data-presentation="hero"] {
@@ -47,10 +63,21 @@
   background: color-mix(in srgb, var(--color-surface) 72%, var(--color-accent-wash));
 }
 
+.editorial-card[data-presentation="hero"].no-media-card {
+  min-height: 270px;
+  background: color-mix(in srgb, var(--color-surface) 84%, var(--color-accent-wash));
+  border-top: 5px solid var(--color-accent-strong);
+}
+
 .editorial-card[data-presentation="hero"] .editorial-card-main.text-only {
   max-width: 720px;
   min-height: 176px;
   align-content: center;
+}
+
+.editorial-card[data-presentation="hero"].no-media-card .editorial-card-main.text-only {
+  min-height: 142px;
+  padding-right: 8%;
 }
 
 .editorial-card[data-presentation="hero"] .editorial-card-main.with-media {
@@ -62,9 +89,19 @@
   border-left: 3px solid var(--color-accent);
 }
 
+.editorial-card[data-presentation="clinical"].no-media-card {
+  min-height: 164px;
+  background: var(--color-surface);
+  border-left-color: var(--color-accent-strong);
+}
+
 .editorial-card[data-presentation="clinical"] .editorial-card-main.text-only {
   min-height: 118px;
   align-content: center;
+}
+
+.editorial-card[data-presentation="clinical"].no-media-card .editorial-card-main.text-only {
+  min-height: 82px;
 }
 
 .editorial-card[data-presentation="clinical"]:has(.editorial-media.has-image) .editorial-card-main.with-media {
@@ -110,12 +147,30 @@
   background: var(--color-surface);
 }
 
+.editorial-card[data-presentation="evidence"].no-media-card {
+  min-height: 188px;
+  border-top: 3px solid var(--color-accent-soft);
+}
+
 .editorial-card[data-presentation="evidence"] .editorial-media {
   min-height: 132px;
 }
 
 .editorial-card[data-presentation="learning"] {
   background: color-mix(in srgb, var(--color-surface) 86%, var(--art-video-bg));
+}
+
+.editorial-card[data-presentation="learning"].no-media-card {
+  min-height: 154px;
+  background: var(--color-surface);
+  border-top: 3px solid var(--color-accent-soft);
+}
+
+.editorial-card[data-presentation="learning"] .editorial-card-main.with-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(180px, .8fr);
+  align-items: stretch;
+  gap: 18px;
 }
 
 .editorial-card[data-presentation="learning"] .editorial-media {
@@ -179,7 +234,12 @@
     display: none;
   }
 
-  .editorial-card[data-presentation="hero"] .editorial-card-main.with-media {
+  .editorial-card[data-presentation="hero"] .editorial-card-main.with-media,
+  .editorial-card[data-presentation="learning"] .editorial-card-main.with-media {
     grid-template-columns: 1fr;
+  }
+
+  .editorial-card[data-presentation="hero"].no-media-card .editorial-card-main.text-only {
+    padding-right: 0;
   }
 }
