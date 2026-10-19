@@ -39,8 +39,8 @@ test("consilium produces distinct replies and preserves synthesis", async ({ pag
   await expect(page.getByText("А. Морозова").last()).toBeVisible();
   await expect(page.getByText("Н. Белова").last()).toBeVisible();
   await expect(page.getByText("Е. Орлова").last()).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Сходятся" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Расходятся" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Сходятся", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Расходятся", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Спросить отдельно" }).first().click();
   await composer.fill("Что здесь сильнее всего изменит вашу оценку?");
