@@ -49,6 +49,16 @@ export const professionalConsultationRoutes: readonly ProfessionalConsultationRo
     url: "https://www.rosoncoweb.ru/standarts/protocols/",
   },
   {
+    id: "vrachirf-peer-network",
+    specialty: "shared",
+    kind: "professional_discussion",
+    title: "Обсудить профессиональный вопрос с врачами",
+    provider: "Врачи РФ",
+    description: "Верифицируемое профессиональное сообщество: зарегистрированные врачи могут обсуждать публикации и обращаться к авторам в комментариях или личных сообщениях. Не является формальным медицинским консилиумом.",
+    actionLabel: "Открыть сообщество",
+    url: "https://vrachirf.ru/",
+  },
+  {
     id: "formal-telemedicine-consilium",
     specialty: "shared",
     kind: "formal_consilium",
