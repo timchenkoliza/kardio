@@ -1,0 +1,242 @@
+/*
+ * Pixel-first art direction pass.
+ * Cardiology: blood / bone / carbon with restrained cool support.
+ * Oncology: indigo / sage / ivory. No cardiology-red leakage.
+ * This layer intentionally removes rainbow-card defaults without changing product semantics.
+ */
+
+/* Shared editorial discipline */
+.product .practice-launcher > a,
+.product .reference-card-native,
+.product .education-card,
+.product .vmp-primary-card,
+.product .oncology-starter-card,
+.product .external-tool-card {
+  box-shadow: var(--shadow-subtle);
+}
+
+.product .practice-launcher > a:hover,
+.product .reference-card-native:hover,
+.product .education-card:hover,
+.product .vmp-primary-card:hover,
+.product .oncology-starter-card:hover,
+.product .external-tool-card:hover {
+  box-shadow: var(--shadow-raised);
+}
+
+/* Cardiology: remove SaaS rainbow and use one coherent professional palette. */
+.product[data-specialty="cardiology"] .practice-launcher > a {
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, var(--color-accent-soft));
+}
+
+.product[data-specialty="cardiology"] .practice-launcher > a:first-child {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .practice-launcher > a:nth-child(4) {
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--rail-highlight));
+}
+
+.product[data-specialty="cardiology"] .practice-launcher > a svg,
+.product[data-specialty="cardiology"] .practice-launcher > a strong,
+.product[data-specialty="cardiology"] .reference-card-native svg,
+.product[data-specialty="cardiology"] .reference-card-native .eyebrow {
+  color: var(--color-accent-ink);
+}
+
+.product[data-specialty="cardiology"] .practice-launcher > a small {
+  color: var(--color-text-secondary);
+}
+
+.product[data-specialty="cardiology"] .education-card,
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 1),
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 2),
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 3),
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 4) {
+  background: var(--color-surface);
+}
+
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 1),
+.product[data-specialty="cardiology"] .education-card:nth-child(4n + 4) {
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .education-feature-art {
+  background: var(--color-accent-wash);
+}
+
+.product[data-specialty="cardiology"] .education-orbit {
+  border-color: var(--color-accent);
+  opacity: .16;
+}
+
+.product[data-specialty="cardiology"] .reference-card-native,
+.product[data-specialty="cardiology"] .reference-card-native:first-child {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.product[data-specialty="cardiology"] .reference-card-native:first-child {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .vmp-primary-card,
+.product[data-specialty="cardiology"] .vmp-primary-card.secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.product[data-specialty="cardiology"] .vmp-primary-card:first-child {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .destination-proof.official {
+  background: color-mix(in srgb, var(--color-surface) 72%, var(--rail-highlight));
+  color: var(--color-accent-ink);
+}
+
+.product[data-specialty="cardiology"] .procedure-benchmarks,
+.product[data-specialty="cardiology"] .professional-consultation {
+  border-color: color-mix(in srgb, var(--color-border) 76%, var(--color-accent-soft));
+}
+
+.product[data-specialty="cardiology"] .benchmark-group:first-child {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .benchmark-group:last-child {
+  background: color-mix(in srgb, var(--color-surface) 76%, var(--color-canvas-blue));
+}
+
+.product[data-specialty="cardiology"] .benchmark-value {
+  color: var(--color-accent-strong);
+}
+
+.product[data-specialty="cardiology"] .professional-consultation {
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-accent-wash));
+}
+
+.product[data-specialty="cardiology"] .formal-consilium-note {
+  background: var(--color-inverse-surface);
+}
+
+.product[data-specialty="cardiology"] .calculator-card-primary {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="cardiology"] .score-orb:not(.secondary) {
+  background: var(--color-accent-strong);
+}
+
+/* Oncology: a deliberately separate indigo / sage identity. */
+.product[data-specialty="oncology"] .practice-launcher > a {
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--color-accent-soft));
+}
+
+.product[data-specialty="oncology"] .practice-launcher > a:first-child,
+.product[data-specialty="oncology"] .oncology-starter-guideline .oncology-starter-card {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="oncology"] .practice-launcher > a:nth-child(2),
+.product[data-specialty="oncology"] .oncology-starter-clinical .oncology-starter-card,
+.product[data-specialty="oncology"] .oncology-starter-evidence .oncology-starter-card {
+  background: var(--art-clinical-bg);
+}
+
+.product[data-specialty="oncology"] .practice-launcher > a:nth-child(3),
+.product[data-specialty="oncology"] .practice-launcher > a:nth-child(4),
+.product[data-specialty="oncology"] .oncology-starter-learning .oncology-starter-card,
+.product[data-specialty="oncology"] .oncology-starter-event .oncology-starter-card {
+  background: var(--color-surface);
+}
+
+.product[data-specialty="oncology"] .practice-launcher > a svg,
+.product[data-specialty="oncology"] .practice-launcher > a strong,
+.product[data-specialty="oncology"] .workspace-professional-icon,
+.product[data-specialty="oncology"] .oncology-starter-icon {
+  color: var(--color-accent-ink);
+}
+
+.product[data-specialty="oncology"] .procedure-benchmarks,
+.product[data-specialty="oncology"] .professional-consultation,
+.product[data-specialty="oncology"] .oncology-starter-shelf {
+  border-color: color-mix(in srgb, var(--color-border) 72%, var(--color-accent-soft));
+}
+
+.product[data-specialty="oncology"] .benchmark-group:first-child {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent-soft);
+}
+
+.product[data-specialty="oncology"] .benchmark-group:last-child {
+  background: var(--art-clinical-bg);
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--specialty-art-2));
+}
+
+.product[data-specialty="oncology"] .benchmark-value {
+  color: var(--color-accent-strong);
+}
+
+.product[data-specialty="oncology"] .professional-consultation {
+  background: color-mix(in srgb, var(--color-surface) 84%, var(--art-clinical-bg));
+}
+
+.product[data-specialty="oncology"] .formal-consilium-note {
+  background: var(--color-accent-strong);
+}
+
+.product[data-specialty="oncology"] .formal-consilium-note span,
+.product[data-specialty="oncology"] .formal-consilium-note p {
+  color: var(--color-inverse-text-secondary);
+}
+
+/* Real diagnostic imagery is always neutral and never specialty-tinted. */
+.product .editorial-media.has-image[data-media-treatment="diagnostic"],
+.product .local-preview.has-preview {
+  background: var(--color-inverse-surface);
+}
+
+.product .editorial-media.has-image[data-media-treatment="diagnostic"]::after {
+  display: none;
+}
+
+.product .editorial-media.has-image[data-media-treatment="diagnostic"] img {
+  filter: none;
+}
+
+/* Compact source-grounded oncology catalog sections should not look like empty-state scaffolding. */
+.oncology-starter-compact {
+  gap: 14px;
+}
+
+.oncology-starter-compact .gen-ui-stack {
+  margin-top: 0;
+}
+
+/* The professional intelligence shelf should read as data, not as another pastel card grid. */
+.benchmark-card {
+  min-height: 0;
+}
+
+.benchmark-card p {
+  max-width: 58ch;
+}
+
+.benchmark-source {
+  font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 760px) {
+  .product .practice-launcher > a {
+    min-height: 112px;
+  }
+}
