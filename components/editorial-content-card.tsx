@@ -5,17 +5,31 @@ import { currentnessLabel, isPartner, kindLabel, publicationLabel } from "@/lib/
 import { ContentSaveButton } from "./content-actions";
 import { EditorialMedia } from "./editorial-media";
 
-export function EditorialContentCard({ content, specialty, featured = false, position }: {
+export type EditorialPresentation = "standard" | "hero" | "guideline" | "clinical" | "evidence" | "learning" | "event";
+
+const decorativeFallbackPresentations = new Set<EditorialPresentation>(["standard", "evidence", "learning"]);
+
+export function EditorialContentCard({ content, specialty, featured = false, position, presentation }: {
   content: ContentObject;
   specialty: SpecialtyId;
   featured?: boolean;
   position?: number;
+  presentation?: EditorialPresentation;
 }) {
   const partner = isPartner(content);
   const exceptionalState = content.currentness !== "current";
+  const resolvedPresentation: EditorialPresentation = presentation ?? (featured ? "hero" : "standard");
+  const hero = featured || resolvedPresentation === "hero";
+  const allowDecorativeFallback = decorativeFallbackPresentations.has(resolvedPresentation);
+  const hasMedia = Boolean(content.asset?.url) || allowDecorativeFallback;
 
   return (
-    <article className={featured ? "editorial-card featured-card" : "editorial-card"} data-kind={content.kind} data-rank-position={position}>
+    <article
+      className={hero ? "editorial-card featured-card" : "editorial-card"}
+      data-kind={content.kind}
+      data-presentation={resolvedPresentation}
+      data-rank-position={position}
+    >
       <div className="editorial-card-meta">
         <div className="source-lockup">
           <span className="source-mark" aria-hidden="true">{content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
@@ -24,12 +38,12 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
         <ContentSaveButton contentId={content.id} specialty={specialty} compact />
       </div>
 
-      <div className="editorial-card-main with-media">
+      <div className={hasMedia ? "editorial-card-main with-media" : "editorial-card-main text-only"}>
         <Link className="editorial-card-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`}>
           <h2>{content.title}</h2>
           {content.summary && <p>{content.summary}</p>}
         </Link>
-        <EditorialMedia content={content} specialty={specialty} compact={!featured} />
+        {hasMedia && <EditorialMedia content={content} specialty={specialty} compact={!hero} fallback={allowDecorativeFallback} />}
       </div>
 
       <div className="editorial-card-footer">
