@@ -62,6 +62,7 @@ export function AgentFirstWorkspace({ specialty }: { specialty: SpecialtyId }) {
   const [runs, setRuns] = useState<RunState>({});
   const [prefs, setPrefs] = useState<Partial<Record<AgentId, AgentPreference>>>({});
   const [materials, setMaterials] = useState<PersonalMaterial[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<{ action: AgentAction; item: AgentResultItem } | null>(null);
   const [materialMode, setMaterialMode] = useState<"note" | "link">("note");
@@ -70,13 +71,17 @@ export function AgentFirstWorkspace({ specialty }: { specialty: SpecialtyId }) {
   const composer = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setRuns(parse(localStorage.getItem(key(specialty, "runs")), {}));
-    setPrefs(parse(localStorage.getItem(key(specialty, "preferences")), {}));
-    setMaterials(parse(localStorage.getItem(key(specialty, "materials")), []));
+    const timer = window.setTimeout(() => {
+      setRuns(parse(localStorage.getItem(key(specialty, "runs")), {}));
+      setPrefs(parse(localStorage.getItem(key(specialty, "preferences")), {}));
+      setMaterials(parse(localStorage.getItem(key(specialty, "materials")), []));
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [specialty]);
-  useEffect(() => { localStorage.setItem(key(specialty, "runs"), JSON.stringify(runs)); }, [runs, specialty]);
-  useEffect(() => { localStorage.setItem(key(specialty, "preferences"), JSON.stringify(prefs)); }, [prefs, specialty]);
-  useEffect(() => { localStorage.setItem(key(specialty, "materials"), JSON.stringify(materials)); }, [materials, specialty]);
+  useEffect(() => { if (hydrated) localStorage.setItem(key(specialty, "runs"), JSON.stringify(runs)); }, [hydrated, runs, specialty]);
+  useEffect(() => { if (hydrated) localStorage.setItem(key(specialty, "preferences"), JSON.stringify(prefs)); }, [hydrated, prefs, specialty]);
+  useEffect(() => { if (hydrated) localStorage.setItem(key(specialty, "materials"), JSON.stringify(materials)); }, [hydrated, materials, specialty]);
 
   const active = runs[agentId]?.lastResponse;
   const preference = prefs[agentId] ?? defaultAgentPreference();
