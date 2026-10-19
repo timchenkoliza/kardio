@@ -1,0 +1,10 @@
+.local/
+.next/
+node_modules/
+test-results/
+playwright-report/
+coverage/
+.env
+.env.*
+private-data/
+.DS_Store
