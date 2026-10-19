@@ -26,31 +26,31 @@ export function ExploreGenUiSurface({ specialty, content, sources }: { specialty
       id: "explore-clinical",
       label: "Клинические материалы",
       kind: "clinical_shelf" as const,
-      content: <EditorialShelf eyebrow="Практика" title="Клинические материалы" help="Source-grounded клинические материалы из каталога. Изображение показывается только когда asset прошёл проверку прав и доступности." items={model.clinical} specialty={specialty} presentation="clinical" href={`/${specialty}?kind=clinical`} hrefLabel="Все клинические материалы" />,
+      content: <EditorialShelf eyebrow="Практика" title="Клинические материалы" help="Клинические материалы из каталога с явным первоисточником. Изображение показывается только после проверки прав и доступности." items={model.clinical} specialty={specialty} presentation="clinical" href={`/${specialty}?kind=clinical`} hrefLabel="Все клинические материалы" />,
     }] : []),
     ...(model.events.length ? [{
       id: "explore-events",
       label: "События",
       kind: "event_rail" as const,
-      content: <EditorialShelf eyebrow="Календарь" title="События" help="Только события, уже присутствующие в каноническом каталоге. Положение блока не означает, что событие предстоящее." items={model.events} specialty={specialty} presentation="event" href={`/${specialty}?view=events`} hrefLabel="Все события" />,
+      content: <EditorialShelf eyebrow="Календарь" title="События" help="Только события, уже присутствующие в каталоге. Положение блока не означает, что мероприятие ещё не прошло." items={model.events} specialty={specialty} presentation="event" href={`/${specialty}?view=events`} hrefLabel="Все события" />,
     }] : []),
     ...(model.guidelines.length ? [{
       id: "explore-guidelines",
       label: "Клинические рекомендации",
       kind: "guideline_shelf" as const,
-      content: <EditorialShelf eyebrow="Рекомендации" title="Текущие версии" help="Рекомендации отделены от статей и клинических материалов, чтобы версия и currentness не терялись в общей карточной ленте." items={model.guidelines} specialty={specialty} presentation="guideline" href={`/${specialty}?kind=guideline`} hrefLabel="Все рекомендации" />,
+      content: <EditorialShelf eyebrow="Рекомендации" title="Текущие версии" help="Рекомендации отделены от статей и клинических материалов, чтобы статус и версия документа оставались видимыми." items={model.guidelines} specialty={specialty} presentation="guideline" href={`/${specialty}?kind=guideline`} hrefLabel="Все рекомендации" />,
     }] : []),
     {
       id: "explore-search-prompt",
       label: "Поиск по теме",
       kind: "context_prompt",
-      content: <aside className="context-module quiet-module"><Search size={20} aria-hidden="true" /><div className="heading-with-help"><h2>Ищите по теме</h2><SectionHelp text="Поиск учитывает заголовки, темы, источники и описания; результат остаётся объяснимым и детерминированным." /></div><p>Поиск работает по заголовкам, темам, источникам и описаниям. Результат остаётся объяснимым и детерминированным.</p></aside>,
+      content: <aside className="context-module quiet-module"><Search size={20} aria-hidden="true" /><div className="heading-with-help"><h2>Ищите по теме</h2><SectionHelp text="Поиск учитывает заголовки, темы, источники и описания. Порядок результатов строится по явным признакам каталога, без скрытого профилирования." /></div><p>Поиск работает по заголовкам, темам, источникам и описаниям.</p></aside>,
     },
     ...(model.evidence.length ? [{
       id: "explore-evidence",
       label: "Исследования и статьи",
       kind: "evidence_shelf" as const,
-      content: <EditorialShelf eyebrow="Доказательства" title="Исследования и статьи" help="Статьи и исследования ранжируются детерминированно по данным каталога; декоративная графика не считается клиническим изображением." items={model.evidence} specialty={specialty} presentation="evidence" href={`/${specialty}?kind=article`} hrefLabel="Все статьи" />,
+      content: <EditorialShelf eyebrow="Доказательства" title="Исследования и статьи" help="Статьи и исследования отделены от рекомендаций и клинических материалов. Декоративная графика не выдаётся за клиническое изображение." items={model.evidence} specialty={specialty} presentation="evidence" href={`/${specialty}?kind=article`} hrefLabel="Все статьи" />,
     }] : []),
     ...(model.learning.length ? [{
       id: "explore-learning",
@@ -62,7 +62,7 @@ export function ExploreGenUiSurface({ specialty, content, sources }: { specialty
       id: "explore-more",
       label: "Ещё из каталога",
       kind: "knowledge_shelf" as const,
-      content: <EditorialShelf eyebrow="Каталог" title="Ещё материалы" help="Оставшиеся типы объектов показываются в резервной knowledge-полке без подмены их профессионального типа." items={model.overflow} specialty={specialty} presentation="standard" />,
+      content: <EditorialShelf eyebrow="Каталог" title="Ещё материалы" help="Оставшиеся типы объектов показываются отдельно, без подмены их профессионального типа." items={model.overflow} specialty={specialty} presentation="standard" />,
     }] : []),
   ];
 
