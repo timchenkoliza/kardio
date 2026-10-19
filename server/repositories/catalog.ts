@@ -88,7 +88,7 @@ async function baseSources(specialty: SpecialtyId): Promise<Source[]> {
 export async function listContent(specialty: SpecialtyId): Promise<ContentObject[]> {
   requireSpecialty(specialty);
   const canonical = await baseContent(specialty);
-  return withHardcodedTopicContent(specialty, canonical);
+  return specialty === "cardiology" ? withHardcodedTopicContent(specialty, canonical) : canonical;
 }
 
 export async function getContent(specialty: SpecialtyId, id: string): Promise<ContentObject | null> {
@@ -99,6 +99,7 @@ export async function getContent(specialty: SpecialtyId, id: string): Promise<Co
 export async function listSources(specialty: SpecialtyId): Promise<Source[]> {
   requireSpecialty(specialty);
   const canonical = await baseSources(specialty);
+  if (specialty !== "cardiology") return canonical;
   const hardcoded = hardcodedEditorialSource(specialty);
   return canonical.some(source => source.id === hardcoded.id) ? canonical : [...canonical, hardcoded];
 }
