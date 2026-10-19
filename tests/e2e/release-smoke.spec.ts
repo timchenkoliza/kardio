@@ -3,9 +3,29 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("kardio_onboarding_v1", "1");
+    window.localStorage.setItem("kardio_agent_workspace_onboarding_v1", "1");
     window.localStorage.removeItem("kardio.drugRatings.v1");
     window.localStorage.removeItem("kardio.consilium.v1");
   });
+});
+
+test("cardiology home configures a persistent professional agent", async ({ page }) => {
+  await page.goto("/cardiology");
+
+  await expect(page.getByRole("heading", { level: 1, name: "Главное" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Что нужно сделать?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Следить/ })).toHaveClass(/active/);
+
+  const instruction = "Следи за обновлениями РКО и ESC по ХСН и показывай только изменения, которые могут менять тактику.";
+  await page.getByLabel("Инструкция агенту").fill(instruction);
+  await page.getByRole("button", { name: /Настроить агента/ }).click();
+
+  await expect(page.getByRole("status")).toContainText("Агент настроен");
+  await expect(page.getByRole("heading", { level: 3, name: "Что изменилось в рекомендациях" })).toBeVisible();
+  await expect(page.getByText("Фоновый runtime ещё не подключён").first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Пауза/ }).first().click();
+  await expect(page.getByText("На паузе").first()).toBeVisible();
 });
 
 test("drug intelligence saves a local rating and hands context to consilium", async ({ page }) => {
