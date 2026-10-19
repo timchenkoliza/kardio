@@ -1,0 +1,261 @@
+.imaging-hub {
+  gap: 18px;
+}
+
+.imaging-hub > .tools-intro {
+  max-width: 900px;
+}
+
+.imaging-grid-media-pass {
+  grid-template-columns: minmax(360px, 0.78fr) minmax(560px, 1.22fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.imaging-grid-media-pass .anatomy-explorer,
+.imaging-grid-media-pass .production-media-viewer {
+  min-height: 590px;
+}
+
+.imaging-grid-media-pass .anatomy-explorer {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.imaging-grid-media-pass .anatomy-explorer-copy {
+  padding: 22px 22px 18px;
+  gap: 9px;
+  border-right: 0;
+  border-bottom: 1px solid var(--media-border);
+}
+
+.imaging-grid-media-pass .anatomy-explorer-copy .visual-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.imaging-grid-media-pass .anatomy-explorer-copy h2 {
+  font-size: var(--font-size-heading-1);
+  line-height: 1;
+}
+
+.imaging-grid-media-pass .anatomy-explorer-copy p {
+  max-width: 42ch;
+  font-size: var(--font-size-caption);
+}
+
+.imaging-grid-media-pass .anatomy-layer-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.imaging-grid-media-pass .anatomy-layer-list button {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: var(--font-size-caption);
+}
+
+.imaging-grid-media-pass .anatomy-layer-note {
+  margin-top: 1px;
+}
+
+.imaging-grid-media-pass .anatomy-credit {
+  margin-top: 2px;
+}
+
+.imaging-grid-media-pass .anatomy-stage {
+  min-height: 330px;
+  padding: 24px 20px 64px;
+}
+
+.imaging-grid-media-pass .anatomy-stage img {
+  width: min(86%, 360px);
+  max-height: 330px;
+}
+
+.imaging-grid-media-pass .anatomy-stage-label {
+  top: 16px;
+  right: 16px;
+}
+
+.imaging-grid-media-pass .anatomy-controls {
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  gap: 6px;
+}
+
+.imaging-grid-media-pass .anatomy-controls button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.imaging-grid-media-pass .production-media-viewer {
+  padding: 22px;
+  gap: 13px;
+}
+
+.imaging-grid-media-pass .production-media-head {
+  gap: 14px;
+}
+
+.imaging-grid-media-pass .production-media-head h2 {
+  font-size: var(--font-size-heading-2);
+}
+
+.imaging-grid-media-pass .production-media-head p {
+  max-width: 60ch;
+  font-size: var(--font-size-caption);
+}
+
+.imaging-grid-media-pass .production-media-tabs {
+  gap: 6px;
+}
+
+.imaging-grid-media-pass .production-media-tabs button {
+  min-height: 44px;
+  padding: 8px 9px;
+}
+
+.imaging-grid-media-pass .production-media-stage {
+  flex: 1 1 auto;
+  min-height: 410px;
+}
+
+.imaging-grid-media-pass .production-media-stage img {
+  min-height: 410px;
+  max-height: 470px;
+}
+
+.imaging-grid-media-pass .production-media-stage-meta {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+}
+
+.imaging-grid-media-pass .production-media-credit {
+  margin-top: -5px;
+}
+
+@media (max-width: 1220px) {
+  .imaging-grid-media-pass {
+    grid-template-columns: 1fr;
+  }
+
+  .imaging-grid-media-pass .anatomy-explorer {
+    grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-rows: 1fr;
+    min-height: 500px;
+  }
+
+  .imaging-grid-media-pass .anatomy-explorer-copy {
+    border-right: 1px solid var(--media-border);
+    border-bottom: 0;
+  }
+
+  .imaging-grid-media-pass .anatomy-layer-list {
+    grid-template-columns: 1fr;
+  }
+
+  .imaging-grid-media-pass .anatomy-stage {
+    min-height: 500px;
+  }
+
+  .imaging-grid-media-pass .anatomy-stage img {
+    width: min(82%, 390px);
+    max-height: 390px;
+  }
+
+  .imaging-grid-media-pass .production-media-viewer {
+    min-height: 540px;
+  }
+}
+
+@media (max-width: 820px) {
+  .imaging-grid-media-pass .anatomy-explorer {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: auto;
+  }
+
+  .imaging-grid-media-pass .anatomy-explorer-copy {
+    border-right: 0;
+    border-bottom: 1px solid var(--media-border);
+  }
+
+  .imaging-grid-media-pass .anatomy-layer-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .imaging-grid-media-pass .anatomy-stage {
+    min-height: 420px;
+  }
+
+  .imaging-grid-media-pass .anatomy-stage img {
+    width: min(78%, 340px);
+    max-height: 330px;
+  }
+
+  .imaging-grid-media-pass .production-media-viewer {
+    min-height: auto;
+  }
+
+  .imaging-grid-media-pass .production-media-stage,
+  .imaging-grid-media-pass .production-media-stage img {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 520px) {
+  .imaging-hub {
+    gap: 14px;
+  }
+
+  .imaging-grid-media-pass {
+    gap: 14px;
+  }
+
+  .imaging-grid-media-pass .anatomy-explorer-copy,
+  .imaging-grid-media-pass .production-media-viewer {
+    padding: 18px;
+  }
+
+  .imaging-grid-media-pass .anatomy-layer-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .imaging-grid-media-pass .anatomy-layer-list button {
+    min-height: 44px;
+  }
+
+  .imaging-grid-media-pass .anatomy-stage {
+    min-height: 360px;
+    padding: 22px 12px 62px;
+  }
+
+  .imaging-grid-media-pass .anatomy-stage img {
+    width: min(88%, 300px);
+    max-height: 280px;
+  }
+
+  .imaging-grid-media-pass .anatomy-controls button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .imaging-grid-media-pass .production-media-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .imaging-grid-media-pass .production-media-tabs button {
+    min-height: 44px;
+  }
+
+  .imaging-grid-media-pass .production-media-stage,
+  .imaging-grid-media-pass .production-media-stage img {
+    min-height: 300px;
+  }
+}
