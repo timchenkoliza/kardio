@@ -1,5 +1,5 @@
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-sans: "YS Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 
   --font-size-display-xl: 44px;
   --font-size-display-lg: 36px;
@@ -128,38 +128,38 @@
 }
 
 .product[data-specialty="oncology"] {
-  --color-canvas: #fcf8fa;
-  --color-canvas-lilac: #fff3f7;
-  --color-canvas-blue: #fff8f2;
-  --color-accent: #e8a0bc;
-  --color-accent-strong: #c56f95;
-  --color-accent-ink: #8c4567;
-  --color-accent-soft: #f8e5ee;
-  --color-accent-wash: #fff2f6;
-  --specialty-art-1: #f3c4d7;
-  --specialty-art-2: #f5d5bf;
-  --specialty-art-3: #fdeff4;
-  --specialty-art-ink: #8c4567;
-  --rail-highlight: #f9e8ef;
+  --color-canvas: #f6f6f2;
+  --color-canvas-lilac: #f0f0f8;
+  --color-canvas-blue: #eef5f3;
+  --color-accent: #5652ad;
+  --color-accent-strong: #35327d;
+  --color-accent-ink: #28255d;
+  --color-accent-soft: #e6e5f7;
+  --color-accent-wash: #f0f0f8;
+  --specialty-art-1: #7e79c9;
+  --specialty-art-2: #9fc6bb;
+  --specialty-art-3: #ecebf7;
+  --specialty-art-ink: #34316e;
+  --rail-highlight: #e7f0ec;
 
-  --art-guideline-bg: #f8e9f0;
-  --art-guideline-1: #d887aa;
-  --art-guideline-2: #efbed2;
-  --art-guideline-ink: #7f3f60;
-  --art-article-bg: #fff0e7;
-  --art-article-1: #eea77d;
-  --art-article-2: #f8d0b7;
-  --art-article-ink: #8b5432;
-  --art-video-bg: #f1eafd;
-  --art-video-1: #ae8bdd;
-  --art-video-2: #d9c9f1;
-  --art-video-ink: #66468f;
-  --art-clinical-bg: #eef5ea;
-  --art-clinical-1: #a8c991;
-  --art-clinical-2: #d5e5ca;
-  --art-clinical-ink: #577344;
-  --art-event-bg: #fff0e9;
-  --art-event-1: #e9a17f;
-  --art-event-2: #f5ccb9;
-  --art-event-ink: #8b5432;
+  --art-guideline-bg: #ecebf8;
+  --art-guideline-1: #5e58b5;
+  --art-guideline-2: #c7c3eb;
+  --art-guideline-ink: #34316e;
+  --art-article-bg: #eaf2f1;
+  --art-article-1: #83ada3;
+  --art-article-2: #c8deda;
+  --art-article-ink: #365f58;
+  --art-video-bg: #f0edf9;
+  --art-video-1: #8178c9;
+  --art-video-2: #d2ccee;
+  --art-video-ink: #4a427e;
+  --art-clinical-bg: #edf3ef;
+  --art-clinical-1: #92b8a9;
+  --art-clinical-2: #d1e1da;
+  --art-clinical-ink: #3d665a;
+  --art-event-bg: #f3f0e7;
+  --art-event-1: #d4b671;
+  --art-event-2: #eadbb7;
+  --art-event-ink: #6d5a2a;
 }
