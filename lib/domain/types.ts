@@ -3,6 +3,10 @@ export type Shell = "explore" | "practice" | "workspace";
 export type ContentKind = "guideline" | "article" | "video" | "event" | "clinical" | "service" | "tool" | "drug" | "referral";
 export type Currentness = "current" | "review" | "superseded" | "archived";
 export type UiPreferenceMode = "hidden" | "less" | "pinned";
+export type ProfessionalAgentKind = "guideline_delta" | "research_watch" | "practice_brief" | "learning" | "events" | "source_watch" | "partner_channel";
+export type ProfessionalAgentCadence = "manual" | "daily" | "weekly" | "event";
+export type ProfessionalAgentOutput = "delta" | "brief" | "comparison" | "learning_plan" | "watchlist";
+export type ProfessionalAgentStatus = "draft" | "configured" | "paused";
 
 export interface Source {
   id: string;
@@ -94,6 +98,23 @@ export interface UiBlockPreference {
   label: string;
   mode: UiPreferenceMode;
 }
+export interface ProfessionalAgent {
+  id: string;
+  specialty: SpecialtyId;
+  kind: ProfessionalAgentKind;
+  name: string;
+  instruction: string;
+  topics: string[];
+  sourceIds: string[];
+  cadence: ProfessionalAgentCadence;
+  outputFormat: ProfessionalAgentOutput;
+  status: ProfessionalAgentStatus;
+  commercial: boolean;
+  sponsorName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastReviewedAt: string | null;
+}
 export interface UserState {
   specialty: SpecialtyId;
   shell: Shell;
@@ -107,6 +128,7 @@ export interface UserState {
   recent: RecentEntry[];
   collections: Collection[];
   uiPreferences: UiBlockPreference[];
+  professionalAgents: ProfessionalAgent[];
 }
 export type StateCommand =
   | { action: "preferences"; specialty?: SpecialtyId; shell?: Shell; onboardingCompleted?: boolean }
@@ -117,5 +139,8 @@ export type StateCommand =
   | { action: "collectionItem"; collectionId: string; contentId: string; enabled: boolean; specialty: SpecialtyId }
   | { action: "deleteCollection"; collectionId: string; specialty: SpecialtyId }
   | { action: "uiPreference"; specialty: SpecialtyId; shell: Shell; blockId: string; label: string; mode: UiPreferenceMode | "default" }
+  | { action: "createProfessionalAgent"; agent: Omit<ProfessionalAgent, "id" | "createdAt" | "updatedAt" | "lastReviewedAt"> }
+  | { action: "setProfessionalAgentStatus"; id: string; status: ProfessionalAgentStatus; specialty: SpecialtyId }
+  | { action: "deleteProfessionalAgent"; id: string; specialty: SpecialtyId }
   | { action: "clearHistory" };
-export const emptyUserState = (): UserState => ({ specialty: "cardiology", shell: "explore", onboardingCompleted: false, savedIds: [], pinnedIds: [], pinnedSourceIds: [], followedSourceIds: [], followedTopics: [], researchInterests: [], recent: [], collections: [], uiPreferences: [] });
+export const emptyUserState = (): UserState => ({ specialty: "cardiology", shell: "explore", onboardingCompleted: false, savedIds: [], pinnedIds: [], pinnedSourceIds: [], followedSourceIds: [], followedTopics: [], researchInterests: [], recent: [], collections: [], uiPreferences: [], professionalAgents: [] });
