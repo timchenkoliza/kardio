@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
-import { ArrowRight, FileText, History, Plus, Search, ShieldCheck, Sparkles, Upload, UsersRound, X } from "lucide-react";
+import { ArrowRight, FileText, History, Plus, Search, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
 import { PBZ_DEMO_HISTORY_SIGNALS, PBZ_DEMO_RESEARCH_TERMS } from "@/lib/ui/pbz-history";
@@ -141,14 +141,6 @@ export function WorkspaceResearchAgent({ specialty, content }: { specialty: Spec
           <Link className="mode-row-open" href={`/${specialty}/content/${encodeURIComponent(result.content.id)}`} aria-label={`Открыть: ${result.content.title}`}><ArrowRight size={16} /></Link>
         </article>)}</div> : <p className="workspace-agent-empty">Добавьте тему — покажем материалы из каталога по тем же профессиональным сигналам.</p>}
       </div>
-
-      <aside className="workspace-expert-route">
-        <UsersRound size={22} aria-hidden="true" />
-        <span className="eyebrow">Врачи</span>
-        <div className="heading-with-help"><h3>С кем обсудить</h3><SectionHelp text="Покажем врача только когда есть подтверждённый профиль, специальность, организация и основание для рекомендации по теме." /></div>
-        <p>Каталог врачей пока не подключён.</p>
-        <div className="workspace-expert-rule"><strong>Каталог пока пуст</strong><span>После подключения здесь появятся подтверждённые профили врачей по теме.</span></div>
-      </aside>
     </div>
   </section>;
 }
