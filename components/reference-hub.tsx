@@ -19,7 +19,7 @@ export function ReferenceHub({ specialty }: { specialty: SpecialtyId }) {
     <header className="tools-intro">
       <span className="eyebrow">{specialty === "cardiology" ? "Кардиология" : "Онкология"}</span>
       <h1>Справочник</h1>
-      <p>Лекарства, взаимодействия и рабочие инструменты из текущего каталога и реестра источников.</p>
+      <p>Лекарства, взаимодействия и рабочие инструменты с явным источником и понятным переходом к первоисточнику.</p>
     </header>
 
     <section className="reference-section" aria-labelledby="reference-native-title">
@@ -30,14 +30,14 @@ export function ReferenceHub({ specialty }: { specialty: SpecialtyId }) {
         <Link href={`/${specialty}?view=tools`} className="reference-card reference-card-native">
           <div className="reference-card-icon"><Calculator size={24} /></div>
           <span>Шкалы</span>
-          <strong>{specialty === "cardiology" ? "CHA₂DS₂-VA и HAS-BLED" : "Калькуляторы"}</strong>
-          <p>{specialty === "cardiology" ? "Два локальных кардиологических инструмента." : "Внешние инструменты специальности из реестра источников."}</p>
+          <strong>{specialty === "cardiology" ? "CHA₂DS₂-VA и HAS-BLED" : "Онкологические калькуляторы"}</strong>
+          <p>{specialty === "cardiology" ? "Два локальных кардиологических инструмента." : "Внешние инструменты из собранного реестра; методология каждого расчёта проверяется в первоисточнике."}</p>
         </Link>
         <Link href={`/${specialty}?view=imaging`} className="reference-card reference-card-native">
           <div className="reference-card-icon"><ImageIcon size={24} /></div>
           <span>Изображения</span>
           <strong>Визуализация</strong>
-          <p>3D-анатомия и локальный просмотр обезличенных или учебных изображений.</p>
+          <p>Локальный просмотр обезличенных или учебных изображений; специализированные рендереры подключаются отдельно.</p>
         </Link>
       </div>
     </section>
@@ -59,7 +59,7 @@ export function ReferenceHub({ specialty }: { specialty: SpecialtyId }) {
 
     {otherReferences.length > 0 && <section className="reference-section" aria-labelledby="reference-other-title">
       <div className="reference-section-head">
-        <div><span className="eyebrow">Референсы</span><h2 id="reference-other-title">Дополнительные инструменты</h2></div>
+        <div><span className="eyebrow">Профессиональные источники</span><h2 id="reference-other-title">Дополнительные инструменты и рекомендации</h2></div>
       </div>
       <div className="reference-grid">
         {otherReferences.map(source => <a key={source.id} href={source.url} target="_blank" rel="noreferrer" className="reference-card">
@@ -72,6 +72,6 @@ export function ReferenceHub({ specialty }: { specialty: SpecialtyId }) {
       </div>
     </section>}
 
-    <p className="tools-footnote">Внешние ресурсы открываются отдельно и не становятся каноническими объектами онтологии автоматически.</p>
+    <p className="tools-footnote">Внешние ресурсы открываются отдельно. Материалы из них попадут во внутренний каталог только после отдельной проверки.</p>
   </div>;
 }
