@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { UiBlockPreference } from "@/lib/domain/types";
+import { productBlockTaxonomy } from "@/lib/ui/block-taxonomy";
 import { composeGenUiBlocks } from "@/lib/ui/gen-ui";
 
 const blocks = [
-  { id: "a", label: "A", value: "A" },
-  { id: "b", label: "B", value: "B" },
-  { id: "c", label: "C", value: "C" },
+  { id: "a", label: "A", kind: "hero_knowledge" as const, value: "A" },
+  { id: "b", label: "B", kind: "knowledge_shelf" as const, value: "B" },
+  { id: "c", label: "C", kind: "context_prompt" as const, value: "C" },
 ];
 
 function preference(blockId: string, mode: UiBlockPreference["mode"]): UiBlockPreference {
@@ -26,5 +27,11 @@ describe("GEN UI composition", () => {
     const preferences = [preference("a", "hidden")];
     expect(composeGenUiBlocks(blocks, preferences, "cardiology", "explore").map(block => block.id)).toEqual(["a", "b", "c"]);
     expect(composeGenUiBlocks(blocks, preferences, "oncology", "practice").map(block => block.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("defines stable regions for every product block kind", () => {
+    expect(productBlockTaxonomy.hero_knowledge.region).toBe("primary");
+    expect(productBlockTaxonomy.context_prompt.region).toBe("rail");
+    expect(productBlockTaxonomy.assistant_entry.region).toBe("full");
   });
 });
