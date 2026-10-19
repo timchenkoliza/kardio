@@ -8,6 +8,16 @@ function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
   return content.kind === "clinical" || explicitDiagnosticFormat ? "diagnostic" : "editorial";
 }
 
+function contentMonogram(content: ContentObject): string {
+  const words = content.title
+    .split(/\s+/u)
+    .map(word => word.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean)
+    .slice(0, 2);
+  const monogram = words.map(word => word.slice(0, 1).toLocaleUpperCase("ru-RU")).join("");
+  return monogram || content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU");
+}
+
 export function EditorialMedia({ content, compact = false, fallback = false }: {
   content: ContentObject;
   specialty: SpecialtyId;
@@ -16,6 +26,8 @@ export function EditorialMedia({ content, compact = false, fallback = false }: {
 }) {
   if (!content.asset?.url) {
     if (!fallback) return null;
+
+    const context = content.topics[0] ?? content.tags[0] ?? null;
 
     return (
       <figure
@@ -26,7 +38,8 @@ export function EditorialMedia({ content, compact = false, fallback = false }: {
         aria-label={`${kindLabel[content.kind]} · ${content.source.name}`}
       >
         <span className="editorial-art-kicker">{kindLabel[content.kind]}</span>
-        <strong className="editorial-art-monogram" aria-hidden="true">{content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</strong>
+        <strong className="editorial-art-monogram" aria-hidden="true">{contentMonogram(content)}</strong>
+        {context && <span className="editorial-art-topic">{context}</span>}
         <span className="editorial-art-source">{content.source.name}</span>
       </figure>
     );
