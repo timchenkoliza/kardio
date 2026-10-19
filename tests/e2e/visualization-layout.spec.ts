@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function openVisualization(page: Parameters<typeof test>[0] extends never ? never : any, width: number, height: number) {
+async function openVisualization(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   await page.addInitScript(() => {
     window.localStorage.setItem("kardio_onboarding_v1", "1");
@@ -10,7 +10,7 @@ async function openVisualization(page: Parameters<typeof test>[0] extends never 
   await expect(page.getByRole("heading", { level: 2, name: "Сердце" })).toBeVisible();
 }
 
-async function expectNoHorizontalOverflow(page: any) {
+async function expectNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
@@ -47,7 +47,7 @@ test("visualization stacks without overflow on tablet", async ({ page }) => {
   const viewer = await page.locator(".production-media-viewer").boundingBox();
   expect(anatomy).not.toBeNull();
   expect(viewer).not.toBeNull();
-  expect((viewer?.y ?? 0)).toBeGreaterThan((anatomy?.y ?? 0) + (anatomy?.height ?? 0) - 2);
+  expect(viewer?.y ?? 0).toBeGreaterThan((anatomy?.y ?? 0) + (anatomy?.height ?? 0) - 2);
 });
 
 test("visualization preserves touch geometry on mobile", async ({ page }) => {
