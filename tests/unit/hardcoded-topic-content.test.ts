@@ -4,7 +4,7 @@ import {
   HARD_CODED_UNITS_PER_TOPIC,
   hardcodedTopicContent,
   topicLabelsForHardcodedExpansion,
-} from "@/lib/demo/hardcoded-topic-content";
+} from "@/lib/demo/hardcoded-topic-content-v2";
 
 const source: Source = {
   id: "source",
@@ -53,7 +53,7 @@ const existing: ContentObject = {
   asset: null,
 };
 
-describe("hardcoded topic content", () => {
+describe("hardcoded topic content v2", () => {
   it("keeps the editorial pack fixed at exactly 20 units per topic", () => {
     expect(HARD_CODED_UNITS_PER_TOPIC).toBe(20);
     const topics = topicLabelsForHardcodedExpansion("cardiology", [existing]);
@@ -79,5 +79,34 @@ describe("hardcoded topic content", () => {
     expect(content.every(item => item.requiresReview)).toBe(true);
     expect(content.every(item => item.editorialStatus === "prototype_hardcoded")).toBe(true);
     expect(content.every(item => item.canonicalUrl === null)).toBe(true);
+    expect(content.every(item => item.version === "copy-v2")).toBe(true);
+  });
+
+  it("keeps visible copy free from implementation jargon and unsupported promises", () => {
+    const content = hardcodedTopicContent("cardiology", [existing]);
+    const forbidden = [
+      "alpha",
+      "resolver",
+      "pipeline",
+      "deterministic",
+      "staging",
+      "verified pipeline",
+      "лучший",
+      "идеальный",
+      "гарантированно",
+    ];
+
+    for (const item of content) {
+      const text = `${item.title} ${item.summary}`.toLocaleLowerCase("ru-RU");
+      for (const token of forbidden) expect(text).not.toContain(token);
+    }
+  });
+
+  it("keeps the editorial job after the dash concise", () => {
+    const content = hardcodedTopicContent("cardiology", [existing]);
+    for (const item of content) {
+      const tail = item.title.split("—").at(-1)?.trim() ?? item.title;
+      expect(tail.split(/\s+/u).filter(Boolean).length).toBeLessThanOrEqual(6);
+    }
   });
 });
