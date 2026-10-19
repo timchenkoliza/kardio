@@ -43,11 +43,11 @@ export interface RawArchiveItem {
 }
 
 export interface RawArchiveProvider {
-  readonly kind: "google_drive_api" | "local_mirror";
+  readonly kind: "google_drive_api" | "local_mirror" | "yandex_disk_api";
   listChildren(folderId: string, context?: { specialty?: SpecialtyId; sourceRegistryId?: string }): Promise<readonly RawArchiveItem[]>;
   getMetadata(itemId: string, context?: { specialty?: SpecialtyId; sourceRegistryId?: string }): Promise<RawArchiveItem>;
   readText(itemId: string): Promise<string>;
-  /** Returns a local temporary/application-controlled path; never a Drive sharing URL. */
+  /** Returns a local temporary/application-controlled path; never a provider sharing URL. */
   materializeBinary(itemId: string): Promise<string>;
 }
 
