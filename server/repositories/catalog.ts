@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { assets, contentObjects, sources } from "@/db/schema";
 import type { Asset, ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { isSpecialty } from "@/lib/specialty";
+import { loadGoldenSet, normalizeGoldenSet } from "@/server/ingestion/goldenset";
 
 const sourceTypeLabels: Record<string, string> = {
   pharmacy: "Аптека",
@@ -22,6 +23,17 @@ const sourceTypeLabels: Record<string, string> = {
   unknown: "Источник",
 };
 
+let staticCatalogPromise: Promise<{ content: ContentObject[]; sources: Source[] }> | null = null;
+
+function databaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
+async function staticCatalog(): Promise<{ content: ContentObject[]; sources: Source[] }> {
+  staticCatalogPromise ??= loadGoldenSet().then(normalizeGoldenSet);
+  return staticCatalogPromise;
+}
+
 function requireSpecialty(specialty: SpecialtyId): void {
   if (!isSpecialty(specialty)) throw new Error("Unknown specialty");
 }
@@ -40,7 +52,6 @@ function assetRecord(row: typeof assets.$inferSelect | null): Asset | null {
   delete copy.specialty;
   delete copy.contentId;
   const asset = copy as Asset;
-  // Rights policies apply at read time too, including future imported assets.
   return { ...asset, url: asset.status === "verified" && asset.rights === "publishable" ? asset.url : null };
 }
 
@@ -59,16 +70,39 @@ async function queryContent(specialty: SpecialtyId, id?: string): Promise<Conten
   });
 }
 
-export async function listContent(specialty: SpecialtyId): Promise<ContentObject[]> { return queryContent(specialty); }
+export async function listContent(specialty: SpecialtyId): Promise<ContentObject[]> {
+  requireSpecialty(specialty);
+  if (!databaseConfigured()) {
+    if (specialty !== "cardiology") return [];
+    return (await staticCatalog()).content;
+  }
+  return queryContent(specialty);
+}
+
 export async function getContent(specialty: SpecialtyId, id: string): Promise<ContentObject | null> {
+  requireSpecialty(specialty);
+  if (!databaseConfigured()) {
+    if (specialty !== "cardiology") return null;
+    return (await staticCatalog()).content.find(item => item.id === id) ?? null;
+  }
   return (await queryContent(specialty, id))[0] ?? null;
 }
+
 export async function listSources(specialty: SpecialtyId): Promise<Source[]> {
   requireSpecialty(specialty);
+  if (!databaseConfigured()) {
+    if (specialty !== "cardiology") return [];
+    return (await staticCatalog()).sources;
+  }
   return (await db.select().from(sources).where(eq(sources.specialty, specialty)).orderBy(asc(sources.name))).map(sourceRecord);
 }
+
 export async function getSource(specialty: SpecialtyId, id: string): Promise<Source | null> {
   requireSpecialty(specialty);
+  if (!databaseConfigured()) {
+    if (specialty !== "cardiology") return null;
+    return (await staticCatalog()).sources.find(source => source.id === id) ?? null;
+  }
   const row = (await db.select().from(sources).where(and(eq(sources.specialty, specialty), eq(sources.id, id))))[0];
   return row ? sourceRecord(row) : null;
 }
