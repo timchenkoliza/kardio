@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint app components lib server db scripts tests && node scripts/check-design-tokens.mjs",
+    "lint": "eslint app components lib server db scripts tests && node scripts/check-design-tokens.mjs && node scripts/check-product-copy.mjs",
     "test": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
