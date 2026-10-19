@@ -37,5 +37,7 @@ describe("GEN UI composition", () => {
     expect(productBlockTaxonomy.event_rail.region).toBe("rail");
     expect(productBlockTaxonomy.context_prompt.region).toBe("rail");
     expect(productBlockTaxonomy.assistant_entry.region).toBe("full");
+    expect(productBlockTaxonomy.benchmark_shelf.region).toBe("full");
+    expect(productBlockTaxonomy.expert_route.region).toBe("full");
   });
 });
