@@ -29,8 +29,12 @@ describe("GEN UI composition", () => {
     expect(composeGenUiBlocks(blocks, preferences, "oncology", "practice").map(block => block.id)).toEqual(["a", "b", "c"]);
   });
 
-  it("defines stable regions for every product block kind", () => {
+  it("defines stable regions for typed professional block kinds", () => {
     expect(productBlockTaxonomy.hero_knowledge.region).toBe("primary");
+    expect(productBlockTaxonomy.clinical_shelf.region).toBe("primary");
+    expect(productBlockTaxonomy.evidence_shelf.region).toBe("primary");
+    expect(productBlockTaxonomy.guideline_shelf.region).toBe("primary");
+    expect(productBlockTaxonomy.event_rail.region).toBe("rail");
     expect(productBlockTaxonomy.context_prompt.region).toBe("rail");
     expect(productBlockTaxonomy.assistant_entry.region).toBe("full");
   });
