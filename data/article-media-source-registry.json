@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "purpose": "Source collections used to recover original article media before any generic fallback is rendered. Private cloud locations are ingestion locators, never production image URLs.",
+  "policy": {
+    "priority": [
+      "content_asset",
+      "resolved_original_article_media",
+      "generated_motion_asset",
+      "approved_specialty_fallback",
+      "typographic_fallback"
+    ],
+    "generate_motion_when": "No rights-approved original article media is available and the UI would otherwise reuse a generic specialty fallback.",
+    "generated_format": "gif",
+    "source_image_required": true,
+    "runtime_generation": false
+  },
+  "collections": [
+    {
+      "id": "cardiology_original_photos_a",
+      "specialty": "cardiology",
+      "provider": "google_drive",
+      "folder_id": "1tus4MpEGW3YYJBzIn0Crsht-DLTQPSV8",
+      "folder_url": "https://drive.google.com/drive/u/1/folders/1tus4MpEGW3YYJBzIn0Crsht-DLTQPSV8",
+      "role": "original_article_media",
+      "production_url_eligible": false
+    },
+    {
+      "id": "cardiology_original_photos_b",
+      "specialty": "cardiology",
+      "provider": "google_drive",
+      "folder_id": "1amwbx16391bv_1JX4E5APeKR3pSIlHqN",
+      "folder_url": "https://drive.google.com/drive/u/1/folders/1amwbx16391bv_1JX4E5APeKR3pSIlHqN",
+      "role": "original_article_media",
+      "production_url_eligible": false
+    },
+    {
+      "id": "oncology_channel_01_original_photos",
+      "specialty": "oncology",
+      "provider": "yandex_disk",
+      "folder_url": "https://disk.yandex.ru/client/disk/oncology-media-source/telegram/oncology_channel_01/photos",
+      "role": "original_article_media",
+      "production_url_eligible": false
+    },
+    {
+      "id": "oncology_channel_02_original_photos",
+      "specialty": "oncology",
+      "provider": "yandex_disk",
+      "folder_url": "https://disk.yandex.ru/client/disk/oncology-media-source/telegram/oncology_channel_02/photos",
+      "role": "original_article_media",
+      "production_url_eligible": false
+    }
+  ]
+}
