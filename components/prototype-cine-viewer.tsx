@@ -16,7 +16,7 @@ function formatTime(value: number): string {
 function modalityLabel(asset: PrototypeMediaAsset): string {
   return {
     echo: "ЭхоКГ",
-    mri: "МРТ cine",
+    mri: "МРТ · динамика",
     angiography: "Коронарография",
     ct: "КТ",
     ecg: "ЭКГ",
@@ -83,8 +83,12 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      await video.play();
-      setPlaying(true);
+      try {
+        await video.play();
+        setPlaying(true);
+      } catch {
+        setPlaying(false);
+      }
     } else {
       video.pause();
       setPlaying(false);
@@ -100,7 +104,7 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
 
   return <section className="cine-viewer-card" aria-labelledby="cine-viewer-title">
     <div className="image-reader-head">
-      <div><span className="eyebrow">Медиабанк · прототип</span><h2 id="cine-viewer-title">Снимки и cine-петли</h2></div>
+      <div><span className="eyebrow">Медиабанк · прототип</span><h2 id="cine-viewer-title">Снимки и динамические серии</h2></div>
       <Film size={26} />
     </div>
 
@@ -126,12 +130,13 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
         loop
         playsInline
         preload="metadata"
+        aria-label="Динамическая серия медицинских изображений"
         onLoadedMetadata={event => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />}
-      {!mediaSrc && <div className="cine-stage-empty"><Film size={38} /><strong>{unavailableBankAsset ? "Клип зарегистрирован в медиабанке" : "Выберите медиа"}</strong><span>{unavailableBankAsset ? "Метаданные есть, но сами байты ещё не подключены к runtime. Мы не подменяем их синтетической анимацией." : "Можно открыть доступный материал банка или локальный обезличенный файл."}</span></div>}
+      {!mediaSrc && <div className="cine-stage-empty"><Film size={38} /><strong>{unavailableBankAsset ? "Видео зарегистрировано в медиабанке" : "Выберите медиа"}</strong><span>{unavailableBankAsset ? "Файл пока не подключён к просмотру. Мы не заменяем его искусственной анимацией." : "Можно открыть доступный материал банка или локальный обезличенный файл."}</span></div>}
 
       {mediaSrc && <div className="cine-stage-label">
         <span>{localUrl ? "Локальный файл" : `${modalityLabel(selectedBank!)} · медиабанк`}</span>
@@ -141,18 +146,18 @@ export function PrototypeCineViewer({ specialty }: { specialty: SpecialtyId }) {
       {mediaSrc && mediaKind === "video" && <div className="cine-controls">
         <button type="button" onClick={() => void togglePlayback()} aria-label={playing ? "Пауза" : "Воспроизвести"}>{playing ? <Pause size={17} /> : <Play size={17} />}</button>
         <span>{formatTime(currentTime)}</span>
-        <input type="range" min={0} max={duration || 0} step="0.01" value={Math.min(currentTime, duration || 0)} onChange={event => seek(Number(event.target.value))} aria-label="Позиция cine-петли" />
+        <input type="range" min={0} max={duration || 0} step="0.01" value={Math.min(currentTime, duration || 0)} onChange={event => seek(Number(event.target.value))} aria-label="Позиция динамической серии" />
         <span>{formatTime(duration)}</span>
-        <span className="cine-loop-label">LOOP</span>
+        <span className="cine-loop-label">ЦИКЛ</span>
       </div>}
     </div>
 
     <div className="cine-local-loader">
       <label className="viewer-confirm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><ShieldCheck size={16} /><span>Только обезличенный или учебный файл</span></label>
-      <label className={confirmed ? "secondary-button viewer-file" : "secondary-button viewer-file disabled"}>Проверить локальный cine / кадр<input type="file" disabled={!confirmed} accept="video/mp4,video/webm,video/quicktime,image/png,image/jpeg,image/webp,.mp4,.webm,.mov,.png,.jpg,.jpeg,.webp" onChange={selectLocalMedia} /></label>
+      <label className={confirmed ? "secondary-button viewer-file" : "secondary-button viewer-file disabled"}>Проверить локальное видео или кадр<input type="file" disabled={!confirmed} accept="video/mp4,video/webm,video/quicktime,image/png,image/jpeg,image/webp,.mp4,.webm,.mov,.png,.jpg,.jpeg,.webp" onChange={selectLocalMedia} /></label>
       {localFileName && <button type="button" className="secondary-button" onClick={clearLocalPreview}>Вернуться к медиабанку</button>}
     </div>
 
-    <p className="viewer-formats">Реальные КТ/МРТ/УЗИ/ангиография/ЭКГ не перекрашиваются палитрой продукта. Цвет используется только в интерфейсе вокруг диагностического изображения.</p>
+    <p className="viewer-formats">Реальные КТ, МРТ, УЗИ, ангиография и ЭКГ не перекрашиваются палитрой продукта. Цвет используется только в интерфейсе вокруг диагностического изображения.</p>
   </section>;
 }
