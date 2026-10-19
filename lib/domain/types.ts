@@ -3,7 +3,50 @@ export type Shell = "explore" | "practice" | "workspace";
 export type ContentKind = "guideline" | "article" | "video" | "event" | "clinical" | "service" | "tool" | "drug" | "referral";
 export type Currentness = "current" | "review" | "superseded" | "archived";
 export type UiPreferenceMode = "hidden" | "less" | "pinned";
-export type ProfessionalAgentKind = "guideline_delta" | "research_watch" | "practice_brief" | "learning" | "events" | "source_watch" | "partner_channel";
+export type ProfessionalAgentKind =
+  | "guideline_delta"
+  | "research_watch"
+  | "trial_watch"
+  | "safety_signal_watch"
+  | "label_change_watch"
+  | "regulatory_watch"
+  | "source_watch"
+  | "topic_brief"
+  | "practice_brief"
+  | "therapy_compare"
+  | "drug_safety_check"
+  | "calculator_orchestrator"
+  | "consilium"
+  | "second_opinion_pack"
+  | "referral_navigation"
+  | "ecg_review"
+  | "echo_review"
+  | "cardiac_imaging_review"
+  | "rhythm_monitor"
+  | "heart_failure_monitor"
+  | "blood_pressure_monitor"
+  | "lipid_prevention_monitor"
+  | "device_followup"
+  | "previsit_review"
+  | "ambient_documentation"
+  | "order_draft"
+  | "inbox_triage"
+  | "followup_plan"
+  | "prior_auth"
+  | "coding_quality"
+  | "registry_quality"
+  | "trial_matching"
+  | "journal_club"
+  | "learning"
+  | "events"
+  | "publication_assistant"
+  | "presentation_assistant"
+  | "partner_article"
+  | "partner_useful"
+  | "partner_media"
+  | "partner_event"
+  | "partner_performance"
+  | "partner_channel";
 export type ProfessionalAgentCadence = "manual" | "daily" | "weekly" | "event";
 export type ProfessionalAgentOutput = "delta" | "brief" | "comparison" | "learning_plan" | "watchlist";
 export type ProfessionalAgentStatus = "draft" | "configured" | "paused";
