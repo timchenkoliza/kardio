@@ -2,12 +2,18 @@ import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import renderManifestJson from "@/data/article-motion-render-manifest.json";
 
 export type ArticleMotionRenderStatus = "queued" | "rendering" | "ready" | "failed" | "blocked";
+export type ArticleMotionSourceProvider = "google_drive_api" | "yandex_disk_api";
 
 export interface ArticleMotionRenderEntry {
   content_id: string;
   specialty: SpecialtyId;
   status: ArticleMotionRenderStatus;
-  source_image_url: string;
+  source_provider: ArticleMotionSourceProvider;
+  source_collection_id: string;
+  source_item_id: string;
+  source_filename: string;
+  source_mime_type: string;
+  source_image_url: string | null;
   source_image_ref: string;
   output_url: string | null;
   output_format: "gif";
