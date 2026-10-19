@@ -17,10 +17,10 @@ const primaryNavigation = [
 ] as const;
 
 const toolNavigation = [
-  { id: "tools", label: "Калькуляторы", icon: Calculator },
-  { id: "drugs", label: "Препараты", icon: Pill },
-  { id: "events", label: "События", icon: Compass },
-  { id: "education", label: "Обучение", icon: GraduationCap },
+  { id: "tools", label: "Калькуляторы", icon: Calculator, experimental: false },
+  { id: "drugs", label: "Препараты", icon: Pill, experimental: false },
+  { id: "events", label: "События", icon: Compass, experimental: false },
+  { id: "education", label: "Обучение", icon: GraduationCap, experimental: false },
   { id: "imaging", label: "Визуализация", icon: ScanLine, experimental: true },
 ] as const;
 
