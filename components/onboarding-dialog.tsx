@@ -1,58 +1,55 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BookOpenCheck, BriefcaseMedical, Compass, FolderKanban } from "lucide-react";
+import { Bot, CheckCircle2, Search, SlidersHorizontal } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { specialtyLabel } from "@/lib/ui/labels";
 import { useProduct } from "./product-provider";
 
-export const ONBOARDING_STORAGE_KEY = "kardio_onboarding_v1";
+/** Versioned separately from the legacy three-shell onboarding. */
+export const ONBOARDING_STORAGE_KEY = "kardio_agent_workspace_onboarding_v1";
 
 const steps = [
   {
-    title: "Три режима, один профиль",
-    text: "Материалы, сохранения и история остаются общими. Меняется только то, какую задачу решает главный экран.",
-    icon: BookOpenCheck,
+    title: "Не портал, а рабочее пространство",
+    text: "На Главном не нужно выбирать раздел. Начните с задачи: спросите сейчас или настройте постоянное правило для агента.",
+    icon: Search,
   },
   {
-    title: "Обзор",
-    text: "Для открытия нового: редакционная выдача, темы, исследования, рекомендации и путь к первоисточнику.",
-    icon: Compass,
+    title: "Один запрос — два режима",
+    text: "«Спросить сейчас» решает разовую задачу. «Следить» сохраняет инструкцию, темы, источники и формат результата для повторной работы.",
+    icon: Bot,
   },
   {
-    title: "Практика",
-    text: "Для повторяемых рабочих задач: текущие рекомендации, инструменты, закреплённое и недавнее.",
-    icon: BriefcaseMedical,
+    title: "Вы управляете контекстом",
+    text: "Выберите, за какими темами и источниками следить. Настройки можно изменить, поставить на паузу или удалить. Инструменты подключаются к задаче, а не загромождают Главное.",
+    icon: SlidersHorizontal,
   },
   {
-    title: "Рабочее пространство",
-    text: "Только ваш контекст: сохранения, подборки, интересы и агент по теме. Случайная общая лента сюда не подмешивается.",
-    icon: FolderKanban,
+    title: "Сначала источник, потом вывод",
+    text: "Результат должен сохранять первоисточник и отделять факты от интерпретации. Партнёрские каналы подключаются отдельно и не смешиваются с независимой медицинской выдачей.",
+    icon: CheckCircle2,
   },
 ] as const;
 
 export function OnboardingDialog({ specialty }: { specialty: SpecialtyId }) {
-  const { state, pending, mutate } = useProduct();
+  const { pending, mutate } = useProduct();
   const dialog = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const localCompleted = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
-
-    if (state.onboardingCompleted) {
-      if (!localCompleted) window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+    const completedForThisVersion = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+    if (completedForThisVersion) {
       if (dialog.current?.open) dialog.current.close();
       return;
     }
-
-    if (!localCompleted && dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, [state.onboardingCompleted]);
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, []);
 
   async function finish() {
-    if (await mutate({ action: "preferences", onboardingCompleted: true })) {
-      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
-      dialog.current?.close();
-    }
+    await mutate({ action: "preferences", onboardingCompleted: true });
+    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+    dialog.current?.close();
   }
 
   const current = steps[step];
@@ -73,10 +70,10 @@ export function OnboardingDialog({ specialty }: { specialty: SpecialtyId }) {
         {step < steps.length - 1 ? (
           <button className="primary-source-button" type="button" onClick={() => setStep(value => value + 1)}>Дальше</button>
         ) : (
-          <button className="primary-source-button" type="button" disabled={pending} onClick={() => void finish()}>Начать работу</button>
+          <button className="primary-source-button" type="button" disabled={pending} onClick={() => void finish()}>Перейти на Главное</button>
         )}
       </div>
-      <p className="onboarding-footnote">Рядом с ключевыми разделами останется небольшой знак вопроса — к логике раздела можно вернуться в любой момент.</p>
+      <p className="onboarding-footnote">Фоновый мониторинг появится после подключения runtime. Сейчас продукт честно сохраняет конфигурацию агента и не имитирует выполненную работу.</p>
     </dialog>
   );
 }
