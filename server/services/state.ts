@@ -15,7 +15,52 @@ const uiBlockIdSchema = z.string().trim().min(1).max(80).regex(/^[a-z0-9:_-]+$/i
 const uiBlockLabelSchema = z.string().trim().min(1).max(80).regex(/^[^\u0000-\u001f\u007f]+$/u);
 const agentTextSchema = z.string().trim().min(2).max(1200).regex(/^[^\u0000-\u001f\u007f]+$/u);
 const agentLabelSchema = z.string().trim().min(2).max(100).regex(/^[^\u0000-\u001f\u007f]+$/u);
-const agentKindSchema = z.enum(["guideline_delta", "research_watch", "practice_brief", "learning", "events", "source_watch", "partner_channel"]);
+const agentKindSchema = z.enum([
+  "guideline_delta",
+  "research_watch",
+  "trial_watch",
+  "safety_signal_watch",
+  "label_change_watch",
+  "regulatory_watch",
+  "source_watch",
+  "topic_brief",
+  "practice_brief",
+  "therapy_compare",
+  "drug_safety_check",
+  "calculator_orchestrator",
+  "consilium",
+  "second_opinion_pack",
+  "referral_navigation",
+  "ecg_review",
+  "echo_review",
+  "cardiac_imaging_review",
+  "rhythm_monitor",
+  "heart_failure_monitor",
+  "blood_pressure_monitor",
+  "lipid_prevention_monitor",
+  "device_followup",
+  "previsit_review",
+  "ambient_documentation",
+  "order_draft",
+  "inbox_triage",
+  "followup_plan",
+  "prior_auth",
+  "coding_quality",
+  "registry_quality",
+  "trial_matching",
+  "journal_club",
+  "learning",
+  "events",
+  "publication_assistant",
+  "presentation_assistant",
+  "partner_article",
+  "partner_useful",
+  "partner_media",
+  "partner_event",
+  "partner_performance",
+  "partner_channel",
+]);
+const partnerAgentKinds = new Set(["partner_article", "partner_useful", "partner_media", "partner_event", "partner_performance"] as const);
 const agentCadenceSchema = z.enum(["manual", "daily", "weekly", "event"]);
 const agentOutputSchema = z.enum(["delta", "brief", "comparison", "learning_plan", "watchlist"]);
 const agentStatusSchema = z.enum(["draft", "configured", "paused"]);
@@ -96,7 +141,7 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
       && (preference.shell === "explore" || preference.shell === "practice" || preference.shell === "workspace")
       && (preference.specialty === "cardiology" || preference.specialty === "oncology")
     )) : [],
-    professionalAgents: Array.isArray(value.professionalAgents) ? value.professionalAgents.filter(isProfessionalAgent).slice(0, 30) : [],
+    professionalAgents: Array.isArray(value.professionalAgents) ? value.professionalAgents.filter(isProfessionalAgent).slice(0, 60) : [],
   };
 }
 
@@ -148,8 +193,12 @@ async function validateReference(command: StateCommand) {
     if (entry.kind === "content" && !await getContent(entry.specialty, entry.id!)) throw new HttpError(404, "Материал не найден.");
     if (entry.kind === "source" && !await getSource(entry.specialty, entry.id!)) throw new HttpError(404, "Источник не найден.");
   } else if (command.action === "createProfessionalAgent") {
-    if (command.agent.commercial && !command.agent.sponsorName) throw new HttpError(400, "Для партнёрского агента нужен явный спонсор.");
-    if (!command.agent.commercial && command.agent.sponsorName) throw new HttpError(400, "Независимый агент не должен иметь спонсора.");
+    const isPartnerKind = partnerAgentKinds.has(command.agent.kind as typeof partnerAgentKinds extends Set<infer T> ? T : never);
+    if (command.agent.kind === "partner_channel") throw new HttpError(400, "Общий партнёрский канал устарел: выберите один из форматов коммерческого предложения.");
+    if (isPartnerKind && !command.agent.commercial) throw new HttpError(400, "Партнёрский формат должен быть явно помечен как коммерческий.");
+    if (!isPartnerKind && command.agent.commercial) throw new HttpError(400, "Независимый медицинский агент не может быть коммерческим.");
+    if (isPartnerKind && !command.agent.sponsorName) throw new HttpError(400, "Для партнёрского формата нужен явный спонсор.");
+    if (!isPartnerKind && command.agent.sponsorName) throw new HttpError(400, "Независимый агент не должен иметь спонсора.");
     for (const sourceId of command.agent.sourceIds) {
       if (!await getSource(command.agent.specialty, sourceId)) throw new HttpError(404, "Один из выбранных источников не найден.");
     }
@@ -202,7 +251,7 @@ function applyCommand(state: UserState, command: StateCommand): UserState {
       break;
     }
     case "createProfessionalAgent": {
-      if (state.professionalAgents.length >= 30) throw new HttpError(400, "Можно настроить до 30 агентов.");
+      if (state.professionalAgents.length >= 60) throw new HttpError(400, "Можно настроить до 60 агентов.");
       const now = new Date().toISOString();
       state.professionalAgents.unshift({
         ...command.agent,
