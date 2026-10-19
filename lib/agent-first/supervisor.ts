@@ -1,9 +1,9 @@
 import { agentById } from "@/lib/agent-first/agents";
 import type { AgentId, AgentPlan, IntentKind } from "@/lib/agent-first/types";
 
-const ACT = /\b(зарегистр|добав|постав|отправ|опубли|куп|запиш|сохрани)\w*/iu;
-const SIMULATE = /\b(симулир|отрепетир|сыграй|возражен|диалог|сценари)\w*/iu;
-const PREPARE = /\b(подготов|состав|сделай|оформи|черновик|план|презентац)\w*/iu;
+const ACT = /(зарегистр|добав|постав|отправ|опубли|куп|запиш|сохрани)/iu;
+const SIMULATE = /(симулир|отрепетир|сыграй|возражен|диалог|сценари)/iu;
+const PREPARE = /(подготов|состав|сделай|оформи|черновик|план|презентац)/iu;
 
 export function classifyIntent(input: string): IntentKind {
   if (ACT.test(input)) return "act";
