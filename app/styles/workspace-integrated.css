@@ -1,0 +1,17 @@
+.workspace-integrated-surface > .gen-ui-stack {
+  margin-top: 18px;
+}
+
+.workspace-integrated-surface .workspace-case-header,
+.workspace-integrated-surface .workspace-home > .mode-hero {
+  display: none;
+}
+
+.workspace-integrated-surface .workspace-case-surface,
+.workspace-integrated-surface .workspace-home {
+  margin-top: 0;
+}
+
+.workspace-integrated-surface .workspace-case-surface {
+  padding-top: 0;
+}
