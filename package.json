@@ -34,6 +34,7 @@
     "resolution:event-transport-sync": "tsx scripts/sync-event-reference-transport-groups.ts",
     "resolution:event-role-inspect": "tsx scripts/inspect-event-semantic-roles.ts",
     "resolution:event-calendar-inspect": "tsx scripts/inspect-event-calendar-evidence.ts",
+    "resolution:media-inspect": "tsx scripts/inspect-telegram-media-resolution.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
