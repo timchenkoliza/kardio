@@ -79,14 +79,16 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
     <div className="consilium-layout">
       <aside className="consilium-personas" aria-label="Состав консилиума">
         <div className="decision-section-head"><div><span className="eyebrow">2–5 участников</span><h2>Состав</h2></div><span>{selectedIds.length}</span></div>
-        {consiliumPersonas.map(persona => {
-          const active = selectedIds.includes(persona.id);
-          return <button key={persona.id} className={`persona-row ${active ? "active" : ""}`} onClick={() => togglePersona(persona.id)} aria-pressed={active}>
-            <span className="persona-avatar" aria-hidden="true">{persona.displayName.slice(0, 1)}</span>
-            <span><strong>{persona.displayName}</strong><small>{persona.role}</small><em>{persona.lens}</em></span>
-            {active ? <Check size={16} /> : <Plus size={16} />}
-          </button>;
-        })}
+        <div className="persona-list">
+          {consiliumPersonas.map(persona => {
+            const active = selectedIds.includes(persona.id);
+            return <button key={persona.id} className={`persona-row ${active ? "active" : ""}`} onClick={() => togglePersona(persona.id)} aria-pressed={active}>
+              <span className="persona-avatar" aria-hidden="true">{persona.displayName.slice(0, 1)}</span>
+              <span><strong>{persona.displayName}</strong><small>{persona.role}</small><em>{persona.lens}</em></span>
+              {active ? <Check size={16} /> : <Plus size={16} />}
+            </button>;
+          })}
+        </div>
       </aside>
 
       <section className="consilium-chat" aria-label="Разговор">
