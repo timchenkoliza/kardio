@@ -15,7 +15,7 @@ const STATE_LABEL: Record<AgentCardState["state"], string> = {
   disabled: "Выключен",
 };
 
-export function AgentCard({ card, specialty, now, variant = "grid" }: { card: AgentCardState; specialty: string; now: string; variant?: "grid" | "row" }) {
+export function AgentCard({ card, now, variant = "grid" }: { card: AgentCardState; specialty: string; now: string; variant?: "grid" | "row" }) {
   const definition = AGENT_DEFINITIONS[card.agentId];
   const runnable = card.agentId !== "research" && card.agentId !== "materials" && card.state !== "needs_setup" && card.state !== "disabled";
   return <article className={`ws-agent-card is-${card.state} ws-agent-card-${variant}`} data-agent={card.agentId} aria-labelledby={`agent-${card.agentId}-title`}>

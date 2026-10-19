@@ -52,7 +52,7 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
   </li>;
 }
 
-export function ResultCard({ result, specialty }: { result: AgentResultView; specialty: string }) {
+export function ResultCard({ result }: { result: AgentResultView; specialty: string }) {
   const { command, setPendingAction, pending } = useWorkspace();
   const [saved, setSaved] = useState(Boolean(result.savedMaterialId));
   const [done, setDone] = useState(result.attributes.done === true);

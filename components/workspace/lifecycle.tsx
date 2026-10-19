@@ -14,13 +14,12 @@ export function CatchUpRunner({ enabled }: { enabled: boolean }) {
   const { command } = useWorkspace();
   const router = useRouter();
   const started = useRef(false);
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(enabled);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     void command({ action: "recordVisit" }, { quiet: true, refresh: false });
     if (!enabled) return;
-    setRunning(true);
     void command({ action: "catchUp" }, { quiet: true, refresh: false }).then(result => {
       setRunning(false);
       if (result?.ran?.length) router.refresh();

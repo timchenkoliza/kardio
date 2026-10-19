@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { countLabel } from "@/lib/agents/format";
 import { AGENT_IDS, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
 import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, GOAL_OPTIONS, SOURCE_OPTIONS, TOPICS } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
@@ -239,9 +240,9 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       if ((kind === "registration" || kind === "external_link") && !url) throw new HttpError(400, "У результата нет ссылки для перехода.");
       if (kind === "registration" && url && !results.some(result => result.attributes.registrationUrl === url || result.source.sourceUrl === url)) throw new HttpError(400, "Ссылка не относится к выбранному событию.");
       const titles: Record<typeof kind, string> = {
-        calendar_write: results.length === 1 ? `Добавить в календарь: ${first.title}` : `Добавить в календарь: ${results.length} события`,
+        calendar_write: results.length === 1 ? `Добавить в календарь: ${first.title}` : `Добавить в календарь: ${countLabel(results.length, ["событие", "события", "событий"])}`,
         registration: `Регистрация: ${first.title}`,
-        email: results.length === 1 ? `Письмо себе: ${first.title}` : `Письмо себе: ${results.length} находок`,
+        email: results.length === 1 ? `Письмо себе: ${first.title}` : `Письмо себе: ${countLabel(results.length, results.every(result => result.kind === "event") ? ["событие", "события", "событий"] : ["находка", "находки", "находок"])}`,
         external_link: `Открыть источник: ${first.source.source}`,
       };
       const effects: Record<typeof kind, string> = {
