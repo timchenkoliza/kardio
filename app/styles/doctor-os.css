@@ -1,0 +1,595 @@
+.doctor-os {
+  display: grid;
+  gap: 22px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 30px 34px 64px;
+}
+
+.doctor-os-intro {
+  display: grid;
+  gap: 6px;
+  max-width: 820px;
+}
+
+.doctor-os-intro h1,
+.doctor-command-card h2,
+.doctor-section-head h2,
+.doctor-partner-zone h3 {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.doctor-os-intro h1 {
+  font-size: clamp(34px, 4vw, 50px);
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+.doctor-os-intro p {
+  max-width: 760px;
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.doctor-command-card,
+.doctor-agent-section,
+.doctor-context-section,
+.doctor-tools-section {
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.doctor-command-card {
+  padding: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-accent-soft) 70%, transparent), transparent 36%),
+    var(--color-surface);
+}
+
+.doctor-command-head,
+.doctor-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.doctor-command-head h2,
+.doctor-section-head h2 {
+  font-size: 22px;
+  letter-spacing: -.025em;
+}
+
+.doctor-command-mode {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.doctor-command-mode button,
+.doctor-template-strip button,
+.doctor-chip-list button,
+.doctor-agent-actions button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.doctor-command-mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.doctor-command-mode button.active {
+  background: var(--color-surface);
+  color: var(--color-accent-ink);
+  box-shadow: 0 1px 4px rgb(20 20 30 / 8%);
+}
+
+.doctor-template-strip {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.doctor-template-strip::-webkit-scrollbar { display: none; }
+
+.doctor-template-strip button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.doctor-template-strip button small {
+  color: var(--color-text-tertiary);
+}
+
+.doctor-template-strip button.selected {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+}
+
+.doctor-command-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.doctor-command-form textarea {
+  width: 100%;
+  min-height: 122px;
+  resize: vertical;
+  padding: 16px 17px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.doctor-command-form textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-focus);
+}
+
+.doctor-agent-config {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface));
+}
+
+.doctor-config-block {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.doctor-config-block > strong {
+  font-size: 13px;
+}
+
+.doctor-config-block > p {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.doctor-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doctor-chip-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.doctor-chip-list button.selected {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+}
+
+.doctor-source-picker {
+  display: grid;
+  gap: 6px;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.doctor-source-picker label {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.doctor-source-picker input {
+  margin: 1px 0 0;
+  accent-color: var(--color-accent);
+}
+
+.doctor-config-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.doctor-config-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.doctor-config-summary .sponsored {
+  background: #f8f2ff;
+  color: #6250a8;
+}
+
+.doctor-command-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.doctor-command-actions p {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.doctor-command-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 150px;
+}
+
+.doctor-command-status {
+  margin: -4px 0 0;
+  color: var(--color-success);
+  font-size: 13px;
+}
+
+.doctor-agent-section,
+.doctor-context-section,
+.doctor-tools-section {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.doctor-section-head > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.doctor-section-head > small {
+  color: var(--color-text-tertiary);
+}
+
+.doctor-count {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.doctor-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.doctor-agent-card {
+  display: grid;
+  gap: 11px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.doctor-agent-card.commercial {
+  border-color: #ddd3f4;
+  background: linear-gradient(145deg, #fff 25%, #fbf8ff);
+}
+
+.doctor-agent-card-head {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.doctor-agent-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+}
+
+.doctor-agent-card.commercial .doctor-agent-icon {
+  background: #eee8ff;
+  color: #6651ac;
+}
+
+.doctor-agent-status {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.doctor-agent-card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.doctor-agent-card > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.doctor-agent-meta,
+.doctor-agent-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.doctor-agent-meta span,
+.doctor-agent-topics span {
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.doctor-sponsor-disclosure {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: #f2ecff;
+  color: #5e4c9f;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.doctor-agent-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.doctor-agent-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.doctor-agent-actions button.danger {
+  margin-left: auto;
+  color: var(--color-danger);
+}
+
+.doctor-agent-actions button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.doctor-agent-card footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.doctor-empty-agent {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 17px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 14px;
+  color: var(--color-text-secondary);
+}
+
+.doctor-empty-agent strong {
+  color: var(--color-text);
+}
+
+.doctor-empty-agent p {
+  margin: 3px 0 0;
+  font-size: 13px;
+}
+
+.doctor-partner-zone {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.doctor-partner-zone-head p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.doctor-context-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.doctor-context-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.doctor-context-card > span {
+  color: var(--color-accent-ink);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.doctor-context-card strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.doctor-context-card small {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}
+
+.doctor-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.doctor-tool-grid > a {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.doctor-tool-grid > a > svg:first-child {
+  color: var(--color-accent-ink);
+}
+
+.doctor-tool-grid span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.doctor-tool-grid strong {
+  font-size: 12px;
+}
+
+.doctor-tool-grid small {
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .doctor-os { padding: 24px 22px 52px; }
+  .doctor-agent-config { grid-template-columns: 1fr; }
+  .doctor-config-summary { grid-column: 1; }
+  .doctor-context-grid,
+  .doctor-tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .doctor-os { gap: 16px; padding: 18px 14px 40px; }
+  .doctor-os-intro h1 { font-size: 34px; }
+  .doctor-command-card,
+  .doctor-agent-section,
+  .doctor-context-section,
+  .doctor-tools-section { border-radius: 18px; padding: 16px; }
+  .doctor-command-head,
+  .doctor-section-head,
+  .doctor-command-actions { align-items: stretch; flex-direction: column; }
+  .doctor-command-mode { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .doctor-agent-grid,
+  .doctor-context-grid,
+  .doctor-tool-grid { grid-template-columns: 1fr; }
+  .doctor-command-actions .primary-button { width: 100%; }
+}
