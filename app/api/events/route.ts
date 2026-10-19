@@ -43,11 +43,13 @@ export async function POST(request: NextRequest) {
     rateLimit(`events:${candidate ?? request.headers.get("x-forwarded-for") ?? "anonymous"}`, 180);
     const payload = eventSchema.parse(await parseBody(request));
     const session = await ensureSession(candidate);
-    await db.insert(analyticsEvents).values({
-      sessionId: session.id,
-      event: payload.event,
-      payload,
-    });
+    if (process.env.DATABASE_URL?.trim()) {
+      await db.insert(analyticsEvents).values({
+        sessionId: session.id,
+        event: payload.event,
+        payload,
+      });
+    }
     return withSessionCookie(json({ ok: true }, 201), session.id);
   } catch (error) {
     return failure(error);
