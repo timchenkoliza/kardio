@@ -14,6 +14,8 @@ export type ProductBlockKind =
   | "topic_cluster"
   | "context_prompt"
   | "assistant_entry"
+  | "benchmark_shelf"
+  | "expert_route"
   | "update_strip";
 
 export type ProductBlockRegion = "primary" | "rail" | "full";
@@ -41,6 +43,8 @@ export const productBlockTaxonomy: Record<ProductBlockKind, ProductBlockDefiniti
   topic_cluster: { kind: "topic_cluster", region: "rail", userControllable: true, purpose: "Явно выбранные темы, интересы и тематические маршруты." },
   context_prompt: { kind: "context_prompt", region: "rail", userControllable: true, purpose: "Короткий вход в поиск или следующий контекстный шаг." },
   assistant_entry: { kind: "assistant_entry", region: "full", userControllable: true, purpose: "Контекстный вход в ассистента без chat-first поверхности." },
+  benchmark_shelf: { kind: "benchmark_shelf", region: "full", userControllable: true, purpose: "Популяционные и системные профессиональные показатели с явными источником, периодом и единицей измерения." },
+  expert_route: { kind: "expert_route", region: "full", userControllable: true, purpose: "Маршруты к профессиональным экспертным группам и внешнему формальному консилиуму без пациентского workflow внутри продукта." },
   update_strip: { kind: "update_strip", region: "primary", userControllable: true, purpose: "Недавние изменения и продолжение работы." },
 };
 
