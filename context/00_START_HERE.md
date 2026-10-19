@@ -1,5 +1,7 @@
 # START HERE — KARDIO / v3 current product context
 
+> **Product direction update (2026-10-19):** the primary surface is now the agent-first physician workspace — read `40_AGENT_FIRST_WORKSPACE.md` first. The shell / feed sections below describe the previous interface, which is frozen as an archive at `/[specialty]/legacy`. All product boundaries in this file remain in force.
+
 ## Product boundary
 
 This product has no access to patient data, EHR/EMR, appointment schedules, encounter context, diagnostic-device data linked to a patient, or patient-specific clinical tasks.
