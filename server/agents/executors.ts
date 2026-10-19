@@ -1,7 +1,7 @@
 import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, PlanStep, ToolUse } from "@/lib/agents/types";
-import { topicLabels } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, topicLabels } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
 import type { ResultDraft, ToolOutput } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
@@ -169,8 +169,19 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: ctx.preference.topics }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
   const topicTerm = tools.pubmedTermForTopics(ctx);
   const englishTerms = question.match(/[A-Za-z][A-Za-z0-9\- ]{2,}/g)?.join(" ").trim();
-  const term = [topicTerm, englishTerms ? `(${englishTerms})` : null].filter(Boolean).join(" AND ") || null;
-  const articles = builder.record("Искали публикации в PubMed", await tools.searchPubmed(ctx, { term, retmax: 6, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
+  const concepts = pubmedConceptsIn(question);
+  const conceptTerm = concepts.length ? concepts.map(item => `(${item.term})`).join(" AND ") : null;
+  const broadTerm = [topicTerm ? `(${topicTerm})` : null, englishTerms ? `(${englishTerms})` : null].filter(Boolean).join(" AND ") || null;
+  const term = [broadTerm, conceptTerm].filter(Boolean).join(" AND ") || null;
+  const journals = tools.trustedJournals(ctx);
+  const describeArticles = (items: unknown[]) => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + (concepts.length ? ` · запрос: ${concepts.map(item => item.label).join(", ")}` : "");
+  let articles = builder.record("Искали публикации в PubMed", await tools.searchPubmed(ctx, { term, retmax: 6, journals }), describeArticles);
+  let conceptMatched = concepts.length > 0;
+  if (!articles.length && conceptTerm && broadTerm && builder.toolsUsed.at(-1)?.status === "ok") {
+    articles = builder.record("Расширили поиск в PubMed до тем вопроса", await tools.searchPubmed(ctx, { term: broadTerm, retmax: 6, journals }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
+    conceptMatched = false;
+  }
+  const pubmedReason = conceptMatched ? `По запросу: ${concepts.map(item => item.label).join(", ")}` : "Совпадает с темами вопроса";
 
   const questionKey = question.toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
   const catalogDrafts: ResultDraft[] = hits.map(hit => ({
@@ -198,7 +209,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     category: "publication",
     title: truncate(article.title, 180),
     summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.publicationTypes.length ? ` · ${article.publicationTypes.slice(0, 2).join(", ")}` : ""}`,
-    reasonShown: ["Совпадает с темами вопроса", "PubMed"],
+    reasonShown: [pubmedReason, article.journal || "PubMed"],
     observedAt: article.sortDate,
     evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
     source: pubmedProvenance(article, ctx.nowIso),

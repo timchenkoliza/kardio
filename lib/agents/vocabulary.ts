@@ -119,6 +119,55 @@ export function topicLabels(specialty: SpecialtyId, ids: readonly string[]): str
   return ids.map(id => topicById(specialty, id)?.label).filter((label): label is string => Boolean(label));
 }
 
+/**
+ * Russian clinical concepts → PubMed terms. Lets the research agent search
+ * English-language literature for the concepts of a Russian question instead
+ * of only its topic. Matching is stem-based and Cyrillic-safe.
+ */
+export interface PubmedConcept {
+  id: string;
+  label: string;
+  match: RegExp;
+  term: string;
+}
+
+const START = "(?<![\\p{L}\\p{N}])";
+const concept = (id: string, label: string, stems: string, term: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term });
+
+export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
+  concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
+  concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
+  concept("stroke", "инсульт", "инсульт|онмк|тиа(?![\\p{L}])", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
+  concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),
+  concept("bleeding", "кровотечения", "кровотеч|геморраг", "bleeding[tiab] OR hemorrhag*[tiab]"),
+  concept("sglt2", "иНГЛТ-2", "ингл|sglt|глифлозин|дапаглифлозин|эмпаглифлозин", "SGLT2[tiab] OR \"sodium-glucose\"[tiab] OR gliflozin*[tiab]"),
+  concept("glp1", "ГПП-1", "гпп|glp|семаглутид|тирзепатид|лираглутид", "\"GLP-1\"[tiab] OR semaglutide[tiab] OR tirzepatide[tiab]"),
+  concept("statin", "статины", "статин|аторвастатин|розувастатин", "statin*[tiab] OR atorvastatin[tiab] OR rosuvastatin[tiab]"),
+  concept("pcsk9", "PCSK9 и инклисиран", "pcsk9|инклисиран|эволокумаб|алирокумаб", "PCSK9[tiab] OR inclisiran[tiab]"),
+  concept("lpa", "липопротеин(а)", "липопротеин\\s*\\(?а|lp\\(a", "\"lipoprotein(a)\"[tiab]"),
+  concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
+  concept("aldosterone_synthase", "ингибиторы альдостеронсинтазы", "баксдростат|лорундростат|альдостеронсинтаз", "baxdrostat[tiab] OR lorundrostat[tiab] OR \"aldosterone synthase\"[tiab]"),
+  concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
+  concept("ablation", "абляция", "абляц|изоляц.{0,12}легочн", "ablation[tiab]"),
+  concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
+  concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
+  concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
+  concept("ckd", "ХБП", "хбп|почечн|рскф", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
+  concept("diabetes", "сахарный диабет", "диабет|сд2", "diabet*[tiab]"),
+  concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
+  concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
+  concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),
+  concept("amyloidosis", "амилоидоз", "амилоид|ттр", "amyloid*[tiab]"),
+  concept("myocarditis", "миокардит", "миокардит", "myocarditis[tiab]"),
+  concept("rehabilitation", "реабилитация", "реабилитац", "rehabilitation[tiab]"),
+  concept("ai", "ИИ", "искусственн.{0,6}интеллект|нейросет|ии(?![\\p{L}])", "\"artificial intelligence\"[tiab] OR \"machine learning\"[tiab] OR \"deep learning\"[tiab]"),
+];
+
+export function pubmedConceptsIn(text: string): PubmedConcept[] {
+  const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+  return PUBMED_CONCEPTS.filter(item => item.match.test(normalized)).slice(0, 4);
+}
+
 /** Human label for a catalog ontology topic (e.g. "pulmonary_hypertension" → "Лёгочная гипертензия"). */
 export function catalogTopicLabel(specialty: SpecialtyId, catalogTopic: string): string {
   const match = TOPICS[specialty].find(topic => topic.catalogTopics.includes(catalogTopic));

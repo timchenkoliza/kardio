@@ -80,19 +80,50 @@ export function parseSummaryPayload(payload: unknown): PubmedArticle[] {
   return articles;
 }
 
-async function fetchJson(fetchImpl: FetchLike, url: string, timeoutMs: number): Promise<unknown> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetchImpl(url, { signal: controller.signal, headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } finally {
-    clearTimeout(timer);
+class PubmedHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
   }
 }
 
-export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?: FetchLike; timeoutMs?: number; disabled?: boolean } = {}): Promise<PubmedSearchResult> {
+/**
+ * NCBI allows 3 requests/second without an API key and 10 with one. Agents
+ * run in parallel during catch-up, so requests from this instance are spaced
+ * through a shared slot clock instead of failing with HTTP 429.
+ */
+let nextSlotAt = 0;
+async function waitForSlot(intervalMs: number): Promise<void> {
+  if (intervalMs <= 0) return;
+  const now = Date.now();
+  const startAt = Math.max(now, nextSlotAt);
+  nextSlotAt = startAt + intervalMs;
+  if (startAt > now) await new Promise(resolve => setTimeout(resolve, startAt - now));
+}
+
+const RETRY_AFTER_429_MS = 1100;
+
+async function fetchJson(fetchImpl: FetchLike, url: string, deadline: number, intervalMs: number): Promise<unknown> {
+  for (let attempt = 0; ; attempt += 1) {
+    await waitForSlot(intervalMs);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw Object.assign(new Error("deadline"), { name: "AbortError" });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), remaining);
+    try {
+      const response = await fetchImpl(url, { signal: controller.signal, headers: { Accept: "application/json" } });
+      if (response.status === 429 && attempt === 0 && deadline - Date.now() > RETRY_AFTER_429_MS + 500) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_AFTER_429_MS));
+        continue;
+      }
+      if (!response.ok) throw new PubmedHttpError(response.status);
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?: FetchLike; timeoutMs?: number; disabled?: boolean; minIntervalMs?: number } = {}): Promise<PubmedSearchResult> {
   const started = Date.now();
   const term = buildPubmedTerm(query);
   if (options.disabled ?? process.env.PUBMED_DISABLED === "1") {
@@ -113,9 +144,11 @@ export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?
   const cached = cache.get(searchUrl);
   if (cached && cached.expires > Date.now()) return cached.value;
 
-  const timeoutMs = options.timeoutMs ?? 6000;
+  const deadline = started + (options.timeoutMs ?? 8000);
+  // Injected fetch (tests) is not rate limited; the real NCBI endpoint is.
+  const intervalMs = options.minIntervalMs ?? (options.fetchImpl ? 0 : apiKey ? 110 : 350);
   try {
-    const searchPayload = await fetchJson(fetchImpl, searchUrl, timeoutMs) as { esearchresult?: { idlist?: unknown; count?: unknown } };
+    const searchPayload = await fetchJson(fetchImpl, searchUrl, deadline, intervalMs) as { esearchresult?: { idlist?: unknown; count?: unknown } };
     const ids = Array.isArray(searchPayload?.esearchresult?.idlist) ? (searchPayload.esearchresult.idlist as unknown[]).filter((value): value is string => typeof value === "string" && /^\d+$/.test(value)) : null;
     if (!ids) return { status: "failed", query: term, total: 0, articles: [], error: "Ответ PubMed не распознан", durationMs: Date.now() - started };
     const total = Number(searchPayload.esearchresult?.count ?? ids.length) || ids.length;
@@ -123,7 +156,7 @@ export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?
     if (ids.length) {
       const summaryParams = new URLSearchParams({ db: "pubmed", retmode: "json", id: ids.join(","), tool: "kardio-workspace" });
       if (apiKey) summaryParams.set("api_key", apiKey);
-      articles = parseSummaryPayload(await fetchJson(fetchImpl, `${BASE}/esummary.fcgi?${summaryParams.toString()}`, timeoutMs));
+      articles = parseSummaryPayload(await fetchJson(fetchImpl, `${BASE}/esummary.fcgi?${summaryParams.toString()}`, deadline, intervalMs));
     }
     const value: PubmedSearchResult = { status: "ok", query: term, total, articles, error: null, durationMs: Date.now() - started };
     cache.set(searchUrl, { expires: Date.now() + CACHE_TTL_MS, value });
@@ -131,7 +164,8 @@ export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?
     return value;
   } catch (error) {
     const aborted = error instanceof Error && error.name === "AbortError";
-    return { status: "unavailable", query: term, total: 0, articles: [], error: aborted ? "PubMed не ответил вовремя" : "PubMed сейчас недоступен", durationMs: Date.now() - started };
+    const throttled = error instanceof PubmedHttpError && error.status === 429;
+    return { status: "unavailable", query: term, total: 0, articles: [], error: aborted ? "PubMed не ответил вовремя" : throttled ? "PubMed временно ограничил частоту запросов" : "PubMed сейчас недоступен", durationMs: Date.now() - started };
   }
 }
 

@@ -80,3 +80,12 @@ describe("de-identification", () => {
     expect(result.redactions).toEqual(expect.arrayContaining(["fio", "address", "birth_date"]));
   });
 });
+
+describe("research PubMed concepts", () => {
+  it("maps Russian clinical concepts to PubMed terms", async () => {
+    const { pubmedConceptsIn } = await import("@/lib/agents/vocabulary");
+    expect(pubmedConceptsIn("Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта").map(item => item.id)).toEqual(["anticoagulation", "stroke", "intermediate"]);
+    expect(pubmedConceptsIn("иНГЛТ-2 у пожилых с ХБП").map(item => item.id)).toEqual(["sglt2", "elderly", "ckd"]);
+    expect(pubmedConceptsIn("что нового по ХСН")).toEqual([]);
+  });
+});
