@@ -5,7 +5,6 @@
  */
 
 .product .gen-ui-stack[data-shell="explore"] {
-  --color-inverse-text: var(--color-surface);
   grid-template-columns: minmax(0, 2.55fr) minmax(214px, .62fr);
   gap: 16px 18px;
 }
