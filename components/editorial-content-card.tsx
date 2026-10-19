@@ -31,10 +31,13 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
   const resolvedPresentation = presentation ?? presentationForContent(content, featured);
   const hero = featured || resolvedPresentation === "hero";
   const hasMedia = Boolean(content.asset?.url);
+  const artDirectedFallback = !hasMedia && (hero || (resolvedPresentation === "clinical" && position === 1));
+  const hasVisual = hasMedia || artDirectedFallback;
   const className = [
     "editorial-card",
     hero ? "featured-card" : "",
     hasMedia ? "has-media-card" : "no-media-card",
+    hasVisual ? "has-visual-card" : "text-only-card",
   ].filter(Boolean).join(" ");
 
   return (
@@ -42,7 +45,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
       className={className}
       data-kind={content.kind}
       data-presentation={resolvedPresentation}
-      data-media-state={hasMedia ? "real" : "none"}
+      data-media-state={hasMedia ? "real" : artDirectedFallback ? "art-directed" : "none"}
       data-rank-position={position}
     >
       <div className="editorial-card-meta">
@@ -53,12 +56,12 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
         <ContentSaveButton contentId={content.id} specialty={specialty} compact />
       </div>
 
-      <div className={hasMedia ? "editorial-card-main with-media" : "editorial-card-main text-only"}>
+      <div className={hasVisual ? "editorial-card-main with-media" : "editorial-card-main text-only"}>
         <Link className="editorial-card-link" href={`/${specialty}/content/${encodeURIComponent(content.id)}`}>
           <h2>{content.title}</h2>
           {content.summary && <p>{content.summary}</p>}
         </Link>
-        {hasMedia && <EditorialMedia content={content} specialty={specialty} compact={!hero} fallback={false} />}
+        {hasVisual && <EditorialMedia content={content} specialty={specialty} compact={!hero} fallback={artDirectedFallback} />}
       </div>
 
       <div className="editorial-card-footer">
