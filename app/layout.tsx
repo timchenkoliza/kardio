@@ -29,8 +29,9 @@ import "./styles/decision-workspaces.css";
 import "./styles/layout-stability.css";
 import "./styles/media-visualization-prod.css";
 import "./styles/visualization-pixel-pass-v2.css";
+import "./styles/doctor-os.css";
 
-export const metadata: Metadata = { title: "Яндекс Мед · профессиональная навигация", description: "Источники, рекомендации и профессиональные знания врача." };
+export const metadata: Metadata = { title: "Яндекс Мед · professional intelligence workspace", description: "Агенты, источники и профессиональный контекст врача." };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="ru"><body>{children}</body></html>;
