@@ -4,19 +4,17 @@ import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ClinicalToolsHub, ImagingWorkspace } from "@/components/clinical-tools-hub";
 import { ConsiliumWorkspace } from "@/components/consilium-workspace";
+import { DoctorAgentHome } from "@/components/doctor-agent-home";
 import { DrugIntelligenceWorkspace } from "@/components/drug-intelligence-workspace";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { ExploreGenUiSurface } from "@/components/explore-gen-ui-surface";
-import { OncologyPracticeSurface } from "@/components/oncology-practice-surface";
 import { OncologyStarterSurface, type OncologyStarterFocus } from "@/components/oncology-starter-surface";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import { EventsHub, VmpHub } from "@/components/professional-destination-hubs";
 import { ReferenceHub } from "@/components/reference-hub";
 import { SectionHelp } from "@/components/section-help";
-import { PracticeGenUiSurface } from "@/components/shell-gen-ui-surfaces";
-import { WorkspaceIntegratedSurface } from "@/components/workspace-integrated-surface";
-import type { ContentObject, Shell, Source, SpecialtyId, UserState } from "@/lib/domain/types";
+import type { Source, SpecialtyId, UserState } from "@/lib/domain/types";
 import { curatedSourcesForSpecialty } from "@/lib/ui/curated-external-tools";
 import { contentKindFromView, feedKindLabel, isFeedKind, selectFeedContent, type FeedKindFilter } from "@/lib/ui/feed";
 import { specialtyLabel } from "@/lib/ui/labels";
@@ -28,7 +26,8 @@ export const dynamic = "force-dynamic";
 const feedTabs: FeedKindFilter[] = ["all", "guideline", "article", "video", "clinical"];
 
 const viewTitles: Record<string, string> = {
-  saved: "Мои материалы",
+  agents: "Агенты",
+  saved: "Материалы",
   sources: "Источники",
   tools: "Калькуляторы",
   drugs: "Препараты",
@@ -41,7 +40,7 @@ const viewTitles: Record<string, string> = {
 };
 
 const emptyCopy: Record<string, { title: string; body: string }> = {
-  saved: { title: "Пока ничего не сохранено", body: "Сохраняйте материалы из ленты — они появятся здесь." },
+  saved: { title: "Пока ничего не сохранено", body: "Сохраняйте материалы, к которым хотите вернуться — они появятся здесь." },
   referral: { title: "Материалы по ВМП пока не добавлены", body: "Раздел появится, когда в каталоге будут проверенные маршруты и материалы по ВМП." },
   events: { title: "Событий пока нет", body: "Новые подтверждённые события появятся здесь после загрузки в каталог." },
   education: { title: "Обучающих материалов пока нет", body: "Курсы, лекции и другие проверенные материалы появятся здесь после загрузки в каталог." },
@@ -54,10 +53,6 @@ function first(value: string | string[] | undefined): string | undefined {
 
 function isSpecialty(value: string): value is SpecialtyId {
   return value === "cardiology" || value === "oncology";
-}
-
-function isShell(value: string | undefined): value is Shell {
-  return value === "explore" || value === "practice" || value === "workspace";
 }
 
 function oncologyFocus(kind: FeedKindFilter): OncologyStarterFocus {
@@ -85,37 +80,20 @@ export default async function SpecialtyHome({
   const kind: FeedKindFilter = isFeedKind(kindParam) ? kindParam : "all";
   const drugId = first(queryParams.drug);
   const indication = first(queryParams.indication);
-  const shellParam = first(queryParams.shell);
 
   const cookieStore = await cookies();
   const state = await readState(cookieStore.get(SESSION_COOKIE)?.value);
   const [content, sources] = await Promise.all([listContent(specialty), listSources(specialty)]);
-  const activeShell = isShell(shellParam) ? shellParam : state.shell;
-  const initialState = { ...state, specialty, shell: activeShell };
+  const initialState = { ...state, specialty, shell: "workspace" as const };
   const rootHome = view === "feed" && !query && kind === "all";
-
-  const recentContentIds = initialState.recent
-    .filter(entry => entry.kind === "content" && entry.specialty === specialty && entry.id)
-    .map(entry => entry.id as string);
-  const recentWorkspaceContent = recentContentIds
-    .map(id => content.find(item => item.id === id))
-    .filter((item): item is ContentObject => Boolean(item));
-  const savedWorkspaceContent = content.filter(item => initialState.savedIds.includes(item.id));
-  const workspaceRecent = (recentWorkspaceContent.length ? recentWorkspaceContent : savedWorkspaceContent).slice(0, 5);
-  const workspaceContextTerms = [
-    ...initialState.researchInterests
-      .filter(value => value.startsWith(`${specialty}:`))
-      .map(value => value.slice(specialty.length + 1)),
-    ...initialState.followedTopics,
-  ];
 
   return <ProductProvider initialState={initialState} specialty={specialty}>
     <ProductFrame specialty={specialty}>
       <div className="alpha-shell">
-        {rootHome && initialState.shell === "practice" ? (
-          specialty === "cardiology" ? <PracticeGenUiSurface specialty={specialty} content={content} sources={sources} state={initialState} /> : <OncologyPracticeSurface />
-        ) : rootHome && initialState.shell === "workspace" ? (
-          <WorkspaceIntegratedSurface specialty={specialty} content={content} sources={sources} state={initialState} recent={workspaceRecent} contextTerms={workspaceContextTerms} />
+        {specialty === "cardiology" && rootHome ? (
+          <DoctorAgentHome specialty={specialty} content={content} sources={sources} />
+        ) : specialty === "cardiology" && view === "agents" && !query ? (
+          <DoctorAgentHome specialty={specialty} content={content} sources={sources} focus="agents" />
         ) : (
           <ExploreOrCatalogHome specialty={specialty} content={content} sources={sources} state={initialState} query={query} view={view} kind={kind} drugId={drugId} indication={indication} />
         )}
@@ -136,7 +114,7 @@ function ExploreOrCatalogHome({
   indication,
 }: {
   specialty: SpecialtyId;
-  content: ContentObject[];
+  content: Awaited<ReturnType<typeof listContent>>;
   sources: Source[];
   state: UserState;
   query: string;
@@ -172,19 +150,19 @@ function ExploreOrCatalogHome({
   const isExploreHome = isFeedCatalog && kind === "all";
   const isOncologyStarter = specialty === "oncology" && content.length === 0 && isFeedCatalog;
   const isOncologyEducationStart = specialty === "oncology" && content.length === 0 && view === "education" && !query;
-  const pageTitle = query ? "Поиск" : viewTitles[view] ?? (kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Лента" : "Материалы");
+  const pageTitle = query ? "Поиск" : viewTitles[view] ?? (kind !== "all" ? feedKindLabel(kind) : isExploreHome ? "Материалы" : "Материалы");
 
   return <>
     <section className="feed-intro explore-intro" aria-labelledby="feed-title">
       <div>
-        <span className="eyebrow">{specialtyLabel[specialty]}{isExploreHome ? " · Обзор" : ""}</span>
-        <div className="heading-with-help"><h1 id="feed-title">{pageTitle}</h1><SectionHelp text={isExploreHome ? "Обзор помогает находить новое. Порядок блоков строится по явным признакам каталога и вашим настройкам интерфейса, без данных пациента." : "Раздел показывает только объекты выбранного типа или запроса из текущего каталога."} /></div>
-        <p>{query ? `По запросу «${query}»` : specialty === "cardiology" ? "Новые темы, проверяемые материалы и понятные пути к первоисточникам." : "Проверенные внешние точки входа сейчас; собственный каталог специальности — по мере отдельной верифицированной загрузки."}</p>
+        <span className="eyebrow">{specialtyLabel[specialty]}{isExploreHome ? " · каталог" : ""}</span>
+        <div className="heading-with-help"><h1 id="feed-title">{pageTitle}</h1><SectionHelp text={isExploreHome ? "Каталог остаётся источником контекста для поиска и агентов, но больше не является главной моделью продукта." : "Раздел показывает только объекты выбранного типа или запроса из текущего каталога."} /></div>
+        <p>{query ? `По запросу «${query}»` : specialty === "cardiology" ? "Профессиональные материалы и пути к первоисточникам." : "Проверенные внешние точки входа сейчас; собственный каталог специальности — по мере отдельной верифицированной загрузки."}</p>
       </div>
       {specialty === "cardiology" && isExploreHome && <div className="feed-trust-summary" aria-label="Состояние каталога"><span><strong>{content.length}</strong> материалов</span><span><strong>{currentCount}</strong> актуальных</span>{reviewCount > 0 && <span><strong>{reviewCount}</strong> требуют проверки</span>}</div>}
     </section>
 
-    {isFeedCatalog && <nav className="feed-tabs" aria-label="Разделы ленты">{feedTabs.map(tab => <Link key={tab} className={kind === tab ? "feed-tab active" : "feed-tab"} href={`/${specialty}${tab === "all" ? `?shell=${state.shell}` : `?kind=${tab}&shell=${state.shell}`}`}>{feedKindLabel(tab)}</Link>)}</nav>}
+    {isFeedCatalog && specialty !== "cardiology" && <nav className="feed-tabs" aria-label="Разделы материалов">{feedTabs.map(tab => <Link key={tab} className={kind === tab ? "feed-tab active" : "feed-tab"} href={`/${specialty}${tab === "all" ? "" : `?kind=${tab}`}`}>{feedKindLabel(tab)}</Link>)}</nav>}
 
     {view === "sources" ? (
       <SourceDirectory specialty={specialty} sources={sources} />
@@ -221,5 +199,5 @@ function SourceDirectory({ specialty, sources }: { specialty: SpecialtyId; sourc
 function EmptyState({ specialty, view, query }: { specialty: SpecialtyId; view: string; query?: string }) {
   const oncology = specialty === "oncology";
   const copy = emptyCopy[view] ?? { title: "Материалов пока нет", body: "Новые проверенные материалы появятся здесь после загрузки в каталог." };
-  return <section className="empty-state"><span className="empty-state-mark" aria-hidden="true">{query ? "⌕" : "—"}</span><h2>{query ? "Ничего не найдено" : oncology ? "В собственном каталоге раздел пока пуст" : copy.title}</h2><p>{query ? "Попробуйте более короткий запрос или название темы." : oncology ? "Внешние профессиональные источники доступны в основных разделах, а материалы внутреннего каталога появятся после отдельной проверки." : copy.body}</p><Link className="secondary-button" href={`/${specialty}`}>{view === "saved" ? "Перейти в ленту" : "Вернуться на главную"}</Link></section>;
+  return <section className="empty-state"><span className="empty-state-mark" aria-hidden="true">{query ? "⌕" : "—"}</span><h2>{query ? "Ничего не найдено" : oncology ? "В собственном каталоге раздел пока пуст" : copy.title}</h2><p>{query ? "Попробуйте более короткий запрос или название темы." : oncology ? "Внешние профессиональные источники доступны в основных разделах, а материалы внутреннего каталога появятся после отдельной проверки." : copy.body}</p><Link className="secondary-button" href={`/${specialty}`}>{view === "saved" ? "На Главное" : "Вернуться на Главное"}</Link></section>;
 }
