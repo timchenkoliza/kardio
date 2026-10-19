@@ -8,6 +8,7 @@ import { EditorialContentCard } from "@/components/editorial-content-card";
 import { GenUiStack, type GenUiBlock } from "@/components/gen-ui-stack";
 import { SectionHelp } from "@/components/section-help";
 import { WorkspaceResearchAgent } from "@/components/workspace-research-agent";
+import { ProcedureBenchmarks, ProfessionalConsultationHub } from "@/components/workspace-professional-intelligence";
 
 export function ExploreGenUiSurface({ specialty, content, sources }: { specialty: SpecialtyId; content: ContentObject[]; sources: Source[] }) {
   const visible = selectFeedContent({ content, query: "", kind: "all", savedIds: [] });
@@ -54,6 +55,12 @@ export function PracticeGenUiSurface({ specialty, content, sources, state }: { s
       content: <section className="practice-launcher" aria-label="Рабочие задачи"><Link href={`/${specialty}?kind=guideline`}><BookOpen size={22} /><span><strong>Рекомендации</strong><small>Открыть текущие версии</small></span><ArrowRight size={17} /></Link><Link href={`/${specialty}?view=tools`}><Calculator size={22} /><span><strong>Калькуляторы</strong><small>Две кардиологические шкалы</small></span><ArrowRight size={17} /></Link><Link href={`/${specialty}?view=reference`}><Search size={22} /><span><strong>Справочник</strong><small>Лекарства и взаимодействия</small></span><ArrowRight size={17} /></Link><Link href={`/${specialty}?view=referral`}><ArrowRight size={22} /><span><strong>ВМП</strong><small>Официальные документы и навигация</small></span><ArrowRight size={17} /></Link></section>,
     },
     {
+      id: "practice-consultation",
+      label: "Обсудить с коллегами",
+      kind: "expert_route",
+      content: <ProfessionalConsultationHub specialty={specialty} compact />,
+    },
+    {
       id: "practice-guidelines",
       label: "Текущие рекомендации",
       kind: "guideline_shelf",
@@ -73,7 +80,7 @@ export function PracticeGenUiSurface({ specialty, content, sources, state }: { s
     }] : []),
   ];
 
-  return <div className="practice-home"><section className="mode-hero practice-hero" aria-labelledby="practice-title"><div><span className="eyebrow">{specialtyLabel[specialty]} · Практика</span><div className="heading-with-help"><h1 id="practice-title">Рабочий стол врача</h1><SectionHelp text="Практика собрана вокруг повторяемых рабочих задач: сначала актуальные рекомендации и инструменты, затем ваш личный быстрый доступ." /></div><p>Не лента новостей: быстрый вход в текущие рекомендации, инструменты и то, что вы сами закрепили для повторной работы.</p></div><div className="mode-stats" aria-label="Рабочее состояние"><span><strong>{model.currentGuidelines.length}</strong> текущих рекомендаций</span><span><strong>{model.taskObjects.length}</strong> инструментов каталога</span><span><strong>{model.pinned.length}</strong> закреплено</span></div></section><GenUiStack specialty={specialty} shell="practice" blocks={blocks} /><p className="mode-footnote">Источники в каталоге: {sources.length}. Практика не использует данные пациента и не пытается угадывать контекст приёма.</p></div>;
+  return <div className="practice-home"><section className="mode-hero practice-hero" aria-labelledby="practice-title"><div><span className="eyebrow">{specialtyLabel[specialty]} · Практика</span><div className="heading-with-help"><h1 id="practice-title">Рабочий стол врача</h1><SectionHelp text="Практика собрана вокруг повторяемых рабочих задач: сначала актуальные рекомендации и инструменты, затем ваш личный быстрый доступ." /></div><p>Не лента новостей: быстрый вход в текущие рекомендации, инструменты, коллег и то, что вы сами закрепили для повторной работы.</p></div><div className="mode-stats" aria-label="Рабочее состояние"><span><strong>{model.currentGuidelines.length}</strong> текущих рекомендаций</span><span><strong>{model.taskObjects.length}</strong> инструментов каталога</span><span><strong>{model.pinned.length}</strong> закреплено</span></div></section><GenUiStack specialty={specialty} shell="practice" blocks={blocks} /><p className="mode-footnote">Источники в каталоге: {sources.length}. Практика не использует данные пациента и не пытается угадывать контекст приёма.</p></div>;
 }
 
 export function WorkspaceGenUiSurface({ specialty, content, sources, state }: { specialty: SpecialtyId; content: ContentObject[]; sources: Source[]; state: UserState }) {
@@ -85,6 +92,18 @@ export function WorkspaceGenUiSurface({ specialty, content, sources, state }: { 
 
   const blocks: GenUiBlock[] = [
     {
+      id: "workspace-procedure-benchmarks",
+      label: "Статистика операций",
+      kind: "benchmark_shelf",
+      content: <ProcedureBenchmarks specialty={specialty} />,
+    },
+    {
+      id: "workspace-consultation",
+      label: "Обсудить с коллегами",
+      kind: "expert_route",
+      content: <ProfessionalConsultationHub specialty={specialty} />,
+    },
+    {
       id: "workspace-assistant",
       label: "Ассистент по теме",
       kind: "assistant_entry",
@@ -94,7 +113,7 @@ export function WorkspaceGenUiSurface({ specialty, content, sources, state }: { 
       id: "workspace-cold-start",
       label: "Начать рабочее пространство",
       kind: "context_prompt" as const,
-      content: <section className="workspace-empty"><div className="workspace-empty-icon"><FolderOpen size={28} /></div><span className="eyebrow">Пока пусто</span><div className="heading-with-help"><h2>Рабочее пространство начинается с ваших действий</h2><SectionHelp text="Пустое состояние намеренное: сюда не подмешивается общий каталог, пока вы сами не зададите контекст." /></div><p>Добавьте интересующую нозологию, сохраните материал или закрепите нужное. Мы не подставляем сюда случайные статьи.</p><div className="workspace-empty-actions"><Link className="primary-source-button" href={`/${specialty}`}>Перейти в обзор <ArrowRight size={15} /></Link><Link className="secondary-button" href={`/${specialty}?view=saved`}>Мои материалы</Link></div></section>,
+      content: <section className="workspace-empty"><div className="workspace-empty-icon"><FolderOpen size={28} /></div><span className="eyebrow">Ваш личный слой пока пуст</span><div className="heading-with-help"><h2>Сохранения и подборки начинаются с ваших действий</h2><SectionHelp text="Статистика практики и профессиональные маршруты доступны сразу. Личный слой — сохранения, подборки, темы и история — формируется только вашими действиями." /></div><p>Добавьте интересующую нозологию, сохраните материал или закрепите нужное. Общий каталог не подмешивается сюда как будто это ваше сохранение.</p><div className="workspace-empty-actions"><Link className="primary-source-button" href={`/${specialty}`}>Перейти в обзор <ArrowRight size={15} /></Link><Link className="secondary-button" href={`/${specialty}?view=saved`}>Мои материалы</Link></div></section>,
     }] : []),
     ...(model.pinned.length ? [{ id: "workspace-pinned", label: "Закреплено", kind: "saved_shelf" as const, content: <WorkspaceSection title="Закреплено" eyebrow="Всегда под рукой" help="Материалы, которые вы явно закрепили для быстрого возврата." icon={<Pin size={18} />}><div className="mode-row-list">{model.pinned.map(item => <ModeContentRow key={item.id} item={item} specialty={specialty} compact />)}</div></WorkspaceSection> }] : []),
     ...(model.collections.length ? [{ id: "workspace-collections", label: "Подборки", kind: "collection_shelf" as const, content: <WorkspaceSection title="Подборки" eyebrow="Ваши наборы" help="Пользовательские наборы материалов. Состав определяется только вами." icon={<FolderOpen size={18} />}><div className="collection-list">{model.collections.map(collection => <article key={collection.id} className="collection-card"><div><strong>{collection.name}</strong><span>{collection.items.length} материалов</span></div>{collection.items.length ? <div className="collection-preview">{collection.items.slice(0, 3).map(item => <Link key={item.id} href={`/${specialty}/content/${encodeURIComponent(item.id)}`}>{item.title}</Link>)}</div> : <p>Подборка пока пустая.</p>}</article>)}</div></WorkspaceSection> }] : []),
@@ -103,7 +122,7 @@ export function WorkspaceGenUiSurface({ specialty, content, sources, state }: { 
     ...(hasContext ? [{ id: "workspace-context", label: "Профессиональный контекст", kind: "topic_cluster" as const, content: <WorkspaceSection title="Контекст" eyebrow="Явно выбранное" help="Темы, нозологии, источники и запросы, которые формируют ваш персональный рабочий контекст." icon={<Library size={18} />}><div className="workspace-context-groups">{model.researchInterests.length > 0 && <div><strong>Интересы и нозологии</strong><div className="workspace-chips">{model.researchInterests.map(interest => <span key={interest}>{interest}</span>)}</div></div>}{model.followedTopics.length > 0 && <div><strong>Темы</strong><div className="workspace-chips">{model.followedTopics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div></div>}{[...pinnedSources, ...followedSources].length > 0 && <div><strong>Источники</strong><div className="workspace-chips">{[...pinnedSources, ...followedSources].filter((source, index, array) => array.findIndex(item => item.id === source.id) === index).map(source => <span key={source.id}>{source.name}</span>)}</div></div>}{model.recentQueries.length > 0 && <div><strong>Недавние запросы</strong><div className="workspace-chips">{model.recentQueries.map(query => <Link key={query} href={`/${specialty}?q=${encodeURIComponent(query)}`}>{query}</Link>)}</div></div>}</div></WorkspaceSection> }] : []),
   ];
 
-  return <div className="workspace-home"><section className="mode-hero workspace-hero" aria-labelledby="workspace-title"><div><span className="eyebrow">{specialtyLabel[specialty]} · Рабочее пространство</span><div className="heading-with-help"><h1 id="workspace-title">Ваши материалы и контекст</h1><SectionHelp text="Рабочее пространство строится только из ваших действий: сохранений, закреплений, подборок, тем, истории и явно заданных интересов." /></div><p>Сохраняйте свои материалы, интересы и профессиональные вопросы. Ассистент остаётся контекстным входом, а не основной поверхностью продукта.</p></div><div className="mode-stats" aria-label="Состояние пространства"><span><strong>{model.saved.length}</strong> сохранено</span><span><strong>{model.collections.length}</strong> подборок</span><span><strong>{model.researchInterests.length + model.followedTopics.length}</strong> тем</span></div></section><GenUiStack specialty={specialty} shell="workspace" blocks={blocks} /></div>;
+  return <div className="workspace-home"><section className="mode-hero workspace-hero" aria-labelledby="workspace-title"><div><span className="eyebrow">{specialtyLabel[specialty]} · Рабочее пространство</span><div className="heading-with-help"><h1 id="workspace-title">Ваши материалы и профессиональный контекст</h1><SectionHelp text="Рабочее пространство соединяет системный профессиональный контекст — статистику и маршруты к коллегам — с вашим личным слоем сохранений, подборок, тем и истории." /></div><p>Смотрите ориентиры практики, находите профессиональные сообщества и сохраняйте собственный контекст. Данные пациента здесь не используются.</p></div><div className="mode-stats" aria-label="Состояние пространства"><span><strong>{model.saved.length}</strong> сохранено</span><span><strong>{model.collections.length}</strong> подборок</span><span><strong>{model.researchInterests.length + model.followedTopics.length}</strong> тем</span></div></section><GenUiStack specialty={specialty} shell="workspace" blocks={blocks} /></div>;
 }
 
 function ModeContentRow({ item, specialty, compact = false }: { item: ContentObject; specialty: SpecialtyId; compact?: boolean }) {
