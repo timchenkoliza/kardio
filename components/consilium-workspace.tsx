@@ -148,7 +148,7 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   async function send() {
     const prompt = draft.trim();
     if (!prompt || sending) return;
-    const turnId = `${Date.now()}`;
+    const turnId = `${messages.length + 1}`;
     const userMessage: Message = { id: `user-${turnId}`, author: "user", body: prompt };
     setMessages(current => [...current, userMessage]);
     setDraft("");
