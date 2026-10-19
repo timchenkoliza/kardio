@@ -70,7 +70,7 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
 
   return <section className="decision-workspace consilium-workspace" aria-labelledby="consilium-title">
     <header className="decision-header">
-      <div><span className="eyebrow">Профессиональное обсуждение · синтетические эксперты</span><h1 id="consilium-title">Консилиум</h1><p className="decision-lede">Несколько профессиональных линз на один вопрос: отдельно мнения, отдельно точки согласия и расхождения. Это не медицинское решение за врача.</p></div>
+      <div><span className="eyebrow">Профессиональное обсуждение · синтетические эксперты</span><h1 id="consilium-title">Консилиум</h1><p className="decision-lede">Несколько профессиональных линз на один вопрос: отдельно мнения, отдельно точки согласия и расхождения. Это не медицинское решение за врача. Не передавайте персональные данные пациента.</p></div>
       <span className="synthetic-note">Синтетический консилиум · ответы AI-персон</span>
     </header>
 
