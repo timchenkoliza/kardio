@@ -1,0 +1,292 @@
+/*
+ * Explore/feed art direction.
+ * This is a semantic surface layer, not another global palette pass:
+ * stronger lead, compact utility rail, and visibly different block morphologies.
+ */
+
+.product .gen-ui-stack[data-shell="explore"] {
+  gap: 16px 18px;
+}
+
+/* Lead: one strong specialty-colored editorial object, with real media when available
+ * and a typographic art-directed panel when rights-safe media is absent. */
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+  min-height: 336px;
+  padding: 24px;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-accent-strong);
+  box-shadow: var(--shadow-card-featured);
+  color: var(--color-inverse-text);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"]:hover {
+  background: var(--color-accent-strong);
+  box-shadow: var(--shadow-raised);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-mark {
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-lockup strong,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+  color: var(--color-inverse-text);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .source-lockup small,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link p,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-footer {
+  color: var(--color-inverse-text-secondary);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+  max-width: 16ch;
+  font-size: var(--font-size-heading-1);
+  line-height: 1.01;
+  letter-spacing: -.045em;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link p {
+  max-width: 48ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-main.with-media {
+  grid-template-columns: minmax(0, 1.08fr) minmax(250px, .92fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-media {
+  min-height: 222px;
+  border-radius: var(--radius-lg);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-typographic {
+  min-height: 222px;
+  padding: 20px;
+  border: 0;
+  background: var(--color-surface);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-kicker,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-monogram {
+  color: var(--color-accent-strong);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-art-source {
+  color: var(--color-text-secondary);
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .save-button.compact,
+.product .gen-ui-block[data-block-kind="hero_knowledge"] > .gen-ui-menu > summary {
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  color: var(--color-accent-strong);
+  border-color: transparent;
+}
+
+.product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .card-open-icon {
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+}
+
+/* Utility rail: navigation, not a second content card. */
+.product .explore-route-module {
+  padding: 14px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--rail-highlight);
+  box-shadow: none;
+}
+
+.product .explore-route-module > .eyebrow {
+  display: block;
+  margin: 0 0 5px;
+}
+
+.product .explore-route-module .quick-job-list {
+  display: grid;
+  gap: 0;
+}
+
+.product .explore-route-module .quick-job-list a {
+  min-height: 38px;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  gap: 7px;
+  margin: 0;
+  padding: 5px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+.product .explore-route-module .quick-job-list a:last-child {
+  border-bottom: 0;
+}
+
+.product .explore-route-module .quick-job-list strong {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Clinical shelf: one visual lead + compact supporting objects. */
+.product .editorial-shelf[data-presentation="clinical"] .editorial-shelf-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] {
+  grid-column: 1 / -1;
+  min-height: 228px;
+  padding: 20px;
+  border-left: 0;
+  background: color-mix(in srgb, var(--color-surface) 84%, var(--color-accent-wash));
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(210px, .85fr);
+  grid-template-rows: none;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-media {
+  order: 0;
+  min-height: 156px;
+  height: 100%;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-link h2 {
+  font-size: var(--font-size-heading-3);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+
+.product .editorial-shelf[data-presentation="clinical"] .editorial-card:not([data-rank-position="1"]) {
+  min-height: 144px;
+  padding: 15px 16px;
+  border-left-width: 2px;
+  box-shadow: none;
+}
+
+/* Recommendations: first object is the visual anchor, the rest become a compact 2-column shelf. */
+.product .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] {
+  grid-column: 1 / -1;
+  min-height: 148px;
+  padding: 20px;
+  border-left: 0;
+  border-top: 4px solid var(--color-accent-strong);
+  background: var(--color-accent-wash);
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] .editorial-card-link h2 {
+  max-width: 32ch;
+  font-size: var(--font-size-heading-3);
+  line-height: 1.08;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) {
+  min-height: 112px;
+  padding: 14px 15px;
+  border-left: 0;
+  border-top: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) .source-mark {
+  width: 24px;
+  height: 24px;
+}
+
+.product .editorial-shelf[data-presentation="guideline"] .editorial-card:not([data-rank-position="1"]) .editorial-card-link h2 {
+  font-size: var(--font-size-body-compact);
+  line-height: 1.24;
+}
+
+/* Events should read as calendar objects, not recommendation rows. */
+.product .editorial-shelf[data-presentation="event"] .editorial-card {
+  min-height: 116px;
+  padding: 15px 16px;
+  border: 0;
+  border-left: 4px solid var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-surface) 78%, var(--art-event-bg));
+}
+
+.product .editorial-shelf[data-presentation="event"] .source-mark {
+  background: var(--color-accent-strong);
+  color: var(--color-inverse-text);
+}
+
+.product .editorial-shelf[data-presentation="event"] .editorial-card-link h2 {
+  max-width: 30ch;
+  font-size: var(--font-size-body-compact);
+  line-height: 1.2;
+}
+
+/* Evidence remains editorial and spacious; learning is media-led when real media exists. */
+.product .editorial-shelf[data-presentation="evidence"] .editorial-card,
+.product .editorial-shelf[data-presentation="learning"] .editorial-card {
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.product .editorial-shelf[data-presentation="evidence"] .editorial-card:hover,
+.product .editorial-shelf[data-presentation="learning"] .editorial-card:hover {
+  box-shadow: var(--shadow-subtle);
+}
+
+@media (max-width: 1180px) {
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-shelf-grid,
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-shelf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"],
+  .product .editorial-shelf[data-presentation="guideline"] .editorial-card[data-rank-position="1"] {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 980px) {
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+    min-height: 312px;
+  }
+
+  .product .explore-route-module .quick-job-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+  }
+
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+    grid-template-columns: minmax(0, 1.1fr) minmax(190px, .9fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-main.with-media,
+  .product .editorial-shelf[data-presentation="clinical"] .editorial-card[data-rank-position="1"] .editorial-card-main.with-media {
+    grid-template-columns: 1fr;
+  }
+
+  .product .gen-ui-block[data-block-kind="hero_knowledge"] .editorial-card[data-presentation="hero"] .editorial-card-link h2 {
+    max-width: none;
+  }
+
+  .product .explore-route-module .quick-job-list {
+    grid-template-columns: 1fr;
+  }
+}
