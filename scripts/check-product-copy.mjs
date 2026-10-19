@@ -37,6 +37,8 @@ const requiredBoundaries = [
   ["components/professional-destination-hubs.tsx", "не определяет показания"],
   ["components/oncology-starter-surface.tsx", "без персональных назначений"],
   ["components/product-frame.tsx", "Поисковые фразы не передаются в аналитику"],
+  ["components/workspace-professional-intelligence.tsx", "Не передавайте через этот продукт медицинские данные пациента"],
+  ["components/workspace-professional-intelligence.tsx", "не ориентир для решения по конкретному пациенту"],
 ];
 
 for (const [file, phrase] of requiredBoundaries) {
