@@ -16,7 +16,7 @@ describe("Expert Twins integration", () => {
 
   it("routes narrow corpus domains without inventing unsupported tags", () => {
     expect(inferExpertTwinsDomainTags("cardiology", "HFrEF с декомпенсацией и ХБП")).toEqual(["heart_failure", "chronic_kidney_disease"]);
-    expect(inferExpertTwinsDomainTags("oncology", "Метастатический ПКР, вопрос по системной терапии")).toEqual(["renal_cell_carcinoma", "metastatic_rcc"]);
+    expect(inferExpertTwinsDomainTags("oncology", "Метастатический ПКР, вопрос по системной терапии")).toEqual(["metastatic_rcc"]);
     expect(inferExpertTwinsDomainTags("oncology", "саркома мягких тканей")).toEqual([]);
   });
 
