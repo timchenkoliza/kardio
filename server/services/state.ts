@@ -29,6 +29,14 @@ export const stateCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("clearHistory") }).strict(),
 ]);
 
+const fallbackGlobals = globalThis as unknown as { kardioFallbackStates?: Map<string, UserState> };
+const fallbackStates = fallbackGlobals.kardioFallbackStates ?? new Map<string, UserState>();
+fallbackGlobals.kardioFallbackStates = fallbackStates;
+
+function databaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
 function normalizeState(value: Partial<UserState> | null | undefined): UserState {
   const base = emptyUserState();
   if (!value) return base;
@@ -57,10 +65,22 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
 
 export async function readState(sessionId?: string): Promise<UserState> {
   if (!sessionId || !sessionIdPattern.test(sessionId)) return emptyUserState();
+  if (!databaseConfigured()) return normalizeState(fallbackStates.get(sessionId));
   const [record] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, sessionId));
   return record && Date.now() - record.updatedAt.getTime() < 180 * 86400_000 ? normalizeState(record.state) : emptyUserState();
 }
+
 export async function ensureSession(candidate?: string): Promise<{ id: string; state: UserState; created: boolean }> {
+  if (!databaseConfigured()) {
+    if (candidate && sessionIdPattern.test(candidate)) {
+      const existing = fallbackStates.get(candidate);
+      if (existing) return { id: candidate, state: normalizeState(existing), created: false };
+    }
+    const id = randomBytes(32).toString("hex");
+    const state = emptyUserState();
+    fallbackStates.set(id, state);
+    return { id, state, created: true };
+  }
   if (candidate && sessionIdPattern.test(candidate)) {
     const [record] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, candidate));
     if (record && Date.now() - record.updatedAt.getTime() < 180 * 86400_000) return { id: candidate, state: normalizeState(record.state), created: false };
@@ -70,10 +90,12 @@ export async function ensureSession(candidate?: string): Promise<{ id: string; s
   await db.insert(anonymousSessions).values({ id, state, updatedAt: new Date() });
   return { id, state, created: true };
 }
+
 function toggle(values: string[], id: string, enabled: boolean) {
   if (enabled && !values.includes(id) && values.length >= 500) throw new HttpError(400, "Достигнут лимит сохранённых элементов.");
   return enabled ? [...new Set([...values, id])] : values.filter(value => value !== id);
 }
+
 async function validateReference(command: StateCommand) {
   if (command.action === "save" || command.action === "pin") {
     if (!await getContent(command.specialty, command.id)) throw new HttpError(404, "Материал не найден в этой специальности.");
@@ -90,58 +112,68 @@ async function validateReference(command: StateCommand) {
     if (entry.kind === "source" && !await getSource(entry.specialty, entry.id!)) throw new HttpError(404, "Источник не найден.");
   }
 }
+
+function applyCommand(state: UserState, command: StateCommand): UserState {
+  switch (command.action) {
+    case "preferences":
+      if (command.specialty) state.specialty = command.specialty;
+      if (command.shell) state.shell = command.shell;
+      if (typeof command.onboardingCompleted === "boolean") state.onboardingCompleted = command.onboardingCompleted;
+      break;
+    case "save": state.savedIds = toggle(state.savedIds, command.id, command.enabled); break;
+    case "pin": state.pinnedIds = toggle(state.pinnedIds, command.id, command.enabled); break;
+    case "followSource": state.followedSourceIds = toggle(state.followedSourceIds, command.id, command.enabled); break;
+    case "pinSource": state.pinnedSourceIds = toggle(state.pinnedSourceIds, command.id, command.enabled); break;
+    case "followTopic": state.followedTopics = toggle(state.followedTopics, `${command.specialty}:${command.id}`, command.enabled); break;
+    case "researchInterest": {
+      const value = command.value.trim().replace(/\s+/g, " ");
+      const key = `${command.specialty}:${value}`;
+      state.researchInterests = toggle(state.researchInterests, key, command.enabled);
+      break;
+    }
+    case "recent": {
+      const entry = { ...command.entry, at: new Date().toISOString() };
+      state.recent = [entry, ...state.recent.filter(old => !(old.specialty === entry.specialty && old.kind === entry.kind && old.id === entry.id && old.query === entry.query))].slice(0, 40);
+      break;
+    }
+    case "createCollection":
+      if (state.collections.length >= 30) throw new HttpError(400, "Можно создать до 30 подборок.");
+      state.collections.push({ id: randomUUID(), specialty: command.specialty, name: command.name, contentIds: [] });
+      break;
+    case "collectionItem": {
+      const collection = state.collections.find(value => value.id === command.collectionId && value.specialty === command.specialty);
+      if (!collection) throw new HttpError(404, "Подборка не найдена.");
+      collection.contentIds = toggle(collection.contentIds, command.contentId, command.enabled);
+      break;
+    }
+    case "deleteCollection": state.collections = state.collections.filter(value => !(value.id === command.collectionId && value.specialty === command.specialty)); break;
+    case "uiPreference": {
+      state.uiPreferences = state.uiPreferences.filter(preference => !(
+        preference.specialty === command.specialty
+        && preference.shell === command.shell
+        && preference.blockId === command.blockId
+      ));
+      if (command.mode !== "default") {
+        state.uiPreferences.push({ specialty: command.specialty, shell: command.shell, blockId: command.blockId, label: command.label.trim(), mode: command.mode });
+      }
+      break;
+    }
+    case "clearHistory": state.recent = []; break;
+  }
+  return state;
+}
+
 export async function mutateState(sessionId: string, command: StateCommand): Promise<UserState> {
   await validateReference(command);
+  if (!databaseConfigured()) {
+    const state = applyCommand(normalizeState(structuredClone(fallbackStates.get(sessionId) ?? emptyUserState())), command);
+    fallbackStates.set(sessionId, state);
+    return state;
+  }
   return db.transaction(async tx => {
     const [record] = await tx.select().from(anonymousSessions).where(eq(anonymousSessions.id, sessionId)).for("update");
     if (!record) throw new HttpError(401, "Сессия завершена. Обновите страницу.");
-    const state = normalizeState(structuredClone(record.state));
-    switch (command.action) {
-      case "preferences":
-        if (command.specialty) state.specialty = command.specialty;
-        if (command.shell) state.shell = command.shell;
-        if (typeof command.onboardingCompleted === "boolean") state.onboardingCompleted = command.onboardingCompleted;
-        break;
-      case "save": state.savedIds = toggle(state.savedIds, command.id, command.enabled); break;
-      case "pin": state.pinnedIds = toggle(state.pinnedIds, command.id, command.enabled); break;
-      case "followSource": state.followedSourceIds = toggle(state.followedSourceIds, command.id, command.enabled); break;
-      case "pinSource": state.pinnedSourceIds = toggle(state.pinnedSourceIds, command.id, command.enabled); break;
-      case "followTopic": state.followedTopics = toggle(state.followedTopics, `${command.specialty}:${command.id}`, command.enabled); break;
-      case "researchInterest": {
-        const value = command.value.trim().replace(/\s+/g, " ");
-        const key = `${command.specialty}:${value}`;
-        state.researchInterests = toggle(state.researchInterests, key, command.enabled);
-        break;
-      }
-      case "recent": {
-        const entry = { ...command.entry, at: new Date().toISOString() };
-        state.recent = [entry, ...state.recent.filter(old => !(old.specialty === entry.specialty && old.kind === entry.kind && old.id === entry.id && old.query === entry.query))].slice(0, 40);
-        break;
-      }
-      case "createCollection":
-        if (state.collections.length >= 30) throw new HttpError(400, "Можно создать до 30 подборок.");
-        state.collections.push({ id: randomUUID(), specialty: command.specialty, name: command.name, contentIds: [] });
-        break;
-      case "collectionItem": {
-        const collection = state.collections.find(value => value.id === command.collectionId && value.specialty === command.specialty);
-        if (!collection) throw new HttpError(404, "Подборка не найдена.");
-        collection.contentIds = toggle(collection.contentIds, command.contentId, command.enabled);
-        break;
-      }
-      case "deleteCollection": state.collections = state.collections.filter(value => !(value.id === command.collectionId && value.specialty === command.specialty)); break;
-      case "uiPreference": {
-        state.uiPreferences = state.uiPreferences.filter(preference => !(
-          preference.specialty === command.specialty
-          && preference.shell === command.shell
-          && preference.blockId === command.blockId
-        ));
-        if (command.mode !== "default") {
-          state.uiPreferences.push({ specialty: command.specialty, shell: command.shell, blockId: command.blockId, label: command.label.trim(), mode: command.mode });
-        }
-        break;
-      }
-      case "clearHistory": state.recent = []; break;
-    }
+    const state = applyCommand(normalizeState(structuredClone(record.state)), command);
     await tx.update(anonymousSessions).set({ state, updatedAt: new Date() }).where(eq(anonymousSessions.id, sessionId));
     return state;
   });
