@@ -189,6 +189,138 @@
   margin: 0;
 }
 
+.cardio-partner-formats {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-wash) 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.cardio-partner-formats-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-right: 44px;
+}
+
+.cardio-partner-formats-head h2 {
+  margin: 4px 0 6px;
+  font-size: var(--font-size-heading-2);
+}
+
+.cardio-partner-formats-head p,
+.cardio-partner-format-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.cardio-partner-hcp {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-metadata);
+}
+
+.cardio-partner-format-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cardio-partner-format-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(58px, 1fr) auto auto;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-accent-soft));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 96%, var(--color-accent-wash));
+}
+
+.cardio-partner-format-card[data-partner-kind="disease_education"] {
+  background: var(--color-surface);
+}
+
+.cardio-partner-format-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--color-accent-ink);
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cardio-partner-format-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+}
+
+.cardio-partner-format-card h3 {
+  margin: 0;
+  font-size: var(--font-size-title);
+  line-height: 1.15;
+}
+
+.cardio-partner-format-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.35;
+}
+
+.cardio-partner-format-brand {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cardio-partner-format-brand span {
+  font-weight: var(--font-weight-semibold);
+}
+
+.cardio-partner-format-brand small,
+.cardio-partner-format-card footer small,
+.cardio-partner-format-note {
+  font-size: var(--font-size-metadata);
+}
+
+.cardio-partner-format-brand small,
+.cardio-partner-format-card footer small {
+  color: var(--color-text-tertiary);
+}
+
+.cardio-partner-format-card footer {
+  display: grid;
+  gap: 8px;
+}
+
+.cardio-partner-format-card footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-accent-ink);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.cardio-partner-format-note {
+  padding-top: 2px;
+}
+
 .gen-ui-stack[data-shell="workspace"] {
   align-items: start;
 }
@@ -255,6 +387,12 @@
   right: 12px;
 }
 
+@media (max-width: 1180px) {
+  .cardio-partner-format-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px) {
   .gen-ui-stack[data-shell="explore"],
   .gen-ui-stack[data-shell="practice"] {
@@ -264,6 +402,10 @@
   .gen-ui-stack[data-shell="explore"] .gen-ui-block[data-block-region],
   .gen-ui-stack[data-shell="practice"] .gen-ui-block[data-block-region] {
     grid-column: 1;
+  }
+
+  .cardio-partner-format-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -275,6 +417,31 @@
 
   .gen-ui-menu-popover {
     width: min(230px, calc(100vw - 48px));
+  }
+
+  .cardio-partner-formats {
+    padding: 16px;
+  }
+
+  .cardio-partner-formats-head {
+    display: grid;
+    padding-right: 40px;
+  }
+
+  .cardio-partner-hcp {
+    justify-self: start;
+  }
+
+  .cardio-partner-format-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+  }
+
+  .cardio-partner-format-card {
+    flex: 0 0 min(82vw, 320px);
+    scroll-snap-align: start;
   }
 
   .workspace-assistant-entry > summary {
