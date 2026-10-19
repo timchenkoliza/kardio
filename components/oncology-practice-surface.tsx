@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Calculator, ExternalLink, ScanLine, SearchCheck } from "lucide-react";
 import { GenUiStack, type GenUiBlock } from "@/components/gen-ui-stack";
 import { SectionHelp } from "@/components/section-help";
+import { ProfessionalConsultationHub } from "@/components/workspace-professional-intelligence";
 import { oncologyStarterByKind, type OncologyStarterItem } from "@/lib/ui/oncology-starter";
 
 function ExternalRows({ items }: { items: readonly OncologyStarterItem[] }) {
@@ -28,6 +29,12 @@ export function OncologyPracticeSurface() {
       </section>,
     },
     {
+      id: "oncology-practice-consultation",
+      label: "Обсудить с коллегами",
+      kind: "expert_route",
+      content: <ProfessionalConsultationHub specialty="oncology" compact />,
+    },
+    {
       id: "oncology-practice-guidelines",
       label: "Рекомендации",
       kind: "guideline_shelf",
@@ -48,7 +55,7 @@ export function OncologyPracticeSurface() {
   ];
 
   return <div className="practice-home oncology-practice-home">
-    <section className="mode-hero practice-hero" aria-labelledby="oncology-practice-title"><div><span className="eyebrow">Онкология · Практика</span><div className="heading-with-help"><h1 id="oncology-practice-title">Рабочий стол онколога</h1><SectionHelp text="Практика даёт быстрые профессиональные маршруты. Пока собственный онкологический каталог не загружен, рекомендации и протоколы открываются в явных первоисточниках." /></div><p>Рекомендации, протоколы, справочные инструменты и визуализация — без подмены источника и без персональных клинических решений.</p></div></section>
+    <section className="mode-hero practice-hero" aria-labelledby="oncology-practice-title"><div><span className="eyebrow">Онкология · Практика</span><div className="heading-with-help"><h1 id="oncology-practice-title">Рабочий стол онколога</h1><SectionHelp text="Практика даёт быстрые профессиональные маршруты. Пока собственный онкологический каталог не загружен, рекомендации и протоколы открываются в явных первоисточниках." /></div><p>Рекомендации, протоколы, справочные инструменты, коллеги и визуализация — без подмены источника и без персональных клинических решений.</p></div></section>
     <GenUiStack specialty="oncology" shell="practice" blocks={blocks} />
     <p className="mode-footnote">Внешний источник остаётся внешним. Материал станет частью внутреннего каталога только после отдельной проверки и загрузки.</p>
   </div>;
