@@ -68,8 +68,12 @@
 }
 
 .product[data-specialty="cardiology"] .education-orbit {
-  border-color: var(--color-accent);
-  opacity: .16;
+  display: none;
+}
+
+.product[data-specialty="cardiology"] .education-play {
+  color: var(--color-accent-strong);
+  box-shadow: var(--shadow-raised);
 }
 
 .product[data-specialty="cardiology"] .reference-card-native,
@@ -197,6 +201,22 @@
 .product[data-specialty="oncology"] .formal-consilium-note span,
 .product[data-specialty="oncology"] .formal-consilium-note p {
   color: var(--color-inverse-text-secondary);
+}
+
+.product[data-specialty="oncology"] .education-card,
+.product[data-specialty="oncology"] .education-card:nth-child(4n + 1),
+.product[data-specialty="oncology"] .education-card:nth-child(4n + 2),
+.product[data-specialty="oncology"] .education-card:nth-child(4n + 3),
+.product[data-specialty="oncology"] .education-card:nth-child(4n + 4) {
+  background: var(--color-surface);
+}
+
+.product[data-specialty="oncology"] .education-feature-art {
+  background: var(--color-accent-wash);
+}
+
+.product[data-specialty="oncology"] .education-orbit {
+  display: none;
 }
 
 /* Real diagnostic imagery is always neutral and never specialty-tinted. */
