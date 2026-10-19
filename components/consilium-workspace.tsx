@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Check, MessageSquareText, Plus, Send, X } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import {
