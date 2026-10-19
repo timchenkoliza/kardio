@@ -112,40 +112,50 @@
 }
 
 .product[data-specialty="cardiology"] {
-  --color-canvas: #f7f5f1;
-  --color-canvas-lilac: #f7eee9;
-  --color-canvas-blue: #eef3f6;
-  --color-accent: #8b2433;
-  --color-accent-strong: #651823;
-  --color-accent-ink: #4d111b;
-  --color-accent-soft: #f0d7da;
-  --color-accent-wash: #f8ece9;
-  --specialty-art-1: #c94d5f;
-  --specialty-art-2: #b9cbd6;
-  --specialty-art-3: #f2e7d6;
-  --specialty-art-ink: #5c1823;
-  --rail-highlight: #f1e2bc;
+  --color-canvas: #f8f8fb;
+  --color-canvas-lilac: #f5f4ff;
+  --color-canvas-blue: #f5f8ff;
+  --color-accent: #898bff;
+  --color-accent-strong: #7275ff;
+  --color-accent-ink: #5759ef;
+  --color-accent-soft: #ececff;
+  --color-accent-wash: #f5f4ff;
+  --specialty-art-1: #898bff;
+  --specialty-art-2: #b9c8ff;
+  --specialty-art-3: #eeeefe;
+  --specialty-art-ink: #5759ef;
+  --rail-highlight: #f1f0ff;
 
-  --art-guideline-bg: #f6ece8;
-  --art-guideline-1: #8b2433;
-  --art-guideline-2: #e7c5c8;
-  --art-guideline-ink: #5c1823;
-  --art-article-bg: #eaf0f4;
-  --art-article-1: #9eb9c9;
-  --art-article-2: #ccd9e0;
-  --art-article-ink: #365568;
-  --art-video-bg: #f5e6cc;
-  --art-video-1: #c94d5f;
-  --art-video-2: #eab5a8;
-  --art-video-ink: #74303a;
-  --art-clinical-bg: #edf2f4;
-  --art-clinical-1: #b5c9d2;
-  --art-clinical-2: #dde4e7;
-  --art-clinical-ink: #405b63;
-  --art-event-bg: #f8e8e8;
-  --art-event-1: #c94d5f;
-  --art-event-2: #e9b1b8;
-  --art-event-ink: #7d2330;
+  --media-border: rgb(87 89 239 / 12%);
+  --media-surface-warm: #fafaff;
+  --media-surface-soft: #f6f5fb;
+  --media-surface-hover: #f0efff;
+  --media-glow-pink: rgb(218 189 255 / 30%);
+  --media-glow-violet: rgb(137 139 255 / 16%);
+  --media-stage-warm: #fbfbff;
+  --media-stage-cool: #f7f8fc;
+  --media-stage-blush: #f8f7ff;
+
+  --art-guideline-bg: #f1efff;
+  --art-guideline-1: #898bff;
+  --art-guideline-2: #d9d8ff;
+  --art-guideline-ink: #5759ef;
+  --art-article-bg: #eef4ff;
+  --art-article-1: #9ebeff;
+  --art-article-2: #d0e0ff;
+  --art-article-ink: #4262ad;
+  --art-video-bg: #f4f0ff;
+  --art-video-1: #afa2ff;
+  --art-video-2: #ddd5ff;
+  --art-video-ink: #5d54b8;
+  --art-clinical-bg: #f0f5ff;
+  --art-clinical-1: #a7b9f5;
+  --art-clinical-2: #dce5ff;
+  --art-clinical-ink: #4f62a6;
+  --art-event-bg: #f7f2ff;
+  --art-event-1: #c5b4ff;
+  --art-event-2: #e7dfff;
+  --art-event-ink: #6758a5;
 }
 
 .product[data-specialty="oncology"] {
