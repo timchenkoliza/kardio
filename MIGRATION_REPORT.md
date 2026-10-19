@@ -105,7 +105,7 @@ Nothing working was deleted; surfaces were removed from primary navigation and f
 | Wish | Priority | Result |
 | --- | --- | --- |
 | Рабочее пространство | — | Done: Главное + agents + materials |
-| События: найти, зарегистрировать на все, календарь, почта, будильник | high | Discovery, ranking with reasons and «Добавить все в календарь» (one .ics, two reminders = «будильник») are done; e-mail = draft to yourself. **Registration on your behalf is not done** — no organiser API; the agent opens each registration page |
+| События: найти, зарегистрировать на все, календарь, почта, будильник | high | Discovery, ranking with reasons and «Все в календарь с напоминаниями» (one .ics, two reminders = «будильник») are done; e-mail = draft to yourself. **Registration on your behalf is not done** — no organiser API; the agent opens each registration page |
 | Telegram-каналы | high | UNAVAILABLE. Reading channels needs either a bot added to each channel or a user-session client (account-level access, needs consent and legal review). Next: public `t.me/s/` previews for an allow-listed set, with provenance |
 | Фарма / образование | high | Partner slot (MOCK, labelled) + «Моё обучение» |
 | Флибуста: учебник в мою базу | high | **Not implemented.** Flibusta distributes copyrighted books without licences. The legal path exists: upload your own copy to Мои материалы (DOCX/TXT/HTML indexed; PDF parsing is the next step) |
