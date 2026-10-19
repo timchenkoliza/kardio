@@ -38,6 +38,8 @@
     "resolution:media-inspect": "tsx scripts/inspect-telegram-media-resolution.ts",
     "resolution:article-motion-inspect": "tsx scripts/inspect-article-motion-candidates.ts",
     "resolution:article-motion-source-inspect": "tsx scripts/inspect-article-motion-source-resolution.ts",
+    "article-motion:queue": "tsx scripts/build-article-motion-render-queue.ts",
+    "article-motion:render": "tsx scripts/render-article-motion-batch.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build"
   },
   "dependencies": {
