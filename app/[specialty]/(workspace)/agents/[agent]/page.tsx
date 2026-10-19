@@ -16,7 +16,7 @@ import { isConfigured } from "@/lib/agents/profile";
 import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
 import { isSpecialty } from "@/lib/specialty";
 import { pageSession } from "@/server/agents/page-session";
-import { getAgentDetail } from "@/server/agents/workspace";
+import { getAgentDetail, MONITORING_AGENTS } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const fresh = results.filter(result => result.newSinceLastSeen);
   const earlier = results.filter(result => !result.newSinceLastSeen);
   const onDemand = agentId === "research";
+  const tracksNew = MONITORING_AGENTS.includes(agentId);
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
@@ -65,8 +66,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
     </header>
 
-    {onDemand && <section className="ws-agent-composer" aria-label="Новый вопрос"><AgentComposer specialty={specialty} defaultAgent={agentId} compact /></section>}
-    {first(query.q) && onDemand && <p className="ws-muted">Запрос из поиска: «{first(query.q)}» — отправьте его агенту выше.</p>}
+    {onDemand && <section className="ws-agent-composer" aria-label="Новый вопрос"><AgentComposer specialty={specialty} defaultAgent={agentId} compact initialText={first(query.q) ?? ""} /></section>}
 
     <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile) && !onDemand} />
     <PendingActions actions={pendingForAgent} />
@@ -77,11 +77,15 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
         {!selectedRun ? <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : onDemand ? "Задайте вопрос выше: агент составит план, найдёт источники и проверит утверждения." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p> : <>
-          {fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
+          {!tracksNew && results.length > 0 && <section className="ws-section" aria-labelledby="ws-all-title">
+            <h2 id="ws-all-title" className="ws-section-title">{agentId === "learning" ? `Маршрут · ${results.length}` : `Найдено · ${results.length}`}</h2>
+            <ResultList results={results} specialty={specialty} emptyText="" />
+          </section>}
+          {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
             <h2 id="ws-fresh-title" className="ws-section-title">{lastSeenAt ? `Новое с прошлого просмотра · ${fresh.length}` : `Найдено · ${fresh.length}`}</h2>
             <div className="ws-result-list">{fresh.map(result => <ResultCard key={result.id} result={result} specialty={specialty} />)}</div>
           </section>}
-          {earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
+          {tracksNew && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
             <h2 id="ws-earlier-title" className="ws-section-title">Ранее найдено · {earlier.length}</h2>
             <ResultList results={earlier} specialty={specialty} emptyText="" />
           </section>}

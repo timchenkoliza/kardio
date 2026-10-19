@@ -8,6 +8,7 @@ import { EditorialContentCard } from "@/components/editorial-content-card";
 import { EditorialMedia } from "@/components/editorial-media";
 import { ProductProvider } from "@/components/product-provider";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { catalogTopicLabel } from "@/lib/agents/vocabulary";
 import { relatedContent } from "@/lib/ui/feed";
 import { currentnessLabel, kindLabel, publicationLabel, sourceTypeLabel, specialtyLabel } from "@/lib/ui/labels";
 import { getContent, listContent } from "@/server/repositories/catalog";
@@ -67,7 +68,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
             {content.topics.length > 0 && (
               <section className="detail-section">
                 <span className="eyebrow">Темы</span>
-                <div className="topic-list">{content.topics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div>
+                <div className="topic-list">{content.topics.map(topic => { const label = catalogTopicLabel(specialty, topic); return <Link key={topic} href={`/${specialty}/agents/research?q=${encodeURIComponent(label)}`}>{label}</Link>; })}</div>
               </section>
             )}
 

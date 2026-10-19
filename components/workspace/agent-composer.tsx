@@ -32,10 +32,10 @@ const PLACEHOLDERS: Record<string, string> = {
 
 const ACCEPT = ".txt,.md,.csv,.html,.htm,.docx,.pdf,text/plain,text/markdown,text/csv,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export function AgentComposer({ specialty, defaultAgent = "auto", compact = false }: { specialty: SpecialtyId; defaultAgent?: AgentId | "auto"; compact?: boolean }) {
+export function AgentComposer({ specialty, defaultAgent = "auto", compact = false, initialText = "" }: { specialty: SpecialtyId; defaultAgent?: AgentId | "auto"; compact?: boolean; initialText?: string }) {
   const router = useRouter();
   const { command, upload, notify, setPendingAction } = useWorkspace();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText.slice(0, 2000));
   const [agent, setAgent] = useState<AgentId | "auto">(defaultAgent);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);

@@ -65,8 +65,8 @@ export function generateLearningPlan(ctx: AgentContext): ResultDraft[] {
       push(topicId, "guideline", {
         moduleKey: guideline.id,
         category: "guideline",
-        title: `${label}: рекомендации ${guideline.source.name}${guideline.publicationYear ? ` ${guideline.publicationYear}` : ""}`,
-        summary: guideline.currentness === "current" ? "Актуальная версия по данным источника — начните с неё." : "Актуальность версии требует проверки: сверьте с рубрикатором Минздрава.",
+        title: `${label}: клинические рекомендации${guideline.publicationYear ? ` ${guideline.publicationYear}` : ""}`,
+        summary: guideline.currentness === "current" ? `${guideline.source.name}: актуальная версия по данным источника — начните с неё.` : `${guideline.source.name}: актуальность версии требует проверки — сверьте с рубрикатором Минздрава.`,
         reasonShown: [`Цель: ${goals.includes("exam_prep") ? "подготовка к аккредитации" : "освежить рекомендации"}`, `Тема: ${label}`],
         observedAt: null,
         evidence: [factCheck(evidenceFromCatalog(guideline), { currentness: guideline.currentness, editorialStatus: guideline.editorialStatus })],

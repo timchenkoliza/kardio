@@ -14,7 +14,7 @@
 .ws-app *::before,
 .ws-app *::after { box-sizing: border-box; }
 
-.ws-app a { color: inherit; }
+:where(.ws-app) :where(a) { color: inherit; }
 .ws-app :focus-visible { outline: none; box-shadow: var(--ws-shadow-focus); border-radius: var(--radius-sm); }
 
 /* Top bar */
@@ -693,6 +693,10 @@
 .ws-demo-control { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .ws-legacy-link { margin: 4px 0 0; font-size: var(--font-size-caption); }
 .ws-legacy-link a { display: inline-flex; align-items: center; gap: 4px; color: var(--ws-text-secondary); }
+
+/* Material detail inside the workspace frame */
+.ws-app .content-detail h1 { font-size: var(--font-size-heading-2); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+@media (min-width: 900px) { .ws-app .content-detail h1 { font-size: var(--font-size-heading-1); } }
 
 /* Legacy archive banner (frozen interface) */
 .legacy-banner {

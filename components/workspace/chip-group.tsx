@@ -26,7 +26,7 @@ export function ChipGroup<T extends string | number>({ legend, options, value, o
   return <fieldset className="ws-chips">
     <legend>{legend}</legend>
     {hint && <p className="ws-chips-hint">{hint}</p>}
-    <div className="ws-chip-row" role={multiple ? "group" : "radiogroup"} aria-label={legend}>
+    <div className="ws-chip-row" role={multiple ? undefined : "radiogroup"} aria-label={multiple ? undefined : legend}>
       {options.map(option => {
         const selected = value.includes(option.id);
         return <button

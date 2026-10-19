@@ -232,7 +232,7 @@ export async function getAgentDetail(sessionId: string | null, specialty: Specia
   const selectedRun = (options.runId ? finished.find(run => run.id === options.runId) : null) ?? finished[0] ?? null;
   const now = new Date();
   const current = currentResults(results, selectedRun).filter(result => eventStillRelevant(result, now));
-  const views = withNewFlags(current, profile);
+  const views = withNewFlags(current, profile).map(result => ({ ...result, newSinceLastSeen: MONITORING_AGENTS.includes(agentId) && result.newSinceLastSeen }));
   const registry = connectorRegistry();
   return {
     definition,
@@ -262,7 +262,7 @@ export async function getMaterialsView(sessionId: string | null, specialty: Spec
   const store = workspaceStore();
   const [materials, collections, runs, results] = await Promise.all([store.listMaterials(sessionId, specialty), store.listCollections(sessionId, specialty), store.listRuns(sessionId, specialty, "materials", 5), store.listResults(sessionId, specialty, "materials")]);
   const lastAnswer = (runId ? runs.find(run => run.id === runId) : null) ?? runs.find(run => run.input.text) ?? null;
-  return { profile, materials, collections, lastAnswer, answerResults: withNewFlags(currentResults(results, lastAnswer), profile) };
+  return { profile, materials, collections, lastAnswer, answerResults: withNewFlags(currentResults(results, lastAnswer), profile).map(result => ({ ...result, newSinceLastSeen: false })) };
 }
 
 export async function catalogFor(specialty: SpecialtyId) {

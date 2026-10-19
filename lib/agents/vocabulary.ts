@@ -119,6 +119,12 @@ export function topicLabels(specialty: SpecialtyId, ids: readonly string[]): str
   return ids.map(id => topicById(specialty, id)?.label).filter((label): label is string => Boolean(label));
 }
 
+/** Human label for a catalog ontology topic (e.g. "pulmonary_hypertension" → "Лёгочная гипертензия"). */
+export function catalogTopicLabel(specialty: SpecialtyId, catalogTopic: string): string {
+  const match = TOPICS[specialty].find(topic => topic.catalogTopics.includes(catalogTopic));
+  return match?.label ?? catalogTopic.replace(/_/g, " ");
+}
+
 export function sourceById(id: string): SourceOption | undefined {
   return SOURCE_OPTIONS.find(source => source.id === id);
 }
