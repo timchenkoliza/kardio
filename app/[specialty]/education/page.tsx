@@ -45,11 +45,11 @@ export default async function EducationPage({ params }: { params: Promise<{ spec
           <div>
             <span className="eyebrow">{specialtyLabel[specialty]} · Обучение</span>
             <h1>Разобраться глубже</h1>
-            <p>{specialty === "cardiology" ? "Лекции, видео и образовательные материалы из текущего канонического каталога — без подмешивания случайных внешних рекомендаций." : "Отдельное образовательное пространство специальности. Кардиологические материалы сюда не переносятся."}</p>
+            <p>{specialty === "cardiology" ? "Лекции, видео и образовательные материалы из текущего каталога с понятным источником и статусом." : "Онкологические образовательные материалы и внешние профессиональные платформы. Кардиологический контент сюда не переносится."}</p>
           </div>
           <div className="education-stats" aria-label="Состояние раздела">
             <span><strong>{materials.length}</strong> материалов каталога</span>
-            <span><strong>{externalSources.length}</strong> внешних платформ</span>
+            <span><strong>{externalSources.length}</strong> внешних источников</span>
           </div>
         </header>
 
@@ -75,21 +75,21 @@ export default async function EducationPage({ params }: { params: Promise<{ spec
               <div className="education-card-footer"><span>{publicationLabel(item) ?? kindLabel[item.kind]}</span><Link href={`/${specialty}/content/${encodeURIComponent(item.id)}`} aria-label={`Открыть: ${item.title}`}><ArrowRight size={16} /></Link></div>
             </article>)}</div>
           </section>}
-        </> : <section className="education-empty">
+        </> : externalSources.length === 0 ? <section className="education-empty">
           <div className="education-empty-icon"><GraduationCap size={28} /></div>
-          <span className="eyebrow">Корректный cold start</span>
-          <h2>Собственного образовательного набора пока нет</h2>
-          <p>{specialty === "oncology" ? "Мы не подменяем онкологию кардиологическими лекциями. Раздел заполнится только после отдельной верифицированной загрузки." : "Новые материалы появятся после загрузки в канонический каталог."}</p>
-        </section>}
+          <span className="eyebrow">Пока без собственного набора</span>
+          <h2>Образовательные материалы ещё не добавлены</h2>
+          <p>Раздел наполнится после отдельной проверки и загрузки материалов этой специальности.</p>
+        </section> : null}
 
         {externalSources.length > 0 && <section className="education-section" aria-labelledby="education-platforms-title">
-          <div className="education-section-head"><div><span className="eyebrow">Из реестра источников</span><h2 id="education-platforms-title">Образовательные платформы</h2></div></div>
+          <div className="education-section-head"><div><span className="eyebrow">Профессиональные первоисточники</span><h2 id="education-platforms-title">Обучение и архивы</h2></div></div>
           <div className="education-platforms">{externalSources.map(source => <a className="education-platform-card" key={source.id} href={source.url} target="_blank" rel="noreferrer">
             <div className="education-platform-icon"><GraduationCap size={22} /></div>
             <div><span>{source.category}</span><strong>{source.name}</strong><p>{source.note}</p></div>
             <ExternalLink size={16} />
           </a>)}</div>
-          <p className="tools-footnote">Внешняя платформа остаётся внешним ресурсом и не становится каноническим объектом онтологии автоматически.</p>
+          <p className="tools-footnote">Внешний ресурс открывается отдельно. Его материалы попадут во внутренний каталог только после отдельной проверки.</p>
         </section>}
       </div>
     </ProductFrame>
