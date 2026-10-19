@@ -2,7 +2,6 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { assets, contentObjects, sources } from "@/db/schema";
 import type { Asset, ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
-import { hardcodedEditorialSource, withHardcodedTopicContent } from "@/lib/demo/hardcoded-topic-content-v2";
 import { isSpecialty } from "@/lib/specialty";
 import { loadGoldenSet, normalizeGoldenSet } from "@/server/ingestion/goldenset";
 
@@ -76,8 +75,7 @@ async function baseSources(specialty: SpecialtyId): Promise<Source[]> {
 
 export async function listContent(specialty: SpecialtyId): Promise<ContentObject[]> {
   requireSpecialty(specialty);
-  const canonical = await baseContent(specialty);
-  return specialty === "cardiology" ? withHardcodedTopicContent(specialty, canonical) : canonical;
+  return baseContent(specialty);
 }
 export async function getContent(specialty: SpecialtyId, id: string): Promise<ContentObject | null> {
   requireSpecialty(specialty);
@@ -85,10 +83,7 @@ export async function getContent(specialty: SpecialtyId, id: string): Promise<Co
 }
 export async function listSources(specialty: SpecialtyId): Promise<Source[]> {
   requireSpecialty(specialty);
-  const canonical = await baseSources(specialty);
-  if (specialty !== "cardiology") return canonical;
-  const hardcoded = hardcodedEditorialSource(specialty);
-  return canonical.some(source => source.id === hardcoded.id) ? canonical : [...canonical, hardcoded];
+  return baseSources(specialty);
 }
 export async function getSource(specialty: SpecialtyId, id: string): Promise<Source | null> {
   requireSpecialty(specialty);
