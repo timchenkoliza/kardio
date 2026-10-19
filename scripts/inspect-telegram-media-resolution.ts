@@ -4,7 +4,7 @@ import { distributionPostCandidateMedia, rawArchiveArtifacts } from "@/db/ontolo
 import { resolveTelegramMediaReference } from "@/server/ingestion/telegram-media-resolution";
 
 try {
-  const sourceRegistryId = process.env.MEDIA_RESOLUTION_SOURCE ?? "cardiology-channel-01";
+  const sourceRegistryId = process.env.MEDIA_RESOLUTION_SOURCE ?? "cardiology_channel_01";
   const mediaRows = await db
     .select({
       candidateId: distributionPostCandidateMedia.candidateId,
