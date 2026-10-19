@@ -80,7 +80,7 @@ test("events agent: discovery → relevance → confirmed calendar file", async 
 
 test("composer routes intent → plan → tools → evidence-backed result", async ({ page }) => {
   await page.goto("/cardiology");
-  await page.getByLabel("Что хотите делегировать?").fill("Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта");
+  await page.getByRole("textbox", { name: "Что хотите делегировать?" }).fill("Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта");
   await expect(page.locator(".ws-route")).toContainText("Исследовать тему");
   await page.locator(".ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/agents\/research\?run=/, { timeout: 30_000 });
@@ -96,7 +96,7 @@ test("composer routes intent → plan → tools → evidence-backed result", asy
 
 test("my materials: add a note and retrieve it only from my base", async ({ page }) => {
   await page.goto("/cardiology/materials");
-  await page.getByRole("button", { name: "Заметка" }).click();
+  await page.getByRole("button", { name: "Заметка", exact: true }).click();
   await page.getByLabel("Название").fill("Разбор SCORE2");
   await page.getByLabel("Текст").fill("Шкала SCORE2 для 40–69 лет. Пациент Иванов, телефон +7 999 123-45-67.");
   await page.getByRole("button", { name: "Сохранить заметку" }).click();

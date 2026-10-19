@@ -14,7 +14,7 @@ test("legacy imaging surface is retired", async ({ page }) => {
 
 test("the workspace refuses to interpret medical images", async ({ page }) => {
   await page.goto("/cardiology");
-  await page.getByLabel("Что хотите делегировать?").fill("Расшифруй ЭКГ пациента и опиши снимок");
+  await page.getByRole("textbox", { name: "Что хотите делегировать?" }).fill("Расшифруй ЭКГ пациента и опиши снимок");
   await expect(page.getByText("Интерпретация медицинских изображений не поддерживается.").first()).toBeVisible();
   await expect(page.locator(".ws-composer-run")).toBeDisabled();
 });
