@@ -156,7 +156,9 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
     setServiceError(null);
 
     if (runtimeMode === "deterministic_fallback") {
-      const responders = targetPersonaId ? consiliumPersonas.filter(persona => persona.id === targetPersonaId) : selected;
+      const responders = targetPersonaId
+        ? consiliumPersonas.filter(persona => persona.id === targetPersonaId)
+        : consiliumPersonas.filter(persona => selectedIds.includes(persona.id));
       const replies = responders.map((persona, index): Message => ({
         id: `reply-${turnId}-${index}`,
         author: persona.id,
