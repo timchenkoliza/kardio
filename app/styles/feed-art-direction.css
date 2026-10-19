@@ -5,6 +5,7 @@
  */
 
 .product .gen-ui-stack[data-shell="explore"] {
+  --color-inverse-text: var(--color-surface);
   gap: 16px 18px;
 }
 
