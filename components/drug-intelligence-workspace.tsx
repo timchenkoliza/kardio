@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowRight, Check, MessageSquareText, Search } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { drugDemoData, hasDisplayableAggregate, ratingDimensionLabel, sortDrugs, type RatingDimension } from "@/lib/ui/drug-intelligence";
@@ -20,14 +20,12 @@ export function DrugIntelligenceWorkspace({ specialty }: { specialty: SpecialtyI
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<RatingDimension>("overall");
   const [selectedId, setSelectedId] = useState(drugDemoData[0]?.id ?? "");
-  const [myRatings, setMyRatings] = useState<Record<string, MyRating>>(() => readStored());
+  const [myRatings, setMyRatings] = useState<Record<string, MyRating>>(readStored);
   const selected = drugDemoData.find(drug => drug.id === selectedId) ?? drugDemoData[0];
   const indication = selected?.indications[0] ?? "";
   const rankingIndication = indication || drugDemoData[0]?.indications[0] || "";
-  const visible = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("ru-RU");
-    return sortDrugs(drugDemoData, rankingIndication, sortBy).filter(drug => !normalized || `${drug.tradeName} ${drug.inn}`.toLocaleLowerCase("ru-RU").includes(normalized));
-  }, [query, sortBy, rankingIndication]);
+  const normalizedQuery = query.trim().toLocaleLowerCase("ru-RU");
+  const visible = sortDrugs(drugDemoData, rankingIndication, sortBy).filter(drug => !normalizedQuery || `${drug.tradeName} ${drug.inn}`.toLocaleLowerCase("ru-RU").includes(normalizedQuery));
 
   if (specialty !== "cardiology") {
     return <section className="decision-workspace"><span className="eyebrow">Онкология · препараты</span><h1>Оценка препаратов</h1><p className="decision-lede">Для онкологии пока нет проверенного собственного набора оценок. Инструмент не подменяет этот пробел кардиологическими данными.</p></section>;
