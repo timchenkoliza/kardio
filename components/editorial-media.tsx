@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { kindLabel } from "@/lib/ui/labels";
+import { prototypeMediaForContent } from "@/lib/ui/prototype-media-bank";
 
 function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
   const explicitText = [content.title, ...content.tags, ...content.topics].join(" ");
@@ -18,13 +19,16 @@ function contentMonogram(content: ContentObject): string {
   return monogram || content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU");
 }
 
-export function EditorialMedia({ content, compact = false, fallback = false }: {
+export function EditorialMedia({ content, specialty, compact = false, fallback = false }: {
   content: ContentObject;
   specialty: SpecialtyId;
   compact?: boolean;
   fallback?: boolean;
 }) {
-  if (!content.asset?.url) {
+  const prototypeAsset = content.specialty === specialty && !content.asset?.url ? prototypeMediaForContent(content) : null;
+  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? null;
+
+  if (!mediaUrl) {
     if (!fallback) return null;
 
     const context = content.topics[0] ?? content.tags[0] ?? null;
@@ -45,21 +49,24 @@ export function EditorialMedia({ content, compact = false, fallback = false }: {
     );
   }
 
+  const isPrototype = Boolean(prototypeAsset);
+
   return (
     <figure
       className={compact ? "editorial-media compact has-image" : "editorial-media has-image"}
       data-media-treatment={mediaTreatment(content)}
-      data-media-state="real"
+      data-media-state={isPrototype ? "prototype" : "real"}
     >
       <img
-        src={content.asset.url}
-        alt={content.asset.caption ?? ""}
+        src={mediaUrl}
+        alt={prototypeAsset?.alt ?? content.asset?.caption ?? ""}
         loading="lazy"
         decoding="async"
-        width={content.asset.width ?? undefined}
-        height={content.asset.height ?? undefined}
+        width={content.asset?.width ?? undefined}
+        height={content.asset?.height ?? undefined}
       />
-      {content.asset.credit && <figcaption>{content.asset.credit}</figcaption>}
+      {content.asset?.credit && <figcaption>{content.asset.credit}</figcaption>}
+      {isPrototype && <span className="prototype-media-status">Медиа на проверке</span>}
     </figure>
   );
 }
