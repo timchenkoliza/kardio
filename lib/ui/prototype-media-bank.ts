@@ -3,6 +3,7 @@ import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 export type PrototypeMediaKind = "image" | "video";
 export type PrototypeMediaModality = "echo" | "mri" | "angiography" | "ct" | "ecg" | "anatomy";
 export type PrototypeMediaAvailability = "runtime" | "registered_only" | "excluded";
+export type PrototypeMediaRightsStatus = "needs_review" | "approved";
 
 export interface PrototypeMediaAsset {
   id: string;
@@ -14,7 +15,7 @@ export interface PrototypeMediaAsset {
   src: string | null;
   alt: string;
   sourceName: string;
-  rightsStatus: "needs_review";
+  rightsStatus: PrototypeMediaRightsStatus;
   renderPolicy: "prototype_only_until_rights_verified" | "exclude_from_real_photo_pool";
   contentIds: readonly string[];
 }
@@ -23,9 +24,8 @@ export interface PrototypeMediaAsset {
  * UI-only prototype registry.
  *
  * These records never promote media into the canonical ontology and never weaken
- * Golden Set media eligibility. `runtime` means the prototype can render the
- * bytes today; `registered_only` means the source archive mentions the asset but
- * its bytes are not wired into the app runtime yet.
+ * Golden Set media eligibility. `runtime` only means bytes are technically
+ * available. Rendering additionally requires explicit `rightsStatus = approved`.
  */
 export const PROTOTYPE_MEDIA_BANK: readonly PrototypeMediaAsset[] = [
   {
@@ -90,6 +90,7 @@ export function prototypeMediaForContent(content: Pick<ContentObject, "id" | "sp
   return PROTOTYPE_MEDIA_BANK.find(asset =>
     asset.specialty === content.specialty
     && asset.availability === "runtime"
+    && asset.rightsStatus === "approved"
     && asset.renderPolicy === "prototype_only_until_rights_verified"
     && asset.contentIds.includes(content.id),
   ) ?? null;
@@ -97,6 +98,10 @@ export function prototypeMediaForContent(content: Pick<ContentObject, "id" | "sp
 
 export function prototypeImagingMedia(specialty: SpecialtyId): readonly PrototypeMediaAsset[] {
   return PROTOTYPE_MEDIA_BANK.filter(asset => asset.specialty === specialty && asset.availability !== "excluded");
+}
+
+export function prototypeMediaAwaitingRightsReview(specialty: SpecialtyId): readonly PrototypeMediaAsset[] {
+  return prototypeImagingMedia(specialty).filter(asset => asset.rightsStatus === "needs_review");
 }
 
 export function extractBundledImageDataUri(source: string): string {
