@@ -98,10 +98,9 @@ describe("physician research consumer view", () => {
     expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "all", contentScope: "all", includeDomains: [], excludeDomains: ["ncbi.nlm.nih.gov"] }).map(item => item.id)).toEqual(["ru"]);
   });
 
-  it("adds only an explicitly labelled licensed illustration, never evidence", () => {
+  it("adds only an in-house schematic of the article's subject, never evidence", () => {
     const media = agentResultMedia(result({ id: "mi", title: "Новая версия рекомендаций по инфаркту миокарда", kind: "guideline_change", category: "update" }));
-    expect(media?.src).toBeTruthy();
-    expect(media?.credit).toBeTruthy();
-    expect(media?.sourceUrl).toMatch(/^https:\/\//);
+    expect(media?.art).toBe("ventricle");
+    expect(media?.alt).toMatch(/^Схема /u);
   });
 });

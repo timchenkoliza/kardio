@@ -1063,14 +1063,105 @@
 /* Feed illustration: image on top on phones, a side thumbnail from tablets up */
 .ws-result-content { display: flex; flex-direction: column; gap: var(--ws-space-8); min-width: 0; }
 .ws-result.has-media .ws-result-media { margin: 0; }
-.ws-result.has-media .ws-result-media img { height: auto; aspect-ratio: 2 / 1; }
+.ws-result.has-media .ws-result-media .ws-feed-art { aspect-ratio: 2 / 1; }
 @media (min-width: 768px) {
   .ws-result.has-media .ws-result-body { display: grid; grid-template-columns: minmax(0, 1fr) 216px; grid-template-areas: "content media" "rest rest"; column-gap: var(--ws-space-20); row-gap: var(--ws-space-8); align-items: start; }
   .ws-result.has-media .ws-result-body > .ws-result-content { grid-area: content; }
   .ws-result.has-media .ws-result-body > .ws-result-media { grid-area: media; }
   .ws-result.has-media .ws-result-body > :not(.ws-result-content):not(.ws-result-media) { grid-column: 1 / -1; }
-  .ws-result.has-media .ws-result-media img { aspect-ratio: 3 / 2; }
-  .ws-result.has-media .ws-result-media figcaption { padding: var(--ws-space-4) var(--ws-space-8); }
+  .ws-result.has-media .ws-result-media .ws-feed-art { aspect-ratio: 3 / 2; }
 }
 /* Standalone pages have no sidebar column */
 .ws-app.ws-app-standalone { display: block; }
+
+/* Home feed «Что нового для вас»: the first view. One column on phones, lead + two columns on desktop. */
+.ws-feed-head { display: flex; flex-direction: column; gap: var(--ws-space-8); padding-top: var(--ws-space-8); min-width: 0; }
+.ws-feed-head h1 { margin: 0; font-size: var(--font-size-heading-1); font-weight: var(--font-weight-bold); line-height: var(--ws-leading-heading-1); letter-spacing: var(--ws-tracking-heading-1); }
+.ws-feed { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-12); }
+.ws-feed-slot { min-width: 0; }
+.ws-feed-slot > .ws-result { height: 100%; }
+.ws-feed-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--ws-radius-card); background: var(--ws-structural); border: 1px solid var(--ws-hairline); }
+.ws-feed-body { display: flex; flex-direction: column; gap: var(--ws-space-8); padding: var(--ws-space-16); min-width: 0; }
+.ws-feed-title { margin: 0; font-size: var(--font-size-title); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-title); letter-spacing: var(--ws-tracking-title); overflow-wrap: anywhere; }
+.ws-feed-title a { color: inherit; text-decoration: none; }
+.ws-feed-title a:hover { color: var(--ws-accent-ink); }
+.ws-feed-summary { margin: 0; color: var(--ws-text-secondary); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ws-feed-credit { margin: 0; color: var(--ws-text-tertiary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
+.ws-feed-media { display: block; background: var(--ws-art-paper); }
+.ws-feed-card.is-lead .ws-feed-title { font-size: var(--font-size-heading-2); line-height: var(--ws-leading-heading-2); letter-spacing: var(--ws-tracking-heading-2); }
+
+/* In-house line art: thin contour, flow lines, violet signal. ECG is drawn like a monitor sweep, echo is scanned. */
+.ws-feed-art { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; }
+.ws-feed-card.is-lead .ws-feed-art { aspect-ratio: 16 / 7; }
+.ws-feed-art .fa-paper { fill: var(--ws-art-paper); }
+.ws-feed-art path,
+.ws-feed-art line,
+.ws-feed-art circle { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.ws-feed-art .fa-topo path { stroke: var(--ws-art-line-faint); stroke-width: 0.8; }
+.ws-feed-art .fa-grid line { stroke: var(--ws-art-grid); stroke-width: 0.6; }
+.ws-feed-art .fa-line path,
+.ws-feed-art .fa-line circle,
+.ws-feed-art path.fa-line { stroke: var(--ws-art-line); stroke-width: 1.1; }
+.ws-feed-art .fa-faint path { stroke: var(--ws-art-line-faint); stroke-width: 0.8; }
+.ws-feed-art .fa-signal path,
+.ws-feed-art .fa-signal circle,
+.ws-feed-art path.fa-signal { stroke: var(--ws-art-signal); stroke-width: 1.3; }
+.ws-feed-art .fa-signal-fill { fill: var(--ws-art-signal-soft); stroke: none; }
+.ws-feed-art .fa-signal-hatch line { stroke: var(--ws-art-signal); stroke-width: 0.8; }
+.ws-feed-art .fa-flow path { stroke: var(--ws-art-signal); stroke-width: 0.9; stroke-dasharray: 6 5; }
+.ws-feed-art .fa-ripple circle { stroke: var(--ws-art-signal); stroke-width: 0.8; opacity: 0.5; }
+.ws-feed-art .fa-sector { fill: var(--ws-art-sector); stroke: var(--ws-art-line-faint); stroke-width: 0.8; }
+.ws-feed-art .fa-scan line { stroke: var(--ws-art-signal); stroke-width: 1.2; opacity: 0; }
+.ws-feed-art .fa-trace-ghost { stroke: var(--ws-art-line-faint); stroke-width: 1; }
+.ws-feed-art .fa-trace { stroke: var(--ws-art-line); stroke-width: 1.4; }
+.ws-feed-art.is-animated .fa-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ws-art-draw 4.2s linear infinite; }
+.ws-feed-art.is-animated .fa-scan line { opacity: 0.7; transform-origin: 200px 14px; animation: ws-art-scan 3.6s ease-in-out infinite alternate; }
+.ws-feed-art.is-animated .fa-flow path { animation: ws-art-flow 2.4s linear infinite; }
+@keyframes ws-art-draw { from { stroke-dashoffset: 1; opacity: 1; } 85% { stroke-dashoffset: 0; opacity: 1; } to { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes ws-art-scan { from { transform: rotate(-38deg); } to { transform: rotate(38deg); } }
+@keyframes ws-art-flow { to { stroke-dashoffset: -22; } }
+
+/* «?» help next to terms that need a short explanation */
+.ws-help { position: relative; display: inline-flex; vertical-align: middle; }
+.ws-help-button { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--ws-radius-round); background: none; color: var(--ws-text-tertiary); cursor: pointer; }
+.ws-help-button:hover,
+.ws-help-button[aria-expanded="true"] { color: var(--ws-accent-ink); background: var(--ws-accent-wash); }
+.ws-help-bubble { position: absolute; z-index: 30; top: calc(100% + 6px); left: -8px; width: min(300px, 80vw); padding: var(--ws-space-12); border-radius: var(--ws-radius-button); background: var(--ws-inverse-surface); color: var(--ws-inverse-text); font-size: var(--font-size-caption); font-weight: var(--font-weight-regular); line-height: var(--ws-leading-caption); letter-spacing: 0; text-transform: none; box-shadow: var(--ws-shadow-raised); }
+.ws-verify-group { display: inline-flex; align-items: center; gap: 2px; }
+.ws-section-title .ws-help { margin-left: var(--ws-space-4); }
+.ws-feed-points { margin: 0; padding-left: var(--ws-space-20); color: var(--ws-text-secondary); font-size: var(--font-size-label); line-height: var(--ws-leading-label); }
+
+/* Education: one video lecture card */
+.ws-video-poster { position: relative; display: block; overflow: hidden; background: var(--ws-art-paper); }
+.ws-video-poster .ws-feed-art { aspect-ratio: 16 / 9; }
+.ws-video-blank { display: block; aspect-ratio: 16 / 9; }
+.ws-video-play { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: var(--ws-radius-round); background: var(--ws-accent); color: var(--ws-on-accent); }
+.ws-video-poster:hover .ws-video-play { background: var(--ws-accent-ink); }
+
+/* Partner reach placement: full width, always labelled, visually apart from evidence */
+.ws-feed-partner { gap: var(--ws-space-12); padding: var(--ws-space-16); background: var(--ws-accent-wash); border-color: var(--ws-accent-soft); }
+.ws-feed-partner .ws-feed-body { padding: 0; }
+.ws-feed-partner-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-16); }
+.ws-feed-partner-grid .ws-feed-art { border-radius: var(--ws-radius-button); }
+.ws-feed-partner .ws-kind { align-self: flex-start; }
+.ws-delegate .ws-composer { margin: 0; }
+
+@media (min-width: 768px) {
+  .ws-feed-head { padding-top: var(--ws-space-24); }
+  .ws-feed { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; gap: var(--ws-space-16); }
+  .ws-feed > .is-lead,
+  .ws-feed > .ws-feed-partner { grid-column: 1 / -1; }
+  .ws-feed-card.is-lead.has-media { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .ws-feed-card.is-lead .ws-feed-art { height: 100%; aspect-ratio: 3 / 2; }
+  .ws-feed-card.is-lead .ws-feed-body { justify-content: center; padding: var(--ws-space-24); }
+  .ws-feed-partner-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; }
+}
+@media (min-width: 1280px) {
+  .ws-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ws-feed-head h1 { font-size: var(--font-size-display-lg); line-height: var(--ws-leading-display); letter-spacing: var(--ws-tracking-display-lg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-feed-art.is-animated .fa-draw { animation: none; stroke-dashoffset: 0; }
+  .ws-feed-art.is-animated .fa-scan line,
+  .ws-feed-art.is-animated .fa-flow path { animation: none; }
+}

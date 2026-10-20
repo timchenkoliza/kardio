@@ -20,9 +20,18 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(metrics.body).toBeLessThanOrEqual(metrics.inner + 1);
 }
 
-test("home is a delegation workspace, not a feed", async ({ page }) => {
+test("home opens on the «Что нового для вас» feed, delegation and agents below", async ({ page }) => {
   await page.goto("/cardiology");
-  await expect(page.getByRole("heading", { level: 1, name: "Что хотите делегировать?" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Что нового для вас" })).toBeVisible();
+  const feed = page.locator(".ws-feed");
+  await expect(feed.locator("> *").first().locator("svg.ws-feed-art")).toBeVisible();
+  await expect(feed.locator(".fa-ecg_af").first()).toBeAttached();
+  const partner = page.getByRole("complementary", { name: "Партнёрский материал" });
+  await expect(partner).toBeVisible();
+  await expect(partner).toContainText("Партнёрский материал");
+  await expect(page.locator(".ws-feed-video")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: /Смотреть видеолекцию/ })).toHaveAttribute("href", /\/cardiology\/content\/video-/);
+  await expect(page.getByRole("textbox", { name: "Что хотите делегировать?" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Основная навигация" });
   await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: /Мои агенты/ })).toBeVisible();

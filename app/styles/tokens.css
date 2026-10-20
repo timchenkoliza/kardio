@@ -256,6 +256,14 @@
   --ws-art-clinical-2: #dce5ff;
   --ws-art-event-1: #c5b4ff;
   --ws-art-event-2: #e7dfff;
+  /* Feed line art (context/31_CARDIO_VISUAL_PROMPT_SYSTEM.md): warm paper, graphite contour, violet signal */
+  --ws-art-paper: #faf8f4;
+  --ws-art-line: #4a4b57;
+  --ws-art-line-faint: #4a4b5733;
+  --ws-art-grid: #898bff26;
+  --ws-art-signal: #7275ff;
+  --ws-art-signal-soft: #dabdff80;
+  --ws-art-sector: #afa2ff1f;
 
   /* Typography: line height and tracking per text style */
   --ws-leading-display: 1.06;

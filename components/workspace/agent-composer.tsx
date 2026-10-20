@@ -9,6 +9,7 @@ import { RISK_COPY } from "@/lib/agents/risk-rules";
 import type { AgentId } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { AgentIcon } from "./agent-icon";
+import { HelpTip } from "./help-tip";
 import { useWorkspace } from "./workspace-provider";
 
 const EXAMPLES: Record<SpecialtyId, string[]> = {
@@ -85,11 +86,12 @@ export function AgentComposer({ specialty, defaultAgent = "auto", compact = fals
           <label className="ws-composer-agent">
             <span className="sr-only">Агент</span>
             <select value={agent} onChange={event => setAgent(event.target.value as AgentId | "auto")}>
-              <option value="auto">Агент: подобрать сам</option>
+              <option value="auto">Выбрать агента</option>
               {AGENT_ORDER.map(id => <option key={id} value={id}>{AGENT_DEFINITIONS[id].name}</option>)}
             </select>
             <ChevronDown size={14} aria-hidden="true" />
           </label>
+          <HelpTip label="Выбрать агента">Если агента не выбрать, задачу возьмёт подходящий по смыслу запроса. Его название появится под полем до запуска.</HelpTip>
         </div>
         <button type="submit" className="ws-composer-run" disabled={busy || blocked || text.trim().length < 2} aria-label={busy ? "Агент работает" : "Запустить"} title={busy ? "Агент работает" : "Запустить"}>
           {busy ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}

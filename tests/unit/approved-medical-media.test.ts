@@ -67,6 +67,6 @@ describe("feed variety", () => {
   it("does not repeat the same picture on neighbouring cards when an alternative fits", () => {
     const feed = [result("a", "Сердечная недостаточность: новые данные"), result("b", "ХСН с сохранённой фракцией выброса")];
     const media = feedIllustrations(feed);
-    expect(media.get("a")?.src).not.toBe(media.get("b")?.src);
+    expect(media.get("a")?.art).not.toBe(media.get("b")?.art);
   });
 });

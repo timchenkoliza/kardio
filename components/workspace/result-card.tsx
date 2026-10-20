@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
@@ -8,6 +7,7 @@ import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerificatio
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
 import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
+import { FeedArt } from "./feed-art";
 import { ModeBadge } from "./mode-badge";
 import { useWorkspace } from "./workspace-provider";
 
@@ -130,10 +130,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
   return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}${media ? " has-media" : ""}`} aria-labelledby={`r-${result.id}`}>
     {isEvent && startDate && <div className="ws-date-block" aria-hidden="true"><strong>{Number(startDate.slice(8, 10))}</strong><span>{formatDateRu(startDate, { month: "short" })}</span></div>}
     <div className="ws-result-body">
-      {media && <figure className="ws-result-media">
-        <img src={media.src} alt={media.alt} loading="lazy" decoding="async" />
-        <figcaption><span>Иллюстрация · {media.label}</span><a href={media.sourceUrl} target="_blank" rel="noreferrer">{media.credit}<ExternalLink size={11} aria-hidden="true" /></a></figcaption>
-      </figure>}
+      {media && <div className="ws-result-media"><FeedArt art={media.art} alt={media.alt} animated={media.animated} /></div>}
       <div className="ws-result-content">
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
