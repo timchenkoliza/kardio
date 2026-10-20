@@ -1,6 +1,6 @@
 import type { PharmaAgentId } from "@/lib/access/agent-entitlements";
 
-export type PharmaOutputKind = "article" | "useful" | "media" | "event" | "performance";
+export type PharmaOutputKind = "article" | "useful" | "media" | "event" | "brand_page";
 
 export interface PharmaAgentDefinition {
   id: PharmaAgentId;
@@ -16,11 +16,11 @@ export interface PharmaAgentDefinition {
 export const PHARMA_AGENT_DEFINITIONS: Record<PharmaAgentId, PharmaAgentDefinition> = {
   content_studio: {
     id: "content_studio",
-    name: "Публикатор / Content Studio",
-    job: "Превращает материал партнёра в управляемый пакет публикации для Яндекс Мед",
-    description: "Принимает бриф и исходные материалы; строит Claim Map, применяет evidence/source-policy/compliance gate и ведёт пакет со статьёй, полезным форматом, медиа, событием и performance-размещением до review.",
+    name: "Студия контента",
+    job: "Готовит из материала партнёра пакет публикаций для Ленты врачей",
+    description: "Принимает задачу и исходные материалы, выделяет медицинские утверждения, проверяет их по источникам и готовит статью, полезный материал, медиа, анонс события и бренд-страницу до проверки редакцией.",
     inputs: ["brief", "source_material", "campaign_goal", "audience"],
-    outputs: ["article", "useful", "media", "event", "performance"],
+    outputs: ["article", "useful", "media", "event", "brand_page"],
     status: "experimental",
   },
 };
@@ -39,10 +39,10 @@ export function planContentStudio(input: string): ContentStudioPlan {
     input: input.trim(),
     steps: [
       "Разобрать бриф и определить аудиторию, цель и обязательные сообщения",
-      "Принять исходные материалы и выделить атомарные медицинские claims",
-      "Применить source-policy, FactCheck и compliance gate к каждому claim",
-      "Собрать рабочие форматы под Ленту и целевое действие без неподтверждённых медицинских утверждений",
-      "Передать пакет с Claim Map на human review перед одобрением и публикацией",
+      "Принять исходные материалы и выделить отдельные медицинские утверждения",
+      "Проверить каждое утверждение: источник, подтверждение, допустимость для публикации",
+      "Собрать форматы для Ленты без неподтверждённых медицинских утверждений",
+      "Передать пакет с картой утверждений на проверку редакции до публикации",
     ],
     outputs: PHARMA_AGENT_DEFINITIONS.content_studio.outputs,
   };

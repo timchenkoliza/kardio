@@ -28,7 +28,7 @@ describe("Content Studio package lifecycle", () => {
     expect(pkg.sources).toEqual([]);
     expect(pkg.claims).toEqual([]);
     expect(pkg.complianceSummary).toEqual({ allowed: 0, needsReview: 0, blocked: 0 });
-    expect(pkg.drafts.map(draft => draft.kind)).toEqual(["article", "useful", "media", "event", "performance"]);
+    expect(pkg.drafts.map(draft => draft.kind)).toEqual(["article", "useful", "media", "event", "brand_page"]);
     expect(pkg.drafts.every(draft => draft.status === "draft" && draft.evidenceStatus === "not_checked")).toBe(true);
     expect(pkg.drafts.every(draft => draft.content.includes(pkg.brief.rawText))).toBe(true);
   });

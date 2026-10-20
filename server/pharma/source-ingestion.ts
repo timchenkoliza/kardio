@@ -69,24 +69,24 @@ function checkSuppliedExternalFragment(source: ContentStudioSource, claim: strin
   if (checked.verificationStatus === "SUPPORTED") {
     return {
       status: "PARTIALLY_SUPPORTED",
-      note: "Claim присутствует во вставленном фрагменте, но оригинальная страница ещё не была независимо получена и сверена.",
+      note: "Утверждение есть во вставленном фрагменте; оригинал страницы ещё не сверен.",
     };
   }
   return { status: checked.verificationStatus, note: checked.verificationNote };
 }
 
 function complianceFor(source: ContentStudioSource, verification: VerificationStatus): { status: ClaimComplianceStatus; reasons: string[] } {
-  if (source.standing === "rejected") return { status: "blocked", reasons: ["Источник отклонён в таблице врачебной валидации B2D."] };
+  if (source.standing === "rejected") return { status: "blocked", reasons: ["Источник отклонён врачами при проверке источников."] };
   if (source.kind === "partner_material") {
-    return { status: "needs_review", reasons: ["Партнёрский материал используется как вход для claims, но не как независимое доказательство.", "Claim должен быть подтверждён внешним источником до публикации."] };
+    return { status: "needs_review", reasons: ["Материал партнёра — основа для утверждений, но не независимое доказательство.", "До публикации утверждение нужно подтвердить внешним источником."] };
   }
   if (!source.url) return { status: "blocked", reasons: ["У внешнего источника нет URL для проверки."] };
-  if (verification === "UNSUPPORTED") return { status: "blocked", reasons: ["Claim не прошёл базовую проверку соответствия предоставленному фрагменту."] };
-  const reasons = ["Текст источника вставлен пользователем и ещё не сверялся с оригиналом через runtime retrieval."];
-  if (source.standing === "approved") reasons.push("Домен одобрен врачами, но конкретный фрагмент всё равно требует сверки с оригиналом.");
-  else if (source.standing === "conditional") reasons.push("Источник разрешён только при выполнении условий врачебной валидации.");
-  else if (source.standing === "reviewed_not_whitelisted") reasons.push("Источник проверен, но не включён в белый список.");
-  else reasons.push("Источник ещё не проверен медицинскими тренерами.");
+  if (verification === "UNSUPPORTED") return { status: "blocked", reasons: ["Утверждение не совпадает с переданным фрагментом."] };
+  const reasons = ["Текст вставлен вручную и ещё не сверен с оригиналом."];
+  if (source.standing === "approved") reasons.push("Источник одобрен врачами; фрагмент нужно сверить с оригиналом.");
+  else if (source.standing === "conditional") reasons.push("Источник одобрен врачами с условием.");
+  else if (source.standing === "reviewed_not_whitelisted") reasons.push("Источник проверен врачами, но не входит в белый список.");
+  else reasons.push("Источник ещё не проверен врачами.");
   return { status: "needs_review", reasons };
 }
 

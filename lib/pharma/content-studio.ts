@@ -98,7 +98,7 @@ const FORMAT_LABELS: Record<PharmaOutputKind, string> = {
   useful: "Полезное",
   media: "Медиа",
   event: "Событие",
-  performance: "Performance",
+  brand_page: "Бренд-страница",
 };
 
 export function partnerWorkspaceForSubject(subjectId: AccessSubjectId): PartnerWorkspaceId | null {
@@ -121,10 +121,10 @@ function extractUrls(text: string): string[] {
 
 function inferCampaignGoal(text: string): string {
   const value = text.toLocaleLowerCase("ru-RU");
-  if (/регистрац|вебинар|конференц|мероприят/.test(value)) return "Регистрация / участие в событии";
+  if (/регистрац|вебинар|конференц|мероприят/.test(value)) return "Регистрация на событие";
   if (/чек[- ]?лист|шпаргал|сохран|алгоритм/.test(value)) return "Практическое использование и сохранение";
   if (/исследован|стат(ья|ью|ьи)|обзор|материал/.test(value)) return "Ознакомление с материалом";
-  return "Уточнить целевое действие перед review";
+  return "Уточнить целевое действие";
 }
 
 function audienceForSpecialty(specialty: SpecialtyId): string {
@@ -132,18 +132,18 @@ function audienceForSpecialty(specialty: SpecialtyId): string {
 }
 
 function scaffold(kind: PharmaOutputKind, brief: ContentStudioBrief): string {
-  const shared = `Исходный бриф\n${brief.rawText}\n\nАудитория\n${brief.audience}\n\nЦель\n${brief.campaignGoal}`;
+  const shared = `Задача\n${brief.rawText}\n\nАудитория\n${brief.audience}\n\nЦель\n${brief.campaignGoal}`;
   switch (kind) {
     case "article":
-      return `${shared}\n\nРедакторская структура\n1. Краткий вывод для врача.\n2. Клинический контекст.\n3. Проверяемые claims — заполнить только после evidence-check.\n4. Первичные источники.\n5. Партнёрская маркировка и CTA.\n\nМедицинские утверждения на этом шаге не генерируются.`;
+      return `${shared}\n\nСтруктура статьи\n1. Коротко о главном: выводы в начале.\n2. Клинический контекст.\n3. Утверждения — только после проверки по источникам.\n4. Первичные источники.\n5. Маркировка партнёрского материала.\n\nМедицинские утверждения на этом шаге не пишутся.`;
     case "useful":
-      return `${shared}\n\nФормат\nОдностраничный практический материал: чек-лист / алгоритм / карточки. Каждый медицинский тезис должен быть связан с проверенным источником до публикации.`;
+      return `${shared}\n\nФормат\nЧек-лист, инфографика, подборка или карточки на одну страницу. Каждый медицинский тезис связан с проверенным источником до публикации. Интерес измеряется скачиваниями, сохранениями и просмотрами.`;
     case "media":
-      return `${shared}\n\nФормат\nСценарий видео или подкаста: хук → 3–5 доказательных тезисов → источник → CTA. Тезисы пока не заполнены, чтобы не создавать неподтверждённые claims.`;
+      return `${shared}\n\nФормат\nВидео, подкаст или рассказ врача: вступление → 3–5 тезисов из проверенных источников → источник → призыв к действию. Тезисы появятся после проверки утверждений.`;
     case "event":
-      return `${shared}\n\nФормат\nКарточка события: что получит врач → дата/формат → спикеры → программа → регистрация → напоминание. Фактические реквизиты должны прийти из исходных материалов.`;
-    case "performance":
-      return `${shared}\n\nФормат\nPerformance-гипотеза: сегмент → сообщение → целевое действие → метрика. Это рабочий черновик кампании, а не готовый рекламный claim.`;
+      return `${shared}\n\nФормат\nАнонс события: что получит врач → дата и формат → спикеры → программа → регистрация внутри сервиса → напоминания. Даты и спикеры берутся только из исходных материалов.`;
+    case "brand_page":
+      return `${shared}\n\nФормат\nСтраница компании для врачей: о компании → материалы → события → медицинский отдел → сообщение о нежелательной реакции. Реквизиты берутся только из исходных материалов.`;
   }
 }
 
@@ -189,7 +189,7 @@ export function createContentStudioPackage(args: {
     content: scaffold(kind, brief),
     status: "draft" as const,
     evidenceStatus: "not_checked" as const,
-    disclosure: "Партнёрский материал · рабочий черновик",
+    disclosure: "Партнёрский материал",
     createdAt: now,
     updatedAt: now,
   }));
@@ -207,7 +207,7 @@ export function createContentStudioPackage(args: {
       startedAt: now,
       completedAt: now,
       steps: [...plan.steps],
-      note: "Создана персистентная структура пакета. Текстовые scaffolds не являются evidence-verified медицинским контентом.",
+      note: "Созданы заготовки форматов. Медицинские утверждения появятся после проверки источников.",
     },
     sources: [],
     claims: [],

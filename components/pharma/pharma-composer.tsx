@@ -2,22 +2,26 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, CheckCircle2, FilePenLine, FileUp, FlaskConical, Link2, Send, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowUp, CheckCircle2, FilePenLine, FileUp, Link2, Send, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { ContentStudioPackage, ContentStudioSourceKind, PublicationDraft } from "@/lib/pharma/content-studio";
-import { PHARMA_AGENT_DEFINITIONS, type PharmaOutputKind } from "@/lib/pharma/agents";
+import type { PharmaOutputKind } from "@/lib/pharma/agents";
 
 const OUTPUT_LABELS: Record<PharmaOutputKind, string> = {
   article: "Статья",
   useful: "Полезное",
   media: "Медиа",
   event: "Событие",
-  performance: "Performance",
+  brand_page: "Бренд-страница",
 };
+
+function outputLabel(kind: string): string {
+  return OUTPUT_LABELS[kind as PharmaOutputKind] ?? "Формат";
+}
 
 const STATUS_LABELS = {
   draft: "Черновик",
-  in_review: "На review",
+  in_review: "На проверке",
   approved: "Одобрено",
   published: "Опубликовано",
 } as const;
@@ -57,7 +61,7 @@ async function studioCommand(body: unknown): Promise<StudioSuccess> {
     body: JSON.stringify(body),
   });
   const payload = await response.json() as StudioResponse;
-  if (!response.ok || !("ok" in payload)) throw new Error("error" in payload ? payload.error : "Content Studio временно недоступен");
+  if (!response.ok || !("ok" in payload)) throw new Error("error" in payload ? payload.error : "Студия контента временно недоступна");
   return payload;
 }
 
@@ -81,22 +85,19 @@ function DraftCard({ draft, editable, editing, pending, onEdit, onCancel, onSave
   const [content, setContent] = useState(editing?.content ?? draft.content);
 
   if (editing) return <article className="ws-card-block">
-    <p className="ws-intro-meta">{OUTPUT_LABELS[draft.kind]} · редактирование</p>
-    <label className="sr-only" htmlFor={`draft-title-${draft.id}`}>Заголовок</label>
-    <input id={`draft-title-${draft.id}`} value={title} onChange={event => setTitle(event.target.value)} maxLength={240} style={{ width: "100%", marginBottom: 10 }} />
-    <label className="sr-only" htmlFor={`draft-content-${draft.id}`}>Содержание</label>
-    <textarea id={`draft-content-${draft.id}`} value={content} onChange={event => setContent(event.target.value)} rows={12} maxLength={12000} style={{ width: "100%" }} />
+    <p className="ws-intro-meta">{outputLabel(draft.kind)} · редактирование</p>
+    <label className="ws-field"><span>Заголовок</span><input value={title} onChange={event => setTitle(event.target.value)} maxLength={240} /></label>
+    <label className="ws-field"><span>Текст</span><textarea value={content} onChange={event => setContent(event.target.value)} rows={12} maxLength={12000} /></label>
     <div className="ws-result-actions">
       <button className="ws-button is-primary" type="button" disabled={pending || !title.trim() || !content.trim()} onClick={() => onSave(title, content)}>Сохранить</button>
       <button className="ws-button" type="button" disabled={pending} onClick={onCancel}>Отмена</button>
     </div>
   </article>;
 
-  return <article className="ws-card-block">
-    <p className="ws-intro-meta">{OUTPUT_LABELS[draft.kind]} · {STATUS_LABELS[draft.status]}</p>
+  return <article className="ws-card-block ws-studio-draft">
+    <p className="ws-intro-meta">{outputLabel(draft.kind)} · {STATUS_LABELS[draft.status]}</p>
     <h3>{draft.title}</h3>
-    <p className="ws-muted">Evidence: не проверено · {draft.disclosure}</p>
-    <div style={{ whiteSpace: "pre-wrap" }}>{draft.content}</div>
+    <details><summary>Заготовка</summary><div className="ws-prewrap">{draft.content}</div></details>
     {editable && <div className="ws-result-actions">
       <button className="ws-button" type="button" disabled={pending} onClick={onEdit}><FilePenLine size={14} aria-hidden="true" />Редактировать</button>
     </div>}
@@ -133,31 +134,22 @@ function SourceForm({ packageId, pending, onAdd, onUpload }: {
     setFile(null);
   }
 
-  return <form className="ws-card-block" onSubmit={submit}>
-    <p className="ws-intro-meta">Source ingestion</p>
+  return <form className="ws-card-block ws-studio-source" onSubmit={submit}>
     <h3>Добавить исходный материал</h3>
-    <p className="ws-muted">Можно вставить текст или загрузить файл. URL используется для source-policy. По ссылке страница автоматически не скачивается: claims строятся только по реально переданному тексту.</p>
+    <p className="ws-muted">Утверждения выделяются только из переданного текста или файла; ссылка нужна для проверки источника.</p>
+    <label className="ws-field"><span>Тип</span><select value={sourceKind} onChange={event => setSourceKind(event.target.value as ContentStudioSourceKind)} disabled={pending}>
+      <option value="partner_material">Материал партнёра</option>
+      <option value="external_reference">Внешний источник</option>
+    </select></label>
+    <label className="ws-field"><span>Название</span><input value={title} onChange={event => setTitle(event.target.value)} maxLength={240} placeholder="Название материала или исследования" /></label>
+    <label className="ws-field"><span>Ссылка</span><input value={url} onChange={event => setUrl(event.target.value)} maxLength={1200} placeholder="https://…" /></label>
+    <label className="ws-field"><span>Текст</span><textarea value={text} onChange={event => setText(event.target.value)} maxLength={30000} rows={6} placeholder="Вставьте фрагмент материала" /></label>
     <div className="ws-result-actions">
-      <label><span className="sr-only">Тип источника</span><select value={sourceKind} onChange={event => setSourceKind(event.target.value as ContentStudioSourceKind)} disabled={pending}>
-        <option value="partner_material">Партнёрский материал</option>
-        <option value="external_reference">Внешний источник</option>
-      </select></label>
+      <button className="ws-button is-primary" type="submit" disabled={pending || !title.trim() || text.trim().length < 20}><Link2 size={14} aria-hidden="true" />Разобрать текст</button>
+      <label className="ws-button is-quiet"><FileUp size={14} aria-hidden="true" />{file ? file.name : "Выбрать файл"}<input className="sr-only" type="file" accept=".txt,.md,.markdown,.csv,.tsv,.html,.htm,.xhtml,.docx,.pdf,text/plain,text/markdown,text/csv,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={pending} onChange={event => setFile(event.target.files?.[0] ?? null)} /></label>
+      {file && <button className="ws-button" type="button" disabled={pending} onClick={upload}>Разобрать файл</button>}
     </div>
-    <label className="sr-only" htmlFor={`source-title-${packageId}`}>Название источника</label>
-    <input id={`source-title-${packageId}`} value={title} onChange={event => setTitle(event.target.value)} maxLength={240} placeholder="Название материала или исследования" style={{ width: "100%", marginTop: 10 }} />
-    <label className="sr-only" htmlFor={`source-url-${packageId}`}>URL источника</label>
-    <input id={`source-url-${packageId}`} value={url} onChange={event => setUrl(event.target.value)} maxLength={1200} placeholder="https://… — необязательно для партнёрского исходника" style={{ width: "100%", marginTop: 10 }} />
-    <label className="sr-only" htmlFor={`source-text-${packageId}`}>Текст источника</label>
-    <textarea id={`source-text-${packageId}`} value={text} onChange={event => setText(event.target.value)} maxLength={30000} rows={8} placeholder="Вставьте фрагмент исходного материала. Система выделит проверяемые медицинские claims, но не будет считать их доказанными автоматически." style={{ width: "100%", marginTop: 10 }} />
-    <div className="ws-result-actions">
-      <button className="ws-button is-primary" type="submit" disabled={pending || !title.trim() || text.trim().length < 20}><Link2 size={14} aria-hidden="true" />Добавить текст и разобрать</button>
-    </div>
-    <div style={{ marginTop: 16 }}>
-      <label htmlFor={`source-file-${packageId}`}><strong>Или файл</strong></label>
-      <input id={`source-file-${packageId}`} type="file" accept=".txt,.md,.markdown,.csv,.tsv,.html,.htm,.xhtml,.docx,.pdf,text/plain,text/markdown,text/csv,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={pending} onChange={event => setFile(event.target.files?.[0] ?? null)} style={{ display: "block", marginTop: 8 }} />
-      <p className="ws-muted">До 4 МБ. TXT/MD/CSV/HTML/DOCX разбираются в текст. PDF сейчас вернёт честное сообщение, что parser ещё не подключён. Персональные данные маскируются до Claim Map.</p>
-      <button className="ws-button" type="button" disabled={pending || !file} onClick={upload}><FileUp size={14} aria-hidden="true" />Загрузить файл и разобрать</button>
-    </div>
+    <p className="ws-muted">TXT, MD, CSV, HTML, DOCX до 4 МБ. Персональные данные скрываются перед разбором.</p>
   </form>;
 }
 
@@ -181,9 +173,7 @@ export function PharmaComposer({
   const [packages, setPackages] = useState(initialPackages);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [storage, setStorage] = useState<"memory" | "postgres" | null>(null);
   const [editing, setEditing] = useState<{ packageId: string; draftId: string; title: string; content: string } | null>(null);
-  const agent = PHARMA_AGENT_DEFINITIONS.content_studio;
 
   function replacePackage(pkg: ContentStudioPackage) {
     setPackages(current => [pkg, ...current.filter(item => item.id !== pkg.id)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
@@ -198,9 +188,8 @@ export function PharmaComposer({
     try {
       const result = await studioCommand({ action: "create", specialty, briefText: value });
       replacePackage(result.package);
-      setStorage(result.storage);
       setText("");
-      setMessage("Пакет создан. Следующий обязательный шаг — добавить исходный материал и построить Claim Map.");
+      setMessage("Пакет создан. Добавьте исходный материал — из него будут выделены медицинские утверждения.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Не удалось создать пакет");
@@ -216,9 +205,8 @@ export function PharmaComposer({
     try {
       const result = await studioCommand({ action: "addSource", specialty, packageId, ...input });
       replacePackage(result.package);
-      setStorage(result.storage);
       const claims = result.package.claims.length;
-      setMessage(claims ? `Источник добавлен. Claim Map: ${claims} проверяемых утверждений.` : "Источник добавлен, но проверяемые медицинские claims не обнаружены. Добавьте более содержательный фрагмент.");
+      setMessage(claims ? `Источник добавлен. Утверждений для проверки: ${claims}.` : "Источник добавлен, но медицинских утверждений в нём нет. Добавьте более содержательный фрагмент.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Не удалось добавить источник");
@@ -241,9 +229,8 @@ export function PharmaComposer({
       form.set("file", input.file);
       const result = await uploadSourceCommand(form);
       replacePackage(result.package);
-      setStorage(result.storage);
       const prefix = result.notices?.length ? `${result.notices.join(" ")} ` : "";
-      setMessage(`${prefix}Файл разобран. Claim Map: ${result.package.claims.length} проверяемых утверждений.`);
+      setMessage(`${prefix}Файл разобран. Утверждений для проверки: ${result.package.claims.length}.`);
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Не удалось загрузить источник");
@@ -259,7 +246,6 @@ export function PharmaComposer({
     try {
       const result = await studioCommand({ action: "updateDraft", specialty, packageId, draftId, title, content });
       replacePackage(result.package);
-      setStorage(result.storage);
       setEditing(null);
       setMessage("Черновик сохранён.");
       router.refresh();
@@ -277,19 +263,18 @@ export function PharmaComposer({
     try {
       const result = await studioCommand({ action: "requestReview", specialty, packageId });
       replacePackage(result.package);
-      setStorage(result.storage);
       setEditing(null);
-      setMessage("Пакет передан на review. Редактирование и добавление источников закрыты до решения редакции.");
+      setMessage("Пакет отправлен на проверку редакции.");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Не удалось отправить пакет на review");
+      setMessage(error instanceof Error ? error.message : "Не удалось отправить пакет на проверку");
     } finally {
       setPending(false);
     }
   }
 
-  return <div>
-    <form className="ws-composer" onSubmit={submit} aria-label="Поручить задачу агенту для фармы">
+  return <div className="ws-studio">
+    <form className="ws-composer" onSubmit={submit} aria-label="Задача для студии контента">
       <div className="ws-composer-box">
         <label className="sr-only" htmlFor="pharma-composer-input">Бриф или материал для публикации</label>
         <textarea
@@ -299,84 +284,57 @@ export function PharmaComposer({
           value={text}
           onChange={event => setText(event.target.value)}
           disabled={!allowed || pending}
-          placeholder={allowed ? "Например: подготовь пакет публикации для кардиологов по материалу о ХСН: статья + чек-лист + карточка события." : "У текущей роли нет доступа к Content Studio"}
+          placeholder={allowed ? "Например: материалы для кардиологов о ХСН — статья, чек-лист и анонс вебинара" : "Студия контента недоступна для вашей роли"}
         />
         <div className="ws-composer-bar">
-          <div className="ws-composer-tools">
-            <span className="ws-route"><FlaskConical size={14} aria-hidden="true" />Beta · {agent.name}</span>
-          </div>
+          <div className="ws-composer-tools" />
           <button type="submit" className="ws-composer-run" disabled={!text.trim() || !allowed || pending} aria-label="Создать пакет"><ArrowUp size={18} /></button>
         </div>
-      </div>
-      <div className="ws-composer-preview" aria-live="polite">
-        <span className="ws-route"><ShieldCheck size={14} aria-hidden="true" />{allowed ? "Brief → Sources → Claim Map → Compliance → Drafts → Review." : "Нет grant: агент скрыт и запуск заблокирован."}</span>
-        {storage && <span className="ws-route">storage: {storage}</span>}
       </div>
     </form>
 
     {message && <p role="status" className="ws-success">{message}</p>}
 
-    <section className="ws-section" aria-labelledby="studio-packages-title">
-      <div className="ws-section-head">
-        <div>
-          <h2 id="studio-packages-title" className="ws-section-title">Пакеты публикаций</h2>
-          <p className="ws-muted">Партнёрский исходник отделён от evidence. Claim Map показывает, какие утверждения требуют внешней проверки и что заблокировано source-policy.</p>
-        </div>
-      </div>
-
-      {!packages.length ? <div className="ws-empty">
-        <p><strong>Пакетов пока нет.</strong></p>
-        <p>Вставьте бриф выше. Content Studio создаст Brief, Run и пять draft-форматов, после чего попросит доказательную базу.</p>
-      </div> : packages.map(pkg => {
+    {packages.length > 0 && <section className="ws-section" aria-labelledby="studio-packages-title">
+      <h2 id="studio-packages-title" className="ws-section-title">Пакеты публикаций</h2>
+      {packages.map(pkg => {
         const reviewReady = pkg.sources.length > 0 && pkg.claims.length > 0;
         return <article key={pkg.id} className="ws-section ws-card-block">
           <div className="ws-section-head">
             <div>
               <p className="ws-intro-meta">{STATUS_LABELS[pkg.status]} · {pkg.brief.audience} · {pkg.brief.campaignGoal}</p>
-              <h2 className="ws-section-title">Пакет {pkg.id.slice(-8)}</h2>
-              <p>{pkg.brief.rawText}</p>
-              <p className="ws-muted">Run: {pkg.run.mode} · {pkg.run.note}</p>
+              <h3 className="ws-section-title">{pkg.brief.rawText.length > 96 ? `${pkg.brief.rawText.slice(0, 95)}…` : pkg.brief.rawText}</h3>
             </div>
-            {pkg.status === "draft" && canRequestReview ? <button className="ws-button is-primary" type="button" disabled={pending || !reviewReady} title={reviewReady ? undefined : "Сначала добавьте источник и получите Claim Map"} onClick={() => void requestReview(pkg.id)}><Send size={14} aria-hidden="true" />На review</button> : pkg.status === "in_review" ? <span className="ws-route"><CheckCircle2 size={14} aria-hidden="true" />Ждёт редакцию</span> : null}
+            {pkg.status === "draft" && canRequestReview ? <button className="ws-button is-primary" type="button" disabled={pending || !reviewReady} title={reviewReady ? undefined : "Сначала добавьте источник с медицинскими утверждениями"} onClick={() => void requestReview(pkg.id)}><Send size={14} aria-hidden="true" />На проверку</button> : pkg.status === "in_review" ? <span className="ws-route"><CheckCircle2 size={14} aria-hidden="true" />Ждёт редакцию</span> : null}
           </div>
 
-          <details>
-            <summary>Показать run plan</summary>
-            <ol className="ws-plain-list">{pkg.run.steps.map(step => <li key={step}>{step}</li>)}</ol>
-          </details>
+          <section className="ws-studio-claims" aria-label="Источники и утверждения">
+            <h4>Источники и утверждения</h4>
+            {pkg.claims.length > 0 && <p className="ws-muted">Можно использовать: {pkg.complianceSummary.allowed} · нужна проверка: {pkg.complianceSummary.needsReview} · заблокировано: {pkg.complianceSummary.blocked}</p>}
 
-          <section className="ws-section" aria-label="Источники и Claim Map">
-            <div className="ws-section-head">
-              <div>
-                <h3 className="ws-section-title">Источники и Claim Map</h3>
-                <p className="ws-muted">Gate: разрешено {pkg.complianceSummary.allowed} · нужна проверка {pkg.complianceSummary.needsReview} · заблокировано {pkg.complianceSummary.blocked}.</p>
-              </div>
-            </div>
+            {pkg.sources.length > 0 && <ul className="ws-studio-list">
+              {pkg.sources.map(source => <li key={source.id}>
+                <p className="ws-intro-meta">{SOURCE_KIND_LABELS[source.kind]} · {source.policyLabel}</p>
+                <strong>{source.title}</strong>
+                {source.url && <a className="ws-text-link" href={source.url} target="_blank" rel="noreferrer"><Link2 size={14} aria-hidden="true" />Открыть источник</a>}
+                {source.policyNote && <p className="ws-muted">{source.policyNote}</p>}
+                <details><summary>Переданный текст</summary><div className="ws-prewrap">{source.suppliedText}</div></details>
+              </li>)}
+            </ul>}
+
+            {pkg.claims.length ? <ol className="ws-studio-list">
+              {pkg.claims.map(claim => <li key={claim.id}>
+                <p className={claim.complianceStatus === "blocked" ? "ws-route is-blocked" : "ws-route"}>{claim.complianceStatus === "blocked" ? <ShieldAlert size={14} aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}{CLAIM_STATUS_LABELS[claim.complianceStatus]}</p>
+                <strong>{claim.text}</strong>
+                {claim.verificationNote && <p className="ws-muted">{claim.verificationNote}</p>}
+                <ul className="ws-plain-list">{claim.complianceReasons.map(reason => <li key={reason}>{reason}</li>)}</ul>
+              </li>)}
+            </ol> : pkg.sources.length > 0 ? <p className="ws-empty">В добавленном тексте нет конкретных медицинских утверждений — проверка пока недоступна.</p> : null}
 
             {pkg.status === "draft" && canUploadSource && <SourceForm packageId={pkg.id} pending={pending} onAdd={(packageId, input) => void addSource(packageId, input)} onUpload={(packageId, input) => void uploadSource(packageId, input)} />}
-
-            {pkg.sources.length > 0 && <div className="ws-agent-grid is-wide" style={{ marginTop: 16 }}>
-              {pkg.sources.map(source => <article key={source.id} className="ws-card-block">
-                <p className="ws-intro-meta">{SOURCE_KIND_LABELS[source.kind]} · {source.policyLabel}</p>
-                <h3>{source.title}</h3>
-                {source.url ? <p><a className="ws-text-link" href={source.url} target="_blank" rel="noreferrer"><Link2 size={14} aria-hidden="true" />Открыть источник</a></p> : <p className="ws-muted">URL не указан</p>}
-                {source.policyNote && <p className="ws-muted">{source.policyNote}</p>}
-                <details><summary>Показать переданный текст</summary><div style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{source.suppliedText}</div></details>
-              </article>)}
-            </div>}
-
-            {pkg.claims.length ? <div style={{ marginTop: 16 }}>
-              {pkg.claims.map((claim, index) => <article key={claim.id} className="ws-card-block" style={{ marginTop: 10 }}>
-                <p className="ws-intro-meta">Claim {index + 1} · {CLAIM_STATUS_LABELS[claim.complianceStatus]} · evidence {claim.verificationStatus}</p>
-                <p><strong>{claim.text}</strong></p>
-                {claim.verificationNote && <p className="ws-muted">Evidence-check: {claim.verificationNote}</p>}
-                <ul className="ws-plain-list">{claim.complianceReasons.map(reason => <li key={reason}>{reason}</li>)}</ul>
-                {claim.complianceStatus === "blocked" ? <p className="ws-route"><ShieldAlert size={14} aria-hidden="true" />Не использовать в генерации</p> : <p className="ws-route"><ShieldCheck size={14} aria-hidden="true" />До medical review не переносить в финальный материал</p>}
-              </article>)}
-            </div> : pkg.sources.length > 0 ? <div className="ws-empty" style={{ marginTop: 16 }}><p><strong>Claim Map пуст.</strong></p><p>В добавленном тексте не найдено достаточно конкретных медицинских утверждений. Review пока недоступен.</p></div> : null}
           </section>
 
-          <div className="ws-agent-grid is-wide" style={{ marginTop: 16 }}>
+          <div className="ws-studio-drafts">
             {pkg.drafts.map(draft => {
               const isEditing = editing?.packageId === pkg.id && editing.draftId === draft.id;
               return <DraftCard
@@ -393,6 +351,6 @@ export function PharmaComposer({
           </div>
         </article>;
       })}
-    </section>
+    </section>}
   </div>;
 }

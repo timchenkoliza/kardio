@@ -27,8 +27,8 @@ export function sectionFromPath(pathname: string, specialty: string): WorkspaceS
 }
 
 /** The beta lockup exactly as supplied by the design system (never retyped). */
-function BrandLockup({ specialty }: { specialty: SpecialtyId }) {
-  return <Link className="ws-brand" href={`/${specialty}`}>
+export function BrandLockup({ specialty, href }: { specialty: SpecialtyId; href?: string }) {
+  return <Link className="ws-brand" href={href ?? `/${specialty}`}>
     {/* eslint-disable-next-line @next/next/no-img-element -- static SVG lockup from the design system */}
     <img src="/brand/yandex-med-beta.svg" alt="Яндекс Мед β — главное" width={159} height={24} />
   </Link>;

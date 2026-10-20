@@ -57,8 +57,8 @@ describe("pharma source ingestion", () => {
     expect(pkg.sources[0].standing).toBe("approved");
     expect(pkg.claims[0].verificationStatus).toBe("PARTIALLY_SUPPORTED");
     expect(pkg.claims[0].complianceStatus).toBe("needs_review");
-    expect(pkg.claims[0].verificationNote).toMatch(/не была независимо получена/i);
-    expect(pkg.claims[0].complianceReasons.join(" ")).toMatch(/сверялся с оригиналом/i);
+    expect(pkg.claims[0].verificationNote).toMatch(/оригинал страницы ещё не сверен/i);
+    expect(pkg.claims[0].complianceReasons.join(" ")).toMatch(/не сверен с оригиналом/i);
   });
 
   it("does not invent claims from non-claim prose", () => {

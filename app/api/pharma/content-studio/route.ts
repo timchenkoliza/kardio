@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const command = commandSchema.parse(await readJsonBody(request, 48 * 1024));
     const access = getRequestAccessStateFromRequest(request);
     const workspaceId = contentStudioWorkspaceIdForSubject(access.subject.id);
-    if (!workspaceId) throw new HttpError(403, "Content Studio недоступен текущему workspace-пользователю.");
+    if (!workspaceId) throw new HttpError(403, "Студия контента недоступна для вашей роли.");
     if (!canUseAgentCapability(access.policy, access.subject.id, "content_studio", capabilityFor(command))) {
       throw new HttpError(403, "Для этого действия нет доступа.");
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     if (!current) throw new HttpError(404, "Пакет публикации не найден.");
 
     if (command.action === "addSource") {
-      if (current.status !== "draft") throw new HttpError(409, "Пакет уже передан на review и закрыт для новых источников.");
+      if (current.status !== "draft") throw new HttpError(409, "Пакет уже на проверке — новые источники добавить нельзя.");
       let pkg;
       try {
         pkg = ingestContentStudioSource(current, { kind: command.sourceKind, title: command.title, url: command.url, text: command.text });
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (command.action === "updateDraft") {
-      if (current.status !== "draft") throw new HttpError(409, "Пакет уже передан на review и закрыт для редактирования.");
+      if (current.status !== "draft") throw new HttpError(409, "Пакет уже на проверке — редактирование закрыто.");
       let pkg;
       try { pkg = updatePublicationDraft(current, command.draftId, { title: command.title, content: command.content }); }
       catch (error) {
@@ -99,12 +99,12 @@ export async function POST(request: NextRequest) {
       return attachSessionCookie(json({ ok: true, package: pkg, storage: store.kind }), session.id);
     }
 
-    if (current.status !== "draft") throw new HttpError(409, "Пакет уже находится на review или прошёл его.");
+    if (current.status !== "draft") throw new HttpError(409, "Пакет уже на проверке или проверен.");
     let pkg;
     try { pkg = requestContentStudioReview(current); }
     catch (error) {
-      if (error instanceof Error && error.message === "source_required") throw new HttpError(409, "Перед review добавьте хотя бы один исходный материал или внешний источник.");
-      if (error instanceof Error && error.message === "claim_map_required") throw new HttpError(409, "Перед review нужен хотя бы один извлечённый claim. Добавьте текст источника с проверяемыми медицинскими утверждениями.");
+      if (error instanceof Error && error.message === "source_required") throw new HttpError(409, "Перед проверкой добавьте хотя бы один исходный материал.");
+      if (error instanceof Error && error.message === "claim_map_required") throw new HttpError(409, "Перед проверкой нужно хотя бы одно медицинское утверждение из источника.");
       throw error;
     }
     await store.savePackage(session.id, pkg);

@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const access = getRequestAccessStateFromRequest(request);
     const workspaceId = contentStudioWorkspaceIdForSubject(access.subject.id);
     if (!workspaceId || !canUseAgentCapability(access.policy, access.subject.id, "content_studio", "upload_source")) {
-      throw new HttpError(403, "Нет доступа к загрузке источников Content Studio.");
+      throw new HttpError(403, "Нет доступа к загрузке источников.");
     }
 
     const form = await request.formData();
@@ -68,12 +68,12 @@ export async function POST(request: NextRequest) {
     const store = contentStudioStore();
     const current = await store.getPackage(session.id, fields.specialty as SpecialtyId, workspaceId, fields.packageId);
     if (!current) throw new HttpError(404, "Пакет публикации не найден.");
-    if (current.status !== "draft") throw new HttpError(409, "Пакет уже передан на review и закрыт для новых источников.");
+    if (current.status !== "draft") throw new HttpError(409, "Пакет уже на проверке — новые источники добавить нельзя.");
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const parsed = parseUpload(file.name, file.type || "application/octet-stream", bytes);
     if (parsed.parseStatus === "rejected") throw new HttpError(422, parsed.parseNote ?? "Этот тип файла не принимается.");
-    if (!parsed.text) throw new HttpError(422, parsed.parseNote ?? "Из этого файла пока нельзя извлечь текст для Claim Map.");
+    if (!parsed.text) throw new HttpError(422, parsed.parseNote ?? "Из этого файла пока нельзя извлечь текст.");
 
     const pkg = ingestContentStudioSource(current, {
       kind: fields.sourceKind,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       text: parsed.text,
     });
     await store.savePackage(session.id, pkg);
-    const notices = parsed.redactions.length ? ["В исходнике найдены персональные данные — перед Claim Map они были замаскированы."] : [];
+    const notices = parsed.redactions.length ? ["Персональные данные в исходнике скрыты перед разбором."] : [];
     return attachSessionCookie(json({ ok: true, package: pkg, storage: store.kind, notices }, 201), session.id);
   } catch (error) {
     return failure(error);
