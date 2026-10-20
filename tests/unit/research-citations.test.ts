@@ -86,14 +86,23 @@ const run: AgentRun = {
 };
 
 describe("research citations and exports", () => {
-  it("separates directly used evidence from additional findings without pretending all were used", () => {
+  it("marks only SUPPORTED findings as directly used by the current brief synthesis", () => {
     const buckets = researchSourceBuckets([
       result("a", "SUPPORTED", 1),
       result("b", "UNKNOWN", 2),
       result("c", "PARTIALLY_SUPPORTED", 3),
     ], "brief");
-    expect(buckets.used.map(item => item.id)).toEqual(["a", "c"]);
-    expect(buckets.additional.map(item => item.id)).toEqual(["b"]);
+    expect(buckets.used.map(item => item.id)).toEqual(["a"]);
+    expect(buckets.additional.map(item => item.id)).toEqual(["b", "c"]);
+  });
+
+  it("treats every visible row as directly used in article-table mode", () => {
+    const buckets = researchSourceBuckets([
+      result("a", "SUPPORTED", 1),
+      result("b", "UNKNOWN", 2),
+    ], "articles");
+    expect(buckets.used.map(item => item.id)).toEqual(["a", "b"]);
+    expect(buckets.additional).toEqual([]);
   });
 
   it("formats only available metadata in GOST APA and MLA templates", () => {
@@ -110,5 +119,11 @@ describe("research citations and exports", () => {
     expect(markdown).not.toContain("Источники, использованные в сводке");
     expect(buildResearchExport({ run, results, mode: "brief", citationStyle: "apa", bibliographyOrder: "appearance", includeBibliography: true, format: "rtf" })).toMatch(/^\{\\rtf1/);
     expect(buildResearchExport({ run, results, mode: "brief", citationStyle: "mla", bibliographyOrder: "alphabetical", includeBibliography: true, format: "latex" })).toContain("\\begin{document}");
+  });
+
+  it("escapes LaTeX metacharacters in report content", () => {
+    const special = { ...result("a", "SUPPORTED", 1), title: "A&B_1 {trial}" };
+    const latex = buildResearchExport({ run, results: [special], mode: "brief", citationStyle: "gost", bibliographyOrder: "appearance", includeBibliography: true, format: "latex" });
+    expect(latex).toContain("A\\&B\\_1 \\{trial\\}");
   });
 });

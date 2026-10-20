@@ -15,18 +15,19 @@ export interface ResearchSourceBuckets {
   additional: AgentResult[];
 }
 
-function hasUsableEvidence(result: AgentResult): boolean {
-  return result.evidence.some(item => item.verificationStatus === "SUPPORTED" || item.verificationStatus === "PARTIALLY_SUPPORTED");
+function isDirectlyUsedInSynthesis(result: AgentResult): boolean {
+  return result.evidence.some(item => item.verificationStatus === "SUPPORTED");
 }
 
 /**
- * The current brief synthesis uses up to four source-grounded findings.
- * We mirror that boundary instead of pretending every retrieved record was
- * directly used. Article-table mode treats all shown rows as directly used.
+ * The current brief synthesis uses up to four SUPPORTED findings.
+ * We mirror that exact boundary instead of pretending partially checked or
+ * merely retrieved records were directly used. Article-table mode treats all
+ * shown rows as directly used because the rows themselves are the output.
  */
 export function researchSourceBuckets(results: readonly AgentResult[], mode: ResearchMode): ResearchSourceBuckets {
   const ordered = [...results].sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt));
-  const used = mode === "articles" ? ordered : ordered.filter(hasUsableEvidence).slice(0, 4);
+  const used = mode === "articles" ? ordered : ordered.filter(isDirectlyUsedInSynthesis).slice(0, 4);
   const ids = new Set(used.map(item => item.id));
   return { used, additional: ordered.filter(item => !ids.has(item.id)) };
 }
@@ -145,11 +146,19 @@ function escapeRtf(value: string): string {
 }
 
 function escapeLatex(value: string): string {
-  return value
-    .replace(/\\/g, "\\textbackslash{}")
-    .replace(/([#$%&_{}])/g, "\\$1")
-    .replace(/~/g, "\\textasciitilde{}")
-    .replace(/\^/g, "\\textasciicircum{}");
+  const escaped: Record<string, string> = {
+    "\\": "\\textbackslash{}",
+    "#": "\\#",
+    "$": "\\$",
+    "%": "\\%",
+    "&": "\\&",
+    "_": "\\_",
+    "{": "\\{",
+    "}": "\\}",
+    "~": "\\textasciitilde{}",
+    "^": "\\textasciicircum{}",
+  };
+  return [...value].map(char => escaped[char] ?? char).join("");
 }
 
 export function buildResearchExport(args: BuildResearchExportArgs): string {

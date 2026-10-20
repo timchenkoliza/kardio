@@ -33,7 +33,7 @@ Citation formatting is metadata-bound. Missing author, issue, volume or page met
 
 `Word · RTF` is an actual downloadable RTF file that opens in Word. Markdown and LaTeX are plain-text exports. The product does not generate PDF in this flow.
 
-The current brief synthesis directly uses up to four source-grounded findings. Those are the only records labelled `Использованы в сводке`; everything else is shown as additional retrieval, not falsely described as read or cited.
+The current brief synthesis directly uses up to four findings with `SUPPORTED` evidence. Only those records are labelled `Использованы в сводке`; partially supported, unknown and other retrieved records remain in `Найдены дополнительно`. In article-table mode every visible row is the output itself and therefore belongs to the directly used set.
 
 ## Evidence comparison honesty
 
