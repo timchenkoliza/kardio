@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, SlidersHorizontal } from "lucide-react";
+import { normalizeResearchDomains } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 import {
   RESEARCH_MODE_OPTIONS,
@@ -40,9 +40,20 @@ export function ResearchComposer({
   const [mode, setMode] = useState<PhysicianResearchMode>(initialOptions.mode);
   const [sourceScope, setSourceScope] = useState<PhysicianResearchSourceScope>(initialOptions.sourceScope);
   const [contentScope, setContentScope] = useState<PhysicianResearchContentScope>(initialOptions.contentScope);
+  const [includeDomainsText, setIncludeDomainsText] = useState(initialOptions.includeDomains.join(", "));
+  const [excludeDomainsText, setExcludeDomainsText] = useState(initialOptions.excludeDomains.join(", "));
   const [busy, setBusy] = useState(false);
 
-  const options: PhysicianResearchViewOptions = { mode, sourceScope, contentScope };
+  const options = useMemo<PhysicianResearchViewOptions>(() => {
+    const excludeDomains = normalizeResearchDomains([excludeDomainsText]);
+    return {
+      mode,
+      sourceScope,
+      contentScope,
+      includeDomains: normalizeResearchDomains([includeDomainsText]).filter(domain => !excludeDomains.includes(domain)),
+      excludeDomains,
+    };
+  }, [mode, sourceScope, contentScope, includeDomainsText, excludeDomainsText]);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -127,7 +138,18 @@ export function ResearchComposer({
           <option value="research">Только исследования</option>
         </select>
       </label>
-      <Link href={`/${specialty}/settings`} className="ws-text-link">Настройки источников</Link>
+      <details className="ws-research-domain-controls">
+        <summary>Конкретные сайты{options.includeDomains.length || options.excludeDomains.length ? ` · ${options.includeDomains.length + options.excludeDomains.length}` : ""}</summary>
+        <div className="ws-research-domain-fields">
+          <label>Искать только здесь
+            <input value={includeDomainsText} onChange={event => setIncludeDomainsText(event.target.value)} placeholder="pubmed.ncbi.nlm.nih.gov, escardio.org" />
+          </label>
+          <label>Исключить
+            <input value={excludeDomainsText} onChange={event => setExcludeDomainsText(event.target.value)} placeholder="example.com" />
+          </label>
+          <small>До 8 доменов в каждом поле. Исключение имеет приоритет. Можно вставлять домены или URL.</small>
+        </div>
+      </details>
     </div>
   </form>;
 }

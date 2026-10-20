@@ -1,4 +1,4 @@
-import { researchContentScopeLabel, researchSourceScopeLabel, type ResearchRunOptions } from "@/lib/agents/research-options";
+import { researchContentScopeLabel, researchDomainPolicyLabel, researchSourceScopeLabel, type ResearchRunOptions } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { routeTask, runAgent, type RunOutcome } from "./supervisor";
 import { bindResearchRunOptions } from "./services/research-runtime-policy";
@@ -24,12 +24,17 @@ export async function executeResearchRun(
   );
 
   if (outcome.run.status !== "blocked") {
+    const domainPolicy = researchDomainPolicyLabel(options);
     outcome.run.plan = [{
       id: "research-retrieval-policy",
       label: "Применили фильтры до поиска",
       tool: null,
       status: "done",
-      detail: `Источники: ${researchSourceScopeLabel(options.sourceScope)} · Тип: ${researchContentScopeLabel(options.contentScope)}`,
+      detail: [
+        `Источники: ${researchSourceScopeLabel(options.sourceScope)}`,
+        `Тип: ${researchContentScopeLabel(options.contentScope)}`,
+        domainPolicy ? `Сайты: ${domainPolicy}` : null,
+      ].filter(Boolean).join(" · "),
       connectorIds: [],
     }, ...outcome.run.plan];
     await store.saveRun(sessionId, outcome.run);

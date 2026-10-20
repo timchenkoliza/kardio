@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultProfile, effectivePreference } from "@/lib/agents/profile";
 import type { ContentObject } from "@/lib/domain/types";
 import type { AgentContext } from "@/server/agents/context";
-import { bindResearchRunOptions, catalogSourceRegion, filterCatalogForResearch } from "@/server/agents/services/research-runtime-policy";
+import { bindResearchRunOptions, catalogSourceRegion, filterCatalogForResearch, pubmedAllowedForResearch } from "@/server/agents/services/research-runtime-policy";
 import { searchPubmed } from "@/server/agents/tools";
 
 function content(id: string, kind: ContentObject["kind"], sourceName: string, url: string): ContentObject {
@@ -52,6 +52,8 @@ function content(id: string, kind: ContentObject["kind"], sourceName: string, ur
   };
 }
 
+const all = { mode: "brief", sourceScope: "all", contentScope: "all", includeDomains: [], excludeDomains: [] } as const;
+
 describe("research retrieval policy", () => {
   const russianGuideline = content("rko-guideline", "guideline", "РКО", "https://scardio.ru/recommendations/");
   const internationalGuideline = content("esc-guideline", "guideline", "ESC", "https://www.escardio.org/Guidelines");
@@ -64,14 +66,25 @@ describe("research retrieval policy", () => {
 
   it("filters source region and content class before catalog retrieval", () => {
     const catalog = [russianGuideline, internationalGuideline, internationalArticle];
-    expect(filterCatalogForResearch(catalog, { mode: "brief", sourceScope: "russia", contentScope: "all" }).map(item => item.id)).toEqual(["rko-guideline"]);
-    expect(filterCatalogForResearch(catalog, { mode: "brief", sourceScope: "international", contentScope: "guidelines" }).map(item => item.id)).toEqual(["esc-guideline"]);
-    expect(filterCatalogForResearch(catalog, { mode: "articles", sourceScope: "international", contentScope: "research" }).map(item => item.id)).toEqual(["nejm-article"]);
+    expect(filterCatalogForResearch(catalog, { ...all, sourceScope: "russia" }).map(item => item.id)).toEqual(["rko-guideline"]);
+    expect(filterCatalogForResearch(catalog, { ...all, sourceScope: "international", contentScope: "guidelines" }).map(item => item.id)).toEqual(["esc-guideline"]);
+    expect(filterCatalogForResearch(catalog, { ...all, mode: "articles", sourceScope: "international", contentScope: "research" }).map(item => item.id)).toEqual(["nejm-article"]);
   });
 
-  it("does not call PubMed when the physician selected only Russian sources", async () => {
+  it("applies exact include/exclude domains before catalog retrieval", () => {
+    const catalog = [russianGuideline, internationalGuideline, internationalArticle];
+    expect(filterCatalogForResearch(catalog, { ...all, includeDomains: ["escardio.org"] }).map(item => item.id)).toEqual(["esc-guideline"]);
+    expect(filterCatalogForResearch(catalog, { ...all, excludeDomains: ["escardio.org"] }).map(item => item.id)).toEqual(["rko-guideline", "nejm-article"]);
+    expect(filterCatalogForResearch(catalog, { ...all, includeDomains: ["nejm.org"], excludeDomains: ["nejm.org"] }).map(item => item.id)).toEqual([]);
+  });
+
+  it("gates PubMed by region, content type and exact domain", async () => {
+    expect(pubmedAllowedForResearch({ ...all, includeDomains: ["ncbi.nlm.nih.gov"] })).toBe(true);
+    expect(pubmedAllowedForResearch({ ...all, includeDomains: ["nejm.org"] })).toBe(false);
+    expect(pubmedAllowedForResearch({ ...all, excludeDomains: ["ncbi.nlm.nih.gov"] })).toBe(false);
+
     const profile = defaultProfile("cardiology");
-    bindResearchRunOptions(profile, { mode: "brief", sourceScope: "russia", contentScope: "research" });
+    bindResearchRunOptions(profile, { ...all, sourceScope: "russia", contentScope: "research" });
     let calls = 0;
     const ctx: AgentContext = {
       agentId: "research",

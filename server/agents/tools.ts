@@ -12,7 +12,7 @@ import { generateLearningPlan as buildLearningPlan } from "./services/learning";
 import { searchUserMaterials as searchMaterials, type MaterialHit } from "./services/material";
 import { matchPartnerContent as matchPartner } from "./services/partner";
 import { retrieveDocument as retrieveCatalogDocument, searchMedical as searchCatalog, searchSources as searchCatalogSources, sourcePreferenceMatches, type CatalogHit } from "./services/search";
-import { filterCatalogForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
+import { filterCatalogForResearch, pubmedAllowedForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 
@@ -66,6 +66,7 @@ export function searchPubmed(ctx: AgentContext, args: { term: string | null; min
       const researchOptions = researchRunOptionsFor(ctx.profile);
       if (researchOptions.sourceScope === "russia") return { items: [], status: "ok", note: "PubMed пропущен: выбран поиск только по источникам РФ" };
       if (researchOptions.contentScope === "guidelines") return { items: [], status: "ok", note: "PubMed пропущен: выбран поиск только по клиническим рекомендациям" };
+      if (!pubmedAllowedForResearch(researchOptions)) return { items: [], status: "ok", note: "PubMed пропущен фильтром конкретных сайтов" };
     }
     if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в ваших источниках" };
     if (!args.term) return { items: [], status: "partial", note: "Нет тем для поиска" };

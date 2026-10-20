@@ -64,13 +64,21 @@ function result(args: Partial<AgentResultView> & Pick<AgentResultView, "id" | "t
   };
 }
 
+const baseOptions = { includeDomains: [], excludeDomains: [] } as const;
+
 describe("physician research consumer view", () => {
-  it("parses safe research view defaults and explicit modes", () => {
-    expect(researchViewFromSearchParams({})).toEqual({ mode: "brief", sourceScope: "all", contentScope: "all" });
-    expect(researchViewFromSearchParams({ mode: "articles", scope: "international", content: "research" })).toEqual({ mode: "articles", sourceScope: "international", contentScope: "research" });
+  it("parses safe research view defaults, modes and exact domains", () => {
+    expect(researchViewFromSearchParams({})).toEqual({ mode: "brief", sourceScope: "all", contentScope: "all", includeDomains: [], excludeDomains: [] });
+    expect(researchViewFromSearchParams({ mode: "articles", scope: "international", content: "research", include: "https://www.nejm.org, pubmed.ncbi.nlm.nih.gov", exclude: "example.com" })).toEqual({
+      mode: "articles",
+      sourceScope: "international",
+      contentScope: "research",
+      includeDomains: ["nejm.org", "pubmed.ncbi.nlm.nih.gov"],
+      excludeDomains: ["example.com"],
+    });
   });
 
-  it("filters shown research results by Russia/international and content group", () => {
+  it("filters shown research results by region, content group and domain for old runs", () => {
     const russianGuideline = result({ id: "ru", title: "Рекомендации РКО", category: "guideline" });
     const pubmed = result({
       id: "pm",
@@ -87,8 +95,9 @@ describe("physician research consumer view", () => {
         dataOrigin: "runtime_api",
       },
     });
-    expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "russia", contentScope: "guidelines" }).map(item => item.id)).toEqual(["ru"]);
-    expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "international", contentScope: "research" }).map(item => item.id)).toEqual(["pm"]);
+    expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "russia", contentScope: "guidelines", ...baseOptions }).map(item => item.id)).toEqual(["ru"]);
+    expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "international", contentScope: "research", includeDomains: ["ncbi.nlm.nih.gov"], excludeDomains: [] }).map(item => item.id)).toEqual(["pm"]);
+    expect(filterPhysicianResearchResults([russianGuideline, pubmed], { mode: "brief", sourceScope: "all", contentScope: "all", includeDomains: [], excludeDomains: ["ncbi.nlm.nih.gov"] }).map(item => item.id)).toEqual(["ru"]);
   });
 
   it("adds only an explicitly labelled licensed illustration, never evidence", () => {

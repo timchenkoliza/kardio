@@ -8,6 +8,7 @@ import { BulkActions } from "@/components/workspace/bulk-actions";
 import { SeenMarker } from "@/components/workspace/lifecycle";
 import { PendingActions } from "@/components/workspace/pending-actions";
 import { ResearchComposer } from "@/components/workspace/research-composer";
+import { ResearchExport } from "@/components/workspace/research-export";
 import { ResearchOverview, ResearchResultsTable } from "@/components/workspace/research-report";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
@@ -83,6 +84,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
         {!selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
           {onDemand && <ResearchOverview run={selectedRun} results={researchResults} totalResults={results.length} options={researchView} />}
+          {onDemand && researchResults.length > 0 && <ResearchExport specialty={specialty} runId={selectedRun.id} completedAt={selectedRun.completedAt ?? selectedRun.startedAt} mode={researchView.mode} results={researchResults} />}
 
           {!tracksNew && agentId !== "research" && results.length > 0 && <section className="ws-section" aria-labelledby="ws-all-title">
             <h2 id="ws-all-title" className="ws-section-title">{agentId === "learning" ? `Маршрут · ${results.length}` : `Найдено · ${results.length}`}</h2>

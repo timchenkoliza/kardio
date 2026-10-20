@@ -1,46 +1,48 @@
 # Physician research consumer pass
 
-Status: implemented as a moderate UX pass on `feature/pharma-content-studio`.
+Status: implemented on `feature/pharma-content-studio`.
 
-## Feedback incorporated now
+## Feedback incorporated
 
-- start research immediately instead of asking the physician to review a search plan first;
-- offer three output modes: article table, brief review, academic foundation beta;
-- apply source filters for Russia / international and guidelines / research before retrieval;
-- keep exact source preferences in existing source settings rather than duplicating them in the composer;
-- collapse technical execution details under `Как искали и что было доступно`;
-- show a separate checkability summary (`Проверяемость`) based on evidence statuses, explicitly not as a score of study quality or clinical truth;
-- render article-search output as a compact source table;
-- add restrained licensed medical illustrations to at most the first two relevant result cards per result list; illustrations are never evidence and always carry a credit link;
-- keep layout responsive for the research mode cards, filters, trust summary and result table;
-- remove duplicate pre-search guidance and explanatory pills that repeated what the interface already communicated.
+- research starts immediately instead of asking the physician to approve a search plan first;
+- three output modes: article table, brief review, academic foundation beta;
+- retrieval-level source filters for Russia / international and guidelines / research;
+- exact per-run domain allow/deny controls, collapsed under `Конкретные сайты` so advanced controls do not add default chrome;
+- technical execution details collapsed under `Как искали и что было доступно`;
+- separate checkability summary (`Проверяемость`) based on evidence statuses, explicitly not a score of study quality or clinical truth;
+- article-search output as a compact source table;
+- restrained licensed medical illustrations on at most the first two relevant result cards; illustrations are never evidence and always carry a credit link;
+- sources split into `Использованы в сводке` and `Найдены дополнительно — не использованы напрямую в сводке`;
+- citation templates for ГОСТ / APA / MLA using only metadata actually present in the result;
+- bibliography ordering by appearance or alphabetically;
+- downloadable Markdown, Word-compatible RTF and LaTeX, with or without bibliography;
+- responsive mode cards, filters, report controls and result table;
+- duplicate pre-search guidance and explanatory pills removed.
 
-## Retrieval policy now
+## Retrieval semantics
 
-The research composer uses a dedicated scoped Research API. Selected filters are bound to the run and applied before tools execute.
+Region, content type and exact-domain policy are applied before catalog retrieval. PubMed is skipped when the physician chooses only Russian sources, only guidelines, excludes the NCBI/PubMed domain, or supplies an allow-list that does not include PubMed. Domain deny rules override allow rules.
 
-- `Только РФ` filters the canonical catalog to Russian provenance and deliberately skips PubMed.
-- `Только международные` excludes Russian catalog provenance and keeps international catalog sources plus PubMed.
-- `Только клинрекомендации` searches guideline/clinical catalog material and skips PubMed research retrieval.
-- `Только исследования` searches article material and PubMed.
-- the combined mode searches both groups and explicitly reserves room for matching guideline/clinical material when it exists.
+The current exact-domain control is intentionally a host policy, not a claim that PubMed can filter by arbitrary publisher website. Journal-level filtering remains tied to the existing trusted-source preferences.
 
-Existing trusted/excluded source preferences are still enforced inside the filtered scope.
+## Citation / export honesty
+
+Citation formatting is metadata-bound. Missing author, issue, volume or page metadata is not invented, so the output is a structured citation template rather than a guarantee that every incomplete record is fully compliant with a university-specific bibliography rule.
+
+`Word · RTF` is an actual downloadable RTF file that opens in Word. Markdown and LaTeX are plain-text exports. The product does not generate PDF in this flow.
+
+The current brief synthesis directly uses up to four source-grounded findings. Those are the only records labelled `Использованы в сводке`; everything else is shown as additional retrieval, not falsely described as read or cited.
 
 ## Deliberately not simulated
 
-The three presentation modes currently change the result presentation, not search depth. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
+The three research modes currently change result presentation, not search depth. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
 
-Exact arbitrary-domain include/exclude is not claimed yet. Current source settings operate on the product's known source catalogue.
+The product still uses metadata / available extracts and does not claim to have read full article text when the connector did not retrieve it.
 
-## Deferred from interviews
+## Next slices from interviews
 
-Separate future slices:
-
-1. explicit arbitrary-domain include/exclude and publication-category filters beyond the current known-source catalogue;
-2. citation/export: GOST, APA/MLA, order by appearance/alphabet, Markdown/Word/LaTeX and with/without bibliography;
-3. research report visualizations and comparison tables generated from verified structured evidence;
-4. background long-running research with completion state and email notification;
-5. academic writing mode after deep retrieval and provenance are strong enough;
-6. presentation builder for teaching workflows;
-7. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.
+1. comparison tables generated from verified structured evidence;
+2. background long-running research with completion state and email notification;
+3. deeper academic writing mode after full-text retrieval and provenance are strong enough;
+4. presentation builder for teaching workflows;
+5. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.

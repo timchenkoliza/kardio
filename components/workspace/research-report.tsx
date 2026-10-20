@@ -61,7 +61,7 @@ export function ResearchOverview({
     {options.mode !== "articles" && run.synthesis && <div className="ws-research-synthesis">
       <h3>{options.mode === "academic" ? "Основа для академического текста" : "Краткая сводка"}</h3>
       {run.synthesis.split("\n\n").map(paragraph => <p key={paragraph.slice(0, 60)}>{paragraph}</p>)}
-      {options.mode === "academic" && <p className="ws-muted">Beta: сейчас это доказательная основа и структура. Полноценный академический экспорт и стили цитирования подключим отдельным шагом.</p>}
+      {options.mode === "academic" && <p className="ws-muted">Цитирование и экспорт доступны ниже. Beta пока не превращает найденные metadata в готовую академическую статью без проверки полного текста.</p>}
     </div>}
   </section>;
 }
