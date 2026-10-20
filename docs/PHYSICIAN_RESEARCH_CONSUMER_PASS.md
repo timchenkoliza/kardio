@@ -18,7 +18,8 @@ Status: implemented on `feature/pharma-content-studio`.
 - bibliography ordering by appearance or alphabetically;
 - downloadable Markdown, Word-compatible RTF and LaTeX, with or without bibliography;
 - evidence comparison matrix for up to four supported / partially supported findings;
-- comparison rows use only structured evidence fields: source, date, evidence level, verification status and checked claim;
+- PubMed evidence-text retrieval: PMC full text when available, otherwise PubMed abstract;
+- structured comparison fields Population / Intervention / Comparator / Endpoint / Effect extracted only from explicit source sentences;
 - responsive desktop matrix + mobile comparison cards;
 - duplicate pre-search guidance and explanatory pills removed.
 
@@ -36,9 +37,26 @@ Citation formatting is metadata-bound. Missing author, issue, volume or page met
 
 The current brief synthesis directly uses up to four findings with `SUPPORTED` evidence. Only those records are labelled `Использованы в сводке`; partially supported, unknown and other retrieved records remain in `Найдены дополнительно`. In article-table mode every visible row is the output itself and therefore belongs to the directly used set.
 
+## Structured clinical evidence
+
+For the highest-ranked PubMed findings the Research pipeline makes an additional text-access pass after the normal search:
+
+1. fetch the PubMed XML record and its abstract;
+2. if the record contains a PMCID, request the corresponding PubMed Central full text;
+3. prefer PMC full text when it is actually returned; otherwise retain the abstract as the only evidence text;
+4. scan explicit sentences for Population / Intervention / Comparator / Endpoint / Effect patterns;
+5. persist the extracted sentence, section label, access type and extraction confidence on the result;
+6. show those fields in the comparison table only when the source sentence exists.
+
+No PICOE value is inferred from the article title, citation metadata, journal name or another article. Missing fields remain empty. The first version uses deterministic extraction rather than an LLM so provenance is auditable. `Effect` requires an explicit statistical-effect expression such as hazard ratio, risk ratio, odds ratio, confidence interval or p-value.
+
+`Full text PMC` means that XML body text was actually retrieved from PubMed Central. `Abstract` means only the PubMed abstract was available during the run. These labels describe text access, not study quality.
+
+The extraction currently targets up to three PubMed records for synchronous research and up to four for `Академическая основа · beta` to keep latency and NCBI request volume bounded.
+
 ## Evidence comparison honesty
 
-The comparison block is intentionally conservative. It appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. It never infers effect size, dose, study endpoint or recommendation strength from a title or abstract metadata. Those rows can be added only after the relevant structured fields are actually retrieved and verified.
+The comparison block appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. Metadata rows remain available for comparable findings; clinical PICOE rows appear only when structured source text was retrieved. The system does not infer dose, recommendation strength, subgroup applicability or missing effect estimates.
 
 ## Background research jobs
 
@@ -55,18 +73,16 @@ No email delivery is simulated. External email should be connected only after a 
 
 This is not yet a durable distributed queue. Execution is still bounded by the platform function lifetime. With `DATABASE_URL`, job state survives page navigation and process replacement, but an execution interrupted by a deployment/runtime termination cannot resume from the middle; stale active jobs are marked failed and can be rerun. Without a database, background job state uses the same in-process fallback philosophy as other local beta state and does not survive a dev-server restart.
 
-`Академическая основа · beta` is background execution, not yet deeper retrieval. The evidence-depth remains the same until full-text retrieval and a real deep-research pipeline are implemented.
-
 ## Deliberately not simulated
 
-The three presentation modes do not yet imply three evidence-depth levels. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
+The three presentation modes still do not imply three independent search engines. Academic beta adds background execution and attempts structured evidence-text retrieval, but it is not yet a systematic-review engine.
 
-The product still uses metadata / available extracts and does not claim to have read full article text when the connector did not retrieve it.
+Full text is limited to what PubMed Central returns. The product does not claim to have read publisher-paywalled full text or a PMC article when retrieval failed.
 
 ## Next slices from interviews
 
-1. deeper academic retrieval after full-text retrieval and provenance are strong enough;
-2. richer comparison rows (population / intervention / endpoint / effect) only after structured full-text extraction exists;
+1. study-design normalization and controlled-value extraction for sample size, follow-up, intervention dose and primary endpoint;
+2. deeper academic synthesis that cites structured evidence fields paragraph-by-paragraph;
 3. durable worker/queue execution with retry and resume semantics after the background beta is measured;
 4. presentation builder for teaching workflows;
 5. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.

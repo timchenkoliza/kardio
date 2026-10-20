@@ -1,3 +1,4 @@
+import { structuredEvidenceFromAttributes, structuredEvidenceCompleteness, type ResearchEvidenceFieldId, type ResearchStructuredEvidence } from "./research-structured-evidence";
 import type { AgentResult, Evidence, VerificationStatus } from "./types";
 
 export interface ResearchComparisonColumn {
@@ -8,6 +9,8 @@ export interface ResearchComparisonColumn {
   evidenceLevel: string;
   verificationStatus: VerificationStatus;
   claim: string;
+  structured: ResearchStructuredEvidence | null;
+  structuredCompleteness: number;
 }
 
 const STATUS_WEIGHT: Record<VerificationStatus, number> = {
@@ -22,12 +25,17 @@ function bestEvidence(result: AgentResult): Evidence | null {
   return [...result.evidence].sort((a, b) => STATUS_WEIGHT[b.verificationStatus] - STATUS_WEIGHT[a.verificationStatus] || b.confidence - a.confidence)[0] ?? null;
 }
 
+export function structuredFieldValue(column: ResearchComparisonColumn, field: ResearchEvidenceFieldId): string | null {
+  return column.structured?.fields[field]?.value ?? null;
+}
+
 export function buildResearchComparison(results: readonly AgentResult[], limit = 4): ResearchComparisonColumn[] {
   return [...results]
     .sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt))
     .flatMap(result => {
       const evidence = bestEvidence(result);
       if (!evidence || (evidence.verificationStatus !== "SUPPORTED" && evidence.verificationStatus !== "PARTIALLY_SUPPORTED")) return [];
+      const structured = structuredEvidenceFromAttributes(result.attributes);
       return [{
         resultId: result.id,
         title: result.title,
@@ -36,6 +44,8 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
         evidenceLevel: evidence.evidenceLevel,
         verificationStatus: evidence.verificationStatus,
         claim: evidence.claim,
+        structured,
+        structuredCompleteness: structuredEvidenceCompleteness(structured),
       }];
     })
     .slice(0, limit);
