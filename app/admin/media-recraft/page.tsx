@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { StandaloneBar } from "@/components/workspace/standalone-bar";
 import { RecraftReview, type RecraftPair } from "@/components/admin/recraft-review";
 import { matchCardioIllustration } from "@/lib/ui/approved-medical-media";
 import { getRequestAccessState } from "@/server/access/request-access";
@@ -26,6 +27,7 @@ export default async function MediaRecraftPage() {
     }));
 
   return <div className="ws-app ws-app-standalone">
+    <StandaloneBar label="Редакция · изображения к статьям" />
     <main className="ws-main" id="ws-main">
       <div className="ws-page">
         <Link className="ws-back" href="/cardiology"><ArrowLeft size={15} aria-hidden="true" />В рабочее пространство</Link>

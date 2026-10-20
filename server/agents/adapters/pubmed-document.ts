@@ -126,7 +126,7 @@ export async function retrievePubmedEvidenceDocument(
     access: "abstract",
     sections: parsed.sections,
     sourceUrl,
-    note: parsed.pmcid ? "Полный текст PMC недоступен во время запуска; использован abstract" : "Полный текст в PMC не найден; использован abstract",
+    note: parsed.pmcid ? "Полный текст недоступен во время запуска, использована аннотация" : "Полного текста в открытом доступе нет, использована аннотация",
   };
   return { pmid, pmcid: parsed.pmcid, access: "unavailable", sections: [], sourceUrl, note: "В записи нет доступного abstract или полного текста PMC" };
 }

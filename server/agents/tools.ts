@@ -23,7 +23,7 @@ import { factCheck as factCheckEvidence } from "./services/fact-check";
  * and their integration mode (LIVE / MOCK / UNAVAILABLE).
  */
 
-export function searchMedical(ctx: AgentContext, args: { query?: string | null; kinds?: ReadonlyArray<ContentObject["kind"]>; limit?: number; topics?: string[] }): Promise<ToolOutput<CatalogHit>> {
+export function searchMedical(ctx: AgentContext, args: { query?: string | null; kinds?: ReadonlyArray<ContentObject["kind"]>; limit?: number; topics?: string[]; requireTopicMatch?: boolean }): Promise<ToolOutput<CatalogHit>> {
   return timedTool("searchMedical", ["catalog"], () => {
     const researchOptions = ctx.agentId === "research" ? researchRunOptionsFor(ctx.profile) : null;
     const content = researchOptions ? filterCatalogForResearch(ctx.catalog.content, researchOptions) : ctx.catalog.content;
@@ -34,6 +34,7 @@ export function searchMedical(ctx: AgentContext, args: { query?: string | null; 
       query: args.query,
       trustedSources: ctx.preference.trustedSources,
       excludedSources: ctx.preference.excludedSources,
+      requireTopicMatch: args.requireTopicMatch,
     };
     const limit = args.limit ?? 12;
     const main = searchCatalog({ ...baseArgs, kinds: args.kinds, limit });

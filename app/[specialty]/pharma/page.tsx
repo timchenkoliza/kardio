@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Settings2 } from "lucide-react";
 import { PharmaComposer } from "@/components/pharma/pharma-composer";
 import { PlacementFormats } from "@/components/pharma/placement-formats";
-import { BrandLockup } from "@/components/workspace/workspace-frame";
+import { StandaloneBar } from "@/components/workspace/standalone-bar";
 import { canUseAgentCapability } from "@/lib/access/agent-entitlements";
 import { isSpecialty } from "@/lib/specialty";
 import { specialtyLabel } from "@/lib/ui/labels";
@@ -30,11 +29,7 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
   const physicianView = access.subject.role === "physician" || access.subject.role === "admin";
 
   return <div className="ws-app ws-app-standalone" data-specialty={specialty}>
-    <header className="ws-partner-bar">
-      <BrandLockup specialty={specialty} href={physicianView ? `/${specialty}` : `/${specialty}/pharma`} />
-      <span className="ws-partner-bar-label">Кабинет партнёра · {specialtyLabel[specialty]}</span>
-      {access.subject.role === "admin" && <Link className="ws-text-link" href="/admin/agent-access"><Settings2 size={15} aria-hidden="true" />Доступ</Link>}
-    </header>
+    <StandaloneBar specialty={specialty} home={physicianView ? `/${specialty}` : `/${specialty}/pharma`} label={`Кабинет партнёра · ${specialtyLabel[specialty]}`} action={access.subject.role === "admin" ? { href: "/admin/agent-access", label: "Доступ", icon: <Settings2 size={15} aria-hidden="true" /> } : undefined} />
     <main className="ws-main" id="ws-main">
       <div className="ws-page">
         <section className="ws-intro" aria-labelledby="pharma-title">

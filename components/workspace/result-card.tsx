@@ -131,6 +131,11 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
   return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}${media ? " has-media" : ""}`} aria-labelledby={`r-${result.id}`}>
     {isEvent && startDate && <div className="ws-date-block" aria-hidden="true"><strong>{Number(startDate.slice(8, 10))}</strong><span>{formatDateRu(startDate, { month: "short" })}</span></div>}
     <div className="ws-result-body">
+      {media && <figure className="ws-result-media">
+        <img src={media.src} alt={media.alt} loading="lazy" decoding="async" />
+        <figcaption><span>Иллюстрация · {media.label}</span><a href={media.sourceUrl} target="_blank" rel="noreferrer">{media.credit}<ExternalLink size={11} aria-hidden="true" /></a></figcaption>
+      </figure>}
+      <div className="ws-result-content">
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
         <span className="ws-kind" data-art={artKind(result)}>{label ?? KIND_LABEL[result.kind]}</span>
@@ -139,10 +144,6 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
       <h3 className="ws-result-title" id={`r-${result.id}`}>
         {internal?.href ? <Link href={internal.href} onClick={() => opened(false)}>{result.title}</Link> : result.title}
       </h3>
-      {media && <figure className="ws-result-media">
-        <img src={media.src} alt={media.alt} loading="lazy" decoding="async" />
-        <figcaption><span>Иллюстрация · {media.label}</span><a href={media.sourceUrl} target="_blank" rel="noreferrer">{media.credit}<ExternalLink size={11} aria-hidden="true" /></a></figcaption>
-      </figure>}
       <p className="ws-result-summary">{result.summary}</p>
       {result.kind === "drug_change" && typeof result.attributes.inn === "string" && <p className="ws-result-facts">{result.attributes.inn}{result.attributes.brand ? ` · ${result.attributes.brand}` : ""}{result.attributes.holder ? ` · ${result.attributes.holder}` : ""}{result.attributes.changeDateNote ? ` · ${result.attributes.changeDateNote}` : ""}</p>}
       {result.kind === "drug_change" && (drugSourceBasis || drugOfficialVerification) && <p className="ws-result-facts">{drugSourceBasis}{drugOfficialVerification && !drugPracticeImpact ? `${drugSourceBasis ? " · " : ""}${drugOfficialVerification}` : ""}</p>}
@@ -155,6 +156,7 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
         <ModeBadge mode="LIVE" origin={result.source.dataOrigin} snapshotAt={result.source.dataOrigin === "runtime_api" ? null : result.source.retrievedAt} />
         {result.source.standing !== "unreviewed" && <SourceStandingNote standing={result.source.standing} note={result.source.standingNote} />}
       </p>
+      </div>
       {result.evidence.length > 0 && <details className="ws-evidence" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) opened(false); }}>
         <summary>Утверждения и источники · {result.evidence.length}<ChevronDown size={14} aria-hidden="true" /></summary>
         <ul>{result.evidence.map(item => <EvidenceItem key={item.id} item={item} onOpen={() => opened(true)} />)}</ul>

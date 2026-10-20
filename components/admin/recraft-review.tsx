@@ -104,8 +104,8 @@ export function RecraftReview({ pairs, availability }: { pairs: RecraftPair[]; a
 
   return <div className="ws-recraft">
     {!ready && <p className="ws-recraft-note">{availability.vision
-      ? "Модель перерисовки не подключена: доступна смысловая фиксация без генерации."
-      : "Модели анализа и перерисовки изображений не подключены. Подключение: ANTHROPIC_API_KEY и OPENAI_API_KEY в окружении сервера."}</p>}
+      ? "Модель генерации изображений не подключена: доступна только смысловая фиксация."
+      : "Перерисовка пока недоступна: не подключены модели анализа и генерации изображений."}</p>}
 
     <section className="ws-card-block" aria-labelledby="recraft-pairs">
       <h2 id="recraft-pairs" className="ws-section-title">Статья и изображение</h2>

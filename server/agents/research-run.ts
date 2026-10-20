@@ -1,3 +1,4 @@
+import { countLabel } from "@/lib/agents/format";
 import { researchContentScopeLabel, researchDomainPolicyLabel, researchSourceScopeLabel, type ResearchRunOptions } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { routeTask, runAgent, type RunOutcome } from "./supervisor";
@@ -85,9 +86,9 @@ export async function executeResearchRun(
 
     if (outcome.run.synthesis?.includes(OLD_FULL_TEXT_GAP) && !skipStructuredRetrieval) {
       const replacement = enrichment.fullText
-        ? `Полный текст PMC получен для ${enrichment.fullText} публикаций;${enrichment.abstracts ? ` для ${enrichment.abstracts} использован abstract;` : ""} N, возраст, вмешательство, comparator, endpoint, follow-up и статистический эффект нормализуются только из явно найденных фрагментов`
+        ? `Полный текст получен для ${countLabel(enrichment.fullText, ["публикации", "публикаций", "публикаций"])}${enrichment.abstracts ? `, для ${countLabel(enrichment.abstracts, ["публикации", "публикаций", "публикаций"])} — только аннотация` : ""}. Параметры исследований указаны только там, где они явно есть в тексте`
         : enrichment.abstracts
-          ? `Полный текст PMC не получен; для ${enrichment.abstracts} публикаций использован abstract; нормализованные поля заполняются только при явном фрагменте, без достраивания пропусков`
+          ? `Полный текст статей недоступен, для ${countLabel(enrichment.abstracts, ["публикации", "публикаций", "публикаций"])} использована аннотация. Параметры исследований указаны только там, где они явно есть в тексте`
           : OLD_FULL_TEXT_GAP;
       outcome.run.synthesis = outcome.run.synthesis.replace(OLD_FULL_TEXT_GAP, replacement);
     }

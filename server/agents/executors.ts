@@ -170,7 +170,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const questionTopics = ctx.inputText?.trim() ? topicsMentioned(ctx.specialty, question) : ctx.preference.topics;
   const scoped: AgentContext = questionTopics.length ? { ...ctx, preference: { ...ctx.preference, topics: questionTopics } } : ctx;
   builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(scoped)}`);
-  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: questionTopics }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
+  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: questionTopics, requireTopicMatch: Boolean(ctx.inputText?.trim()) }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
   const topicTerm = tools.pubmedTermForTopics(scoped);
   const englishTerms = question.match(/[A-Za-z][A-Za-z0-9\- ]{2,}/g)?.join(" ").trim();
   const concepts = pubmedConceptsIn(question);

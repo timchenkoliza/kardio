@@ -55,3 +55,10 @@ describe("approved medical media", () => {
     expect(agentResultMedia(feed[5])).toBeNull();
   });
 });
+
+describe("rhythm illustrations", () => {
+  it("uses the AF ECG only for atrial fibrillation", () => {
+    expect(matchCardioIllustration({ text: "Желудочковые тахикардии и внезапная смерть" })?.asset.modality).toBe("anatomy");
+    expect(matchCardioIllustration({ text: "Трепетание предсердий: аблация" })?.asset.modality).toBe("ecg");
+  });
+});
