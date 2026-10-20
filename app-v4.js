@@ -13,10 +13,12 @@ const outputs={
 };
 function classify(q){const s=q.toLowerCase();if(/рекоменд|esc|хсн/.test(s))return 'guideline';if(/препарат|антикоаг|регистрац|лекар/.test(s))return 'drug';if(/sglt|исслед|evidence|литератур/.test(s))return 'research';return 'default'}
 function run(q){q=(q||prompt.value).trim();if(!q)return;const data=outputs[classify(q)];answerAgent.textContent=data.agent;answerTitle.textContent=data.title;answerBody.innerHTML=data.body;answerTrace.textContent='4 источника · provenance сохранён';answer.classList.remove('hidden');answer.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function applyFeedFilter(type){document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter===type));document.querySelectorAll('.feed-item').forEach(item=>{item.style.display=(type==='all'||item.dataset.type===type||item.dataset.type==='partner')?'grid':'none'});}
 document.getElementById('sendBtn').onclick=()=>run();
 prompt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();run()}});
 document.querySelectorAll('.ask').forEach(btn=>btn.onclick=()=>{prompt.value=btn.dataset.prompt;window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>run(btn.dataset.prompt),260)});
-document.querySelectorAll('.filter').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const type=btn.dataset.filter;document.querySelectorAll('.feed-item').forEach(item=>{item.style.display=(type==='all'||item.dataset.type===type||item.dataset.type==='partner')?'grid':'none'})});
+document.querySelectorAll('.filter').forEach(btn=>btn.onclick=()=>applyFeedFilter(btn.dataset.filter));
+document.querySelectorAll('[data-filter-jump]').forEach(btn=>btn.onclick=()=>{applyFeedFilter(btn.dataset.filterJump);document.getElementById('feedSection').scrollIntoView({behavior:'smooth',block:'start'});});
 document.querySelectorAll('.persona').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.persona').forEach(x=>x.classList.remove('active'));btn.classList.add('active');const label=btn.querySelector('strong').textContent;document.getElementById('modeBtn').textContent='✦ '+label;prompt.focus()});
 const drawer=document.getElementById('drawer');document.getElementById('materialsBtn').onclick=()=>drawer.classList.add('show');document.getElementById('drawerClose').onclick=()=>drawer.classList.remove('show');drawer.addEventListener('click',e=>{if(e.target===drawer)drawer.classList.remove('show')});
 document.getElementById('attachBtn').onclick=()=>drawer.classList.add('show');
