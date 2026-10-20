@@ -61,6 +61,8 @@ export type IllustrationMatchGrade = "STRONG" | "MEDIUM";
 export interface IllustrationMatch {
   asset: ApprovedMedicalMediaAsset;
   grade: IllustrationMatchGrade;
+  /** Equally valid images for the same clinical object, used so neighbouring cards do not repeat one picture. */
+  alternatives: ApprovedMedicalMediaAsset[];
 }
 
 const word = (stem: string) => `(?<![\\p{L}])${stem}`;
@@ -71,7 +73,7 @@ const word = (stem: string) => `(?<![\\p{L}])${stem}`;
  * generic coronary disease). Only STRONG and MEDIUM matches are returned — a weak
  * proxy is not shown at all (match gate: WEAK PROXY → replace, NO VALID MATCH → do not use).
  */
-const RULES: ReadonlyArray<{ modality: ApprovedMedicalModality; grade: IllustrationMatchGrade; pattern: RegExp }> = [
+const RULES: ReadonlyArray<{ modality: ApprovedMedicalModality; grade: IllustrationMatchGrade; pattern: RegExp; alternatives?: readonly ApprovedMedicalModality[] }> = [
   { modality: "pulmonary_hypertension", grade: "STRONG", pattern: new RegExp(`${word("л[её]гочн\\p{L}* (?:артериальн\\p{L}* )?гипертенз")}|${word("ЛАГ")}(?![\\p{L}])|${word("селексипаг")}|${word("риоцигуат")}|${word("мацитентан")}|pulmonary (?:arterial )?hypertension`, "iu") },
   { modality: "blood_pressure", grade: "STRONG", pattern: new RegExp(`${word("гипертенз")}|${word("гипертони")}|${word("артериальн\\p{L}* давлен")}|${word("АД")}(?![\\p{L}])|${word("антигипертенз")}|${word("баксдростат")}|${word("ренальн\\p{L}* денерв")}|hypertension`, "iu") },
   { modality: "ecg", grade: "STRONG", pattern: new RegExp(`${word("фибрилляц\\p{L}* предсерд")}|${word("трепетани\\p{L}* предсерд")}|${word("мерцательн")}|${word("ФП")}(?![\\p{L}])|atrial fibrillation|${word("антикоагул")}|anticoagul`, "iu") },
@@ -81,7 +83,7 @@ const RULES: ReadonlyArray<{ modality: ApprovedMedicalModality; grade: Illustrat
   { modality: "mri", grade: "STRONG", pattern: new RegExp(`${word("инфаркт")}|${word("ОКС")}(?![\\p{L}])|${word("остр\\p{L}* коронарн")}|${word("МРТ")}|myocardial infarction`, "iu") },
   { modality: "atherosclerosis", grade: "STRONG", pattern: new RegExp(`${word("атеросклер")}|${word("липид")}|${word("холестерин")}|${word("ЛПНП")}|${word("статин")}|${word("дислипидем")}|${word("инклисиран")}|${word("бемпедо")}|PCSK9|${word("липопротеин")}|cholesterol|lipid|LDL|statin|lipoprotein|atherosclero`, "iu") },
   { modality: "echo", grade: "STRONG", pattern: new RegExp(`${word("кардиомиопати")}|${word("клапан")}|${word("аортальн\\p{L}* стеноз")}|${word("митральн")}|${word("эхокардиограф")}|${word("ЭхоКГ")}|TAVI|TAVR|${word("афикамтен")}|${word("мавакамтен")}|cardiomyopathy|valv|aortic stenosis|mitral|echocardiograph`, "iu") },
-  { modality: "echo", grade: "MEDIUM", pattern: new RegExp(`${word("сердечн\\p{L}* недостаточност")}|${word("ХСН")}|${word("СНсФВ")}|${word("СНнФВ")}|${word("фракци\\p{L}* выброса")}|${word("иНГЛТ")}|SGLT2|heart failure|ejection fraction|HFpEF|HFrEF`, "iu") },
+  { modality: "echo", grade: "MEDIUM", pattern: new RegExp(`${word("сердечн\\p{L}* недостаточност")}|${word("ХСН")}|${word("СНсФВ")}|${word("СНнФВ")}|${word("фракци\\p{L}* выброса")}|${word("иНГЛТ")}|SGLT2|heart failure|ejection fraction|HFpEF|HFrEF`, "iu"), alternatives: ["mri"] },
   { modality: "blood_pressure", grade: "MEDIUM", pattern: /blood pressure/iu },
   { modality: "ct", grade: "STRONG", pattern: new RegExp(`${word("КТ")}(?![\\p{L}])|${word("компьютерн\\p{L}* томограф")}|${word("кальци\\p{L}* индекс")}|${word("коронарн\\p{L}* кальц")}|coronary CT`, "iu") },
   { modality: "ct", grade: "MEDIUM", pattern: new RegExp(`${word("ИБС")}|${word("ишеми")}|${word("стенокард")}|${word("коронарн")}|${word("аорт")}|${word("антиагрег")}|${word("антитромбоцит")}|coronary|ischemi|angina|aortic|antiplatelet`, "iu") },
@@ -92,11 +94,11 @@ export function matchCardioIllustration(input: { text: string; kind?: string | n
   for (const rule of RULES) {
     if (!rule.pattern.test(input.text)) continue;
     const asset = media.find(item => item.modality === rule.modality);
-    if (asset) return { asset, grade: rule.grade };
+    if (asset) return { asset, grade: rule.grade, alternatives: media.filter(item => rule.alternatives?.includes(item.modality)) };
   }
   if (input.kind === "guideline" || input.kind === "clinical" || input.kind === "guideline_change") {
     const anatomy = media.find(item => item.modality === "anatomy");
-    return anatomy ? { asset: anatomy, grade: "MEDIUM" } : null;
+    return anatomy ? { asset: anatomy, grade: "MEDIUM", alternatives: [] } : null;
   }
   return null;
 }

@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { AgentResultView } from "@/lib/agents/types";
 import { APPROVED_CARDIOLOGY_MEDIA, approvedAnatomyMedia, approvedImagingMedia, matchCardioIllustration } from "@/lib/ui/approved-medical-media";
-import { agentResultMedia, visualResultIds } from "@/lib/ui/agent-result-media";
+import { agentResultMedia, feedIllustrations } from "@/lib/ui/agent-result-media";
 
 function result(id: string, title: string, kind: AgentResultView["kind"] = "update"): AgentResultView {
   return { id, specialty: "cardiology", kind, title, summary: "", category: null, reasonShown: [], partner: null } as unknown as AgentResultView;
@@ -49,9 +49,9 @@ describe("approved medical media", () => {
       result("5", "Артериальная гипертензия: обновление рекомендаций"),
       result("e", "ESC Congress", "event"),
     ];
-    const ids = visualResultIds(feed);
-    expect(ids.size).toBe(4);
-    expect(ids.has("5")).toBe(false);
+    const media = feedIllustrations(feed);
+    expect(media.size).toBe(4);
+    expect(media.has("5")).toBe(false);
     expect(agentResultMedia(feed[5])).toBeNull();
   });
 });
@@ -60,5 +60,13 @@ describe("rhythm illustrations", () => {
   it("uses the AF ECG only for atrial fibrillation", () => {
     expect(matchCardioIllustration({ text: "Желудочковые тахикардии и внезапная смерть" })?.asset.modality).toBe("anatomy");
     expect(matchCardioIllustration({ text: "Трепетание предсердий: аблация" })?.asset.modality).toBe("ecg");
+  });
+});
+
+describe("feed variety", () => {
+  it("does not repeat the same picture on neighbouring cards when an alternative fits", () => {
+    const feed = [result("a", "Сердечная недостаточность: новые данные"), result("b", "ХСН с сохранённой фракцией выброса")];
+    const media = feedIllustrations(feed);
+    expect(media.get("a")?.src).not.toBe(media.get("b")?.src);
   });
 });

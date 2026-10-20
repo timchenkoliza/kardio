@@ -1,4 +1,4 @@
-import { topicById } from "@/lib/agents/vocabulary";
+import { topicById, topicsMentioned } from "@/lib/agents/vocabulary";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { deterministicContentOrder } from "@/lib/ui/feed";
 import { rankWorkspaceResearch } from "@/lib/ui/workspace-research-agent";
@@ -83,7 +83,7 @@ export function searchMedical(args: {
     if (hit.content.currentness === "superseded") hit.score -= 2;
   }
   return [...byId.values()]
-    .filter(hit => !args.requireTopicMatch || !args.topicIds.length || hit.matchedTopics.length > 0)
+    .filter(hit => !args.requireTopicMatch || !args.topicIds.length || hit.matchedTopics.length > 0 || topicsMentioned(args.specialty, hit.content.title).some(id => args.topicIds.includes(id)))
     .sort((a, b) => b.score - a.score || deterministicContentOrder(a.content, b.content))
     .slice(0, args.limit ?? 12);
 }

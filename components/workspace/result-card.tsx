@@ -7,7 +7,7 @@ import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
-import { agentResultMedia, visualResultIds } from "@/lib/ui/agent-result-media";
+import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
 import { ModeBadge } from "./mode-badge";
 import { useWorkspace } from "./workspace-provider";
 
@@ -77,7 +77,7 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
   </li>;
 }
 
-export function ResultCard({ result, visual = false }: { result: AgentResultView; specialty: string; visual?: boolean }) {
+export function ResultCard({ result, media = null }: { result: AgentResultView; specialty: string; media?: AgentResultMedia | null }) {
   const { command, setPendingAction, pending } = useWorkspace();
   const [saved, setSaved] = useState(Boolean(result.savedMaterialId));
   const [done, setDone] = useState(result.attributes.done === true);
@@ -89,7 +89,6 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
   const label = categoryLabel(result);
   const isEvent = result.kind === "event";
   const startDate = typeof result.attributes.startDate === "string" ? result.attributes.startDate : null;
-  const media = visual ? agentResultMedia(result) : null;
   const drugOfficialVerification = result.kind === "drug_change" && typeof result.attributes["drugAssessment.officialVerificationLabel"] === "string"
     ? result.attributes["drugAssessment.officialVerificationLabel"]
     : null;
@@ -175,6 +174,6 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
 
 export function ResultList({ results, specialty, emptyText }: { results: AgentResultView[]; specialty: string; emptyText: string }) {
   if (!results.length) return <p className="ws-empty">{emptyText}</p>;
-  const visual = visualResultIds(results);
-  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} visual={visual.has(result.id)} />)}</div>;
+  const media = feedIllustrations(results);
+  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} media={media.get(result.id) ?? null} />)}</div>;
 }
