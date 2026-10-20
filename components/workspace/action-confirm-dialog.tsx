@@ -54,7 +54,7 @@ export function ActionConfirmDialog() {
     <div className="ws-dialog-head">
       <span className="ws-dialog-icon" aria-hidden="true"><Icon size={20} /></span>
       <div>
-        <span className="ws-eyebrow">{view.status === "pending_confirmation" ? "Нужно ваше подтверждение" : view.status === "completed" || view.status === "handed_off" ? "Готово" : "Недоступно"}</span>
+        <span className="ws-dialog-kicker">{view.status === "pending_confirmation" ? "Нужно ваше подтверждение" : view.status === "completed" || view.status === "handed_off" ? "Готово" : "Недоступно"}</span>
         <h2 id="ws-action-title">{view.title}</h2>
       </div>
       <button type="button" className="ws-icon-button" aria-label="Закрыть" onClick={() => void cancel()}><X size={18} /></button>

@@ -59,14 +59,12 @@ export default async function Home({ params, searchParams }: { params: Promise<{
 
   return <div className="ws-page ws-home">
     <CatchUpRunner enabled={workspace.configured && Boolean(sessionId)} />
-    <section className="ws-hero" aria-labelledby="ws-hero-title">
-      <div className="ws-hero-copy">
-        <span className="ws-eyebrow is-inverse">{specialtyLabel[specialty]} · рабочее пространство врача</span>
-        <h1 id="ws-hero-title">Что хотите делегировать?</h1>
-        <p>Агенты выполняют профессиональные задачи по вашим темам и доверенным источникам. У каждого вывода — источник и статус проверки. Решения остаются за вами.</p>
-        {workspace.configured && <p className="ws-hero-status">{newTotal ? `${countLabel(newTotal, ["новое обновление", "новых обновления", "новых обновлений"])} в ваших темах${previousVisit ? ` с визита ${formatRelativeRu(previousVisit)}` : ""}` : "С прошлого визита новых обновлений нет"} · темы: {interests.slice(0, 4).join(", ")}{interests.length > 4 ? ` и ещё ${interests.length - 4}` : ""}</p>}
-      </div>
+    <section className="ws-intro" aria-labelledby="ws-hero-title">
+      <p className="ws-intro-meta">{specialtyLabel[specialty]} · рабочее пространство врача</p>
+      <h1 id="ws-hero-title">Что хотите делегировать?</h1>
+      <p className="ws-intro-lead">Агенты выполняют профессиональные задачи по вашим темам и доверенным источникам. У каждого вывода — источник и статус проверки. Решения остаются за вами.</p>
       <AgentComposer specialty={specialty} />
+      {workspace.configured && <p className="ws-intro-status">{newTotal ? `${countLabel(newTotal, ["новое обновление", "новых обновления", "новых обновлений"])} в ваших темах${previousVisit ? ` с визита ${formatRelativeRu(previousVisit)}` : ""}` : "С прошлого визита новых обновлений нет"} · темы: {interests.slice(0, 4).join(", ")}{interests.length > 4 ? ` и ещё ${interests.length - 4}` : ""}</p>}
     </section>
 
     {workspace.pendingActions > 0 && <Link className="ws-pending-banner" href={`/${specialty}/agents`}><BellRing size={18} aria-hidden="true" /><span>{countLabel(workspace.pendingActions, ["действие ждёт", "действия ждут", "действий ждут"])} вашего подтверждения</span><ArrowRight size={16} aria-hidden="true" /></Link>}

@@ -35,6 +35,22 @@ function categoryLabel(result: AgentResultView): string | null {
   return null;
 }
 
+type ArtKind = "guideline" | "article" | "video" | "clinical" | "event";
+
+/** Content-kind colour family for the kind tag (design system: art-<kind>). */
+function artKind(result: AgentResultView): ArtKind | undefined {
+  if (result.kind === "event") return "event";
+  if (result.kind === "guideline_change") return "guideline";
+  if (result.kind === "drug_change") return "clinical";
+  const category = result.category ?? "";
+  if (category === "guideline") return "guideline";
+  if (category === "video" || category === "lecture") return "video";
+  if (category === "clinical") return "clinical";
+  if (category === "event") return "event";
+  if (category === "article" || category === "publication" || category === "update") return "article";
+  return undefined;
+}
+
 function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) {
   const verification = VERIFICATION_LABEL[item.verificationStatus];
   const published = item.publicationDate ? (formatDateRu(item.publicationDate) ?? item.publicationDate) : null;
@@ -98,7 +114,7 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
     <div className="ws-result-body">
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
-        <span className="ws-kind">{label ?? KIND_LABEL[result.kind]}</span>
+        <span className="ws-kind" data-art={artKind(result)}>{label ?? KIND_LABEL[result.kind]}</span>
         {verification && <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[verification].tone}`}><ShieldCheck size={13} aria-hidden="true" />{VERIFICATION_LABEL[verification].label}</span>}
       </div>
       <h3 className="ws-result-title" id={`r-${result.id}`}>

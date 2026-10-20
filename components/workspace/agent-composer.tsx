@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowUp, Paperclip, ShieldAlert, X } from "lucide-react";
+import { ArrowUp, ChevronDown, Loader2, Paperclip, ShieldAlert, X } from "lucide-react";
 import { AGENT_DEFINITIONS, AGENT_ORDER, agentHref } from "@/lib/agents/definitions";
 import { routeIntent } from "@/lib/agents/intent";
 import { RISK_COPY } from "@/lib/agents/risk-rules";
@@ -74,24 +74,27 @@ export function AgentComposer({ specialty, defaultAgent = "auto", compact = fals
   }
 
   return <form className={compact ? "ws-composer is-compact" : "ws-composer"} onSubmit={event => void submit(event)} aria-label="Поручить задачу агенту">
-    <label className="sr-only" htmlFor="ws-composer-input">Что хотите делегировать?</label>
-    <textarea id="ws-composer-input" value={text} onChange={event => setText(event.target.value)} onKeyDown={onKeyDown} rows={compact ? 2 : 3} maxLength={1200} placeholder={PLACEHOLDERS[defaultAgent] ?? PLACEHOLDERS.auto} />
-    {file && <div className="ws-attachment"><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><button type="button" aria-label="Убрать файл" onClick={() => setFile(null)}><X size={14} /></button></div>}
-    <div className="ws-composer-bar">
-      <div className="ws-composer-tools">
-        <button type="button" className="ws-composer-tool" onClick={() => fileInput.current?.click()} aria-label="Прикрепить файл"><Paperclip size={17} aria-hidden="true" /><span>Файл</span></button>
-        <input ref={fileInput} type="file" accept={ACCEPT} hidden onChange={event => { const next = event.target.files?.[0] ?? null; event.target.value = ""; setFile(next); }} />
-        <label className="ws-composer-agent">
-          <span className="sr-only">Агент</span>
-          <select value={agent} onChange={event => setAgent(event.target.value as AgentId | "auto")}>
-            <option value="auto">Агент: подобрать сам</option>
-            {AGENT_ORDER.map(id => <option key={id} value={id}>{AGENT_DEFINITIONS[id].name}</option>)}
-          </select>
-        </label>
+    <div className="ws-composer-box">
+      <label className="sr-only" htmlFor="ws-composer-input">Что хотите делегировать?</label>
+      <textarea id="ws-composer-input" value={text} onChange={event => setText(event.target.value)} onKeyDown={onKeyDown} rows={compact ? 2 : 3} maxLength={1200} placeholder={PLACEHOLDERS[defaultAgent] ?? PLACEHOLDERS.auto} />
+      {file && <div className="ws-attachment"><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><button type="button" aria-label="Убрать файл" onClick={() => setFile(null)}><X size={14} /></button></div>}
+      <div className="ws-composer-bar">
+        <div className="ws-composer-tools">
+          <button type="button" className="ws-composer-tool" onClick={() => fileInput.current?.click()} aria-label="Прикрепить файл"><Paperclip size={17} aria-hidden="true" /><span>Файл</span></button>
+          <input ref={fileInput} type="file" accept={ACCEPT} hidden onChange={event => { const next = event.target.files?.[0] ?? null; event.target.value = ""; setFile(next); }} />
+          <label className="ws-composer-agent">
+            <span className="sr-only">Агент</span>
+            <select value={agent} onChange={event => setAgent(event.target.value as AgentId | "auto")}>
+              <option value="auto">Агент: подобрать сам</option>
+              {AGENT_ORDER.map(id => <option key={id} value={id}>{AGENT_DEFINITIONS[id].name}</option>)}
+            </select>
+            <ChevronDown size={14} aria-hidden="true" />
+          </label>
+        </div>
+        <button type="submit" className="ws-composer-run" disabled={busy || blocked || text.trim().length < 2} aria-label={busy ? "Агент работает" : "Запустить"} title={busy ? "Агент работает" : "Запустить"}>
+          {busy ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
+        </button>
       </div>
-      <button type="submit" className="ws-composer-run" disabled={busy || blocked || text.trim().length < 2}>
-        <span>{busy ? "Работает…" : "Запустить"}</span><ArrowUp size={17} aria-hidden="true" />
-      </button>
     </div>
     <div className="ws-composer-preview" aria-live="polite">
       {target && !blocked && <span className="ws-route"><AgentIcon icon={AGENT_DEFINITIONS[target].icon} size={14} />Возьмётся агент «{AGENT_DEFINITIONS[target].name}»{routed && routed.topics.length ? " · учтём темы из запроса" : ""}{routed?.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
