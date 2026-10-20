@@ -1,4 +1,12 @@
 import { structuredEvidenceFromAttributes, structuredEvidenceCompleteness, type ResearchEvidenceFieldId, type ResearchStructuredEvidence } from "./research-structured-evidence";
+import {
+  normalizeResearchStudy,
+  researchStudyNormalizationCompleteness,
+  researchStudyNormalizationFromAttributes,
+  type ResearchStudyField,
+  type ResearchStudyFieldId,
+  type ResearchStudyNormalization,
+} from "./research-study-normalization";
 import type { AgentResult, Evidence, VerificationStatus } from "./types";
 
 export interface ResearchComparisonColumn {
@@ -11,6 +19,8 @@ export interface ResearchComparisonColumn {
   claim: string;
   structured: ResearchStructuredEvidence | null;
   structuredCompleteness: number;
+  normalized: ResearchStudyNormalization | null;
+  normalizedCompleteness: number;
 }
 
 const STATUS_WEIGHT: Record<VerificationStatus, number> = {
@@ -29,6 +39,10 @@ export function structuredFieldValue(column: ResearchComparisonColumn, field: Re
   return column.structured?.fields[field]?.value ?? null;
 }
 
+export function normalizedStudyField(column: ResearchComparisonColumn, field: ResearchStudyFieldId): ResearchStudyField | null {
+  return column.normalized?.fields[field] ?? null;
+}
+
 export function buildResearchComparison(results: readonly AgentResult[], limit = 4): ResearchComparisonColumn[] {
   return [...results]
     .sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt))
@@ -36,6 +50,8 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
       const evidence = bestEvidence(result);
       if (!evidence || (evidence.verificationStatus !== "SUPPORTED" && evidence.verificationStatus !== "PARTIALLY_SUPPORTED")) return [];
       const structured = structuredEvidenceFromAttributes(result.attributes);
+      // Backward compatibility for runs created before normalized fields were persisted.
+      const normalized = researchStudyNormalizationFromAttributes(result.attributes) ?? normalizeResearchStudy(structured);
       return [{
         resultId: result.id,
         title: result.title,
@@ -46,6 +62,8 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
         claim: evidence.claim,
         structured,
         structuredCompleteness: structuredEvidenceCompleteness(structured),
+        normalized,
+        normalizedCompleteness: researchStudyNormalizationCompleteness(normalized),
       }];
     })
     .slice(0, limit);

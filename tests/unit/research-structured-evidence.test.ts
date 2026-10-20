@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parsePmcFullTextXml, parsePubmedAbstractXml, type PubmedEvidenceDocument } from "@/server/agents/adapters/pubmed-document";
 import { extractStructuredResearchEvidence, enrichResearchResultsWithStructuredEvidence } from "@/server/agents/services/research-structured-evidence";
 import { structuredEvidenceFromAttributes } from "@/lib/agents/research-structured-evidence";
+import { researchStudyNormalizationFromAttributes } from "@/lib/agents/research-study-normalization";
 import type { AgentResult } from "@/lib/agents/types";
 
 const PUBMED_XML = `
@@ -79,7 +80,7 @@ describe("structured research evidence", () => {
     expect(structured?.access).toBe("full_text");
   });
 
-  it("persists extracted fields on the result with source-text access provenance", async () => {
+  it("persists extracted and normalized fields with source-text provenance", async () => {
     const document: PubmedEvidenceDocument = {
       pmid: "12345678",
       pmcid: null,
@@ -91,8 +92,15 @@ describe("structured research evidence", () => {
     const enriched = await enrichResearchResultsWithStructuredEvidence([pubmedResult()], { retrieve: async () => document });
     expect(enriched.enriched).toBe(1);
     expect(enriched.abstracts).toBe(1);
-    const structured = structuredEvidenceFromAttributes(enriched.results[0]!.attributes);
+    const attributes = enriched.results[0]!.attributes;
+    const structured = structuredEvidenceFromAttributes(attributes);
+    const normalized = researchStudyNormalizationFromAttributes(attributes);
     expect(structured?.access).toBe("abstract");
     expect(structured?.fields.effect?.supportText).toContain("95% CI");
+    expect(normalized?.fields.sampleSize?.value).toBe("N=120");
+    expect(normalized?.fields.effectMeasure?.value).toBe("HR");
+    expect(normalized?.fields.effectEstimate?.value).toBe("0.72");
+    expect(normalized?.fields.confidenceInterval?.value).toBe("0.58–0.89");
+    expect(normalized?.fields.pValue?.value).toBe("p = 0.003");
   });
 });

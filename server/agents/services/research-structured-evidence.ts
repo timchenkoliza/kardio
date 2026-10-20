@@ -6,16 +6,17 @@ import {
   type ResearchEvidenceFieldId,
   type ResearchStructuredEvidence,
 } from "@/lib/agents/research-structured-evidence";
+import { normalizeResearchStudy, researchStudyNormalizationToAttributes } from "@/lib/agents/research-study-normalization";
 import { retrievePubmedEvidenceDocument, type PubmedDocumentSection, type PubmedEvidenceDocument } from "../adapters/pubmed-document";
 
 const FIELD_RULES: Record<ResearchEvidenceFieldId, { sectionHints: RegExp[]; sentence: RegExp }> = {
   population: {
     sectionHints: [/method/iu, /patient/iu, /participant/iu, /population/iu],
-    sentence: /\b(patients?|participants?|subjects?|adults?|children|women|men|aged|enrolled|included|with\s+[A-Za-z])/iu,
+    sentence: /\b(patients?|participants?|subjects?|adults?|children|women|men|aged|mean\s+age|median\s+age|age\s+(?:range|was)|enrolled|included|with\s+[A-Za-z])/iu,
   },
   intervention: {
     sectionHints: [/method/iu, /intervention/iu, /treatment/iu, /procedure/iu],
-    sentence: /\b(randomi[sz]ed\s+to|assigned\s+to|received|treated\s+with|intervention|therapy|regimen|dose[sd]?\s+of)\b/iu,
+    sentence: /\b(randomi[sz]ed\s+to|assigned\s+to|received|treated\s+with|intervention|therapy|regimen|dose[sd]?\s+of|\d+(?:\.\d+)?\s*(?:mg|mcg|µg|ug|g|ml|IU))\b/iu,
   },
   comparator: {
     sectionHints: [/method/iu, /intervention/iu, /treatment/iu],
@@ -23,11 +24,11 @@ const FIELD_RULES: Record<ResearchEvidenceFieldId, { sectionHints: RegExp[]; sen
   },
   endpoint: {
     sectionHints: [/method/iu, /outcome/iu, /endpoint/iu, /result/iu],
-    sentence: /\b(primary|secondary)\s+(endpoint|outcome)|\b(endpoint|outcome)\s+(was|were)|composite\s+(endpoint|outcome)/iu,
+    sentence: /\b(primary|secondary)\s+(endpoint|outcome)|\b(endpoint|outcome)\s+(was|were)|composite\s+(endpoint|outcome)|follow[- ]up/iu,
   },
   effect: {
     sectionHints: [/result/iu, /outcome/iu, /conclusion/iu],
-    sentence: /\b(hazard\s+ratio|risk\s+ratio|relative\s+risk|odds\s+ratio|rate\s+ratio|mean\s+difference|HR\s*[=(:]|RR\s*[=(:]|OR\s*[=(:]|95%\s*CI|confidence\s+interval|p\s*[<=>]\s*0?\.)/iu,
+    sentence: /\b(hazard\s+ratio|risk\s+ratio|relative\s+risk|odds\s+ratio|rate\s+ratio|mean\s+difference|HR\s*[=(:]|RR\s*[=(:]|OR\s*[=(:]|95%\s*CI|confidence\s+interval|p\s*[<=>]\s*0?\.|follow[- ]up)/iu,
   },
 };
 
@@ -39,7 +40,7 @@ function splitSentences(value: string): string[] {
     .filter(sentence => sentence.length >= 30 && sentence.length <= 900);
 }
 
-function clampText(value: string, max = 420): string {
+function clampText(value: string, max = 760): string {
   const clean = value.replace(/\s+/gu, " ").trim();
   return clean.length <= max ? clean : `${clean.slice(0, max - 1).trimEnd()}…`;
 }
@@ -51,19 +52,24 @@ function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly 
     const bScore = rule.sectionHints.some(pattern => pattern.test(b.label)) ? 1 : 0;
     return bScore - aScore;
   });
+  const matches: Array<{ sentence: string; section: string }> = [];
   for (const section of ranked) {
     for (const sentence of splitSentences(section.text)) {
       if (!rule.sentence.test(sentence)) continue;
-      const supportText = clampText(sentence);
-      return {
-        value: supportText,
-        supportText,
-        section: section.label || null,
-        confidence: access === "full_text" ? 0.9 : 0.78,
-      };
+      matches.push({ sentence, section: section.label });
+      if (matches.length >= 3) break;
     }
+    if (matches.length >= 3) break;
   }
-  return null;
+  if (!matches.length) return null;
+  const supportText = clampText(matches.map(match => match.sentence).join(" "));
+  const section = [...new Set(matches.map(match => match.section).filter(Boolean))].join(" · ") || null;
+  return {
+    value: supportText,
+    supportText,
+    section,
+    confidence: access === "full_text" ? 0.9 : 0.78,
+  };
 }
 
 export function extractStructuredResearchEvidence(document: PubmedEvidenceDocument): ResearchStructuredEvidence | null {
@@ -126,7 +132,12 @@ export async function enrichResearchResultsWithStructuredEvidence(
     if (!structured) continue;
     const current = enrichedById.get(result.id);
     if (!current) continue;
-    current.attributes = { ...current.attributes, ...structuredEvidenceToAttributes(structured) };
+    const normalized = normalizeResearchStudy(structured);
+    current.attributes = {
+      ...current.attributes,
+      ...structuredEvidenceToAttributes(structured),
+      ...researchStudyNormalizationToAttributes(normalized),
+    };
     enrichedById.set(current.id, current);
     enriched += 1;
   }

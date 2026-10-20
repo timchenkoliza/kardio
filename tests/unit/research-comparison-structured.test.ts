@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildResearchComparison, structuredFieldValue } from "@/lib/agents/research-comparison";
+import { buildResearchComparison, normalizedStudyField, structuredFieldValue } from "@/lib/agents/research-comparison";
 import { structuredEvidenceToAttributes } from "@/lib/agents/research-structured-evidence";
 import type { AgentResult } from "@/lib/agents/types";
 
@@ -46,7 +46,7 @@ function result(id: string): AgentResult {
       connectorId: "pubmed",
       source: "Journal",
       sourceUrl: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
-      publisher: "PubMed / NCBI",
+      publisher: "Journal",
       retrievedAt: "2026-10-20T00:00:00.000Z",
       publishedAt: "2026-01-01",
       version: null,
@@ -58,7 +58,7 @@ function result(id: string): AgentResult {
       access: "full_text",
       sourceUrl: `https://pmc.ncbi.nlm.nih.gov/articles/PMC${id}/`,
       fields: {
-        population: { value: "120 adults with heart failure.", supportText: "120 adults with heart failure.", section: "Methods", confidence: 0.9 },
+        population: { value: "We enrolled 120 adults with heart failure.", supportText: "We enrolled 120 adults with heart failure.", section: "Methods", confidence: 0.9 },
         effect: { value: "Hazard ratio 0.72; 95% CI 0.58 to 0.89.", supportText: "Hazard ratio 0.72; 95% CI 0.58 to 0.89.", section: "Results", confidence: 0.9 },
       },
     }),
@@ -70,11 +70,14 @@ function result(id: string): AgentResult {
 }
 
 describe("structured evidence comparison", () => {
-  it("surfaces only persisted structured fields", () => {
+  it("surfaces persisted structured fields and derives normalized values for older runs", () => {
     const [column] = buildResearchComparison([result("123")]);
     expect(column?.structured?.access).toBe("full_text");
     expect(column?.structuredCompleteness).toBe(2);
     expect(column && structuredFieldValue(column, "population")).toContain("120 adults");
     expect(column && structuredFieldValue(column, "comparator")).toBeNull();
+    expect(column && normalizedStudyField(column, "sampleSize")?.value).toBe("N=120");
+    expect(column && normalizedStudyField(column, "effectMeasure")?.value).toBe("HR");
+    expect(column && normalizedStudyField(column, "effectEstimate")?.value).toBe("0.72");
   });
 });

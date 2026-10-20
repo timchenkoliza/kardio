@@ -19,7 +19,8 @@ Status: implemented on `feature/pharma-content-studio`.
 - downloadable Markdown, Word-compatible RTF and LaTeX, with or without bibliography;
 - evidence comparison matrix for up to four supported / partially supported findings;
 - PubMed evidence-text retrieval: PMC full text when available, otherwise PubMed abstract;
-- structured comparison fields Population / Intervention / Comparator / Endpoint / Effect extracted only from explicit source sentences;
+- structured Population / Intervention / Comparator / Endpoint / Effect extraction from explicit source sentences;
+- deterministic study normalization for N, age, population, inclusion criteria, intervention, dose, treatment duration, comparator, primary endpoint, follow-up, effect measure, point estimate, 95% CI and p-value;
 - responsive desktop matrix + mobile comparison cards;
 - duplicate pre-search guidance and explanatory pills removed.
 
@@ -44,19 +45,34 @@ For the highest-ranked PubMed findings the Research pipeline makes an additional
 1. fetch the PubMed XML record and its abstract;
 2. if the record contains a PMCID, request the corresponding PubMed Central full text;
 3. prefer PMC full text when it is actually returned; otherwise retain the abstract as the only evidence text;
-4. scan explicit sentences for Population / Intervention / Comparator / Endpoint / Effect patterns;
-5. persist the extracted sentence, section label, access type and extraction confidence on the result;
-6. show those fields in the comparison table only when the source sentence exists.
+4. retain up to several explicit source sentences for Population / Intervention / Comparator / Endpoint / Effect so nearby values such as N, age, dose or follow-up are not lost;
+5. persist the extracted text, section labels, access type and extraction confidence on the result;
+6. run deterministic normalization over those source-bound fragments;
+7. show normalized study fields in the comparison table only when the source text contains an explicit match.
 
-No PICOE value is inferred from the article title, citation metadata, journal name or another article. Missing fields remain empty. The first version uses deterministic extraction rather than an LLM so provenance is auditable. `Effect` requires an explicit statistical-effect expression such as hazard ratio, risk ratio, odds ratio, confidence interval or p-value.
+No PICOE or normalized study value is inferred from the article title, citation metadata, journal name or another article. Missing fields remain empty. The first version uses deterministic extraction rather than an LLM so provenance is auditable.
 
 `Full text PMC` means that XML body text was actually retrieved from PubMed Central. `Abstract` means only the PubMed abstract was available during the run. These labels describe text access, not study quality.
 
-The extraction currently targets up to three PubMed records for synchronous research and up to four for `Академическая основа · beta` to keep latency and NCBI request volume bounded.
+The extraction currently targets up to three PubMed records for synchronous brief research and up to four for `Академическая основа · beta` to keep latency and NCBI request volume bounded. `Найти статьи` remains metadata-first and does not run the text-enrichment pass.
+
+## Study normalization honesty
+
+Normalization is a parsing layer over already retrieved evidence text, not a new medical inference layer. Each normalized value stores the exact supporting text, the source PICOE field and extraction confidence.
+
+Examples of allowed normalization:
+
+- `We enrolled 1,248 participants` → `N=1248`;
+- `mean age was 67 years` → `67 years (mean)`;
+- `5 mg twice daily` → dose `5 mg twice daily`;
+- `median follow-up was 18 months` → follow-up `18 months (median)`;
+- `hazard ratio 0.72; 95% CI 0.58 to 0.89; p=0.003` → measure `HR`, estimate `0.72`, CI `0.58–0.89`, p-value `p = 0.003`.
+
+The parser does not convert HR 0.72 into “28% risk reduction”, does not infer an unstated dose, does not reconstruct inclusion criteria from a title and does not treat extraction confidence as probability that the clinical claim is true.
 
 ## Evidence comparison honesty
 
-The comparison block appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. Metadata rows remain available for comparable findings; clinical PICOE rows appear only when structured source text was retrieved. The system does not infer dose, recommendation strength, subgroup applicability or missing effect estimates.
+The comparison block appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. Metadata rows remain available for comparable findings; normalized clinical rows appear only when source-bound structured text exists. Rows with no explicit value are omitted globally or shown as empty for the corresponding study.
 
 ## Background research jobs
 
@@ -81,8 +97,8 @@ Full text is limited to what PubMed Central returns. The product does not claim 
 
 ## Next slices from interviews
 
-1. study-design normalization and controlled-value extraction for sample size, follow-up, intervention dose and primary endpoint;
-2. deeper academic synthesis that cites structured evidence fields paragraph-by-paragraph;
+1. deeper academic synthesis that cites structured and normalized evidence fields paragraph-by-paragraph;
+2. study-design classification and richer controlled values only when explicit source text supports them;
 3. durable worker/queue execution with retry and resume semantics after the background beta is measured;
 4. presentation builder for teaching workflows;
 5. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.

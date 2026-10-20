@@ -15,7 +15,7 @@ function structuredEvidenceNote(args: { attempted: number; enriched: number; ful
   const parts = [
     args.fullText ? `полный текст PMC: ${args.fullText}` : null,
     args.abstracts ? `abstract: ${args.abstracts}` : null,
-    args.enriched ? `структурировано: ${args.enriched}` : null,
+    args.enriched ? `извлечено и нормализовано: ${args.enriched}` : null,
     args.unavailable ? `без доступного текста: ${args.unavailable}` : null,
   ].filter(Boolean);
   return parts.join(" · ") || "Доступного текста для структурирования не найдено";
@@ -65,7 +65,7 @@ export async function executeResearchRun(
       connectorIds: [],
     }, ...outcome.run.plan, {
       id: "research-structured-evidence",
-      label: "Извлекли клинические параметры из доступного текста",
+      label: "Извлекли и нормализовали параметры исследований",
       tool: "retrieveDocument",
       status: enrichment.enriched ? "done" : "skipped",
       detail: extractionDetail,
@@ -85,9 +85,9 @@ export async function executeResearchRun(
 
     if (outcome.run.synthesis?.includes(OLD_FULL_TEXT_GAP) && !skipStructuredRetrieval) {
       const replacement = enrichment.fullText
-        ? `Полный текст PMC получен для ${enrichment.fullText} публикаций;${enrichment.abstracts ? ` для ${enrichment.abstracts} использован abstract;` : ""} клинические параметры извлечены только из реально доступного текста`
+        ? `Полный текст PMC получен для ${enrichment.fullText} публикаций;${enrichment.abstracts ? ` для ${enrichment.abstracts} использован abstract;` : ""} N, возраст, вмешательство, comparator, endpoint, follow-up и статистический эффект нормализуются только из явно найденных фрагментов`
         : enrichment.abstracts
-          ? `Полный текст PMC не получен; для ${enrichment.abstracts} публикаций использован abstract; поля Population / Intervention / Comparator / Endpoint / Effect заполняются только при явном фрагменте`
+          ? `Полный текст PMC не получен; для ${enrichment.abstracts} публикаций использован abstract; нормализованные поля заполняются только при явном фрагменте, без достраивания пропусков`
           : OLD_FULL_TEXT_GAP;
       outcome.run.synthesis = outcome.run.synthesis.replace(OLD_FULL_TEXT_GAP, replacement);
     }
