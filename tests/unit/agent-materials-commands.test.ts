@@ -98,6 +98,7 @@ describe("commands: configuration, since-last-visit and confirmation", () => {
 
   it("prepares and confirms a registration hand-off without claiming registration", async () => {
     await executeAgentCommand(SESSION, { action: "setInterests", specialty: "cardiology", topics: ["hf"], trustedSources: ["rko"], excludedSources: [], runAgents: false });
+    await executeAgentCommand(SESSION, { action: "configureAgent", specialty: "cardiology", agentId: "events", preference: { formats: ["international"], horizonDays: 60 } });
     await executeAgentCommand(SESSION, { action: "runAgent", specialty: "cardiology", agentId: "events" });
     const event = (await workspaceStore().listResults(SESSION, "cardiology", "events")).find(result => result.kind === "event");
     expect(event).toBeDefined();

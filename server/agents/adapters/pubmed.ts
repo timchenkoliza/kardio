@@ -10,7 +10,12 @@ export interface PubmedQuery {
   maxDate?: string;
   retmax?: number;
   journals?: string[];
+  /** PubMed publication types ([pt]), e.g. clinical trials and systematic reviews. */
+  publicationTypes?: string[];
 }
+
+/** Study types the physicians' validation asks for in a literature feed (PubMed «Clinical Queries»). */
+export const CLINICAL_PUBLICATION_TYPES = ["Randomized Controlled Trial", "Meta-Analysis", "Systematic Review", "Practice Guideline", "Guideline"];
 
 export interface PubmedArticle {
   pmid: string;
@@ -44,6 +49,8 @@ export function buildPubmedTerm(query: PubmedQuery): string {
   const parts = [`(${query.term})`];
   const journals = (query.journals ?? []).filter(Boolean);
   if (journals.length) parts.push(`(${journals.map(journal => `"${journal.replace(/"/g, "")}"[jour]`).join(" OR ")})`);
+  const types = (query.publicationTypes ?? []).filter(Boolean);
+  if (types.length) parts.push(`(${types.map(type => `"${type.replace(/"/g, "")}"[pt]`).join(" OR ")})`);
   parts.push("hasabstract");
   return parts.join(" AND ");
 }

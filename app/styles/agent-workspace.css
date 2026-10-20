@@ -930,3 +930,18 @@
 /* Legacy detail components inside the workspace: sentence case, no uppercase labels. */
 .ws-app .content-detail .eyebrow,
 .ws-app .content-detail [class*="eyebrow"] { text-transform: none; letter-spacing: 0; }
+
+/* Physician source validation: quiet text next to provenance, the label carries the meaning. */
+.ws-standing { display: inline-flex; align-items: center; gap: var(--ws-space-4); color: var(--ws-text-secondary); font-size: var(--font-size-metadata); }
+.ws-standing::before { content: ""; width: 6px; height: 6px; border-radius: var(--ws-radius-round); background: var(--ws-border); }
+.ws-standing[data-standing="approved"]::before,
+.ws-standing[data-standing="conditional"]::before { background: var(--ws-success); }
+.ws-standing[data-standing="reviewed_not_whitelisted"]::before { background: var(--ws-warning); }
+.ws-standing[data-standing="approved"],
+.ws-standing[data-standing="conditional"] { color: var(--ws-success); }
+.ws-validation { display: flex; flex-direction: column; gap: var(--ws-space-12); }
+.ws-validation details { border-top: 1px solid var(--ws-hairline); padding-top: var(--ws-space-12); }
+.ws-validation summary { cursor: pointer; font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }
+.ws-validation ul { list-style: none; margin: var(--ws-space-8) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.ws-validation li { display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-caption); color: var(--ws-text-secondary); }
+.ws-validation li strong { color: var(--ws-text); font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }

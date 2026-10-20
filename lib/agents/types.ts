@@ -8,6 +8,7 @@
  * no runtime dependencies so they can be imported anywhere.
  */
 import type { SpecialtyId } from "@/lib/domain/types";
+import type { SourceStanding } from "./source-policy";
 
 export type AgentId = "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
 export const AGENT_IDS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
@@ -81,6 +82,11 @@ export interface Provenance {
   version: string | null;
   ownership: SourceOwnership;
   dataOrigin: DataOrigin;
+  /** ISO journal abbreviation for literature (e.g. "Nat Med"). */
+  journal?: string | null;
+  /** Physician source validation (data/source-validation-b2d.json). */
+  standing?: SourceStanding;
+  standingNote?: string | null;
 }
 
 export interface Evidence {

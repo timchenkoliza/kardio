@@ -4,7 +4,10 @@ import { ArrowUpRight } from "lucide-react";
 import { InterestsSetup } from "@/components/workspace/interests-setup";
 import { ModeBadge } from "@/components/workspace/mode-badge";
 import { PartnerToggle, ResetSeenButton } from "@/components/workspace/settings-controls";
+import { formatDateRu } from "@/lib/agents/format";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
+import type { SourceStanding } from "@/lib/agents/source-policy";
+import { rowsByStanding, SOURCE_VALIDATION } from "@/server/agents/services/source-policy";
 import { isSpecialty } from "@/lib/specialty";
 import { connectorRegistry } from "@/server/agents/connectors";
 import { pageSession } from "@/server/agents/page-session";
@@ -13,6 +16,13 @@ import { memoryEvents } from "@/server/agents/telemetry";
 import { loadProfile } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
+
+const STANDING_GROUP_TITLE: Record<Exclude<SourceStanding, "unreviewed">, string> = {
+  approved: "Белый список",
+  conditional: "Одобрены с условием",
+  reviewed_not_whitelisted: "Проверены, но не в белом списке",
+  rejected: "Отклонены врачами",
+};
 
 function percent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}%`;
@@ -23,6 +33,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
   if (!isSpecialty(specialty)) notFound();
   const sessionId = await pageSession(specialty);
   const profile = await loadProfile(sessionId, specialty);
+  const validation = rowsByStanding();
   const connectors = connectorRegistry();
   const metrics = computeAgentMetrics(sessionId ? memoryEvents(sessionId) : []);
   const storage = workspaceStore().kind;
@@ -47,6 +58,15 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         <div><strong>{connector.name}</strong><span>{connector.description}</span><small>{connector.limitations}</small></div>
         <ModeBadge mode={connector.mode} origin={connector.dataOrigin} snapshotAt={connector.snapshotAt} />
       </li>)}</ul>
+    </section>
+
+    <section className="ws-section ws-card-block ws-validation" aria-labelledby="ws-validation-title">
+      <h2 id="ws-validation-title" className="ws-section-title">Источники, проверенные врачами</h2>
+      <p className="ws-muted">{SOURCE_VALIDATION.title} · обновлено {formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Агенты поднимают одобренные источники выше, не используют отклонённые как доказательство, а для источников вне белого списка показывают не больше чем «частично подтверждено».</p>
+      {(["approved", "conditional", "reviewed_not_whitelisted", "rejected"] as const).map(standing => <details key={standing} open={standing === "approved"}>
+        <summary>{STANDING_GROUP_TITLE[standing]} · {validation[standing].length}</summary>
+        <ul>{validation[standing].map(row => <li key={`${row.host}-${row.brand}`}><strong>{row.brand}</strong><span>{row.host}{row.condition ? ` · ${row.condition}` : ""}</span>{row.note && <span>{row.note}</span>}</li>)}</ul>
+      </details>)}
     </section>
 
     <section className="ws-section ws-card-block" aria-labelledby="ws-privacy-title">

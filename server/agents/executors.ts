@@ -9,6 +9,7 @@ import { evidenceFromCatalog, evidenceFromPubmed, catalogProvenance, pubmedProve
 import { eventDrafts } from "./services/event";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
+import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
 
 /**
@@ -109,7 +110,7 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
   let pubmedDrafts: ResultDraft[] = [];
   if (!wants.size || wants.has("research")) {
     const window = pubmedWindow(ctx, 14);
-    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term: tools.pubmedTermForTopics(ctx), ...window, retmax: 5, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
+    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term: tools.pubmedTermForTopics(ctx), ...window, retmax: 5, journals: tools.trustedJournals(ctx), publicationTypes: CLINICAL_PUBLICATION_TYPES }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
     pubmedDrafts = articles.map(article => ({
       key: stableId("update", "pubmed", article.pmid),
       agentId: ctx.agentId,
@@ -118,7 +119,7 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
       category: "publication",
       title: truncate(article.title, 180),
       summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.authors.length ? ` · ${article.authors.slice(0, 3).join(", ")}${article.authors.length > 3 ? " и др." : ""}` : ""}`,
-      reasonShown: ["Новая публикация по вашим темам", tools.trustedJournals(ctx).length ? "Из доверенных журналов" : "PubMed"],
+      reasonShown: ["Новая публикация по вашим темам", "Клинические исследования и обзоры из отобранных журналов"],
       observedAt: article.sortDate,
       evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
       source: pubmedProvenance(article, ctx.nowIso),

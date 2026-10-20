@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
+import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
 import { agentResultMedia } from "@/lib/ui/agent-result-media";
 import { ModeBadge } from "./mode-badge";
@@ -52,6 +53,12 @@ function artKind(result: AgentResultView): ArtKind | undefined {
   return undefined;
 }
 
+/** Physician source validation, shown quietly next to provenance (never as a badge competing with the finding). */
+function SourceStandingNote({ standing, note }: { standing?: SourceStanding; note?: string | null }) {
+  if (!standing || standing === "rejected") return null;
+  return <span className="ws-standing" data-standing={standing} title={note ?? undefined}>{STANDING_LABEL[standing]}</span>;
+}
+
 function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) {
   const verification = VERIFICATION_LABEL[item.verificationStatus];
   const published = item.publicationDate ? (formatDateRu(item.publicationDate) ?? item.publicationDate) : null;
@@ -64,6 +71,7 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
       {published && <span> · опубликовано {published}</span>}
       <span> · получено {formatDateRu(item.retrievedAt, { day: "numeric", month: "short", year: "numeric" }) ?? "—"}</span>
       {item.provenance.version && <span> · {item.provenance.version}</span>}
+      {item.provenance.standing && <> · <SourceStandingNote standing={item.provenance.standing} note={item.provenance.standingNote} /></>}
     </p>
     {item.verificationNote && <p className="ws-evidence-note">{item.verificationNote}</p>}
   </li>;
@@ -145,6 +153,7 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
       <p className="ws-provenance">
         <span>{result.source.source}</span>
         <ModeBadge mode="LIVE" origin={result.source.dataOrigin} snapshotAt={result.source.dataOrigin === "runtime_api" ? null : result.source.retrievedAt} />
+        <SourceStandingNote standing={result.source.standing} note={result.source.standingNote} />
       </p>
       {result.evidence.length > 0 && <details className="ws-evidence" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) opened(false); }}>
         <summary>Утверждения и источники · {result.evidence.length}<ChevronDown size={14} aria-hidden="true" /></summary>

@@ -66,6 +66,7 @@ export function pubmedProvenance(article: PubmedArticle, retrievedAt: string): P
     version: null,
     ownership: "PUBLIC_SOURCE",
     dataOrigin: "runtime_api",
+    journal: article.journal || null,
   };
 }
 

@@ -61,9 +61,15 @@ test("drug agent shows since-last-visit change detection with evidence", async (
 test("events agent: discovery → relevance → confirmed calendar file", async ({ page }) => {
   await setupInterests(page, ["ХСН"]);
   await page.goto("/cardiology/agents/events");
+  // Russian accredited events came from rnmo.ru, which the physicians rejected;
+  // organiser-sourced congresses remain, so the test looks abroad.
+  await page.getByRole("button", { name: "Настроить агента" }).click();
+  await page.getByRole("group", { name: "Город и формат" }).getByRole("button", { name: "Зарубежные", exact: true }).click();
+  await page.getByRole("button", { name: "Сохранить и запустить" }).click();
   const event = page.locator(".ws-result-event").first();
+  await expect(event).toBeVisible({ timeout: 30_000 });
   await expect(event).toBeVisible();
-  await expect(event.locator(".ws-reasons")).toContainText(/Тема|Онлайн|Москва|НМО|Через/);
+  await expect(event.locator(".ws-reasons")).toContainText(/Тема|Онлайн|Москва|НМО|Через|Зарубеж/);
   await event.getByRole("button", { name: "В календарь" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Нужно ваше подтверждение")).toBeVisible();

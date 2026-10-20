@@ -9,7 +9,7 @@ import type { AgentContext } from "./context";
 import type { ResultDraft } from "./drafts";
 import { EXECUTORS, type ExecutorResult } from "./executors";
 import { prepareAction } from "./services/action-confirmation";
-import { resultVerification } from "./services/fact-check";
+import { resultVerification, sourceAssessmentFor } from "./services/fact-check";
 import { materialFromResult } from "./services/material";
 import { checkInputRisk, checkOutputRisk, type InputRiskDecision } from "./services/risk";
 import type { WorkspaceStore } from "./store/types";
@@ -80,6 +80,7 @@ export function validateEvidence(drafts: readonly ResultDraft[]): { kept: Result
   const kept: ResultDraft[] = [];
   const notes: string[] = [];
   let dropped = 0;
+  let rejected = 0;
   for (const draft of drafts) {
     if (draft.partner) {
       if (!draft.partner.label || !draft.partner.disclosure) { dropped += 1; continue; }
@@ -88,12 +89,15 @@ export function validateEvidence(drafts: readonly ResultDraft[]): { kept: Result
     }
     const output = checkOutputRisk([draft.title, draft.summary, ...draft.evidence.map(item => item.claim)]);
     if (!output.allowed) { dropped += 1; notes.push(output.reason ?? "Результат скрыт проверкой безопасности"); continue; }
+    const primary = sourceAssessmentFor({ sourceUrl: draft.source.sourceUrl, provenance: draft.source });
+    if (primary?.standing === "rejected") { dropped += 1; rejected += 1; continue; }
     const status = resultVerification(draft.evidence);
     const hasSupport = draft.evidence.some(item => item.verificationStatus === "SUPPORTED" || item.verificationStatus === "PARTIALLY_SUPPORTED");
     if (!hasSupport && status === "UNSUPPORTED") { dropped += 1; continue; }
-    kept.push(draft);
+    kept.push(primary ? { ...draft, source: { ...draft.source, standing: primary.standing, standingNote: primary.brand } } : draft);
   }
-  if (dropped) notes.push(`Скрыто находок без подтверждения источником: ${dropped}`);
+  if (rejected) notes.push(`Скрыто находок из источников, отклонённых врачами: ${rejected}`);
+  if (dropped - rejected > 0) notes.push(`Скрыто находок без подтверждения источником: ${dropped - rejected}`);
   return { kept, dropped, notes: [...new Set(notes)] };
 }
 
