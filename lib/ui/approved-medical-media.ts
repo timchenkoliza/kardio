@@ -78,7 +78,7 @@ const RULES: ReadonlyArray<{ modality: ApprovedMedicalModality; grade: Illustrat
   { modality: "blood_pressure", grade: "STRONG", pattern: new RegExp(`${word("гипертенз")}|${word("гипертони")}|${word("артериальн\\p{L}* давлен")}|${word("АД")}(?![\\p{L}])|${word("антигипертенз")}|${word("баксдростат")}|${word("ренальн\\p{L}* денерв")}|hypertension`, "iu") },
   { modality: "ecg", grade: "STRONG", pattern: new RegExp(`${word("фибрилляц\\p{L}* предсерд")}|${word("трепетани\\p{L}* предсерд")}|${word("мерцательн")}|${word("ФП")}(?![\\p{L}])|atrial fibrillation|${word("антикоагул")}|anticoagul`, "iu") },
   // Other rhythm disorders: the only ECG in the bank shows atrial fibrillation, so it would be a weak proxy.
-  { modality: "anatomy", grade: "MEDIUM", pattern: new RegExp(`${word("аритми")}|${word("тахикард")}|${word("брадикард")}|${word("блокад\\p{L}* сердца")}|${word("внезапн\\p{L}* смерт")}|arrhythm|tachycard`, "iu") },
+  { modality: "anatomy", grade: "MEDIUM", pattern: new RegExp(`${word("аритми")}|${word("тахикард")}|${word("брадикард")}|${word("блокад\\p{L}* сердца")}|${word("внезапн\\p{L}* смерт")}|arrhythm|tachycard`, "iu"), alternatives: ["echo"] },
   { modality: "angiography", grade: "STRONG", pattern: new RegExp(`${word("коронарограф")}|${word("ЧКВ")}|${word("стент")}|${word("реваскуляриз")}|${word("ангиопласт")}|${word("шунтирован")}|PCI|angiograph|revasculari[sz]|stent`, "iu") },
   { modality: "mri", grade: "STRONG", pattern: new RegExp(`${word("инфаркт")}|${word("ОКС")}(?![\\p{L}])|${word("остр\\p{L}* коронарн")}|${word("МРТ")}|myocardial infarction`, "iu") },
   { modality: "atherosclerosis", grade: "STRONG", pattern: new RegExp(`${word("атеросклер")}|${word("липид")}|${word("холестерин")}|${word("ЛПНП")}|${word("статин")}|${word("дислипидем")}|${word("инклисиран")}|${word("бемпедо")}|PCSK9|${word("липопротеин")}|cholesterol|lipid|LDL|statin|lipoprotein|atherosclero`, "iu") },
@@ -98,7 +98,7 @@ export function matchCardioIllustration(input: { text: string; kind?: string | n
   }
   if (input.kind === "guideline" || input.kind === "clinical" || input.kind === "guideline_change") {
     const anatomy = media.find(item => item.modality === "anatomy");
-    return anatomy ? { asset: anatomy, grade: "MEDIUM", alternatives: [] } : null;
+    return anatomy ? { asset: anatomy, grade: "MEDIUM", alternatives: media.filter(item => item.modality === "echo") } : null;
   }
   return null;
 }
