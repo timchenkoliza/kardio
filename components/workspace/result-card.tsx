@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
+import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
+import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
+import { FeedArt } from "./feed-art";
 import { ModeBadge } from "./mode-badge";
 import { useWorkspace } from "./workspace-provider";
 
@@ -37,7 +40,6 @@ function categoryLabel(result: AgentResultView): string | null {
 
 type ArtKind = "guideline" | "article" | "video" | "clinical" | "event";
 
-/** Content-kind colour family for the kind tag (design system: art-<kind>). */
 function artKind(result: AgentResultView): ArtKind | undefined {
   if (result.kind === "event") return "event";
   if (result.kind === "guideline_change") return "guideline";
@@ -49,6 +51,12 @@ function artKind(result: AgentResultView): ArtKind | undefined {
   if (category === "event") return "event";
   if (category === "article" || category === "publication" || category === "update") return "article";
   return undefined;
+}
+
+/** Physician source validation, shown quietly next to provenance (never as a badge competing with the finding). */
+function SourceStandingNote({ standing, note }: { standing?: SourceStanding; note?: string | null }) {
+  if (!standing || standing === "rejected") return null;
+  return <span className="ws-standing" data-standing={standing} title={note ?? undefined}>{STANDING_LABEL[standing]}</span>;
 }
 
 function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) {
@@ -63,12 +71,13 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
       {published && <span> · опубликовано {published}</span>}
       <span> · получено {formatDateRu(item.retrievedAt, { day: "numeric", month: "short", year: "numeric" }) ?? "—"}</span>
       {item.provenance.version && <span> · {item.provenance.version}</span>}
+      {item.provenance.standing && <> · <SourceStandingNote standing={item.provenance.standing} note={item.provenance.standingNote} /></>}
     </p>
     {item.verificationNote && <p className="ws-evidence-note">{item.verificationNote}</p>}
   </li>;
 }
 
-export function ResultCard({ result }: { result: AgentResultView; specialty: string }) {
+export function ResultCard({ result, media = null }: { result: AgentResultView; specialty: string; media?: AgentResultMedia | null }) {
   const { command, setPendingAction, pending } = useWorkspace();
   const [saved, setSaved] = useState(Boolean(result.savedMaterialId));
   const [done, setDone] = useState(result.attributes.done === true);
@@ -80,6 +89,15 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
   const label = categoryLabel(result);
   const isEvent = result.kind === "event";
   const startDate = typeof result.attributes.startDate === "string" ? result.attributes.startDate : null;
+  const drugOfficialVerification = result.kind === "drug_change" && typeof result.attributes["drugAssessment.officialVerificationLabel"] === "string"
+    ? result.attributes["drugAssessment.officialVerificationLabel"]
+    : null;
+  const drugSourceBasis = result.kind === "drug_change" && typeof result.attributes["drugAssessment.sourceBasisLabel"] === "string"
+    ? result.attributes["drugAssessment.sourceBasisLabel"]
+    : null;
+  const drugPracticeImpact = result.kind === "drug_change" && typeof result.attributes["drugAssessment.practiceImpact"] === "string"
+    ? result.attributes["drugAssessment.practiceImpact"]
+    : null;
 
   function opened(evidence = false) {
     void command({ action: "openResult", resultId: result.id, evidence }, { quiet: true, refresh: false });
@@ -109,9 +127,11 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
     </article>;
   }
 
-  return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}`} aria-labelledby={`r-${result.id}`}>
+  return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}${media ? " has-media" : ""}`} aria-labelledby={`r-${result.id}`}>
     {isEvent && startDate && <div className="ws-date-block" aria-hidden="true"><strong>{Number(startDate.slice(8, 10))}</strong><span>{formatDateRu(startDate, { month: "short" })}</span></div>}
     <div className="ws-result-body">
+      {media && <div className="ws-result-media"><FeedArt art={media.art} alt={media.alt} animated={media.animated} /></div>}
+      <div className="ws-result-content">
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
         <span className="ws-kind" data-art={artKind(result)}>{label ?? KIND_LABEL[result.kind]}</span>
@@ -122,13 +142,17 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
       </h3>
       <p className="ws-result-summary">{result.summary}</p>
       {result.kind === "drug_change" && typeof result.attributes.inn === "string" && <p className="ws-result-facts">{result.attributes.inn}{result.attributes.brand ? ` · ${result.attributes.brand}` : ""}{result.attributes.holder ? ` · ${result.attributes.holder}` : ""}{result.attributes.changeDateNote ? ` · ${result.attributes.changeDateNote}` : ""}</p>}
+      {result.kind === "drug_change" && (drugSourceBasis || drugOfficialVerification) && <p className="ws-result-facts">{drugSourceBasis}{drugOfficialVerification && !drugPracticeImpact ? `${drugSourceBasis ? " · " : ""}${drugOfficialVerification}` : ""}</p>}
+      {result.kind === "drug_change" && drugPracticeImpact && <p className="ws-result-facts"><strong>Что это значит:</strong> {drugPracticeImpact}</p>}
       {result.kind === "event" && <p className="ws-result-facts">{String(result.attributes.organizer ?? "")}{result.attributes.nmo === true ? " · в списке аккредитованных НМО" : ""}</p>}
       {result.kind === "guideline_change" && typeof result.attributes.deltas === "string" && result.attributes.deltas && <p className="ws-result-facts">{result.attributes.deltas}</p>}
       {result.reasonShown.length > 0 && <ul className="ws-reasons" aria-label="Почему это здесь">{result.reasonShown.map(reason => <li key={reason}>{reason}</li>)}</ul>}
       <p className="ws-provenance">
         <span>{result.source.source}</span>
         <ModeBadge mode="LIVE" origin={result.source.dataOrigin} snapshotAt={result.source.dataOrigin === "runtime_api" ? null : result.source.retrievedAt} />
+        {result.source.standing !== "unreviewed" && <SourceStandingNote standing={result.source.standing} note={result.source.standingNote} />}
       </p>
+      </div>
       {result.evidence.length > 0 && <details className="ws-evidence" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) opened(false); }}>
         <summary>Утверждения и источники · {result.evidence.length}<ChevronDown size={14} aria-hidden="true" /></summary>
         <ul>{result.evidence.map(item => <EvidenceItem key={item.id} item={item} onOpen={() => opened(true)} />)}</ul>
@@ -147,5 +171,6 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
 
 export function ResultList({ results, specialty, emptyText }: { results: AgentResultView[]; specialty: string; emptyText: string }) {
   if (!results.length) return <p className="ws-empty">{emptyText}</p>;
-  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} />)}</div>;
+  const media = feedIllustrations(results);
+  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} media={media.get(result.id) ?? null} />)}</div>;
 }

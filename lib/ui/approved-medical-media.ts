@@ -1,6 +1,15 @@
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 
-export type ApprovedMedicalModality = "anatomy" | "echo" | "mri" | "angiography" | "ct";
+export type ApprovedMedicalModality =
+  | "anatomy"
+  | "echo"
+  | "mri"
+  | "angiography"
+  | "ct"
+  | "ecg"
+  | "atherosclerosis"
+  | "blood_pressure"
+  | "pulmonary_hypertension";
 
 export interface ApprovedMedicalMediaAsset {
   id: string;
@@ -15,74 +24,28 @@ export interface ApprovedMedicalMediaAsset {
   compactLabel: string;
 }
 
-function cloudOrFallback(path: string, fallback: string): string {
+/**
+ * Licensed illustrations from Wikimedia Commons, stored in public/media as 2:1
+ * crops (no relabelling, no redraw). A media CDN can serve the same paths via
+ * NEXT_PUBLIC_MEDIA_CLOUD_BASE_URL.
+ */
+function mediaPath(file: string): string {
   const base = process.env.NEXT_PUBLIC_MEDIA_CLOUD_BASE_URL?.trim().replace(/\/$/u, "");
-  return base ? `${base}/${path.replace(/^\//u, "")}` : fallback;
+  return base ? `${base}/cardiology/${file}` : `/media/cardiology/${file}`;
 }
 
-const commons = (filename: string) => `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}`;
+const commonsPage = (file: string) => `https://commons.wikimedia.org/wiki/File:${file}`;
 
 export const APPROVED_CARDIOLOGY_MEDIA: readonly ApprovedMedicalMediaAsset[] = [
-  {
-    id: "cardiology-anatomy-heart",
-    specialty: "cardiology",
-    modality: "anatomy",
-    kind: "image",
-    src: cloudOrFallback("cardiology/anatomy/heart.svg", commons("Red heart illustration.png")),
-    alt: "Учебное анатомическое изображение человеческого сердца",
-    credit: "RawPixel / Wikimedia Commons · CC0",
-    license: "CC0",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Red_heart_illustration.png",
-    compactLabel: "Анатомия",
-  },
-  {
-    id: "cardiology-echo-four-chamber",
-    specialty: "cardiology",
-    modality: "echo",
-    kind: "image",
-    src: cloudOrFallback("cardiology/imaging/echo-four-chamber.jpg", commons("Heart tee four chamber view.jpg")),
-    alt: "Четырёхкамерное эхокардиографическое изображение сердца",
-    credit: "Patrick J. Lynch / C. Carl Jaffe · CC BY 2.5",
-    license: "CC BY 2.5",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Heart_tee_four_chamber_view.jpg",
-    compactLabel: "ЭхоКГ",
-  },
-  {
-    id: "cardiology-mri-cine",
-    specialty: "cardiology",
-    modality: "mri",
-    kind: "image",
-    src: cloudOrFallback("cardiology/imaging/cardiac-mri-cine.gif", commons("4CH cine infarct.gif")),
-    alt: "Учебная динамическая серия МРТ сердца в четырёхкамерной проекции",
-    credit: "Doregan · CC BY-SA 4.0",
-    license: "CC BY-SA 4.0",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:4CH_cine_infarct.gif",
-    compactLabel: "МРТ · cine",
-  },
-  {
-    id: "cardiology-coronary-angiography",
-    specialty: "cardiology",
-    modality: "angiography",
-    kind: "image",
-    src: cloudOrFallback("cardiology/imaging/coronary-angiography.png", commons("Coronary Angiography.png")),
-    alt: "Учебное изображение коронарной ангиографии",
-    credit: "BruceBlaus · CC BY-SA 4.0",
-    license: "CC BY-SA 4.0",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Coronary_Angiography.png",
-    compactLabel: "Коронарография",
-  },
-  {
-    id: "cardiology-coronary-ct",
-    specialty: "cardiology",
-    modality: "ct",
-    kind: "image",
-    src: cloudOrFallback("cardiology/imaging/coronary-ct.jpg", commons("Coronary CT Angiography Scan.jpg")),
-    alt: "Учебное изображение КТ-ангиографии коронарных артерий",
-    credit: "Goleisureintl · CC BY 4.0",
-    license: "CC BY 4.0",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Coronary_CT_Angiography_Scan.jpg",
-    compactLabel: "КТ-коронарография",
-  },
+  { id: "cardiology-anatomy-heart", specialty: "cardiology", modality: "anatomy", kind: "image", src: mediaPath("heart-anatomy.webp"), alt: "Анатомическая иллюстрация сердца", credit: "RawPixel / Wikimedia Commons · CC0", license: "CC0", sourceUrl: commonsPage("Red_heart_illustration.png"), compactLabel: "Анатомия сердца" },
+  { id: "cardiology-echo-four-chamber", specialty: "cardiology", modality: "echo", kind: "image", src: mediaPath("heart-four-chamber.webp"), alt: "Сердце в четырёхкамерной проекции: предсердия, желудочки и клапаны", credit: "Patrick J. Lynch, C. Carl Jaffe · CC BY 2.5", license: "CC BY 2.5", sourceUrl: commonsPage("Heart_tee_four_chamber_view.jpg"), compactLabel: "Четырёхкамерная проекция" },
+  { id: "cardiology-mri-cine", specialty: "cardiology", modality: "mri", kind: "image", src: mediaPath("cardiac-mri-cine.webp"), alt: "МРТ сердца в четырёхкамерной проекции при перенесённом нижнем инфаркте", credit: "Doregan · CC BY-SA 4.0", license: "CC BY-SA 4.0", sourceUrl: commonsPage("4CH_cine_infarct.gif"), compactLabel: "МРТ сердца" },
+  { id: "cardiology-coronary-angiography", specialty: "cardiology", modality: "angiography", kind: "image", src: mediaPath("coronary-angiography.webp"), alt: "Схема коронарографии: катетер в устье левой коронарной артерии и стеноз на ангиограмме", credit: "BruceBlaus · CC BY-SA 4.0", license: "CC BY-SA 4.0", sourceUrl: commonsPage("Coronary_Angiography.png"), compactLabel: "Коронарография" },
+  { id: "cardiology-coronary-ct", specialty: "cardiology", modality: "ct", kind: "image", src: mediaPath("coronary-ct.webp"), alt: "Объёмная реконструкция КТ-коронарографии", credit: "Goleisureintl · CC BY 4.0", license: "CC BY 4.0", sourceUrl: commonsPage("Coronary_CT_Angiography_Scan.jpg"), compactLabel: "КТ-коронарография" },
+  { id: "cardiology-ecg-af", specialty: "cardiology", modality: "ecg", kind: "image", src: mediaPath("ecg-atrial-fibrillation.webp"), alt: "ЭКГ в 12 отведениях при фибрилляции предсердий", credit: "Ewingdo · CC BY-SA 4.0", license: "CC BY-SA 4.0", sourceUrl: commonsPage("ECG_Atrial_Fibrillation_98_bpm.jpg"), compactLabel: "ЭКГ · фибрилляция предсердий" },
+  { id: "cardiology-atherosclerotic-stenosis", specialty: "cardiology", modality: "atherosclerosis", kind: "image", src: mediaPath("atherosclerotic-stenosis.webp"), alt: "Схема атеросклеротической бляшки при стенозе 50, 75 и 90 %", credit: "K. Michaud, C. Basso, G. d’Amati и соавт. · CC BY 3.0", license: "CC BY 3.0", sourceUrl: commonsPage("Plaque_at_different_degrees_of_atherosclerotic_stenosis.jpg"), compactLabel: "Атеросклеротический стеноз" },
+  { id: "cardiology-blood-pressure", specialty: "cardiology", modality: "blood_pressure", kind: "image", src: mediaPath("blood-pressure-monitor.webp"), alt: "Автоматический тонометр с манжетой для измерения артериального давления", credit: "Albarubescens · CC BY-SA 4.0", license: "CC BY-SA 4.0", sourceUrl: commonsPage("Sphygmomanometer,_automatic_blood_pressure_monitor._Oscillometric_measurements,_millimeter_of_mercury_(mmHg)_unit.jpg"), compactLabel: "Измерение АД" },
+  { id: "cardiology-pulmonary-hypertension", specialty: "cardiology", modality: "pulmonary_hypertension", kind: "image", src: mediaPath("pulmonary-hypertension.webp"), alt: "Иллюстрация лёгочной гипертензии: правые отделы сердца и лёгочные артерии", credit: "BruceBlaus · CC BY-SA 4.0", license: "CC BY-SA 4.0", sourceUrl: commonsPage("Pulmonary_Hypertension.png"), compactLabel: "Лёгочная гипертензия" },
 ] as const;
 
 export function approvedImagingMedia(specialty: SpecialtyId): readonly ApprovedMedicalMediaAsset[] {
@@ -93,15 +56,54 @@ export function approvedAnatomyMedia(specialty: SpecialtyId): ApprovedMedicalMed
   return approvedImagingMedia(specialty).find(asset => asset.modality === "anatomy") ?? null;
 }
 
+export type IllustrationMatchGrade = "STRONG" | "MEDIUM";
+
+export interface IllustrationMatch {
+  asset: ApprovedMedicalMediaAsset;
+  grade: IllustrationMatchGrade;
+  /** Equally valid images for the same clinical object, used so neighbouring cards do not repeat one picture. */
+  alternatives: ApprovedMedicalMediaAsset[];
+}
+
+const word = (stem: string) => `(?<![\\p{L}])${stem}`;
+
+/**
+ * Article ↔ illustration matching. Order matters: the most specific clinical
+ * object wins (pulmonary hypertension before arterial hypertension, PCI before
+ * generic coronary disease). Only STRONG and MEDIUM matches are returned — a weak
+ * proxy is not shown at all (match gate: WEAK PROXY → replace, NO VALID MATCH → do not use).
+ */
+const RULES: ReadonlyArray<{ modality: ApprovedMedicalModality; grade: IllustrationMatchGrade; pattern: RegExp; alternatives?: readonly ApprovedMedicalModality[] }> = [
+  { modality: "pulmonary_hypertension", grade: "STRONG", pattern: new RegExp(`${word("л[её]гочн\\p{L}* (?:артериальн\\p{L}* )?гипертенз")}|${word("ЛАГ")}(?![\\p{L}])|${word("селексипаг")}|${word("риоцигуат")}|${word("мацитентан")}|pulmonary (?:arterial )?hypertension`, "iu") },
+  { modality: "blood_pressure", grade: "STRONG", pattern: new RegExp(`${word("гипертенз")}|${word("гипертони")}|${word("артериальн\\p{L}* давлен")}|${word("АД")}(?![\\p{L}])|${word("антигипертенз")}|${word("баксдростат")}|${word("ренальн\\p{L}* денерв")}|hypertension`, "iu") },
+  { modality: "ecg", grade: "STRONG", pattern: new RegExp(`${word("фибрилляц\\p{L}* предсерд")}|${word("трепетани\\p{L}* предсерд")}|${word("мерцательн")}|${word("ФП")}(?![\\p{L}])|atrial fibrillation|${word("антикоагул")}|anticoagul`, "iu") },
+  // Other rhythm disorders: the only ECG in the bank shows atrial fibrillation, so it would be a weak proxy.
+  { modality: "anatomy", grade: "MEDIUM", pattern: new RegExp(`${word("аритми")}|${word("тахикард")}|${word("брадикард")}|${word("блокад\\p{L}* сердца")}|${word("внезапн\\p{L}* смерт")}|arrhythm|tachycard`, "iu"), alternatives: ["echo"] },
+  { modality: "angiography", grade: "STRONG", pattern: new RegExp(`${word("коронарограф")}|${word("ЧКВ")}|${word("стент")}|${word("реваскуляриз")}|${word("ангиопласт")}|${word("шунтирован")}|PCI|angiograph|revasculari[sz]|stent`, "iu") },
+  { modality: "mri", grade: "STRONG", pattern: new RegExp(`${word("инфаркт")}|${word("ОКС")}(?![\\p{L}])|${word("остр\\p{L}* коронарн")}|${word("МРТ")}|myocardial infarction`, "iu") },
+  { modality: "atherosclerosis", grade: "STRONG", pattern: new RegExp(`${word("атеросклер")}|${word("липид")}|${word("холестерин")}|${word("ЛПНП")}|${word("статин")}|${word("дислипидем")}|${word("инклисиран")}|${word("бемпедо")}|PCSK9|${word("липопротеин")}|cholesterol|lipid|LDL|statin|lipoprotein|atherosclero`, "iu") },
+  { modality: "echo", grade: "STRONG", pattern: new RegExp(`${word("кардиомиопати")}|${word("клапан")}|${word("аортальн\\p{L}* стеноз")}|${word("митральн")}|${word("эхокардиограф")}|${word("ЭхоКГ")}|TAVI|TAVR|${word("афикамтен")}|${word("мавакамтен")}|cardiomyopathy|valv|aortic stenosis|mitral|echocardiograph`, "iu") },
+  { modality: "echo", grade: "MEDIUM", pattern: new RegExp(`${word("сердечн\\p{L}* недостаточност")}|${word("ХСН")}|${word("СНсФВ")}|${word("СНнФВ")}|${word("фракци\\p{L}* выброса")}|${word("иНГЛТ")}|SGLT2|heart failure|ejection fraction|HFpEF|HFrEF`, "iu"), alternatives: ["mri"] },
+  { modality: "blood_pressure", grade: "MEDIUM", pattern: /blood pressure/iu },
+  { modality: "ct", grade: "STRONG", pattern: new RegExp(`${word("КТ")}(?![\\p{L}])|${word("компьютерн\\p{L}* томограф")}|${word("кальци\\p{L}* индекс")}|${word("коронарн\\p{L}* кальц")}|coronary CT`, "iu") },
+  { modality: "ct", grade: "MEDIUM", pattern: new RegExp(`${word("ИБС")}|${word("ишеми")}|${word("стенокард")}|${word("коронарн")}|${word("аорт")}|${word("антиагрег")}|${word("антитромбоцит")}|coronary|ischemi|angina|aortic|antiplatelet`, "iu") },
+];
+
+export function matchCardioIllustration(input: { text: string; kind?: string | null }): IllustrationMatch | null {
+  const media = approvedImagingMedia("cardiology");
+  for (const rule of RULES) {
+    if (!rule.pattern.test(input.text)) continue;
+    const asset = media.find(item => item.modality === rule.modality);
+    if (asset) return { asset, grade: rule.grade, alternatives: media.filter(item => rule.alternatives?.includes(item.modality)) };
+  }
+  if (input.kind === "guideline" || input.kind === "clinical" || input.kind === "guideline_change") {
+    const anatomy = media.find(item => item.modality === "anatomy");
+    return anatomy ? { asset: anatomy, grade: "MEDIUM", alternatives: media.filter(item => item.modality === "echo") } : null;
+  }
+  return null;
+}
+
 export function approvedEditorialMediaForContent(content: ContentObject): ApprovedMedicalMediaAsset | null {
   if (content.specialty !== "cardiology") return null;
-  const text = [content.title, content.summary, ...content.tags, ...content.topics].join(" ").toLocaleLowerCase("ru-RU");
-  const media = approvedImagingMedia("cardiology");
-
-  if (/эхо|эхокар|узи|ультразв/iu.test(text)) return media.find(asset => asset.modality === "echo") ?? null;
-  if (/коронар|стент|чкв|ангиограф/iu.test(text)) return media.find(asset => asset.modality === "angiography") ?? null;
-  if (/кт|томограф|аорт|сосуд/iu.test(text)) return media.find(asset => asset.modality === "ct") ?? null;
-  if (/мрт|миокард|инфаркт|желудоч/iu.test(text)) return media.find(asset => asset.modality === "mri") ?? null;
-  if (content.kind === "clinical" || content.kind === "guideline") return media.find(asset => asset.modality === "anatomy") ?? null;
-  return null;
+  return matchCardioIllustration({ text: [content.title, content.summary, ...content.tags, ...content.topics].join(" "), kind: content.kind })?.asset ?? null;
 }

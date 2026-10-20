@@ -20,9 +20,18 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(metrics.body).toBeLessThanOrEqual(metrics.inner + 1);
 }
 
-test("home is a delegation workspace, not a feed", async ({ page }) => {
+test("home opens on the «Что нового для вас» feed, delegation and agents below", async ({ page }) => {
   await page.goto("/cardiology");
-  await expect(page.getByRole("heading", { level: 1, name: "Что хотите делегировать?" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Что нового для вас" })).toBeVisible();
+  const feed = page.locator(".ws-feed");
+  await expect(feed.locator("> *").first().locator("svg.ws-feed-art")).toBeVisible();
+  await expect(feed.locator(".fa-ecg_af").first()).toBeAttached();
+  const partner = page.getByRole("complementary", { name: "Партнёрский материал" });
+  await expect(partner).toBeVisible();
+  await expect(partner).toContainText("Партнёрский материал");
+  await expect(page.locator(".ws-feed-video")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: /Смотреть видеолекцию/ })).toHaveAttribute("href", /\/cardiology\/content\/video-/);
+  await expect(page.getByRole("textbox", { name: "Что хотите делегировать?" })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Основная навигация" });
   await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: /Мои агенты/ })).toBeVisible();
@@ -61,9 +70,15 @@ test("drug agent shows since-last-visit change detection with evidence", async (
 test("events agent: discovery → relevance → confirmed calendar file", async ({ page }) => {
   await setupInterests(page, ["ХСН"]);
   await page.goto("/cardiology/agents/events");
+  // Russian accredited events came from rnmo.ru, which the physicians rejected;
+  // organiser-sourced congresses remain, so the test looks abroad.
+  await page.getByRole("button", { name: "Настроить агента" }).click();
+  await page.getByRole("group", { name: "Город и формат" }).getByRole("button", { name: "Зарубежные", exact: true }).click();
+  await page.getByRole("button", { name: "Сохранить и запустить" }).click();
   const event = page.locator(".ws-result-event").first();
+  await expect(event).toBeVisible({ timeout: 30_000 });
   await expect(event).toBeVisible();
-  await expect(event.locator(".ws-reasons")).toContainText(/Тема|Онлайн|Москва|НМО|Через/);
+  await expect(event.locator(".ws-reasons")).toContainText(/Тема|Онлайн|Москва|НМО|Через|Зарубеж/);
   await event.getByRole("button", { name: "В календарь" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Нужно ваше подтверждение")).toBeVisible();
@@ -84,6 +99,8 @@ test("composer routes intent → plan → tools → evidence-backed result", asy
   await expect(page.locator(".ws-route")).toContainText("Исследовать тему");
   await page.locator(".ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/agents\/research\?run=/, { timeout: 30_000 });
+  // The research trace is collapsed by default so the report stays first.
+  await page.locator(".ws-trace-disclosure > summary").click();
   const trace = page.locator(".ws-trace");
   await expect(trace.getByRole("heading", { name: "Как получен результат" })).toBeVisible();
   await expect(trace).toContainText("Искали в каталоге РКО и РКЖ");

@@ -1,4 +1,5 @@
 import { weakestVerification } from "@/lib/agents/format";
+import { assessSource, type SourceAssessment } from "./source-policy";
 import { lexicalSupport } from "@/lib/agents/text";
 import type { Evidence, VerificationStatus } from "@/lib/agents/types";
 import type { QuoteEvidence } from "./evidence";
@@ -47,10 +48,29 @@ export function numericConsistency(claim: string, support: string): boolean {
   return claimNumbers.every(value => supportNumbers.has(value));
 }
 
+/** Physician standing of the evidence source; user content is the user's own and is not assessed. */
+export function sourceAssessmentFor(evidence: Pick<Evidence, "sourceUrl" | "provenance">): SourceAssessment | null {
+  if (evidence.provenance.ownership === "USER_UPLOADED" || evidence.provenance.ownership === "GENERATED") return null;
+  return assessSource({ url: evidence.sourceUrl ?? evidence.provenance.sourceUrl, journal: evidence.provenance.journal });
+}
+
+function standingNote(source: SourceAssessment): string | null {
+  if (source.standing === "approved") return source.brand;
+  if (source.standing === "conditional") return source.condition ? `${source.brand}: ${source.condition}` : source.brand;
+  if (source.standing === "reviewed_not_whitelisted" || source.standing === "rejected") return [source.brand, source.note].filter(Boolean).join(" — ");
+  return null;
+}
+
 export function factCheck(evidence: Evidence, context: FactCheckContext = {}): Evidence {
+  const source = sourceAssessmentFor(evidence);
+  if (source) evidence = { ...evidence, provenance: { ...evidence.provenance, standing: source.standing, standingNote: standingNote(source) } };
   const notes: string[] = [];
   let status: VerificationStatus;
   let confidence = evidence.confidence;
+
+  if (source?.standing === "rejected") {
+    return { ...evidence, verificationStatus: "UNSUPPORTED", confidence: 0, verificationNote: `Источник отклонён врачами при валидации источников${source.brand ? ` (${source.brand})` : ""} — не используется как доказательство` };
+  }
 
   if (context.connectorAvailable === false) {
     return { ...evidence, verificationStatus: "UNKNOWN", confidence: 0, verificationNote: evidence.verificationNote ?? "Источник недоступен во время проверки" };
@@ -89,6 +109,8 @@ export function factCheck(evidence: Evidence, context: FactCheckContext = {}): E
   if (context.currentness === "archived") { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push("Архивный материал"); }
   if (context.editorialStatus === "derived_from_source") { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push("Карточка составлена по документу — сверьте с полным текстом"); }
   if (context.dateUncertain) { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push("Дата указана не полностью"); }
+  if (source?.standing === "reviewed_not_whitelisted") { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push(`Не в белом списке врачей: ${standingNote(source) ?? "источник"}`); }
+  if (source?.standing === "conditional" && source.condition) notes.push(`Врачи одобрили с условием: ${source.condition}`);
 
   return { ...evidence, verificationStatus: status, confidence, verificationNote: notes.length ? notes.join(". ") : null };
 }

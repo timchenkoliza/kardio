@@ -1,7 +1,7 @@
 import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, PlanStep, ToolUse } from "@/lib/agents/types";
-import { pubmedConceptsIn, topicLabels } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
 import type { ResultDraft, ToolOutput } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
@@ -9,6 +9,7 @@ import { evidenceFromCatalog, evidenceFromPubmed, catalogProvenance, pubmedProve
 import { eventDrafts } from "./services/event";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
+import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
 
 /**
@@ -109,7 +110,7 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
   let pubmedDrafts: ResultDraft[] = [];
   if (!wants.size || wants.has("research")) {
     const window = pubmedWindow(ctx, 14);
-    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term: tools.pubmedTermForTopics(ctx), ...window, retmax: 5, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
+    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term: tools.pubmedTermForTopics(ctx), ...window, retmax: 5, journals: tools.trustedJournals(ctx), publicationTypes: CLINICAL_PUBLICATION_TYPES }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
     pubmedDrafts = articles.map(article => ({
       key: stableId("update", "pubmed", article.pmid),
       agentId: ctx.agentId,
@@ -118,7 +119,7 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
       category: "publication",
       title: truncate(article.title, 180),
       summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.authors.length ? ` · ${article.authors.slice(0, 3).join(", ")}${article.authors.length > 3 ? " и др." : ""}` : ""}`,
-      reasonShown: ["Новая публикация по вашим темам", tools.trustedJournals(ctx).length ? "Из доверенных журналов" : "PubMed"],
+      reasonShown: ["Новая публикация по вашим темам", "Клинические исследования и обзоры из отобранных журналов"],
       observedAt: article.sortDate,
       evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
       source: pubmedProvenance(article, ctx.nowIso),
@@ -165,9 +166,12 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в настройках агента");
     return { intent: "research_question", plan: builder.plan, toolsUsed: [], drafts: [], synthesis: null, notices: [] };
   }
-  builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(ctx)}`);
-  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: ctx.preference.topics }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
-  const topicTerm = tools.pubmedTermForTopics(ctx);
+  // A typed question is searched by its own topics, not by every topic in the profile.
+  const questionTopics = ctx.inputText?.trim() ? topicsMentioned(ctx.specialty, question) : ctx.preference.topics;
+  const scoped: AgentContext = questionTopics.length ? { ...ctx, preference: { ...ctx.preference, topics: questionTopics } } : ctx;
+  builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(scoped)}`);
+  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: questionTopics, requireTopicMatch: Boolean(ctx.inputText?.trim()) }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
+  const topicTerm = tools.pubmedTermForTopics(scoped);
   const englishTerms = question.match(/[A-Za-z][A-Za-z0-9\- ]{2,}/g)?.join(" ").trim();
   const concepts = pubmedConceptsIn(question);
   const conceptTerm = concepts.length ? concepts.map(item => `(${item.term})`).join(" AND ") : null;

@@ -7,6 +7,7 @@ import { Bot, ChevronDown, FolderOpen, LayoutGrid, Settings2 } from "lucide-reac
 import type { SpecialtyId } from "@/lib/domain/types";
 import { WorkspaceProvider } from "./workspace-provider";
 import { ActionConfirmDialog } from "./action-confirm-dialog";
+import { ResearchJobWatcher } from "./research-job-watcher";
 
 export type WorkspaceSection = "home" | "agents" | "materials" | "settings" | "content";
 
@@ -26,8 +27,8 @@ export function sectionFromPath(pathname: string, specialty: string): WorkspaceS
 }
 
 /** The beta lockup exactly as supplied by the design system (never retyped). */
-function BrandLockup({ specialty }: { specialty: SpecialtyId }) {
-  return <Link className="ws-brand" href={`/${specialty}`}>
+export function BrandLockup({ specialty, href }: { specialty: SpecialtyId; href?: string }) {
+  return <Link className="ws-brand" href={href ?? `/${specialty}`}>
     {/* eslint-disable-next-line @next/next/no-img-element -- static SVG lockup from the design system */}
     <img src="/brand/yandex-med-beta.svg" alt="Яндекс Мед β — главное" width={159} height={24} />
   </Link>;
@@ -87,6 +88,7 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
         </Link>)}
         <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><Settings2 size={20} aria-hidden="true" /><span>Настройки</span></Link>
       </nav>
+      <ResearchJobWatcher specialty={specialty} />
       <ActionConfirmDialog />
     </div>
   </WorkspaceProvider>;

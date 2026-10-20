@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
+import { agentHref } from "@/lib/agents/definitions";
 import type { AgentDefinition, AgentPreference, ContentTypePref, DeliveryChannel, EventFormatPref, Frequency, LearningGoal } from "@/lib/agents/types";
 import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, FREQUENCY_OPTIONS, GOAL_OPTIONS, HORIZON_OPTIONS, topicsFor } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
@@ -20,6 +22,7 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
   enabled: boolean;
   defaultOpen?: boolean;
 }) {
+  const router = useRouter();
   const { command, pending } = useWorkspace();
   const [open, setOpen] = useState(defaultOpen);
   const [ownTopics, setOwnTopics] = useState(Boolean(preference.topics && preference.topics.length));
@@ -35,10 +38,11 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
 
   async function save() {
     setSaved(false);
+    const shouldRun = definition.id !== "research" && definition.id !== "materials";
     const result = await command({
       action: "configureAgent",
       agentId: definition.id,
-      run: definition.id !== "research" && definition.id !== "materials",
+      run: shouldRun,
       preference: {
         ...(groups.has("topics") ? { topics: ownTopics ? topics : null } : {}),
         ...(groups.has("contentTypes") ? { contentTypes } : {}),
@@ -48,8 +52,15 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
         ...(groups.has("horizon") ? { horizonDays: horizon } : {}),
         ...(groups.has("goals") ? { goals } : {}),
       },
-    });
-    if (result) setSaved(true);
+    }, { refresh: !shouldRun });
+    if (!result) return;
+    setSaved(true);
+    // A page may be deep-linked to an older ?run=. After save+run the new run
+    // must become the visible run; a plain router.refresh() preserves the old
+    // query parameter and creates a contradictory UI (fresh headline, old body).
+    if (shouldRun && result.runId) {
+      router.replace(`${agentHref(specialty, definition.id)}?run=${encodeURIComponent(result.runId)}`);
+    }
   }
 
   async function toggleEnabled() {

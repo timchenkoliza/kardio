@@ -101,7 +101,8 @@ describe("drug agent: change detection", () => {
     expect(categories).toContain("NEW_RESTRICTION");
     expect(categories).toContain("IMPORTANT_NEW_STUDY");
     expect(outcome.results.some(result => result.title.includes("Баксдростат зарегистрирован в России"))).toBe(true);
-    expect(outcome.results.filter(result => !result.partner).every(result => result.evidence.every(item => item.sourceUrl))).toBe(true);
+    // Every claim has a source URL, except the explicit "official registry not connected" check (ГРЛС / FDA primary), which must stay unverified.
+    expect(outcome.results.filter(result => !result.partner).every(result => result.evidence.every(item => item.sourceUrl || (item.verificationStatus !== "SUPPORTED" && ["grls", "regulatory-primary"].includes(item.provenance.connectorId))))).toBe(true);
 
     const card = buildCard({ definition: AGENT_DEFINITIONS.drugs, profile, specialty: "cardiology", latestRun: outcome.run, current: currentResults(outcome.results, outcome.run), now: FIXED_NOW });
     expect(card.headline).toMatch(/3 регистрации • 1 новое ограничение • 1 исследование/);
@@ -125,25 +126,31 @@ describe("drug agent: change detection", () => {
 });
 
 describe("events agent: discovery → relevance → next action", () => {
-  it("finds Moscow and online events in the next 60 days and explains why", async () => {
+  it("hides events whose only source physicians rejected (rnmo.ru) and says so", async () => {
     const profile = profileWith("cardiology", ["hf", "ah", "cardiorenal"], { events: { formats: ["moscow", "online"], horizonDays: 60 } });
     const outcome = await runAgent({ store, sessionId: SESSION, catalog: await catalog(), pubmed: fakePubmed([]), now: () => FIXED_NOW }, { agentId: "events", specialty: "cardiology", profile, trigger: "manual" });
     const events = outcome.results.filter(result => result.kind === "event");
-    expect(events.length).toBeGreaterThan(2);
+    expect(events.some(event => String(event.attributes.listingUrl ?? "").includes("rnmo.ru") || String(event.source.sourceUrl ?? "").includes("rnmo.ru"))).toBe(false);
+    expect(outcome.run.riskNotices.join(" ")).toMatch(/отклонённых врачами/);
+  });
+
+  it("finds organiser-sourced events in the horizon and explains why", async () => {
+    const profile = profileWith("cardiology", ["hf", "ah", "valves"], { events: { formats: ["international"], horizonDays: 60 } });
+    const outcome = await runAgent({ store, sessionId: SESSION, catalog: await catalog(), pubmed: fakePubmed([]), now: () => FIXED_NOW }, { agentId: "events", specialty: "cardiology", profile, trigger: "manual" });
+    const events = outcome.results.filter(result => result.kind === "event");
+    expect(events.length).toBeGreaterThan(0);
     for (const event of events) {
       expect(String(event.attributes.startDate) >= "2026-10-19").toBe(true);
       expect(String(event.attributes.startDate) <= "2026-12-18").toBe(true);
-      expect(event.attributes.online === true || event.attributes.region === "moscow").toBe(true);
       expect(event.reasonShown.length).toBeGreaterThan(1);
       expect(event.actions.find(action => action.kind === "registration")?.requiresConfirmation).toBe(true);
       expect(event.actions.find(action => action.kind === "calendar")?.requiresConfirmation).toBe(true);
     }
-    expect(events.some(event => event.title.includes("КардиоДиалог 2026"))).toBe(true);
-    expect(events.some(event => event.title.includes("AHA"))).toBe(false);
+    expect(events.some(event => event.title.includes("AHA"))).toBe(true);
   });
 
   it("prepares calendar writes for confirmation and builds an ICS with reminders only after confirming", async () => {
-    const profile = profileWith("cardiology", ["hf"], { events: { formats: ["moscow", "online"], horizonDays: 60 } });
+    const profile = profileWith("cardiology", ["hf"], { events: { formats: ["international"], horizonDays: 60 } });
     const outcome = await runAgent({ store, sessionId: SESSION, catalog: await catalog(), pubmed: fakePubmed([]), now: () => FIXED_NOW }, { agentId: "events", specialty: "cardiology", profile, trigger: "composer", text: "Найди события по ХСН, зарегистрируй меня и поставь в календарь", routed: { agentId: "events", intent: "find_events", confidence: 1, topics: ["hf"], reasons: [], risk: { prescribing: false, imageInterpretation: false, emergency: false, patientSpecific: false }, wantsCalendar: true, wantsRegistration: true } });
     const calendar = outcome.actions.find(action => action.kind === "calendar_write");
     expect(calendar?.status).toBe("pending_confirmation");
