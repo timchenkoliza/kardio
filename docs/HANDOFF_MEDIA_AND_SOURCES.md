@@ -58,3 +58,20 @@ Apply it across the agent layer:
 ## Verification bar (unchanged)
 
 typecheck, lint (eslint + design tokens + product copy), `npm test` with and without `DATABASE_URL`, `npm run test:integration`, `npm run build`, e2e with and without a DB, real-browser screenshots at 390 / 768 / 1440 with no horizontal overflow and no console errors.
+
+## Status after QA pass (branch feature/agent-first-qa)
+
+Done:
+- Physician-validated sources (B2D) drive fact-check, supervisor drops and ranking; Settings lists them.
+- Clinical Visual Recraft at the image ↔ article matching stage: `lib/recraft`, `server/recraft`,
+  `/admin/media-recraft`, `POST /api/media/recraft`, spec `context/41_CLINICAL_VISUAL_RECRAFT.md`.
+  Without `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` it reports «недоступно» and never fabricates output.
+- Feed illustrations: nine licensed Wikimedia Commons images stored as 2:1 crops in `public/media/cardiology`,
+  gated matcher (weak proxies dropped), four of every five article cards illustrated, neighbours not repeated.
+- Partner cabinet: all five placement formats of the commercial offer with examples (Статья, Полезное,
+  Медиа, Событие, Бренд-страница компании); content studio outputs follow the same five formats.
+
+Still blocked by access:
+- Google Drive cardiology folder and Yandex Disk oncology folder: no Drive connector and no Yandex token in
+  this environment, so the real Telegram media library is not ingested yet.
+- Events from rnmo.ru stay hidden (rejected source) until re-sourced from scardio.ru / edu.rosminzdrav.ru.
