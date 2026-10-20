@@ -6,6 +6,7 @@ import { createContentStudioPackage, requestContentStudioReview, updatePublicati
 import { getRequestAccessStateFromRequest } from "@/server/access/request-access";
 import { assertSameOriginRequest, readJsonBody } from "@/server/agents/http";
 import { failure, HttpError, json, rateLimit } from "@/server/http";
+import { ingestContentStudioSource } from "@/server/pharma/source-ingestion";
 import { contentStudioStore, contentStudioWorkspaceIdForSubject } from "@/server/pharma/store";
 import { ensureSession, SESSION_COOKIE } from "@/server/services/state";
 
@@ -15,8 +16,16 @@ export const dynamic = "force-dynamic";
 const specialty = z.enum(["cardiology", "oncology"]);
 const packageId = z.string().regex(/^pkg-[a-f0-9-]{36}$/);
 const draftId = z.string().regex(/^draft-[a-f0-9-]{36}$/);
+const httpUrl = z.string().trim().max(1200).refine(value => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch { return false; }
+}, "Ожидается HTTP(S) URL");
+const sourceUrl = z.union([httpUrl, z.literal("")]).transform(value => value || null);
 const commandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("create"), specialty, briefText: z.string().trim().min(4).max(6000) }).strict(),
+  z.object({ action: z.literal("addSource"), specialty, packageId, sourceKind: z.enum(["partner_material", "external_reference"]), title: z.string().trim().min(2).max(240), url: sourceUrl, text: z.string().trim().min(20).max(30000) }).strict(),
   z.object({ action: z.literal("updateDraft"), specialty, packageId, draftId, title: z.string().trim().min(2).max(240), content: z.string().trim().min(2).max(12000) }).strict(),
   z.object({ action: z.literal("requestReview"), specialty, packageId }).strict(),
 ]);
@@ -34,6 +43,7 @@ function attachSessionCookie(response: NextResponse, sessionId: string) {
 
 function capabilityFor(command: Command) {
   if (command.action === "create") return "run" as const;
+  if (command.action === "addSource") return "upload_source" as const;
   if (command.action === "updateDraft") return "edit_draft" as const;
   return "request_review" as const;
 }
@@ -43,7 +53,7 @@ export async function POST(request: NextRequest) {
     assertSameOriginRequest(request, "json");
     const key = request.cookies.get(SESSION_COOKIE)?.value ?? request.headers.get("x-forwarded-for") ?? "anonymous";
     rateLimit(`content-studio:${key}`, 50);
-    const command = commandSchema.parse(await readJsonBody(request, 24 * 1024));
+    const command = commandSchema.parse(await readJsonBody(request, 48 * 1024));
     const access = getRequestAccessStateFromRequest(request);
     const workspaceId = contentStudioWorkspaceIdForSubject(access.subject.id);
     if (!workspaceId) throw new HttpError(403, "Content Studio недоступен текущему workspace-пользователю.");
@@ -64,6 +74,19 @@ export async function POST(request: NextRequest) {
     const current = await store.getPackage(session.id, specialtyId, workspaceId, command.packageId);
     if (!current) throw new HttpError(404, "Пакет публикации не найден.");
 
+    if (command.action === "addSource") {
+      if (current.status !== "draft") throw new HttpError(409, "Пакет уже передан на review и закрыт для новых источников.");
+      let pkg;
+      try {
+        pkg = ingestContentStudioSource(current, { kind: command.sourceKind, title: command.title, url: command.url, text: command.text });
+      } catch (error) {
+        if (error instanceof Error && error.message === "source_content_required") throw new HttpError(400, "Добавьте название и текст источника.");
+        throw error;
+      }
+      await store.savePackage(session.id, pkg);
+      return attachSessionCookie(json({ ok: true, package: pkg, storage: store.kind }), session.id);
+    }
+
     if (command.action === "updateDraft") {
       if (current.status !== "draft") throw new HttpError(409, "Пакет уже передан на review и закрыт для редактирования.");
       let pkg;
@@ -77,7 +100,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (current.status !== "draft") throw new HttpError(409, "Пакет уже находится на review или прошёл его.");
-    const pkg = requestContentStudioReview(current);
+    let pkg;
+    try { pkg = requestContentStudioReview(current); }
+    catch (error) {
+      if (error instanceof Error && error.message === "source_required") throw new HttpError(409, "Перед review добавьте хотя бы один исходный материал или внешний источник.");
+      if (error instanceof Error && error.message === "claim_map_required") throw new HttpError(409, "Перед review нужен хотя бы один извлечённый claim. Добавьте текст источника с проверяемыми медицинскими утверждениями.");
+      throw error;
+    }
     await store.savePackage(session.id, pkg);
     return attachSessionCookie(json({ ok: true, package: pkg, storage: store.kind }), session.id);
   } catch (error) {

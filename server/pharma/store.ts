@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { anonymousSessions } from "@/db/schema";
 import type { AccessSubjectId } from "@/lib/access/agent-entitlements";
 import type { SpecialtyId, UserState } from "@/lib/domain/types";
-import type { ContentStudioPackage, PartnerWorkspaceId } from "@/lib/pharma/content-studio";
+import { normalizeContentStudioPackage, type ContentStudioPackage, type PartnerWorkspaceId } from "@/lib/pharma/content-studio";
 import { HttpError } from "@/server/http";
 
 const MAX_PACKAGES_PER_WORKSPACE = 40;
@@ -24,6 +24,7 @@ function scopedPackages(value: UserState | null | undefined, specialty: Specialt
   return Array.isArray(state?.contentStudioPackages)
     ? state.contentStudioPackages
       .filter(pkg => pkg && pkg.specialty === specialty && pkg.workspaceId === workspaceId)
+      .map(pkg => normalizeContentStudioPackage(pkg))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .slice(0, MAX_PACKAGES_PER_WORKSPACE)
     : [];
@@ -39,6 +40,7 @@ class MemoryContentStudioStore implements ContentStudioStore {
 
   async listPackages(sessionId: string, specialty: SpecialtyId, workspaceId: PartnerWorkspaceId) {
     return [...(this.packages.get(this.key(sessionId, specialty, workspaceId)) ?? [])]
+      .map(pkg => normalizeContentStudioPackage(pkg))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
@@ -47,9 +49,10 @@ class MemoryContentStudioStore implements ContentStudioStore {
   }
 
   async savePackage(sessionId: string, pkg: ContentStudioPackage) {
-    const key = this.key(sessionId, pkg.specialty, pkg.workspaceId);
+    const normalized = normalizeContentStudioPackage(pkg);
+    const key = this.key(sessionId, normalized.specialty, normalized.workspaceId);
     const current = this.packages.get(key) ?? [];
-    const next = [pkg, ...current.filter(item => item.id !== pkg.id)]
+    const next = [normalized, ...current.filter(item => item.id !== normalized.id)]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .slice(0, MAX_PACKAGES_PER_WORKSPACE);
     this.packages.set(key, next);
@@ -69,16 +72,17 @@ class PostgresContentStudioStore implements ContentStudioStore {
   }
 
   async savePackage(sessionId: string, pkg: ContentStudioPackage) {
+    const normalized = normalizeContentStudioPackage(pkg);
     await db.transaction(async tx => {
       const [record] = await tx.select().from(anonymousSessions).where(eq(anonymousSessions.id, sessionId)).for("update");
       if (!record) throw new HttpError(401, "Сессия завершена. Обновите страницу.");
       const currentState = record.state as SessionStateWithContentStudio;
       const all = Array.isArray(currentState.contentStudioPackages) ? currentState.contentStudioPackages : [];
-      const sameWorkspace = all.filter(item => item.specialty === pkg.specialty && item.workspaceId === pkg.workspaceId);
-      const scoped = [pkg, ...sameWorkspace.filter(item => item.id !== pkg.id)]
+      const sameWorkspace = all.filter(item => item.specialty === normalized.specialty && item.workspaceId === normalized.workspaceId);
+      const scoped = [normalized, ...sameWorkspace.filter(item => item.id !== normalized.id)]
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, MAX_PACKAGES_PER_WORKSPACE);
-      const untouched = all.filter(item => item.specialty !== pkg.specialty || item.workspaceId !== pkg.workspaceId);
+      const untouched = all.filter(item => item.specialty !== normalized.specialty || item.workspaceId !== normalized.workspaceId);
       const nextState = { ...record.state, contentStudioPackages: [...scoped, ...untouched] };
       await tx.update(anonymousSessions).set({ state: nextState, updatedAt: new Date() }).where(eq(anonymousSessions.id, sessionId));
     });

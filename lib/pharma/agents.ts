@@ -18,7 +18,7 @@ export const PHARMA_AGENT_DEFINITIONS: Record<PharmaAgentId, PharmaAgentDefiniti
     id: "content_studio",
     name: "Публикатор / Content Studio",
     job: "Превращает материал партнёра в управляемый пакет публикации для Яндекс Мед",
-    description: "Принимает бриф, текст или ссылку на исходный материал; создаёт пакет со статьёй, полезным форматом, медиа, событием и performance-размещением. Медицинские claims должны пройти evidence/compliance gate до одобрения и публикации.",
+    description: "Принимает бриф и исходные материалы; строит Claim Map, применяет evidence/source-policy/compliance gate и ведёт пакет со статьёй, полезным форматом, медиа, событием и performance-размещением до review.",
     inputs: ["brief", "source_material", "campaign_goal", "audience"],
     outputs: ["article", "useful", "media", "event", "performance"],
     status: "experimental",
@@ -39,10 +39,10 @@ export function planContentStudio(input: string): ContentStudioPlan {
     input: input.trim(),
     steps: [
       "Разобрать бриф и определить аудиторию, цель и обязательные сообщения",
-      "Выделить медицинские claims и источники для проверки",
-      "Проверить claims, маркировку партнёра и ограничения публикации",
-      "Собрать варианты форматов под Ленту и целевое действие",
-      "Передать выбранный вариант на human approval перед публикацией",
+      "Принять исходные материалы и выделить атомарные медицинские claims",
+      "Применить source-policy, FactCheck и compliance gate к каждому claim",
+      "Собрать рабочие форматы под Ленту и целевое действие без неподтверждённых медицинских утверждений",
+      "Передать пакет с Claim Map на human review перед одобрением и публикацией",
     ],
     outputs: PHARMA_AGENT_DEFINITIONS.content_studio.outputs,
   };

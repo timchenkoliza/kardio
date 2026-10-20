@@ -1,4 +1,6 @@
 import type { AccessSubjectId } from "@/lib/access/agent-entitlements";
+import type { SourceStanding } from "@/lib/agents/source-policy";
+import type { VerificationStatus } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { PHARMA_AGENT_DEFINITIONS, planContentStudio, type PharmaOutputKind } from "./agents";
 
@@ -7,6 +9,9 @@ export type PublicationDraftStatus = "draft" | "in_review" | "approved" | "publi
 export type ContentStudioPackageStatus = PublicationDraftStatus;
 export type ContentStudioRunStatus = "completed" | "failed";
 export type ContentStudioGenerationMode = "template_scaffold";
+export type ContentStudioSourceKind = "partner_material" | "external_reference";
+export type ContentStudioSourceStanding = SourceStanding;
+export type ClaimComplianceStatus = "allowed" | "needs_review" | "blocked";
 
 export interface ContentStudioBrief {
   id: string;
@@ -28,6 +33,37 @@ export interface ContentStudioRun {
   note: string;
 }
 
+export interface ContentStudioSource {
+  id: string;
+  kind: ContentStudioSourceKind;
+  title: string;
+  url: string | null;
+  suppliedText: string;
+  standing: ContentStudioSourceStanding;
+  policyLabel: string;
+  policyNote: string | null;
+  ingestedAt: string;
+}
+
+export interface ContentStudioClaim {
+  id: string;
+  text: string;
+  sourceId: string;
+  supportText: string;
+  verificationStatus: VerificationStatus;
+  verificationNote: string | null;
+  complianceStatus: ClaimComplianceStatus;
+  complianceReasons: string[];
+  allowedFormats: PharmaOutputKind[];
+  createdAt: string;
+}
+
+export interface ContentStudioComplianceSummary {
+  allowed: number;
+  needsReview: number;
+  blocked: number;
+}
+
 export interface PublicationDraft {
   id: string;
   kind: PharmaOutputKind;
@@ -47,6 +83,9 @@ export interface ContentStudioPackage {
   ownerSubjectId: AccessSubjectId;
   brief: ContentStudioBrief;
   run: ContentStudioRun;
+  sources: ContentStudioSource[];
+  claims: ContentStudioClaim[];
+  complianceSummary: ContentStudioComplianceSummary;
   drafts: PublicationDraft[];
   status: ContentStudioPackageStatus;
   reviewRequestedAt: string | null;
@@ -108,6 +147,20 @@ function scaffold(kind: PharmaOutputKind, brief: ContentStudioBrief): string {
   }
 }
 
+export function summarizeCompliance(claims: readonly ContentStudioClaim[]): ContentStudioComplianceSummary {
+  return {
+    allowed: claims.filter(claim => claim.complianceStatus === "allowed").length,
+    needsReview: claims.filter(claim => claim.complianceStatus === "needs_review").length,
+    blocked: claims.filter(claim => claim.complianceStatus === "blocked").length,
+  };
+}
+
+export function normalizeContentStudioPackage(pkg: ContentStudioPackage): ContentStudioPackage {
+  const sources = Array.isArray(pkg.sources) ? pkg.sources : [];
+  const claims = Array.isArray(pkg.claims) ? pkg.claims : [];
+  return { ...pkg, sources, claims, complianceSummary: summarizeCompliance(claims) };
+}
+
 export function createContentStudioPackage(args: {
   specialty: SpecialtyId;
   ownerSubjectId: AccessSubjectId;
@@ -156,10 +209,30 @@ export function createContentStudioPackage(args: {
       steps: [...plan.steps],
       note: "Создана персистентная структура пакета. Текстовые scaffolds не являются evidence-verified медицинским контентом.",
     },
+    sources: [],
+    claims: [],
+    complianceSummary: { allowed: 0, needsReview: 0, blocked: 0 },
     drafts,
     status: "draft",
     reviewRequestedAt: null,
     createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function addSourceEvidence(
+  pkg: ContentStudioPackage,
+  source: ContentStudioSource,
+  claims: readonly ContentStudioClaim[],
+  now = new Date().toISOString(),
+): ContentStudioPackage {
+  if (pkg.status !== "draft") throw new Error("package_not_editable");
+  const nextClaims = [...pkg.claims, ...claims];
+  return {
+    ...pkg,
+    sources: [...pkg.sources, source],
+    claims: nextClaims,
+    complianceSummary: summarizeCompliance(nextClaims),
     updatedAt: now,
   };
 }
@@ -185,6 +258,8 @@ export function updatePublicationDraft(
 
 export function requestContentStudioReview(pkg: ContentStudioPackage, now = new Date().toISOString()): ContentStudioPackage {
   if (pkg.status !== "draft") throw new Error("package_not_reviewable");
+  if (!pkg.sources.length) throw new Error("source_required");
+  if (!pkg.claims.length) throw new Error("claim_map_required");
   return {
     ...pkg,
     status: "in_review",

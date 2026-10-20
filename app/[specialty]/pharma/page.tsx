@@ -21,6 +21,7 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
   const agents = agentIds.map(id => id === "content_studio" ? PHARMA_AGENT_DEFINITIONS.content_studio : null).filter(Boolean);
   const canRunStudio = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "run");
   const canEditStudio = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "edit_draft");
+  const canUploadSource = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "upload_source");
   const canRequestReview = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "request_review");
   const workspaceId = contentStudioWorkspaceIdForSubject(access.subject.id);
   const sessionId = await pageSession(specialty);
@@ -35,11 +36,12 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
       <section className="ws-intro" aria-labelledby="pharma-title">
         <p className="ws-intro-meta">{specialtyLabel[specialty]} · кабинет фарма-партнёра · beta</p>
         <h1 id="pharma-title">Что хотите подготовить для врачей?</h1>
-        <p className="ws-intro-lead">Один вход для задач партнёра. Теперь Content Studio создаёт и сохраняет настоящий пакет: Brief → Run → Article / Useful / Media / Event / Performance → Review.</p>
+        <p className="ws-intro-lead">Один вход для задач партнёра. Content Studio ведёт пакет по цепочке Brief → Sources → Claim Map → Compliance → Article / Useful / Media / Event / Performance → Review.</p>
         <p className="ws-muted">Текущий demo-пользователь: <strong>{access.subject.label}</strong> · policy: {access.source === "preview_override" ? "preview override" : "default"}.</p>
         <PharmaComposer
           allowed={canRunStudio}
           canEdit={canEditStudio}
+          canUploadSource={canUploadSource}
           canRequestReview={canRequestReview}
           specialty={specialty}
           initialPackages={initialPackages}

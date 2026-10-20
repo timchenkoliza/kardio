@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addSourceEvidence,
   createContentStudioPackage,
   partnerWorkspaceForSubject,
   requestContentStudioReview,
   updatePublicationDraft,
+  type ContentStudioClaim,
+  type ContentStudioSource,
 } from "@/lib/pharma/content-studio";
 
 const NOW = "2026-10-20T12:00:00.000Z";
@@ -22,6 +25,9 @@ describe("Content Studio package lifecycle", () => {
     expect(pkg.run.status).toBe("completed");
     expect(pkg.run.mode).toBe("template_scaffold");
     expect(pkg.brief.sourceUrls).toEqual(["https://example.org/source"]);
+    expect(pkg.sources).toEqual([]);
+    expect(pkg.claims).toEqual([]);
+    expect(pkg.complianceSummary).toEqual({ allowed: 0, needsReview: 0, blocked: 0 });
     expect(pkg.drafts.map(draft => draft.kind)).toEqual(["article", "useful", "media", "event", "performance"]);
     expect(pkg.drafts.every(draft => draft.status === "draft" && draft.evidenceStatus === "not_checked")).toBe(true);
     expect(pkg.drafts.every(draft => draft.content.includes(pkg.brief.rawText))).toBe(true);
@@ -45,9 +51,52 @@ describe("Content Studio package lifecycle", () => {
     expect(updated.status).toBe("draft");
   });
 
-  it("locks all drafts after request for review", () => {
+  it("requires source evidence and a claim map before review", () => {
     const pkg = createContentStudioPackage({ specialty: "cardiology", ownerSubjectId: "pharma_demo", briefText: "Сделай пакет для кардиологов", now: NOW });
-    const review = requestContentStudioReview(pkg, "2026-10-20T12:10:00.000Z");
+    expect(() => requestContentStudioReview(pkg)).toThrow("source_required");
+
+    const source: ContentStudioSource = {
+      id: "phsrc-test",
+      kind: "partner_material",
+      title: "Тестовый исходник",
+      url: null,
+      suppliedText: "В исследовании участвовали пациенты с сердечной недостаточностью.",
+      standing: "unreviewed",
+      policyLabel: "Не проверен врачами",
+      policyNote: null,
+      ingestedAt: NOW,
+    };
+    const withoutClaims = addSourceEvidence(pkg, source, [], NOW);
+    expect(() => requestContentStudioReview(withoutClaims)).toThrow("claim_map_required");
+  });
+
+  it("locks all drafts after a sourced claim map is sent for review", () => {
+    const pkg = createContentStudioPackage({ specialty: "cardiology", ownerSubjectId: "pharma_demo", briefText: "Сделай пакет для кардиологов", now: NOW });
+    const source: ContentStudioSource = {
+      id: "phsrc-test",
+      kind: "partner_material",
+      title: "Тестовый исходник",
+      url: null,
+      suppliedText: "Терапия снижает риск госпитализации у пациентов с ХСН.",
+      standing: "unreviewed",
+      policyLabel: "Не проверен врачами",
+      policyNote: null,
+      ingestedAt: NOW,
+    };
+    const claim: ContentStudioClaim = {
+      id: "phclaim-test",
+      text: "Терапия снижает риск госпитализации у пациентов с ХСН.",
+      sourceId: source.id,
+      supportText: source.suppliedText,
+      verificationStatus: "UNKNOWN",
+      verificationNote: "Партнёрский исходник не является независимым evidence.",
+      complianceStatus: "needs_review",
+      complianceReasons: ["Нужен внешний источник."],
+      allowedFormats: [],
+      createdAt: NOW,
+    };
+    const sourced = addSourceEvidence(pkg, source, [claim], NOW);
+    const review = requestContentStudioReview(sourced, "2026-10-20T12:10:00.000Z");
 
     expect(review.status).toBe("in_review");
     expect(review.reviewRequestedAt).toBe("2026-10-20T12:10:00.000Z");
