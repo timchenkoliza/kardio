@@ -17,8 +17,8 @@ export const PHARMA_AGENT_DEFINITIONS: Record<PharmaAgentId, PharmaAgentDefiniti
   content_studio: {
     id: "content_studio",
     name: "Публикатор / Content Studio",
-    job: "Превращает проверенный материал партнёра в набор форматов для Яндекс Мед",
-    description: "Принимает бриф, текст или ссылку на исходный материал; строит план публикации для статьи, полезного формата, медиа, события и performance-размещения. Факты и медицинские утверждения должны пройти общий evidence/compliance gate до публикации.",
+    job: "Превращает материал партнёра в управляемый пакет публикации для Яндекс Мед",
+    description: "Принимает бриф, текст или ссылку на исходный материал; создаёт пакет со статьёй, полезным форматом, медиа, событием и performance-размещением. Медицинские claims должны пройти evidence/compliance gate до одобрения и публикации.",
     inputs: ["brief", "source_material", "campaign_goal", "audience"],
     outputs: ["article", "useful", "media", "event", "performance"],
     status: "experimental",
@@ -32,11 +32,7 @@ export interface ContentStudioPlan {
   outputs: readonly PharmaOutputKind[];
 }
 
-/**
- * First vertical slice: deterministic routing/plan preview only.
- * It deliberately does not pretend that content generation or publishing is
- * connected yet. The next commit can attach generation tools behind this plan.
- */
+/** Stable workflow plan embedded into each persisted Content Studio run. */
 export function planContentStudio(input: string): ContentStudioPlan {
   return {
     agentId: "content_studio",

@@ -7,6 +7,8 @@ import { PHARMA_AGENT_DEFINITIONS } from "@/lib/pharma/agents";
 import { isSpecialty } from "@/lib/specialty";
 import { specialtyLabel } from "@/lib/ui/labels";
 import { getRequestAccessState } from "@/server/access/request-access";
+import { pageSession } from "@/server/agents/page-session";
+import { contentStudioStore, contentStudioWorkspaceIdForSubject } from "@/server/pharma/store";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,13 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
   const agentIds = visibleAgentsForSubject(access.policy, access.subject.id, "partner_workspace");
   const agents = agentIds.map(id => id === "content_studio" ? PHARMA_AGENT_DEFINITIONS.content_studio : null).filter(Boolean);
   const canRunStudio = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "run");
+  const canEditStudio = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "edit_draft");
+  const canRequestReview = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "request_review");
+  const workspaceId = contentStudioWorkspaceIdForSubject(access.subject.id);
+  const sessionId = await pageSession(specialty);
+  const initialPackages = sessionId && workspaceId
+    ? await contentStudioStore().listPackages(sessionId, specialty, workspaceId)
+    : [];
 
   return <main className="ws-main" id="ws-main">
     <div className="ws-page">
@@ -26,9 +35,15 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
       <section className="ws-intro" aria-labelledby="pharma-title">
         <p className="ws-intro-meta">{specialtyLabel[specialty]} · кабинет фарма-партнёра · beta</p>
         <h1 id="pharma-title">Что хотите подготовить для врачей?</h1>
-        <p className="ws-intro-lead">Один вход для задач партнёра. Supervisor получает только каталог агентов, разрешённых текущему workspace-пользователю.</p>
+        <p className="ws-intro-lead">Один вход для задач партнёра. Теперь Content Studio создаёт и сохраняет настоящий пакет: Brief → Run → Article / Useful / Media / Event / Performance → Review.</p>
         <p className="ws-muted">Текущий demo-пользователь: <strong>{access.subject.label}</strong> · policy: {access.source === "preview_override" ? "preview override" : "default"}.</p>
-        <PharmaComposer allowed={canRunStudio} />
+        <PharmaComposer
+          allowed={canRunStudio}
+          canEdit={canEditStudio}
+          canRequestReview={canRequestReview}
+          specialty={specialty}
+          initialPackages={initialPackages}
+        />
       </section>
 
       <section className="ws-section ws-card-block" aria-labelledby="pharma-access-title">
