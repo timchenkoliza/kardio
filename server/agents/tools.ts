@@ -12,6 +12,7 @@ import { generateLearningPlan as buildLearningPlan } from "./services/learning";
 import { searchUserMaterials as searchMaterials, type MaterialHit } from "./services/material";
 import { matchPartnerContent as matchPartner } from "./services/partner";
 import { retrieveDocument as retrieveCatalogDocument, searchMedical as searchCatalog, searchSources as searchCatalogSources, sourcePreferenceMatches, type CatalogHit } from "./services/search";
+import { filterCatalogForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 
@@ -22,9 +23,31 @@ import { factCheck as factCheckEvidence } from "./services/fact-check";
  */
 
 export function searchMedical(ctx: AgentContext, args: { query?: string | null; kinds?: ReadonlyArray<ContentObject["kind"]>; limit?: number; topics?: string[] }): Promise<ToolOutput<CatalogHit>> {
-  return timedTool("searchMedical", ["catalog"], () => ({
-    items: searchCatalog({ specialty: ctx.specialty, content: ctx.catalog.content, topicIds: args.topics ?? ctx.preference.topics, query: args.query, trustedSources: ctx.preference.trustedSources, excludedSources: ctx.preference.excludedSources, kinds: args.kinds, limit: args.limit }),
-  }));
+  return timedTool("searchMedical", ["catalog"], () => {
+    const researchOptions = ctx.agentId === "research" ? researchRunOptionsFor(ctx.profile) : null;
+    const content = researchOptions ? filterCatalogForResearch(ctx.catalog.content, researchOptions) : ctx.catalog.content;
+    const baseArgs = {
+      specialty: ctx.specialty,
+      content,
+      topicIds: args.topics ?? ctx.preference.topics,
+      query: args.query,
+      trustedSources: ctx.preference.trustedSources,
+      excludedSources: ctx.preference.excludedSources,
+    };
+    const limit = args.limit ?? 12;
+    const main = searchCatalog({ ...baseArgs, kinds: args.kinds, limit });
+
+    if (!researchOptions || researchOptions.contentScope !== "all") return { items: main };
+
+    const guidelines = searchCatalog({ ...baseArgs, kinds: ["guideline", "clinical"], limit: Math.min(2, limit) });
+    const seen = new Set<string>();
+    const items = [...guidelines, ...main].filter(hit => {
+      if (seen.has(hit.content.id)) return false;
+      seen.add(hit.content.id);
+      return true;
+    }).slice(0, limit);
+    return { items };
+  });
 }
 
 export function pubmedTermForTopics(ctx: AgentContext, topics: readonly string[] = ctx.preference.topics): string | null {
@@ -39,6 +62,11 @@ export function trustedJournals(ctx: AgentContext): string[] {
 
 export function searchPubmed(ctx: AgentContext, args: { term: string | null; minDate?: string; maxDate?: string; retmax?: number; journals?: string[] }): Promise<ToolOutput<PubmedArticle>> {
   return timedTool("searchPubmed", ["pubmed"], async () => {
+    if (ctx.agentId === "research") {
+      const researchOptions = researchRunOptionsFor(ctx.profile);
+      if (researchOptions.sourceScope === "russia") return { items: [], status: "ok", note: "PubMed пропущен: выбран поиск только по источникам РФ" };
+      if (researchOptions.contentScope === "guidelines") return { items: [], status: "ok", note: "PubMed пропущен: выбран поиск только по клиническим рекомендациям" };
+    }
     if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в ваших источниках" };
     if (!args.term) return { items: [], status: "partial", note: "Нет тем для поиска" };
     const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals: args.journals });

@@ -1,31 +1,27 @@
 import type { AgentResultView } from "@/lib/agents/types";
+import {
+  DEFAULT_RESEARCH_RUN_OPTIONS,
+  type ResearchContentScope,
+  type ResearchMode,
+  type ResearchRunOptions,
+  type ResearchSourceScope,
+} from "@/lib/agents/research-options";
 
-export type PhysicianResearchMode = "articles" | "brief" | "academic";
-export type PhysicianResearchSourceScope = "all" | "russia" | "international";
-export type PhysicianResearchContentScope = "all" | "guidelines" | "research";
+export type PhysicianResearchMode = ResearchMode;
+export type PhysicianResearchSourceScope = ResearchSourceScope;
+export type PhysicianResearchContentScope = ResearchContentScope;
+export type PhysicianResearchViewOptions = ResearchRunOptions;
 
-export interface PhysicianResearchViewOptions {
-  mode: PhysicianResearchMode;
-  sourceScope: PhysicianResearchSourceScope;
-  contentScope: PhysicianResearchContentScope;
-}
-
-export const DEFAULT_PHYSICIAN_RESEARCH_VIEW: PhysicianResearchViewOptions = {
-  mode: "brief",
-  sourceScope: "all",
-  contentScope: "all",
-};
+export const DEFAULT_PHYSICIAN_RESEARCH_VIEW: PhysicianResearchViewOptions = DEFAULT_RESEARCH_RUN_OPTIONS;
 
 export const RESEARCH_MODE_OPTIONS: readonly Array<{
   id: PhysicianResearchMode;
   label: string;
   description: string;
-  estimate: string;
-  sources: string;
 }> = [
-  { id: "articles", label: "Найти статьи", description: "Сводная таблица без длинного отчёта", estimate: "текущий поиск: обычно до 1 мин", sources: "до 12 найденных источников" },
-  { id: "brief", label: "Краткий обзор", description: "Короткая сводка + проверяемые находки", estimate: "текущий поиск: обычно до 1 мин", sources: "до 12 найденных источников" },
-  { id: "academic", label: "Академическая основа · beta", description: "Структура и источники; пока не готовая статья", estimate: "beta: тот же поиск", sources: "глубокий режим — позже" },
+  { id: "articles", label: "Найти статьи", description: "Сводная таблица без длинного отчёта" },
+  { id: "brief", label: "Краткий обзор", description: "Короткая сводка + проверяемые находки" },
+  { id: "academic", label: "Академическая основа · beta", description: "Структура и источники; пока не готовая статья" },
 ] as const;
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -57,7 +53,7 @@ function sourceRegion(result: AgentResultView): "russia" | "international" {
       // Fall back to provenance when a stored URL cannot be parsed.
     }
   }
-  return result.source.dataOrigin === "catalog_snapshot" ? "russia" : "international";
+  return "international";
 }
 
 function contentGroup(result: AgentResultView): "guidelines" | "research" {
@@ -65,6 +61,7 @@ function contentGroup(result: AgentResultView): "guidelines" | "research" {
   return "research";
 }
 
+/** Compatibility filter for old saved runs. New runs are filtered before retrieval. */
 export function filterPhysicianResearchResults(results: readonly AgentResultView[], options: PhysicianResearchViewOptions): AgentResultView[] {
   return results.filter(result => {
     if (options.sourceScope !== "all" && sourceRegion(result) !== options.sourceScope) return false;

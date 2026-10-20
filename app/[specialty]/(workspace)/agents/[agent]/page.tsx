@@ -81,7 +81,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     <div className="ws-agent-layout">
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
-        {!selectedRun ? <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : onDemand ? "Задайте вопрос выше — поиск начнётся сразу. План до старта не нужен." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p> : <>
+        {!selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
           {onDemand && <ResearchOverview run={selectedRun} results={researchResults} totalResults={results.length} options={researchView} />}
 
           {!tracksNew && agentId !== "research" && results.length > 0 && <section className="ws-section" aria-labelledby="ws-all-title">
@@ -93,7 +93,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <h2 id="ws-research-results-title" className="ws-section-title">{researchView.mode === "articles" ? `Источники · ${researchResults.length}` : `Найдено · ${researchResults.length}`}</h2>
             {researchView.mode === "articles"
               ? <ResearchResultsTable results={researchResults} />
-              : <ResultList results={researchResults} specialty={specialty} emptyText="По выбранным фильтрам ничего не осталось. Расширьте источники или тип материалов." />}
+              : <ResultList results={researchResults} specialty={specialty} emptyText="По выбранным фильтрам ничего не найдено. Расширьте источники или тип материалов." />}
           </section>}
 
           {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">

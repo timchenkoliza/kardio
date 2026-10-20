@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowUp, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUp, Loader2, SlidersHorizontal } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import {
   RESEARCH_MODE_OPTIONS,
@@ -15,6 +15,16 @@ import {
 } from "@/lib/ui/physician-research-view";
 import { useWorkspace } from "./workspace-provider";
 
+async function responseError(response: Response): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: unknown };
+    if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
+  } catch {
+    // fall through
+  }
+  return "Не получилось запустить исследование. Попробуйте ещё раз.";
+}
+
 export function ResearchComposer({
   specialty,
   initialText = "",
@@ -25,7 +35,7 @@ export function ResearchComposer({
   initialOptions: PhysicianResearchViewOptions;
 }) {
   const router = useRouter();
-  const { command, pending } = useWorkspace();
+  const { notify, pending } = useWorkspace();
   const [text, setText] = useState(initialText.slice(0, 1200));
   const [mode, setMode] = useState<PhysicianResearchMode>(initialOptions.mode);
   const [sourceScope, setSourceScope] = useState<PhysicianResearchSourceScope>(initialOptions.sourceScope);
@@ -39,10 +49,25 @@ export function ResearchComposer({
     const value = text.trim();
     if (value.length < 2 || busy || pending) return;
     setBusy(true);
-    const result = await command({ action: "runTask", text: value, agentId: "research" }, { refresh: false });
-    setBusy(false);
-    if (!result?.runId) return;
-    router.push(`/${specialty}/agents/research?run=${encodeURIComponent(result.runId)}&${researchViewQuery(options)}`);
+    try {
+      const response = await fetch("/api/agents/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ specialty, text: value, ...options }),
+      });
+      if (!response.ok) {
+        notify(await responseError(response), "error");
+        return;
+      }
+      const result = await response.json() as { runId?: string; notices?: string[] };
+      if (!result.runId) return;
+      if (result.notices?.length) notify(result.notices[0]);
+      router.push(`/${specialty}/agents/research?run=${encodeURIComponent(result.runId)}&${researchViewQuery(options)}`);
+    } catch {
+      notify("Нет связи с сервером. Проверьте подключение.", "error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -62,10 +87,8 @@ export function ResearchComposer({
         >
           <strong>{option.label}</strong>
           <span>{option.description}</span>
-          <small>{option.estimate} · {option.sources}</small>
         </button>)}
       </div>
-      <p className="ws-research-estimate-note">Сейчас режимы меняют форму результата, а не глубину поиска. Отдельный глубокий академический поиск и его ETA подключим после замера реальных запусков.</p>
     </fieldset>
 
     <div className="ws-composer is-compact">
@@ -80,8 +103,7 @@ export function ResearchComposer({
           maxLength={1200}
           placeholder="Например: данные о ПОАК при ФП и промежуточном риске инсульта"
         />
-        <div className="ws-composer-bar">
-          <div className="ws-composer-tools"><span className="ws-route"><Search size={14} aria-hidden="true" />Поиск начнётся сразу — план перед стартом не нужен</span></div>
+        <div className="ws-composer-bar ws-research-submit-row">
           <button type="submit" className="ws-composer-run" disabled={busy || pending || text.trim().length < 2} aria-label="Начать исследование">
             {busy || pending ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
           </button>
@@ -89,7 +111,7 @@ export function ResearchComposer({
       </div>
     </div>
 
-    <div className="ws-research-filters" aria-label="Фильтры выдачи">
+    <div className="ws-research-filters" aria-label="Фильтры поиска">
       <SlidersHorizontal size={16} aria-hidden="true" />
       <label>Источники
         <select value={sourceScope} onChange={event => setSourceScope(event.target.value as PhysicianResearchSourceScope)}>
@@ -105,7 +127,7 @@ export function ResearchComposer({
           <option value="research">Только исследования</option>
         </select>
       </label>
-      <Link href={`/${specialty}/settings`} className="ws-text-link">Конкретные сайты — в настройках</Link>
+      <Link href={`/${specialty}/settings`} className="ws-text-link">Настройки источников</Link>
     </div>
   </form>;
 }

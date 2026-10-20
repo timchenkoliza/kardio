@@ -27,7 +27,7 @@
 }
 .ws-research-mode {
   min-width: 0;
-  min-height: 92px;
+  min-height: 76px;
   padding: var(--ws-space-12) var(--ws-space-16);
   display: flex;
   flex-direction: column;
@@ -45,8 +45,7 @@
 .ws-research-mode.is-selected { border-color: var(--ws-accent-soft); background: var(--ws-accent-wash); }
 .ws-research-mode strong { font-size: var(--font-size-label); line-height: var(--ws-leading-label); }
 .ws-research-mode span { color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
-.ws-research-mode small { color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
-.ws-research-estimate-note { margin: 0; color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
+.ws-research-submit-row { justify-content: flex-end; }
 
 .ws-research-filters {
   display: flex;
