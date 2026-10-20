@@ -16,7 +16,9 @@ Status: implemented on `feature/pharma-content-studio`.
 - citation templates for ГОСТ / APA / MLA using only metadata actually present in the result;
 - bibliography ordering by appearance or alphabetically;
 - downloadable Markdown, Word-compatible RTF and LaTeX, with or without bibliography;
-- responsive mode cards, filters, report controls and result table;
+- evidence comparison matrix for up to four supported / partially supported findings;
+- comparison rows use only structured evidence fields: source, date, evidence level, verification status and checked claim;
+- responsive desktop matrix + mobile comparison cards;
 - duplicate pre-search guidance and explanatory pills removed.
 
 ## Retrieval semantics
@@ -33,6 +35,10 @@ Citation formatting is metadata-bound. Missing author, issue, volume or page met
 
 The current brief synthesis directly uses up to four source-grounded findings. Those are the only records labelled `Использованы в сводке`; everything else is shown as additional retrieval, not falsely described as read or cited.
 
+## Evidence comparison honesty
+
+The comparison block is intentionally conservative. It appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. It never infers effect size, dose, study endpoint or recommendation strength from a title or abstract metadata. Those rows can be added only after the relevant structured fields are actually retrieved and verified.
+
 ## Deliberately not simulated
 
 The three research modes currently change result presentation, not search depth. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
@@ -41,8 +47,8 @@ The product still uses metadata / available extracts and does not claim to have 
 
 ## Next slices from interviews
 
-1. comparison tables generated from verified structured evidence;
-2. background long-running research with completion state and email notification;
-3. deeper academic writing mode after full-text retrieval and provenance are strong enough;
+1. background long-running research with completion state and email notification;
+2. deeper academic writing mode after full-text retrieval and provenance are strong enough;
+3. richer comparison rows (population / intervention / endpoint / effect) only after structured full-text extraction exists;
 4. presentation builder for teaching workflows;
 5. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.

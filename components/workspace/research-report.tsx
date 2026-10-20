@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExternalLink, ShieldCheck } from "lucide-react";
+import { ResearchComparison } from "./research-comparison";
 import { VERIFICATION_LABEL, weakestVerification } from "@/lib/agents/format";
 import type { AgentResultView, AgentRun, VerificationStatus } from "@/lib/agents/types";
 import type { PhysicianResearchMode, PhysicianResearchViewOptions } from "@/lib/ui/physician-research-view";
@@ -63,6 +64,7 @@ export function ResearchOverview({
       {run.synthesis.split("\n\n").map(paragraph => <p key={paragraph.slice(0, 60)}>{paragraph}</p>)}
       {options.mode === "academic" && <p className="ws-muted">Цитирование и экспорт доступны ниже. Beta пока не превращает найденные metadata в готовую академическую статью без проверки полного текста.</p>}
     </div>}
+    {options.mode !== "articles" && <ResearchComparison results={results} />}
   </section>;
 }
 
