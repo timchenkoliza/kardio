@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { ArrowUp, FlaskConical, ShieldCheck } from "lucide-react";
-import { canAccessAgent } from "@/lib/access/agent-entitlements";
 import { PHARMA_AGENT_DEFINITIONS, planContentStudio } from "@/lib/pharma/agents";
 
 const OUTPUT_LABELS = {
@@ -13,11 +12,10 @@ const OUTPUT_LABELS = {
   performance: "Performance",
 } as const;
 
-export function PharmaComposer() {
+export function PharmaComposer({ allowed }: { allowed: boolean }) {
   const [text, setText] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
   const agent = PHARMA_AGENT_DEFINITIONS.content_studio;
-  const allowed = canAccessAgent("pharma", agent.id);
   const plan = useMemo(() => submitted ? planContentStudio(submitted) : null, [submitted]);
 
   function submit(event: FormEvent) {
@@ -37,7 +35,8 @@ export function PharmaComposer() {
           maxLength={4000}
           value={text}
           onChange={event => setText(event.target.value)}
-          placeholder="Например: подготовь пакет публикации для кардиологов по материалу о ХСН: статья + чек-лист + карточка события"
+          disabled={!allowed}
+          placeholder={allowed ? "Например: подготовь пакет публикации для кардиологов по материалу о ХСН: статья + чек-лист + карточка события" : "У текущей роли нет доступа к Content Studio"}
         />
         <div className="ws-composer-bar">
           <div className="ws-composer-tools">
@@ -47,16 +46,16 @@ export function PharmaComposer() {
         </div>
       </div>
       <div className="ws-composer-preview" aria-live="polite">
-        <span className="ws-route"><ShieldCheck size={14} aria-hidden="true" />Доступ: фарма / редакция / администратор. Для врача этот агент скрыт.</span>
+        <span className="ws-route"><ShieldCheck size={14} aria-hidden="true" />{allowed ? "Доступ выдан серверной entitlement-policy для текущего demo-пользователя." : "Нет grant: агент скрыт и запуск заблокирован."}</span>
       </div>
     </form>
 
-    {plan && <section className="ws-section ws-card-block" aria-labelledby="pharma-plan-title">
+    {plan && allowed && <section className="ws-section ws-card-block" aria-labelledby="pharma-plan-title">
       <div className="ws-section-head">
         <div>
           <p className="ws-intro-meta">Маршрутизация готова</p>
           <h2 id="pharma-plan-title" className="ws-section-title">{agent.name}</h2>
-          <p className="ws-muted">Первый коммит показывает entitlement + единый input + прозрачный план. Генерация и публикация ещё не подключены и не симулируются.</p>
+          <p className="ws-muted">Этот vertical slice показывает entitlement + единый input + прозрачный план. Генерация и публикация ещё не подключены и не симулируются.</p>
         </div>
       </div>
       <ol className="ws-plain-list">{plan.steps.map(step => <li key={step}>{step}</li>)}</ol>

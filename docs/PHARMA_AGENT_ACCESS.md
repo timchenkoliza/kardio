@@ -1,38 +1,50 @@
-# Pharma agent access — first vertical slice
+# Pharma agent access — vertical slice
 
-Status: first implementation commit for partner-facing agents.
+Status: role-scoped partner surface + preview access admin are implemented on `feature/pharma-content-studio`.
 
 ## Product rule
 
-The product has one delegation input, but the agent catalogue is role-scoped. The UI must never expose every agent to every user.
+The product has one delegation input, but the agent catalogue is scoped by the current workspace subject. The UI must never expose every agent to every user.
 
-Roles:
+Default demo subjects:
 
-| Role | Primary surface | Default agent access |
-| --- | --- | --- |
-| physician | physician workspace | whats_new, guidelines, drugs, research, events, learning, materials |
-| pharma | partner workspace | content_studio |
-| editorial | partner/admin workflow | content_studio |
-| admin | admin + both workspaces | all agents |
+| Subject | Role | Primary surface | Default agent access |
+| --- | --- | --- | --- |
+| physician_demo | physician | physician workspace | whats_new, guidelines, drugs, research, events, learning, materials |
+| pharma_demo | pharma | partner workspace | content_studio |
+| editorial_demo | editorial | partner workflow | content_studio + approve/publish capability |
+| admin_demo | admin | admin + both workspaces | all current agents |
 
-The same input pattern may be reused across surfaces. Routing happens only inside the set of agents allowed for the resolved role.
+The same composer pattern may be reused across surfaces. Routing must happen only inside the set of agents allowed for the resolved subject.
 
-`eligibleAgents = entitlements(role, workspace) -> router(input, eligibleAgents)`
+`eligibleAgents = grants(subject, workspace) -> router(input, eligibleAgents)`
 
 The router must never pick an agent that the entitlement layer did not return.
 
+## Second vertical slice: access admin
+
+`/admin/agent-access` provides a Beta access matrix for the Preview deployment:
+
+- switch the current demo subject;
+- inspect subject -> agent grants and capabilities;
+- enable/disable grants that already exist in the policy contract;
+- reset Preview overrides;
+- verify that pharma/editorial users are routed away from the physician workspace;
+- verify that the physician agent API returns 403 for pharma/editorial demo subjects.
+
+Preview overrides are stored in HttpOnly cookies for that browser only. They are intentionally ignored outside Preview/development. This makes the demo interactive without pretending that browser state is production RBAC.
+
 ## Important security boundary
 
-`lib/access/agent-entitlements.ts` is the product policy contract, not authentication. The current public demo uses anonymous browser sessions and cannot securely prove that a visitor is a pharma user, editor or administrator.
+`lib/access/agent-entitlements.ts` is the policy contract. `server/access/request-access.ts` resolves the current request against it.
 
-Until identity is connected:
+The current Preview still does **not** have production identity. Therefore:
 
-- `/[specialty]/pharma` is an unlinked beta/demo surface;
-- it must not contain confidential campaign data;
-- no admin-only mutation is implemented;
-- the UI explicitly says that real ACL is not connected.
-
-For production, the server must resolve role/workspace membership from trusted identity/admin data. Client-supplied role/query/cookie values must not grant access.
+- Preview impersonation contains no confidential campaign data;
+- query parameters do not grant roles;
+- pharma/editorial cannot call the physician agent API while their demo subject is active;
+- production ignores demo impersonation/override cookies;
+- a future identity adapter must resolve the subject from trusted SSO/admin data and persist ACL changes server-side.
 
 ## First pharma agent
 
@@ -62,14 +74,14 @@ Required workflow before a real publish action exists:
 5. human approval;
 6. publishing action through confirmation gate.
 
-The first commit implements only entitlement-aware discovery, the dedicated partner surface, one shared input and a transparent deterministic plan preview. It deliberately does **not** simulate content generation or publishing.
+The current Content Studio only builds a transparent deterministic plan. It deliberately does **not** simulate content generation or publishing.
 
 ## Next commits
 
-1. Server identity contract + admin-managed role/agent entitlements.
-2. Content Studio request/run domain model and persistence.
-3. Source material ingestion and claim map.
-4. Reuse FactCheck/Evidence services + add pharma compliance gate.
-5. Article / Useful generators with explicit provenance.
-6. Approval workflow: draft -> medical review -> approved -> publishable.
-7. Distribution handoff to the Feed and campaign analytics.
+1. Content Studio request/run domain model and persistence.
+2. Source material ingestion and claim map.
+3. Reuse FactCheck/Evidence services + add pharma compliance gate.
+4. Article / Useful generators with explicit provenance.
+5. Approval workflow: draft -> medical review -> approved -> publishable.
+6. Distribution handoff to the Feed and campaign analytics.
+7. Replace Preview impersonation with trusted SSO + persisted admin ACL.

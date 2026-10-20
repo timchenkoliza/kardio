@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, LockKeyhole } from "lucide-react";
+import { ArrowLeft, LockKeyhole, Settings2 } from "lucide-react";
 import { PharmaComposer } from "@/components/pharma/pharma-composer";
-import { visibleAgentsForRole } from "@/lib/access/agent-entitlements";
+import { canUseAgentCapability, visibleAgentsForSubject } from "@/lib/access/agent-entitlements";
 import { PHARMA_AGENT_DEFINITIONS } from "@/lib/pharma/agents";
 import { isSpecialty } from "@/lib/specialty";
 import { specialtyLabel } from "@/lib/ui/labels";
+import { getRequestAccessState } from "@/server/access/request-access";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,10 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
   const { specialty } = await params;
   if (!isSpecialty(specialty)) notFound();
 
-  const agentIds = visibleAgentsForRole("pharma", "partner_workspace");
+  const access = await getRequestAccessState();
+  const agentIds = visibleAgentsForSubject(access.policy, access.subject.id, "partner_workspace");
   const agents = agentIds.map(id => id === "content_studio" ? PHARMA_AGENT_DEFINITIONS.content_studio : null).filter(Boolean);
+  const canRunStudio = canUseAgentCapability(access.policy, access.subject.id, "content_studio", "run");
 
   return <main className="ws-main" id="ws-main">
     <div className="ws-page">
@@ -23,25 +26,30 @@ export default async function PharmaPartnerPage({ params }: { params: Promise<{ 
       <section className="ws-intro" aria-labelledby="pharma-title">
         <p className="ws-intro-meta">{specialtyLabel[specialty]} · кабинет фарма-партнёра · beta</p>
         <h1 id="pharma-title">Что хотите подготовить для врачей?</h1>
-        <p className="ws-intro-lead">Один вход для задач партнёра. Доступные агенты определяются ролью: врач не видит коммерческие workflow, фарма не получает клинические персональные инструменты.</p>
-        <PharmaComposer />
+        <p className="ws-intro-lead">Один вход для задач партнёра. Supervisor получает только каталог агентов, разрешённых текущему workspace-пользователю.</p>
+        <p className="ws-muted">Текущий demo-пользователь: <strong>{access.subject.label}</strong> · policy: {access.source === "preview_override" ? "preview override" : "default"}.</p>
+        <PharmaComposer allowed={canRunStudio} />
       </section>
 
       <section className="ws-section ws-card-block" aria-labelledby="pharma-access-title">
         <div className="ws-section-head">
           <div>
             <h2 id="pharma-access-title" className="ws-section-title">Доступные вам агенты</h2>
-            <p className="ws-muted">В первой версии доступ задаётся централизованной entitlement-policy. Полноценная админка и серверная identity/ACL — следующий слой; этот preview не выдаёт текущую модель за security boundary.</p>
+            <p className="ws-muted">Каталог вычисляется на сервере из subject → workspace role → agent grants. Preview overrides демонстрационные и не являются production authentication.</p>
           </div>
+          <Link className="ws-text-link" href="/admin/agent-access"><Settings2 size={15} aria-hidden="true" />Управление доступом</Link>
         </div>
-        <div className="ws-agent-grid is-wide">
+        {agents.length ? <div className="ws-agent-grid is-wide">
           {agents.map(agent => agent && <article key={agent.id} className="ws-card-block">
-            <p className="ws-intro-meta"><LockKeyhole size={13} aria-hidden="true" /> pharma · editorial · admin</p>
+            <p className="ws-intro-meta"><LockKeyhole size={13} aria-hidden="true" /> {access.subject.role} · grant</p>
             <h3>{agent.name}</h3>
             <p>{agent.job}</p>
             <p className="ws-muted">{agent.description}</p>
           </article>)}
-        </div>
+        </div> : <div className="ws-empty">
+          <p><strong>Для текущего пользователя partner-agents не выданы.</strong></p>
+          <p>Переключите demo-пользователя или grants в админке. В production роль должна приходить из доверенной identity-системы.</p>
+        </div>}
       </section>
     </div>
   </main>;
