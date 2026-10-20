@@ -82,6 +82,15 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
   const isEvent = result.kind === "event";
   const startDate = typeof result.attributes.startDate === "string" ? result.attributes.startDate : null;
   const media = visual ? agentResultMedia(result) : null;
+  const drugOfficialVerification = result.kind === "drug_change" && typeof result.attributes["drugAssessment.officialVerificationLabel"] === "string"
+    ? result.attributes["drugAssessment.officialVerificationLabel"]
+    : null;
+  const drugSourceBasis = result.kind === "drug_change" && typeof result.attributes["drugAssessment.sourceBasisLabel"] === "string"
+    ? result.attributes["drugAssessment.sourceBasisLabel"]
+    : null;
+  const drugPracticeImpact = result.kind === "drug_change" && typeof result.attributes["drugAssessment.practiceImpact"] === "string"
+    ? result.attributes["drugAssessment.practiceImpact"]
+    : null;
 
   function opened(evidence = false) {
     void command({ action: "openResult", resultId: result.id, evidence }, { quiet: true, refresh: false });
@@ -128,6 +137,8 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
       </figure>}
       <p className="ws-result-summary">{result.summary}</p>
       {result.kind === "drug_change" && typeof result.attributes.inn === "string" && <p className="ws-result-facts">{result.attributes.inn}{result.attributes.brand ? ` · ${result.attributes.brand}` : ""}{result.attributes.holder ? ` · ${result.attributes.holder}` : ""}{result.attributes.changeDateNote ? ` · ${result.attributes.changeDateNote}` : ""}</p>}
+      {result.kind === "drug_change" && (drugSourceBasis || drugOfficialVerification) && <p className="ws-result-facts">{drugSourceBasis}{drugOfficialVerification ? `${drugSourceBasis ? " · " : ""}${drugOfficialVerification}` : ""}</p>}
+      {result.kind === "drug_change" && drugPracticeImpact && <p className="ws-result-facts"><strong>Что это значит:</strong> {drugPracticeImpact}</p>}
       {result.kind === "event" && <p className="ws-result-facts">{String(result.attributes.organizer ?? "")}{result.attributes.nmo === true ? " · в списке аккредитованных НМО" : ""}</p>}
       {result.kind === "guideline_change" && typeof result.attributes.deltas === "string" && result.attributes.deltas && <p className="ws-result-facts">{result.attributes.deltas}</p>}
       {result.reasonShown.length > 0 && <ul className="ws-reasons" aria-label="Почему это здесь">{result.reasonShown.map(reason => <li key={reason}>{reason}</li>)}</ul>}
