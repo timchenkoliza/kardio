@@ -7,7 +7,7 @@ import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
-import { agentResultMedia } from "@/lib/ui/agent-result-media";
+import { agentResultMedia, visualResultIds } from "@/lib/ui/agent-result-media";
 import { ModeBadge } from "./mode-badge";
 import { useWorkspace } from "./workspace-provider";
 
@@ -173,5 +173,6 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
 
 export function ResultList({ results, specialty, emptyText }: { results: AgentResultView[]; specialty: string; emptyText: string }) {
   if (!results.length) return <p className="ws-empty">{emptyText}</p>;
-  return <div className="ws-result-list">{results.map((result, index) => <ResultCard key={result.id} result={result} specialty={specialty} visual={index < 2} />)}</div>;
+  const visual = visualResultIds(results);
+  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} visual={visual.has(result.id)} />)}</div>;
 }

@@ -959,3 +959,34 @@
 .ws-access-cell { display: inline-flex; flex-direction: column; align-items: center; gap: var(--ws-space-4); cursor: pointer; }
 .ws-access-cell small { color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-metadata); max-width: 120px; }
 .ws-access-cell input { width: 18px; height: 18px; accent-color: var(--ws-accent); }
+
+/* Clinical Visual Recraft review — Оригинал → Смысловая фиксация → Перерисовка */
+.ws-recraft { display: flex; flex-direction: column; gap: var(--ws-space-20); }
+.ws-recraft .ws-card-block { display: flex; flex-direction: column; gap: var(--ws-space-12); }
+.ws-recraft .ws-card-block > .ws-button.is-primary { align-self: flex-start; }
+.ws-recraft-note { margin: 0; padding: var(--ws-space-12) var(--ws-space-16); border-radius: var(--ws-radius-button); background: var(--ws-surface); color: var(--ws-text-secondary); font-size: var(--font-size-label); }
+.ws-recraft-error { margin: 0; color: var(--ws-danger); font-size: var(--font-size-label); }
+.ws-field { display: flex; flex-direction: column; gap: var(--ws-space-8); min-width: 0; font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }
+.ws-field select,
+.ws-field textarea { width: 100%; min-width: 0; min-height: var(--ws-touch-target); padding: var(--ws-space-8) var(--ws-space-12); border: 0; border-radius: var(--ws-radius-button); background: var(--ws-surface); color: var(--ws-text); font: inherit; font-size: var(--font-size-body-compact); font-weight: var(--font-weight-regular); }
+.ws-recraft-upload { display: flex; flex-wrap: wrap; gap: var(--ws-space-8); }
+.ws-recraft-upload label { cursor: pointer; }
+.ws-recraft-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: var(--ws-space-16); }
+.ws-recraft-step { min-width: 0; display: flex; flex-direction: column; gap: var(--ws-space-12); padding: var(--ws-space-16); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); background: var(--ws-canvas); }
+.ws-recraft-step h3 { margin: 0; display: flex; align-items: center; gap: var(--ws-space-8); font-size: var(--font-size-body-compact); font-weight: var(--font-weight-semibold); }
+.ws-recraft-step h3 span { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: var(--ws-radius-chip); background: var(--ws-accent-soft); color: var(--ws-accent-ink); font-size: var(--font-size-caption); }
+.ws-recraft-step figure { margin: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.ws-recraft-step img { display: block; width: 100%; aspect-ratio: 2 / 1; object-fit: contain; border-radius: var(--ws-radius-button); background: var(--ws-surface); }
+.ws-recraft-step figcaption { color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
+.ws-recraft-facts { margin: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); font-size: var(--font-size-label); }
+.ws-recraft-facts div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--ws-space-8); }
+.ws-recraft-facts dt { color: var(--ws-text-secondary); }
+.ws-recraft-facts dd { margin: 0; overflow-wrap: anywhere; }
+.ws-recraft-status strong { font-size: var(--font-size-label); }
+.ws-recraft-status p { margin: var(--ws-space-4) 0 0; color: var(--ws-text-secondary); font-size: var(--font-size-label); }
+.ws-recraft-candidates summary { cursor: pointer; color: var(--ws-text-secondary); font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }
+.ws-recraft-candidates ul { list-style: none; margin: var(--ws-space-8) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.ws-recraft-candidates li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--ws-space-8); align-items: start; font-size: var(--font-size-caption); color: var(--ws-text-secondary); }
+@media (min-width: 1024px) {
+  .ws-recraft-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

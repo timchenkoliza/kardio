@@ -1,5 +1,5 @@
 import type { AgentResultView } from "@/lib/agents/types";
-import { approvedImagingMedia, type ApprovedMedicalMediaAsset } from "@/lib/ui/approved-medical-media";
+import { matchCardioIllustration } from "@/lib/ui/approved-medical-media";
 
 export interface AgentResultMedia {
   src: string;
@@ -9,34 +9,36 @@ export interface AgentResultMedia {
   label: string;
 }
 
-function mediaByModality(result: AgentResultView, modality: ApprovedMedicalMediaAsset["modality"]): ApprovedMedicalMediaAsset | null {
-  return approvedImagingMedia(result.specialty).find(asset => asset.modality === modality) ?? null;
-}
+const ARTICLE_KINDS: ReadonlySet<AgentResultView["kind"]> = new Set(["update", "guideline_change", "drug_change", "research_finding", "learning_module"]);
 
-function matchedMedia(result: AgentResultView): ApprovedMedicalMediaAsset | null {
-  const text = [result.title, result.summary, result.category ?? "", ...result.reasonShown].join(" ").toLocaleLowerCase("ru-RU");
-  if (/эхо|эхокар|ультразв|узи/iu.test(text)) return mediaByModality(result, "echo");
-  if (/коронар|чкв|стент|ангиограф/iu.test(text)) return mediaByModality(result, "angiography");
-  if (/\bкт\b|томограф|аорт|сосуд/iu.test(text)) return mediaByModality(result, "ct");
-  if (/\bмрт\b|миокард|инфаркт|желудоч/iu.test(text)) return mediaByModality(result, "mri");
-  if (result.kind === "guideline_change" || result.kind === "drug_change") return mediaByModality(result, "anatomy");
-  if (result.kind === "research_finding" && result.category === "guideline") return mediaByModality(result, "anatomy");
-  return null;
+/** Result cards that read as articles in the feed (events, partner blocks and your own files are not). */
+export function isArticleResult(result: AgentResultView): boolean {
+  return !result.partner && ARTICLE_KINDS.has(result.kind);
 }
 
 /**
- * UI-only visual supplement. The image is never evidence and is labelled as an illustration.
- * ResultList decides which cards get a visual so a text-heavy feed does not turn into a gallery.
+ * UI-only illustration. The image is never evidence and is labelled as an illustration.
+ * Only STRONG or MEDIUM article ↔ image matches are shown; weak proxies are dropped.
  */
 export function agentResultMedia(result: AgentResultView): AgentResultMedia | null {
-  if (result.partner || result.kind === "event" || result.kind === "material_hit") return null;
-  const asset = matchedMedia(result);
-  if (!asset) return null;
-  return {
-    src: asset.src,
-    alt: asset.alt,
-    credit: asset.credit,
-    sourceUrl: asset.sourceUrl,
-    label: asset.compactLabel,
-  };
+  if (result.specialty !== "cardiology" || !isArticleResult(result)) return null;
+  const text = [result.title, result.summary, result.category ?? "", ...result.reasonShown].join(" ");
+  const match = matchCardioIllustration({ text, kind: result.kind });
+  if (!match) return null;
+  return { src: match.asset.src, alt: match.asset.alt, credit: match.asset.credit, sourceUrl: match.asset.sourceUrl, label: match.asset.compactLabel };
+}
+
+/**
+ * Feed rhythm: four of every five article cards carry an illustration, the fifth
+ * stays text-only so the feed does not turn into a gallery.
+ */
+export function visualResultIds(results: readonly AgentResultView[]): Set<string> {
+  const ids = new Set<string>();
+  let articleIndex = 0;
+  for (const result of results) {
+    if (!isArticleResult(result)) continue;
+    if (articleIndex % 5 !== 4 && agentResultMedia(result)) ids.add(result.id);
+    articleIndex += 1;
+  }
+  return ids;
 }

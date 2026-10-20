@@ -106,12 +106,8 @@ export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
       const official = officialEvidence(record, assessment, ctx.nowIso);
       if (official) evidence.push(official);
 
-      const reasonShown = [
-        matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности",
-        assessment.sourceBasisLabel,
-        assessment.officialVerification === "needs_grls" ? "Официальный статус РФ не подтверждён: ГРЛС недоступен" : null,
-        record.status === "announced" ? "Анонс; не вступившее в силу решение" : null,
-      ].filter((value): value is string => Boolean(value));
+      // Source basis and official verification are shown once in the card facts line.
+      const reasonShown = [matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности"];
 
       return {
         key: stableId("drug", record.id),

@@ -108,7 +108,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
 
           {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
             <h2 id="ws-fresh-title" className="ws-section-title">{lastSeenAt ? `Новое с прошлого просмотра · ${fresh.length}` : `Найдено · ${fresh.length}`}</h2>
-            <div className="ws-result-list">{fresh.map((result, index) => <ResultCard key={result.id} result={result} specialty={specialty} visual={index < 2} />)}</div>
+            <ResultList results={fresh} specialty={specialty} emptyText="" />
           </section>}
           {tracksNew && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
             <h2 id="ws-earlier-title" className="ws-section-title">Ранее найдено · {earlier.length}</h2>

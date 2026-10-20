@@ -15,7 +15,7 @@ describe("Drugs v2 official verification gate", () => {
     expect(ru?.attributes["drugAssessment.grlsRequired"]).toBe(true);
     expect(String(ru?.attributes["drugAssessment.officialVerificationLabel"])).toContain("ГРЛС");
     expect(ru?.summary).not.toContain("ГРЛС");
-    expect(ru?.reasonShown).toContain("Официальный статус РФ не подтверждён: ГРЛС недоступен");
+    expect(ru?.reasonShown.some(reason => /ГРЛС/u.test(reason))).toBe(false);
 
     const grlsEvidence = ru?.evidence.find(item => item.sourceId === "grls");
     expect(grlsEvidence?.verificationStatus).toBe("UNKNOWN");
