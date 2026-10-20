@@ -26,14 +26,17 @@ export function ResearchJobStatus({ job: initialJob, specialty }: { job: Researc
     ? `/${specialty}/agents/research?run=${encodeURIComponent(job.runId)}&${researchViewQuery(job.options)}`
     : null, [job, specialty]);
 
+  const active = isActiveResearchJob(job);
+  const jobId = job.id;
+
   useEffect(() => {
-    if (!isActiveResearchJob(job)) return;
+    if (!active) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/agents/research/background?specialty=${encodeURIComponent(specialty)}&job=${encodeURIComponent(job.id)}`, { cache: "no-store" });
+        const response = await fetch(`/api/agents/research/background?specialty=${encodeURIComponent(specialty)}&job=${encodeURIComponent(jobId)}`, { cache: "no-store" });
         if (!response.ok) return;
         const payload = await response.json() as { job?: ResearchJob };
         if (!payload.job || cancelled) return;
@@ -53,7 +56,7 @@ export function ResearchJobStatus({ job: initialJob, specialty }: { job: Researc
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [job.id, job.status, router, specialty]);
+  }, [active, jobId, router, specialty]);
 
   const icon = job.status === "queued" || job.status === "running"
     ? <Loader2 size={20} className="ws-spin" aria-hidden="true" />

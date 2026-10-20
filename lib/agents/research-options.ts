@@ -14,9 +14,9 @@ export interface ResearchRunOptions {
   sourceScope: ResearchSourceScope;
   contentScope: ResearchContentScope;
   /** Exact host allow-list for this run. Empty means no extra allow-list. */
-  includeDomains: string[];
+  includeDomains: readonly string[];
   /** Exact host deny-list for this run. Deny always wins over allow. */
-  excludeDomains: string[];
+  excludeDomains: readonly string[];
 }
 
 export const DEFAULT_RESEARCH_RUN_OPTIONS: ResearchRunOptions = {

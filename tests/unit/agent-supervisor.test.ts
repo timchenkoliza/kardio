@@ -101,7 +101,8 @@ describe("drug agent: change detection", () => {
     expect(categories).toContain("NEW_RESTRICTION");
     expect(categories).toContain("IMPORTANT_NEW_STUDY");
     expect(outcome.results.some(result => result.title.includes("Баксдростат зарегистрирован в России"))).toBe(true);
-    expect(outcome.results.filter(result => !result.partner).every(result => result.evidence.every(item => item.sourceUrl))).toBe(true);
+    // Every claim has a source URL, except the explicit "official registry not connected" check (ГРЛС / FDA primary), which must stay unverified.
+    expect(outcome.results.filter(result => !result.partner).every(result => result.evidence.every(item => item.sourceUrl || (item.verificationStatus !== "SUPPORTED" && ["grls", "regulatory-primary"].includes(item.provenance.connectorId))))).toBe(true);
 
     const card = buildCard({ definition: AGENT_DEFINITIONS.drugs, profile, specialty: "cardiology", latestRun: outcome.run, current: currentResults(outcome.results, outcome.run), now: FIXED_NOW });
     expect(card.headline).toMatch(/3 регистрации • 1 новое ограничение • 1 исследование/);

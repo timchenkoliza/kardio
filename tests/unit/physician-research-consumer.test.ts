@@ -5,14 +5,12 @@ import { filterPhysicianResearchResults, researchViewFromSearchParams } from "@/
 
 function result(args: Partial<AgentResultView> & Pick<AgentResultView, "id" | "title">): AgentResultView {
   return {
-    id: args.id,
     key: args.id,
     agentId: "research",
     specialty: "cardiology",
     runId: "run-1",
     kind: "research_finding",
     category: "publication",
-    title: args.title,
     summary: "summary",
     reasonShown: [],
     createdAt: "2026-10-20T00:00:00.000Z",

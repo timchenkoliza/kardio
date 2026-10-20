@@ -19,10 +19,10 @@ export interface AccessSubject {
 }
 
 export const ACCESS_SUBJECTS: readonly AccessSubject[] = [
-  { id: "physician_demo", label: "Врач · demo", role: "physician", homeSurface: "physician_workspace" },
-  { id: "pharma_demo", label: "Фарма-партнёр · demo", role: "pharma", homeSurface: "partner_workspace" },
-  { id: "editorial_demo", label: "Редакция Яндекс Мед · demo", role: "editorial", homeSurface: "partner_workspace" },
-  { id: "admin_demo", label: "Администратор продукта · demo", role: "admin", homeSurface: "admin" },
+  { id: "physician_demo", label: "Врач", role: "physician", homeSurface: "physician_workspace" },
+  { id: "pharma_demo", label: "Фарма-партнёр", role: "pharma", homeSurface: "partner_workspace" },
+  { id: "editorial_demo", label: "Редакция", role: "editorial", homeSurface: "partner_workspace" },
+  { id: "admin_demo", label: "Администратор", role: "admin", homeSurface: "admin" },
 ];
 
 export interface AgentEntitlement {

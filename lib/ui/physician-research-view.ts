@@ -15,7 +15,7 @@ export type PhysicianResearchViewOptions = ResearchRunOptions;
 
 export const DEFAULT_PHYSICIAN_RESEARCH_VIEW: PhysicianResearchViewOptions = DEFAULT_RESEARCH_RUN_OPTIONS;
 
-export const RESEARCH_MODE_OPTIONS: readonly Array<{
+export const RESEARCH_MODE_OPTIONS: ReadonlyArray<{
   id: PhysicianResearchMode;
   label: string;
   description: string;

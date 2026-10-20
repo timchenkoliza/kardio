@@ -945,3 +945,17 @@
 .ws-validation ul { list-style: none; margin: var(--ws-space-8) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); }
 .ws-validation li { display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-caption); color: var(--ws-text-secondary); }
 .ws-validation li strong { color: var(--ws-text); font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }
+
+/* Standalone pages (admin) — same canvas, no sidebar or tab bar */
+.ws-app-standalone .ws-main { padding-bottom: var(--ws-space-48); }
+.ws-access-scroll { overflow-x: auto; margin: 0 calc(var(--ws-space-20) * -1); padding: 0 var(--ws-space-20); }
+.ws-access-table { width: 100%; min-width: 880px; border-collapse: collapse; font-size: var(--font-size-label); }
+.ws-access-table th,
+.ws-access-table td { padding: var(--ws-space-12) var(--ws-space-8); border-bottom: 1px solid var(--ws-hairline); vertical-align: top; text-align: center; }
+.ws-access-table thead th { color: var(--ws-text-secondary); font-weight: var(--font-weight-semibold); }
+.ws-access-table th[scope="row"],
+.ws-access-table thead th:first-child { text-align: left; }
+.ws-access-table th[scope="row"] span { display: block; color: var(--ws-text-secondary); font-weight: var(--font-weight-regular); font-size: var(--font-size-caption); }
+.ws-access-cell { display: inline-flex; flex-direction: column; align-items: center; gap: var(--ws-space-4); cursor: pointer; }
+.ws-access-cell small { color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-metadata); max-width: 120px; }
+.ws-access-cell input { width: 18px; height: 18px; accent-color: var(--ws-accent); }

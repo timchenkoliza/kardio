@@ -13,8 +13,8 @@ describe("Drugs v2 official verification gate", () => {
     expect(ru).toBeTruthy();
     expect(ru?.attributes["drugAssessment.officialVerification"]).toBe("needs_grls");
     expect(ru?.attributes["drugAssessment.grlsRequired"]).toBe(true);
-    expect(ru?.title.startsWith("По данным источника:")).toBe(true);
-    expect(ru?.summary).toContain("ГРЛС");
+    expect(String(ru?.attributes["drugAssessment.officialVerificationLabel"])).toContain("ГРЛС");
+    expect(ru?.summary).not.toContain("ГРЛС");
     expect(ru?.reasonShown).toContain("Официальный статус РФ не подтверждён: ГРЛС недоступен");
 
     const grlsEvidence = ru?.evidence.find(item => item.sourceId === "grls");

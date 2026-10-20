@@ -41,15 +41,13 @@ function regulatoryActions(record: DrugChangeRecord, assessment: DrugChangeAsses
   return actions;
 }
 
-function reportedTitle(record: DrugChangeRecord, assessment: DrugChangeAssessment): string {
-  if (record.status === "announced" || assessment.officialVerification === "not_applicable" || assessment.officialVerification === "confirmed_primary") return record.title;
-  return `По данным источника: ${record.title.charAt(0).toLocaleLowerCase("ru-RU")}${record.title.slice(1)}`;
-}
-
-function summaryFor(record: DrugChangeRecord, assessment: DrugChangeAssessment): string {
-  const claim = record.claims[0]?.claim ?? record.title;
-  const official = assessment.officialVerificationLabel ? ` ${assessment.officialVerificationLabel}.` : "";
-  return `${claim}${official}`;
+/**
+ * Title and summary carry only the reported claim. The official-verification
+ * gate is shown once by the card (drugAssessment.officialVerificationLabel),
+ * so it is not repeated here.
+ */
+function summaryFor(record: DrugChangeRecord): string {
+  return record.claims[0]?.claim ?? record.title;
 }
 
 function officialEvidence(record: DrugChangeRecord, assessment: DrugChangeAssessment, nowIso: string): Evidence | null {
@@ -121,8 +119,8 @@ export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
         specialty: ctx.specialty,
         kind: "drug_change" as const,
         category: record.type,
-        title: reportedTitle(record, assessment),
-        summary: summaryFor(record, assessment),
+        title: record.title,
+        summary: summaryFor(record),
         reasonShown,
         observedAt: record.changeDate,
         evidence,
