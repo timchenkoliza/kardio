@@ -7,6 +7,7 @@ import { Bot, ChevronDown, FolderOpen, LayoutGrid, Settings2 } from "lucide-reac
 import type { SpecialtyId } from "@/lib/domain/types";
 import { WorkspaceProvider } from "./workspace-provider";
 import { ActionConfirmDialog } from "./action-confirm-dialog";
+import { ResearchJobWatcher } from "./research-job-watcher";
 
 export type WorkspaceSection = "home" | "agents" | "materials" | "settings" | "content";
 
@@ -87,6 +88,7 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
         </Link>)}
         <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><Settings2 size={20} aria-hidden="true" /><span>Настройки</span></Link>
       </nav>
+      <ResearchJobWatcher specialty={specialty} />
       <ActionConfirmDialog />
     </div>
   </WorkspaceProvider>;

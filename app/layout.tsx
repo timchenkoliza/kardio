@@ -33,6 +33,7 @@ import "./styles/agent-workspace.css";
 import "./styles/research-consumer.css";
 import "./styles/research-report-tools.css";
 import "./styles/research-comparison.css";
+import "./styles/research-background.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · рабочее пространство врача", description: "AI-агенты выполняют профессиональные задачи врача по доверенным источникам: обновления, рекомендации, препараты, события, обучение и личные материалы." };
 

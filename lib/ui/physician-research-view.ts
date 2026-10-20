@@ -22,7 +22,7 @@ export const RESEARCH_MODE_OPTIONS: readonly Array<{
 }> = [
   { id: "articles", label: "Найти статьи", description: "Сводная таблица без длинного отчёта" },
   { id: "brief", label: "Краткий обзор", description: "Короткая сводка + проверяемые находки" },
-  { id: "academic", label: "Академическая основа · beta", description: "Структура и источники; пока не готовая статья" },
+  { id: "academic", label: "Академическая основа · beta", description: "Фоновый запуск: можно уйти и вернуться; глубина поиска пока beta" },
 ] as const;
 
 function one(value: string | string[] | undefined): string | undefined {

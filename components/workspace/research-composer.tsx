@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, SlidersHorizontal } from "lucide-react";
+import type { ResearchJob } from "@/lib/agents/research-jobs";
 import { normalizeResearchDomains } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 import {
@@ -60,8 +61,9 @@ export function ResearchComposer({
     const value = text.trim();
     if (value.length < 2 || busy || pending) return;
     setBusy(true);
+    const background = mode === "academic";
     try {
-      const response = await fetch("/api/agents/research", {
+      const response = await fetch(background ? "/api/agents/research/background" : "/api/agents/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ specialty, text: value, ...options }),
@@ -70,7 +72,13 @@ export function ResearchComposer({
         notify(await responseError(response), "error");
         return;
       }
-      const result = await response.json() as { runId?: string; notices?: string[] };
+      const result = await response.json() as { runId?: string; notices?: string[]; job?: ResearchJob };
+      if (background) {
+        if (!result.job) return;
+        if (result.job.status === "queued") notify("Исследование запущено в фоне. Можно перейти в другой раздел.");
+        router.push(`/${specialty}/agents/research?job=${encodeURIComponent(result.job.id)}&${researchViewQuery(options)}`);
+        return;
+      }
       if (!result.runId) return;
       if (result.notices?.length) notify(result.notices[0]);
       router.push(`/${specialty}/agents/research?run=${encodeURIComponent(result.runId)}&${researchViewQuery(options)}`);
@@ -115,7 +123,7 @@ export function ResearchComposer({
           placeholder="Например: данные о ПОАК при ФП и промежуточном риске инсульта"
         />
         <div className="ws-composer-bar ws-research-submit-row">
-          <button type="submit" className="ws-composer-run" disabled={busy || pending || text.trim().length < 2} aria-label="Начать исследование">
+          <button type="submit" className="ws-composer-run" disabled={busy || pending || text.trim().length < 2} aria-label={mode === "academic" ? "Запустить фоновое исследование" : "Начать исследование"}>
             {busy || pending ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
           </button>
         </div>

@@ -7,8 +7,10 @@ import { AgentRunButton } from "@/components/workspace/agent-run-button";
 import { BulkActions } from "@/components/workspace/bulk-actions";
 import { SeenMarker } from "@/components/workspace/lifecycle";
 import { PendingActions } from "@/components/workspace/pending-actions";
+import { ResearchComparison } from "@/components/workspace/research-comparison";
 import { ResearchComposer } from "@/components/workspace/research-composer";
 import { ResearchExport } from "@/components/workspace/research-export";
+import { ResearchJobStatus } from "@/components/workspace/research-job-status";
 import { ResearchOverview, ResearchResultsTable } from "@/components/workspace/research-report";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
@@ -19,6 +21,7 @@ import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
 import { isSpecialty } from "@/lib/specialty";
 import { filterPhysicianResearchResults, researchViewFromSearchParams, researchViewQuery } from "@/lib/ui/physician-research-view";
 import { pageSession } from "@/server/agents/page-session";
+import { getResearchJob } from "@/server/agents/research-jobs";
 import { getAgentDetail, MONITORING_AGENTS } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
@@ -44,19 +47,23 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const agentId = agentIdFromSlug(agent);
   if (!agentId || agentId === "materials") notFound();
   const query = await searchParams;
-  const researchView = researchViewFromSearchParams(query);
+  const requestedResearchView = researchViewFromSearchParams(query);
   const sessionId = await pageSession(specialty);
-  const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) });
+  const onDemand = agentId === "research";
+  const requestedJobId = onDemand ? first(query.job) : undefined;
+  const researchJob = onDemand && sessionId && requestedJobId ? await getResearchJob(sessionId, specialty, requestedJobId) : null;
+  const researchView = researchJob?.options ?? requestedResearchView;
+  const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) ?? researchJob?.runId ?? null });
   const { definition, card, results, partner, selectedRun, runs, profile } = detail;
   const now = new Date().toISOString();
   const lastSeenAt = profile.subscriptions[agentId].lastSeenAt;
   const fresh = results.filter(result => result.newSinceLastSeen);
   const earlier = results.filter(result => !result.newSinceLastSeen);
-  const onDemand = agentId === "research";
   const researchResults = onDemand ? filterPhysicianResearchResults(results, researchView) : results;
   const tracksNew = MONITORING_AGENTS.includes(agentId);
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
   const researchQuery = researchViewQuery(researchView);
+  const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
     {sessionId && <SeenMarker agentId={agentId} />}
@@ -82,8 +89,9 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     <div className="ws-agent-layout">
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
-        {!selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
+        {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
           {onDemand && <ResearchOverview run={selectedRun} results={researchResults} totalResults={results.length} options={researchView} />}
+          {onDemand && <ResearchComparison results={researchResults} />}
           {onDemand && researchResults.length > 0 && <ResearchExport specialty={specialty} runId={selectedRun.id} completedAt={selectedRun.completedAt ?? selectedRun.startedAt} mode={researchView.mode} results={researchResults} />}
 
           {!tracksNew && agentId !== "research" && results.length > 0 && <section className="ws-section" aria-labelledby="ws-all-title">

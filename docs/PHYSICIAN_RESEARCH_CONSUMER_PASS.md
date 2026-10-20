@@ -6,6 +6,7 @@ Status: implemented on `feature/pharma-content-studio`.
 
 - research starts immediately instead of asking the physician to approve a search plan first;
 - three output modes: article table, brief review, academic foundation beta;
+- `Академическая основа · beta` runs as a background job so the physician can leave the page and return later;
 - retrieval-level source filters for Russia / international and guidelines / research;
 - exact per-run domain allow/deny controls, collapsed under `Конкретные сайты` so advanced controls do not add default chrome;
 - technical execution details collapsed under `Как искали и что было доступно`;
@@ -39,16 +40,33 @@ The current brief synthesis directly uses up to four findings with `SUPPORTED` e
 
 The comparison block is intentionally conservative. It appears only when at least two findings have `SUPPORTED` or `PARTIALLY_SUPPORTED` evidence. It never infers effect size, dose, study endpoint or recommendation strength from a title or abstract metadata. Those rows can be added only after the relevant structured fields are actually retrieved and verified.
 
+## Background research jobs
+
+The background slice separates browser navigation from execution state:
+
+1. the request creates a persisted `ResearchJob` in the existing anonymous-session JSON state;
+2. the route returns immediately with `202 Accepted`;
+3. Next.js `after()` continues the existing Research executor after the response;
+4. the job records queued / running / completed / partial / failed / blocked independently from the final `AgentRun`;
+5. on completion the job stores the final `runId`, so the normal evidence, export and comparison UI opens without duplicating result storage;
+6. the workspace polls job state and raises an in-product notification when an active job becomes terminal.
+
+No email delivery is simulated. External email should be connected only after a real email connector exists.
+
+This is not yet a durable distributed queue. Execution is still bounded by the platform function lifetime. With `DATABASE_URL`, job state survives page navigation and process replacement, but an execution interrupted by a deployment/runtime termination cannot resume from the middle; stale active jobs are marked failed and can be rerun. Without a database, background job state uses the same in-process fallback philosophy as other local beta state and does not survive a dev-server restart.
+
+`Академическая основа · beta` is background execution, not yet deeper retrieval. The evidence-depth remains the same until full-text retrieval and a real deep-research pipeline are implemented.
+
 ## Deliberately not simulated
 
-The three research modes currently change result presentation, not search depth. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
+The three presentation modes do not yet imply three evidence-depth levels. A deeper academic search mode and reliable ETA should be implemented only after runtime telemetry exists.
 
 The product still uses metadata / available extracts and does not claim to have read full article text when the connector did not retrieve it.
 
 ## Next slices from interviews
 
-1. background long-running research with completion state and email notification;
-2. deeper academic writing mode after full-text retrieval and provenance are strong enough;
-3. richer comparison rows (population / intervention / endpoint / effect) only after structured full-text extraction exists;
+1. deeper academic retrieval after full-text retrieval and provenance are strong enough;
+2. richer comparison rows (population / intervention / endpoint / effect) only after structured full-text extraction exists;
+3. durable worker/queue execution with retry and resume semantics after the background beta is measured;
 4. presentation builder for teaching workflows;
 5. benchmark study against IQDOC, Elicit, Consensus and Perplexity using the same physician questions.
