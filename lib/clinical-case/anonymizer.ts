@@ -8,15 +8,15 @@ const REDACTION_RULES: Rule[] = [
   { label: "snils", pattern: /(?<!\d)\d{3}-?\d{3}-?\d{3}[\s-]?\d{2}(?!\d)/gu, replacement: "[SNILS]" },
   { label: "oms", pattern: /(?<!\d)\d{16}(?!\d)/gu, replacement: "[OMS]" },
   { label: "passport", pattern: /(?<!\d)\d{2}\s?\d{2}\s?\d{6}(?!\d)/gu, replacement: "[PASSPORT]" },
-  { label: "fio", pattern: /\b(?:ФИО|Пациент|Пациентка)\s*[:—-]\s*[^\n,;]{4,80}/giu, replacement: "ФИО: [REDACTED]" },
-  { label: "address", pattern: /\b(?:адрес|место жительства)\s*[:—-]\s*[^\n]{5,120}/giu, replacement: "Адрес: [REDACTED]" },
-  { label: "birth_date", pattern: /\b(?:дата рождения|д\.\s*р\.)\s*[:—-]?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b/giu, replacement: "Дата рождения: [REDACTED]" },
+  { label: "fio", pattern: /(?<![\p{L}\p{N}])(?:ФИО|Пациент|Пациентка)\s*[:—-]\s*[^\n,;]{4,80}/giu, replacement: "ФИО: [REDACTED]" },
+  { label: "address", pattern: /(?<![\p{L}\p{N}])(?:адрес|место жительства)\s*[:—-]\s*[^\n]{5,120}/giu, replacement: "Адрес: [REDACTED]" },
+  { label: "birth_date", pattern: /(?<![\p{L}\p{N}])(?:дата рождения|д\.\s*р\.)\s*[:—-]?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}(?![\p{L}\p{N}_])/giu, replacement: "Дата рождения: [REDACTED]" },
 ];
 
 const REVIEW_HINTS = [
-  /\b(?:ФИО|фамили[яи]|имя|отчество)\b/iu,
-  /\b(?:адрес|улица|дом|квартира)\b/iu,
-  /\b(?:номер карты|медицинская карта|история болезни)\b/iu,
+  /(?<![\p{L}\p{N}_])(?:ФИО|фамили[яи]|имя|отчество)(?![\p{L}\p{N}_])/iu,
+  /(?<![\p{L}\p{N}_])(?:адрес|улица|дом|квартира)(?![\p{L}\p{N}_])/iu,
+  /(?<![\p{L}\p{N}_])(?:номер карты|медицинская карта|история болезни)(?![\p{L}\p{N}_])/iu,
 ];
 
 export interface LocalRedactionResult {

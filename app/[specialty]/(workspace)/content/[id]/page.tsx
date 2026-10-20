@@ -6,9 +6,9 @@ import { ContentOpenTracker } from "@/components/content-open-tracker";
 import { ContentSaveButton } from "@/components/content-actions";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { EditorialMedia } from "@/components/editorial-media";
-import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { catalogTopicLabel } from "@/lib/agents/vocabulary";
 import { relatedContent } from "@/lib/ui/feed";
 import { currentnessLabel, kindLabel, publicationLabel, sourceTypeLabel, specialtyLabel } from "@/lib/ui/labels";
 import { getContent, listContent } from "@/server/repositories/catalog";
@@ -36,9 +36,8 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
   return (
     <ProductProvider initialState={{ ...state, specialty }} specialty={specialty}>
       <ContentOpenTracker contentId={content.id} sourceId={content.sourceId} specialty={specialty} currentness={content.currentness} />
-      <ProductFrame specialty={specialty}>
-        <div className="alpha-shell detail-shell">
-          <Link className="back-link" href={`/${specialty}`}><ArrowLeft size={16} /> В ленту</Link>
+      <div className="ws-page alpha-shell detail-shell">
+          <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
           <article className="content-detail">
             <header className="content-detail-head">
               <div className="detail-source-line">
@@ -69,7 +68,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
             {content.topics.length > 0 && (
               <section className="detail-section">
                 <span className="eyebrow">Темы</span>
-                <div className="topic-list">{content.topics.map(topic => <Link key={topic} href={`/${specialty}?q=${encodeURIComponent(topic)}`}>{topic}</Link>)}</div>
+                <div className="topic-list">{content.topics.map(topic => { const label = catalogTopicLabel(specialty, topic); return <Link key={topic} href={`/${specialty}/agents/research?q=${encodeURIComponent(label)}`}>{label}</Link>; })}</div>
               </section>
             )}
 
@@ -99,12 +98,11 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
 
           {related.length > 0 && (
             <section className="related-section" aria-labelledby="related-title">
-              <div className="section-heading"><span className="eyebrow">Следующий шаг</span><h2 id="related-title">Связанные материалы</h2><p>По общей теме, источнику или типу материала — без оптимизации на вовлечение.</p></div>
+              <div className="section-heading"><span className="eyebrow">Следующий шаг</span><h2 id="related-title">Связанные материалы</h2><p>По общей теме, источнику или типу материала.</p></div>
               <div className="related-grid">{related.map(item => <EditorialContentCard key={item.id} content={item} specialty={specialty} />)}</div>
             </section>
           )}
-        </div>
-      </ProductFrame>
+      </div>
     </ProductProvider>
   );
 }

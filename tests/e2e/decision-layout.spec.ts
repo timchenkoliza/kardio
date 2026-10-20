@@ -38,11 +38,11 @@ async function box(page: Page, selector: string) {
 }
 
 for (const viewport of viewports) {
-  test(`decision workspaces render without geometry regressions at ${viewport.name}px`, async ({ page }, testInfo) => {
+  test(`legacy decision workspace keeps its geometry and consilium stays retired at ${viewport.name}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await prepare(page);
 
-    await page.goto("/cardiology?view=drugs");
+    await page.goto("/cardiology/legacy?view=drugs");
     await expect(page.getByRole("heading", { level: 1, name: "Препараты" })).toBeVisible();
     await expectNoHorizontalPageOverflow(page);
 
@@ -68,32 +68,10 @@ for (const viewport of viewports) {
 
     await attachScreenshot(page, testInfo, `drug-${viewport.name}.png`);
 
-    await page.goto("/cardiology?view=consilium");
-    await expect(page.getByRole("heading", { level: 1, name: "Консилиум" })).toBeVisible();
+    await page.goto("/cardiology/legacy?view=consilium");
+    await expect(page.getByRole("heading", { level: 1, name: /Консилиум: раздел выведен из продукта/ })).toBeVisible();
+    await expect(page.locator(".consilium-chat")).toHaveCount(0);
     await expectNoHorizontalPageOverflow(page);
-
-    const consiliumWorkspace = await box(page, ".decision-workspace");
-    const personas = await box(page, ".consilium-personas");
-    const chat = await box(page, ".consilium-chat");
-    const synthesis = await box(page, ".consilium-synthesis");
-    expect(consiliumWorkspace.y).toBeLessThan(360);
-
-    if (viewport.width === 1440) {
-      expect(personas.x + personas.width).toBeLessThanOrEqual(chat.x + 1);
-      expect(chat.x + chat.width).toBeLessThanOrEqual(synthesis.x + 1);
-      expect(chat.width).toBeGreaterThan(personas.width);
-      expect(chat.width).toBeGreaterThan(synthesis.width);
-    } else {
-      expect(chat.y).toBeGreaterThanOrEqual(personas.y + personas.height - 1);
-      expect(synthesis.y).toBeGreaterThanOrEqual(chat.y + chat.height - 1);
-    }
-
-    const composer = await box(page, ".composer-row");
-    const send = await box(page, ".composer-row .primary-button");
-    expect(composer.x).toBeGreaterThanOrEqual(0);
-    expect(composer.x + composer.width).toBeLessThanOrEqual(viewport.width + 1);
-    expect(send.height).toBeGreaterThanOrEqual(44);
-
-    await attachScreenshot(page, testInfo, `consilium-${viewport.name}.png`);
+    await attachScreenshot(page, testInfo, `consilium-retired-${viewport.name}.png`);
   });
 }

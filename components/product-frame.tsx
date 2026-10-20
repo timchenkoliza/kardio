@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowUpRight, BookOpen, Bookmark, Calculator, ChevronDown, Compass, GraduationCap, HeartHandshake, Library, Pill, RotateCcw, ScanLine, Search, Settings2, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpRight, BookOpen, Bookmark, Calculator, ChevronDown, Compass, GraduationCap, Library, Pill, RotateCcw, Search, Settings2, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import type { Shell, SpecialtyId } from "@/lib/domain/types";
 import { shellLabel, specialtyLabel } from "@/lib/ui/labels";
 import { ONBOARDING_STORAGE_KEY, OnboardingDialog } from "./onboarding-dialog";
@@ -15,19 +15,18 @@ const secondaryNavigation = [
   { id: "sources", label: "Источники", icon: Library },
   { id: "tools", label: "Калькуляторы", icon: Calculator },
   { id: "drugs", label: "Препараты", icon: Pill },
-  { id: "consilium", label: "Консилиум", icon: HeartHandshake },
   { id: "reference", label: "Справочник", icon: BookOpen },
-  { id: "imaging", label: "Визуализация", icon: ScanLine },
   { id: "referral", label: "ВМП", icon: ArrowUpRight },
   { id: "events", label: "События", icon: Compass },
   { id: "education", label: "Обучение", icon: GraduationCap },
 ];
 
+/** Frozen legacy interface: every link stays inside /[specialty]/legacy. */
 function navigationHref(specialty: SpecialtyId, id: string, shell: Shell): string {
   const shellParam = `shell=${encodeURIComponent(shell)}`;
-  if (id === "feed") return `/${specialty}?${shellParam}`;
+  if (id === "feed") return `/${specialty}/legacy?${shellParam}`;
   if (id === "education") return `/${specialty}/education?${shellParam}`;
-  return `/${specialty}?view=${id}&${shellParam}`;
+  return `/${specialty}/legacy?view=${id}&${shellParam}`;
 }
 
 function preferenceModeLabel(mode: "hidden" | "less" | "pinned"): string {
@@ -45,10 +44,11 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
   const settings = useRef<HTMLDialogElement>(null);
   const [historyCleared, setHistoryCleared] = useState(false);
   const pathView = pathname === `/${specialty}/education` ? "education" : null;
+  const legacyHome = `/${specialty}/legacy`;
   const view = pathView ?? params.get("view") ?? "feed";
-  const homeLabel = state.shell === "explore" ? "Лента" : state.shell === "practice" ? "Практика" : "Пространство";
+  const homeLabel = state.shell === "practice" ? "Практика" : "Обзор";
   const navigation = [{ id: "feed", label: homeLabel, icon: Compass }, ...secondaryNavigation];
-  const rootHome = pathname === `/${specialty}` && view === "feed" && !params.has("q") && !params.has("kind");
+  const rootHome = pathname === legacyHome && view === "feed" && !params.has("q") && !params.has("kind");
   const surfacePreferences = state.uiPreferences.filter(preference => preference.specialty === specialty);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -57,12 +57,12 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
     if (!query) return;
     track("search_submitted");
     void mutate({ action: "recent", entry: { kind: "query", specialty, query } });
-    router.push(`/${specialty}?q=${encodeURIComponent(query)}&shell=${encodeURIComponent(state.shell)}`);
+    router.push(`${legacyHome}?q=${encodeURIComponent(query)}&shell=${encodeURIComponent(state.shell)}`);
   }
 
   function changeShell(shell: Shell) {
     settings.current?.close();
-    router.push(`/${specialty}?shell=${encodeURIComponent(shell)}`);
+    router.push(`${legacyHome}?shell=${encodeURIComponent(shell)}`);
     void mutate({ action: "preferences", shell }).then(changed => {
       if (changed) track("shell_changed");
     });
@@ -71,7 +71,7 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
   async function changeSpecialty(next: SpecialtyId) {
     if (await mutate({ action: "preferences", specialty: next })) {
       track("specialty_changed");
-      router.push(`/${next}?shell=${encodeURIComponent(state.shell)}`);
+      router.push(`/${next}/legacy?shell=${encodeURIComponent(state.shell)}`);
     }
   }
 
@@ -84,7 +84,7 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
   return <div className="product" data-shell={state.shell} data-specialty={specialty}>
     <a className="skip-link" href="#main">Перейти к содержанию</a>
     <header className="topbar">
-      <Link className="brand" href={`/${specialty}?shell=${encodeURIComponent(state.shell)}`} aria-label="Яндекс Мед — главная"><span className="brand-symbol" aria-hidden="true">Я</span><span>Яндекс <strong>Мед</strong></span></Link>
+      <Link className="brand" href={`/${specialty}`} aria-label="Яндекс Мед — новое рабочее пространство"><span className="brand-symbol" aria-hidden="true">Я</span><span>Яндекс <strong>Мед</strong></span></Link>
       <div className="specialty-control"><label className="sr-only" htmlFor="specialty">Специальность</label><select id="specialty" value={specialty} disabled={pending} onChange={event => void changeSpecialty(event.target.value as SpecialtyId)}><option value="cardiology">Кардиология</option><option value="oncology">Онкология</option></select><ChevronDown size={14} aria-hidden="true" /></div>
       <form className="global-search" role="search" onSubmit={event => void submit(event)}><Search size={19} aria-hidden="true" /><label className="sr-only" htmlFor="global-search">Поиск</label><input id="global-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Тема, рекомендация или вопрос" autoComplete="off" maxLength={160} /><button type="submit" aria-label="Найти"><span className="search-label">Найти</span><ArrowUpRight size={16} aria-hidden="true" /></button></form>
       <button className="icon-button settings-button" aria-label="Настройки" onClick={() => settings.current?.showModal()}><Settings2 size={21} /></button>
@@ -92,12 +92,12 @@ export function ProductFrame({ specialty, children }: { specialty: SpecialtyId; 
     </header>
     <div className="app-grid">
       <aside className="navigation-rail"><nav aria-label="Основная навигация">{navigation.map(item => <Link key={item.id} href={navigationHref(specialty, item.id, state.shell)} className={`nav-item ${view === item.id && !params.has("q") ? "active" : ""}`} aria-current={view === item.id && !params.has("q") ? "page" : undefined} onClick={() => { if (["tools", "drugs", "consilium", "reference", "referral", "imaging"].includes(item.id)) track("quick_job_opened"); }}><item.icon size={19} aria-hidden="true" /><span>{item.label}</span>{item.id === "saved" && state.savedIds.length > 0 && <span className="nav-count">{state.savedIds.length}</span>}</Link>)}</nav><div className="rail-bottom"><button className="quiet-button mode-control" onClick={() => settings.current?.showModal()}><SlidersHorizontal size={16} aria-hidden="true" /><span>{shellLabel[state.shell]}</span></button><p>Для профессионального<br />медицинского сообщества</p></div></aside>
-      <main id="main" className="main-content" tabIndex={-1}>{rootHome && <PbzContextStrip specialty={specialty} shell={state.shell} />}{children}</main>
+      <main id="main" className="main-content" tabIndex={-1}><Link className="legacy-banner" href={`/${specialty}`}><Sparkles size={16} aria-hidden="true" /><span>Это архив предыдущего интерфейса. Основная работа теперь в рабочем пространстве с агентами.</span><ArrowUpRight size={15} aria-hidden="true" /></Link>{rootHome && <PbzContextStrip specialty={specialty} shell={state.shell} />}{children}</main>
     </div>
     <dialog ref={settings} className="settings-dialog" aria-labelledby="settings-title" onClick={event => { if (event.target === event.currentTarget) settings.current?.close(); }}>
       <div className="dialog-head"><div><span className="eyebrow">Ваше пространство</span><h2 id="settings-title">Настройки</h2></div><button className="icon-button" aria-label="Закрыть настройки" onClick={() => settings.current?.close()}><X size={20} /></button></div>
       <p className="muted">Режим меняет не только компоновку, но и саму модель работы: обзор — для открытия нового, практика — для повторяемых задач, пространство — только для вашего собственного контекста.</p>
-      <fieldset className="mode-options" disabled={pending}><legend>Рабочий режим</legend>{(["explore", "practice", "workspace"] as Shell[]).map(shell => <label key={shell} className={state.shell === shell ? "mode-option selected" : "mode-option"}><input type="radio" name="shell" value={shell} checked={state.shell === shell} onChange={() => changeShell(shell)} /><span><strong>{shellLabel[shell]}</strong><small>{shell === "explore" ? "Открывать новые темы, материалы и источники" : shell === "practice" ? "Быстро возвращаться к рекомендациям, инструментам и закреплённому" : "Работать только со своими сохранениями, подборками, темами и историей"}</small></span></label>)}</fieldset>
+      <fieldset className="mode-options" disabled={pending}><legend>Рабочий режим</legend>{(["explore", "practice"] as Shell[]).map(shell => <label key={shell} className={state.shell === shell ? "mode-option selected" : "mode-option"}><input type="radio" name="shell" value={shell} checked={state.shell === shell} onChange={() => changeShell(shell)} /><span><strong>{shellLabel[shell]}</strong><small>{shell === "explore" ? "Открывать новые темы, материалы и источники" : shell === "practice" ? "Быстро возвращаться к рекомендациям, инструментам и закреплённому" : "Работать только со своими сохранениями, подборками, темами и историей"}</small></span></label>)}</fieldset>
       {surfacePreferences.length > 0 && <div className="settings-history"><h3>Интерфейс</h3><p className="muted">Скрытые, пониженные и закреплённые блоки меняют только композицию интерфейса. Профессиональные материалы остаются доступны и не удаляются.</p><div className="gen-ui-settings-list">{surfacePreferences.map(preference => <div className="gen-ui-setting-row" key={`${preference.shell}:${preference.blockId}`}><span><strong>{preference.label}</strong><small>{shellLabel[preference.shell]} · {preferenceModeLabel(preference.mode)}</small></span><button className="secondary-button" disabled={pending} onClick={() => void mutate({ action: "uiPreference", specialty: preference.specialty, shell: preference.shell, blockId: preference.blockId, label: preference.label, mode: "default" })}><RotateCcw size={14} /> Вернуть</button></div>)}</div></div>}
       <div className="settings-history"><h3>История</h3><p className="muted">Недавние запросы и открытия сохраняются в вашем пространстве. Поисковые фразы не передаются в аналитику.</p><button className="secondary-button" disabled={pending} onClick={async () => { if (await mutate({ action: "clearHistory" })) { setHistoryCleared(true); router.refresh(); } }}>Очистить историю</button>{historyCleared && <p role="status" className="success-text">История очищена</p>}</div>
       <div className="settings-history"><h3>Как устроен продукт</h3><p className="muted">Коротко повторить различия между обзором, практикой и рабочим пространством.</p><button className="secondary-button" disabled={pending} onClick={() => void replayOnboarding()}>Показать знакомство снова</button></div>

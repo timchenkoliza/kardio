@@ -194,3 +194,191 @@
   --art-event-2: #eadbb7;
   --art-event-ink: #6d5a2a;
 }
+
+/*
+ * Agent workspace (agent-first IA) — Yandex Med design system.
+ * Values follow the "Yandex Med" design system (tokens.json v1): neutral
+ * surfaces carry structure, one accent means action / selection / focus,
+ * radii belong to a kind of object, shadows mark interaction only.
+ */
+:root {
+  /* Color: surfaces and text */
+  --ws-canvas: #ffffff;
+  --ws-structural: #fcfcfc;
+  --ws-surface: #f2f2f2;
+  --ws-text: #34343c;
+  --ws-text-secondary: #6b6c77;
+  --ws-text-tertiary: #9799a3;
+  --ws-border: #b5b7c0;
+  --ws-hairline: rgb(181 183 192 / 40%);
+
+  /* Color: the one accent */
+  --ws-accent: #7275ff;
+  --ws-accent-brand: #898bff;
+  --ws-accent-ink: #5759ef;
+  --ws-accent-soft: #ececff;
+  --ws-accent-wash: #f5f4ff;
+  --ws-focus-ring: var(--ws-accent);
+  --ws-on-accent: #ffffff;
+
+  /* Color: states (always with a written label) */
+  --ws-danger: #b42318;
+  --ws-danger-soft: #fff1ef;
+  --ws-warning: #8a5a10;
+  --ws-warning-soft: #fff7e7;
+  --ws-success: #157a55;
+  --ws-success-soft: #edf8f3;
+
+  /* Color: inverse and overlay */
+  --ws-overlay: #17171c66;
+  --ws-inverse-surface: #111217;
+  --ws-inverse-text: #ffffff;
+  --ws-inverse-text-secondary: #b8bac4;
+
+  /* Color: content kinds (kind tags, date blocks) */
+  --ws-art-guideline-bg: #f1efff;
+  --ws-art-guideline-ink: #5759ef;
+  --ws-art-article-bg: #eef4ff;
+  --ws-art-article-ink: #4262ad;
+  --ws-art-video-bg: #f4f0ff;
+  --ws-art-video-ink: #5d54b8;
+  --ws-art-clinical-bg: #f0f5ff;
+  --ws-art-clinical-ink: #4f62a6;
+  --ws-art-event-bg: #f7f2ff;
+  --ws-art-event-ink: #6758a5;
+  --ws-art-guideline-1: #898bff;
+  --ws-art-guideline-2: #d9d8ff;
+  --ws-art-article-1: #9ebeff;
+  --ws-art-article-2: #d0e0ff;
+  --ws-art-video-1: #afa2ff;
+  --ws-art-video-2: #ddd5ff;
+  --ws-art-clinical-1: #a7b9f5;
+  --ws-art-clinical-2: #dce5ff;
+  --ws-art-event-1: #c5b4ff;
+  --ws-art-event-2: #e7dfff;
+
+  /* Typography: line height and tracking per text style */
+  --ws-leading-display: 1.06;
+  --ws-leading-heading-1: 1.04;
+  --ws-leading-heading-2: 1.08;
+  --ws-leading-heading-3: 1.18;
+  --ws-leading-title: 1.25;
+  --ws-leading-body: 1.45;
+  --ws-leading-body-compact: 1.52;
+  --ws-leading-label: 1.35;
+  --ws-leading-caption: 1.45;
+  --ws-leading-metadata: 1.4;
+  --ws-leading-micro: 1.2;
+  --ws-tracking-display-xl: -0.045em;
+  --ws-tracking-display-lg: -0.04em;
+  --ws-tracking-heading-1: -0.035em;
+  --ws-tracking-heading-2: -0.02em;
+  --ws-tracking-title: -0.02em;
+  --ws-tracking-micro: 0.05em;
+
+  /* Spacing: 4px grid, 8px interaction rhythm */
+  --ws-space-4: 4px;
+  --ws-space-8: 8px;
+  --ws-space-12: 12px;
+  --ws-space-16: 16px;
+  --ws-space-20: 20px;
+  --ws-space-24: 24px;
+  --ws-space-32: 32px;
+  --ws-space-40: 40px;
+  --ws-space-48: 48px;
+
+  /* Radius: each radius belongs to a kind of object */
+  --ws-radius-tag: 8px;
+  --ws-radius-button: 12px;
+  --ws-radius-chip: 18px;
+  --ws-radius-card: 20px;
+  --ws-radius-composer: 24px;
+  --ws-radius-panel: 28px;
+  --ws-radius-round: 999px;
+
+  /* Elevation: interaction and layering only */
+  --ws-shadow-subtle: 0 1px 2px #1018280f;
+  --ws-shadow-raised: 0 8px 24px #10182814;
+  --ws-shadow-floating: 0 18px 50px #3232501a;
+  --ws-shadow-focus: 0 0 0 2px rgb(114 117 255 / 28%);
+
+  /* Layout */
+  --ws-sidebar-width: 280px;
+  --ws-nav-row-height: 40px;
+  --ws-workspace-width: 1080px;
+  --ws-rail-width: 700px;
+  --ws-composer-height: 96px;
+  --ws-send-size: 36px;
+  --ws-chip-height: 36px;
+  --ws-touch-target: 44px;
+  --ws-topbar-height: 56px;
+  --ws-tabbar-height: 64px;
+  --ws-gutter: 16px;
+  --ws-gutter-wide: 40px;
+  --ws-brand-height: 24px;
+  --ws-brand-height-compact: 20px;
+}
+
+/* Oncology keeps its own accent family on the same neutral system. */
+.ws-app[data-specialty="oncology"] {
+  --ws-accent: #5c58b8;
+  --ws-accent-ink: #46429e;
+  --ws-accent-soft: #e8e7f7;
+  --ws-accent-wash: #f2f1fa;
+  --ws-shadow-focus: 0 0 0 2px rgb(92 88 184 / 28%);
+}
+
+/* Extension: hover/pressed shade for neutral controls on `surface`. */
+:root { --ws-surface-pressed: #e8e8eb; }
+
+/*
+ * Legacy components rendered inside the workspace frame (material detail)
+ * read the older --color-* / --art-* tokens; inside .ws-app they resolve to
+ * the design system so one page never mixes two palettes.
+ */
+.ws-app {
+  --color-canvas: var(--ws-canvas);
+  --color-canvas-lilac: var(--ws-accent-wash);
+  --color-canvas-blue: var(--ws-canvas);
+  --color-surface: var(--ws-canvas);
+  --color-surface-muted: var(--ws-surface);
+  --color-surface-hover: var(--ws-surface);
+  --color-text: var(--ws-text);
+  --color-text-secondary: var(--ws-text-secondary);
+  --color-text-tertiary: var(--ws-text-tertiary);
+  --color-border: var(--ws-hairline);
+  --color-border-strong: var(--ws-border);
+  --color-accent: var(--ws-accent);
+  --color-accent-strong: var(--ws-accent);
+  --color-accent-ink: var(--ws-accent-ink);
+  --color-accent-soft: var(--ws-accent-soft);
+  --color-accent-wash: var(--ws-accent-wash);
+  --shadow-subtle: var(--ws-shadow-subtle);
+  --shadow-raised: var(--ws-shadow-raised);
+  --shadow-floating: var(--ws-shadow-floating);
+  --shadow-card: var(--ws-shadow-subtle);
+  --shadow-card-hover: var(--ws-shadow-raised);
+  --shadow-card-featured: var(--ws-shadow-subtle);
+  --art-guideline-bg: var(--ws-art-guideline-bg);
+  --art-guideline-ink: var(--ws-art-guideline-ink);
+  --art-article-bg: var(--ws-art-article-bg);
+  --art-article-ink: var(--ws-art-article-ink);
+  --art-video-bg: var(--ws-art-video-bg);
+  --art-video-ink: var(--ws-art-video-ink);
+  --art-clinical-bg: var(--ws-art-clinical-bg);
+  --art-clinical-ink: var(--ws-art-clinical-ink);
+  --art-event-bg: var(--ws-art-event-bg);
+  --art-event-ink: var(--ws-art-event-ink);
+  --art-guideline-1: var(--ws-art-guideline-1);
+  --art-guideline-2: var(--ws-art-guideline-2);
+  --art-article-1: var(--ws-art-article-1);
+  --art-article-2: var(--ws-art-article-2);
+  --art-video-1: var(--ws-art-video-1);
+  --art-video-2: var(--ws-art-video-2);
+  --art-clinical-1: var(--ws-art-clinical-1);
+  --art-clinical-2: var(--ws-art-clinical-2);
+  --art-event-1: var(--ws-art-event-1);
+  --art-event-2: var(--ws-art-event-2);
+  --specialty-art-1: var(--ws-accent-brand);
+  --specialty-art-ink: var(--ws-accent-ink);
+}

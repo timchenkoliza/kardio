@@ -11,13 +11,14 @@ The active product has no access to patient data, EHR/EMR/MIS, appointment sched
 Use this priority order:
 
 1. explicit instructions in the current task;
-2. `context/00_START_HERE.md`;
-3. `context/16_V3_SOURCE_OF_TRUTH_AUDIT.md`;
-4. `context/22_FULLSTACK_PRODUCT_REBUILD.md`;
-5. `context/23_APP_ONTOLOGY_V1.md` once present;
-6. other current v3 files;
-7. existing implementation;
-8. external technical references.
+2. `context/40_AGENT_FIRST_WORKSPACE.md` for product direction and information architecture (agent-first workspace);
+3. `context/00_START_HERE.md`;
+4. `context/16_V3_SOURCE_OF_TRUTH_AUDIT.md`;
+5. `context/22_FULLSTACK_PRODUCT_REBUILD.md`;
+6. `context/23_APP_ONTOLOGY_V1.md` once present;
+7. other current v3 files;
+8. existing implementation;
+9. external technical references.
 
 `context/21_VISUAL_RESET_V2.md` is authoritative for visual direction, not application architecture. Other repositories/projects are not product truth.
 
@@ -60,6 +61,10 @@ Google Drive is a raw ingestion archive, not a production CDN. Do not hardcode D
 Ontology identities must be deterministic and stable. Preserve canonical/original IDs where safe; generated identities must use deterministic namespacing. Do not use random identities for canonical imported entities.
 
 AI may assist extraction, tagging, classification, entity linking, query understanding and candidate relation generation. AI must not manufacture clinical authority, missing medical facts, canonical Oncology knowledge or patient context. Model-derived edges remain candidates until explicitly promoted under policy.
+
+## Agent layer
+
+Agents live in `lib/agents` (shared types, definitions, routing, policy) and `server/agents` (connectors → tools/services → executors → supervisor → store). Never expose tools or connectors as product sections. Every adapter declares `LIVE`, `MOCK` or `UNAVAILABLE`; never fake a successful external integration. Every medical evidence item keeps provenance and a verification status. Every action outside the product goes through `ActionConfirmationService`. "Since last visit" is computed from `createdAt` vs `lastSeenAt`, never hard-coded.
 
 ## Engineering discipline
 

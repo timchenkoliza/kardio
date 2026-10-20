@@ -1,6 +1,30 @@
-# Kardio — evidence-driven physician Gen-UI lab
+# Kardio — agent-first physician workspace
 
-This repository is a public design/interaction lab for an online physician assistant.
+A workspace where a physician delegates professional jobs to agents — what changed in my topics, guideline and drug changes, research questions, events, learning, my own materials — and every output comes with its source and verification status.
+
+**USER sees JOBS → AGENTS own GOALS → TOOLS own CAPABILITIES → CONNECTORS own ACCESS.** Navigation: Главное · Мои агенты · Мои материалы (+ Настройки). No feed, no chat, no prescribing, no image interpretation, no patient data.
+
+- Product direction: `context/40_AGENT_FIRST_WORKSPACE.md`
+- Architecture: `docs/AGENT_FIRST_ARCHITECTURE.md`
+- Migration from the previous feed interface: `CURRENT_APP_MAP.md` (before) and `MIGRATION_REPORT.md` (what changed, live vs mock integrations, tests)
+
+## Run locally
+
+```bash
+npm ci
+cp .env.example .env.local          # DATABASE_URL optional
+npm run db:local                    # optional: local PostgreSQL on :55432
+npm run db:migrate && npm run db:seed
+npm run dev                         # http://127.0.0.1:3000/cardiology
+```
+
+Without `DATABASE_URL` the app runs on the bundled Golden Set with in-memory state (agent settings are mirrored to an HttpOnly cookie). With it, profiles, runs, results, materials and actions persist in PostgreSQL.
+
+Checks: `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:integration` (needs PostgreSQL), `npm run build`, `npm run test:e2e`.
+
+## Earlier design lab
+
+The sections below describe the original Gen-UI design lab that preceded the app.
 
 ## Product hypothesis
 
@@ -47,4 +71,4 @@ Do not commit raw physician research, interview data, patient data, private Tele
 
 ## Status
 
-Design discovery. No final visual system has been selected yet.
+Agent-first workspace implemented on `migration/agent-first-workspace` (see `MIGRATION_REPORT.md`). The previous interface remains available as an archive at `/[specialty]/legacy`.
