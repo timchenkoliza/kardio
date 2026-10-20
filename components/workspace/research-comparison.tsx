@@ -25,12 +25,12 @@ const STUDY_ROWS: ReadonlyArray<{ label: string; field: ResearchStudyFieldId }> 
   { label: "Доза", field: "dose" },
   { label: "Длительность терапии", field: "duration" },
   { label: "Сравнение", field: "comparator" },
-  { label: "Primary endpoint", field: "endpoint" },
-  { label: "Follow-up", field: "followUp" },
+  { label: "Первичная конечная точка", field: "endpoint" },
+  { label: "Наблюдение", field: "followUp" },
   { label: "Мера эффекта", field: "effectMeasure" },
   { label: "Оценка", field: "effectEstimate" },
   { label: "95% CI", field: "confidenceInterval" },
-  { label: "p-value", field: "pValue" },
+  { label: "p", field: "pValue" },
 ];
 
 type ComparisonRow = { label: string; render: (index: number) => ReactNode };
@@ -41,25 +41,46 @@ function verificationLabel(status: AgentResultView["evidence"][number]["verifica
 
 function textAccess(column: ResearchComparisonColumn): string {
   if (column.structured?.access === "full_text") return "Полный текст PMC";
-  if (column.structured?.access === "abstract") return "Abstract";
+  if (column.structured?.access === "abstract") return "Аннотация";
   return "—";
 }
 
-function studyRows(columns: ResearchComparisonColumn[]): ComparisonRow[] {
+const CELL_LIMIT = 160;
+
+/** Each fragment is shown once per study: the same sentence is not repeated under several parameters. */
+function distinctFields(column: ResearchComparisonColumn): Map<ResearchStudyFieldId, { value: string; supportText: string }> {
+  const seen = new Set<string>();
+  const fields = new Map<ResearchStudyFieldId, { value: string; supportText: string }>();
+  for (const row of STUDY_ROWS) {
+    const field = normalizedStudyField(column, row.field);
+    if (!field) continue;
+    const key = field.value.trim().toLocaleLowerCase("ru-RU");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    fields.set(row.field, { value: field.value.length > CELL_LIMIT ? `${field.value.slice(0, CELL_LIMIT - 1)}…` : field.value, supportText: field.supportText });
+  }
+  return fields;
+}
+
+function studyRows(columns: ResearchComparisonColumn[], distinct: ReadonlyArray<Map<ResearchStudyFieldId, { value: string; supportText: string }>>): ComparisonRow[] {
   if (!columns.some(column => column.normalizedCompleteness > 0)) return [];
-  return STUDY_ROWS.filter(row => columns.some(column => normalizedStudyField(column, row.field)))
+  return STUDY_ROWS.filter(row => distinct.some(fields => fields.has(row.field)))
     .map(row => ({
       label: row.label,
       render: (index: number) => {
-        const field = normalizedStudyField(columns[index]!, row.field);
+        const field = distinct[index]?.get(row.field);
         return field ? <span title={field.supportText}>{field.value}</span> : "—";
       },
     }));
 }
 
+const isPublicationOnly = (claim: string) => /^Опубликовано/u.test(claim);
+
 export function ResearchComparison({ results }: { results: AgentResultView[] }) {
   const columns = buildResearchComparison(results);
   if (columns.length < 2) return null;
+  const distinct = columns.map(distinctFields);
+  const showClaim = columns.some(column => !isPublicationOnly(column.claim));
 
   const rows: ComparisonRow[] = [
     { label: "Источник", render: (index: number) => columns[index]?.source ?? "—" },
@@ -67,14 +88,14 @@ export function ResearchComparison({ results }: { results: AgentResultView[] }) 
     { label: "Уровень", render: (index: number) => LEVEL_LABEL[columns[index]?.evidenceLevel ?? "unknown"] ?? columns[index]?.evidenceLevel ?? "—" },
     { label: "Проверка", render: (index: number) => columns[index] ? verificationLabel(columns[index]!.verificationStatus) : "—" },
     { label: "Доступный текст", render: (index: number) => columns[index] ? textAccess(columns[index]!) : "—" },
-    ...studyRows(columns),
-    { label: "Что подтверждает", render: (index: number) => columns[index]?.claim ?? "—" },
+    ...studyRows(columns, distinct),
+    ...(showClaim ? [{ label: "Что подтверждает", render: (index: number) => columns[index]?.claim ?? "—" }] : []),
   ];
 
   return <section className="ws-research-comparison" aria-labelledby="research-comparison-title">
     <div className="ws-research-comparison-head">
       <h3 id="research-comparison-title">Сравнение исследований</h3>
-      <p>N, возраст, доза, follow-up и статистический эффект нормализуются только из уже найденных фрагментов full text PMC или abstract. Если параметр не указан явно, ячейка остаётся пустой.</p>
+      <p>Параметры берутся только из найденного текста статьи или аннотации. Если параметр не указан явно, ячейка пустая.</p>
     </div>
     <div className="ws-research-comparison-wrap">
       <table className="ws-research-comparison-table">
@@ -92,10 +113,10 @@ export function ResearchComparison({ results }: { results: AgentResultView[] }) 
           <div><dt>Проверка</dt><dd>{verificationLabel(column.verificationStatus)}</dd></div>
           <div><dt>Доступный текст</dt><dd>{textAccess(column)}</dd></div>
           {STUDY_ROWS.map(row => {
-            const field = normalizedStudyField(column, row.field);
+            const field = distinct[columns.indexOf(column)]?.get(row.field);
             return field ? <div key={row.field}><dt>{row.label}</dt><dd title={field.supportText}>{field.value}</dd></div> : null;
           })}
-          <div><dt>Что подтверждает</dt><dd>{column.claim}</dd></div>
+          {showClaim && <div><dt>Что подтверждает</dt><dd>{column.claim}</dd></div>}
         </dl>
       </article>)}
     </div>

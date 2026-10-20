@@ -49,6 +49,8 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
     .flatMap(result => {
       const evidence = bestEvidence(result);
       if (!evidence || (evidence.verificationStatus !== "SUPPORTED" && evidence.verificationStatus !== "PARTIALLY_SUPPORTED")) return [];
+      // Only studies are compared; catalog pages and news are not studies.
+      if (evidence.evidenceLevel !== "peer_reviewed") return [];
       const structured = structuredEvidenceFromAttributes(result.attributes);
       // Backward compatibility for runs created before normalized fields were persisted.
       const normalized = researchStudyNormalizationFromAttributes(result.attributes) ?? normalizeResearchStudy(structured);

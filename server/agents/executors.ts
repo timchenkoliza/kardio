@@ -1,7 +1,7 @@
 import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, PlanStep, ToolUse } from "@/lib/agents/types";
-import { pubmedConceptsIn, topicLabels } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
 import type { ResultDraft, ToolOutput } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
@@ -166,9 +166,12 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в настройках агента");
     return { intent: "research_question", plan: builder.plan, toolsUsed: [], drafts: [], synthesis: null, notices: [] };
   }
-  builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(ctx)}`);
-  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: ctx.preference.topics }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
-  const topicTerm = tools.pubmedTermForTopics(ctx);
+  // A typed question is searched by its own topics, not by every topic in the profile.
+  const questionTopics = ctx.inputText?.trim() ? topicsMentioned(ctx.specialty, question) : ctx.preference.topics;
+  const scoped: AgentContext = questionTopics.length ? { ...ctx, preference: { ...ctx.preference, topics: questionTopics } } : ctx;
+  builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(scoped)}`);
+  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: questionTopics }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
+  const topicTerm = tools.pubmedTermForTopics(scoped);
   const englishTerms = question.match(/[A-Za-z][A-Za-z0-9\- ]{2,}/g)?.join(" ").trim();
   const concepts = pubmedConceptsIn(question);
   const conceptTerm = concepts.length ? concepts.map(item => `(${item.term})`).join(" AND ") : null;

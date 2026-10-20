@@ -13,7 +13,7 @@ describe("guidelines v2 runtime", () => {
     expect(diff?.basis).toBe("curated_delta");
     expect(diff?.changes.length).toBeGreaterThanOrEqual(5);
     expect(hf?.attributes.textCompared).toBe(false);
-    expect(String(hf?.attributes.deltas)).toContain("не построчный full-text diff");
+    expect(String(hf?.attributes.deltas)).toContain("без построчного сравнения текстов");
   });
 
   it("exposes only source-supported class, patient scope and practice impact", async () => {

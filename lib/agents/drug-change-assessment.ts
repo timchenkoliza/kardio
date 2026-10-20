@@ -63,7 +63,7 @@ export function assessDrugChange(args: {
       officialVerificationLabel: null,
       verificationTarget: args.verificationTarget,
       grlsRequired: false,
-      practiceImpact: args.practiceImpact ?? "Новый evidence-сигнал сам по себе не меняет инструкцию, регистрацию или клиническую рекомендацию.",
+      practiceImpact: args.practiceImpact ?? "Результат исследования сам по себе не меняет инструкцию, регистрацию или клинические рекомендации.",
     };
   }
 

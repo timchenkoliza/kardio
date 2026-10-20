@@ -1,3 +1,4 @@
+import { countLabel } from "@/lib/agents/format";
 import { stableId } from "@/lib/agents/text";
 import type { Evidence } from "@/lib/agents/types";
 import {
@@ -166,7 +167,7 @@ function compactDelta(changes: readonly GuidelineRecommendationChange[], basis: 
   const meaningful = meaningfulGuidelineChanges(changes);
   const stats = guidelineChangeStats(changes);
   const parts = [
-    meaningful.length ? `${meaningful.length} содержательных изменений` : null,
+    meaningful.length ? countLabel(meaningful.length, ["содержательное изменение", "содержательных изменения", "содержательных изменений"]) : null,
     stats.NEW ? `новых: ${stats.NEW}` : null,
     stats.CHANGED ? `изменено: ${stats.CHANGED}` : null,
     stats.REMOVED ? `удалено: ${stats.REMOVED}` : null,
@@ -251,7 +252,7 @@ export function catalogGuidelineChanges(ctx: AgentContext): ResultDraft[] {
         category: "new_version",
         title: `${next.title}: версия ${next.publicationYear} вместо ${previous.publicationYear}`,
         summary: changeSummary(changes, metadata.map(delta => delta.label).join(". ")),
-        reasonShown: [matched.length ? `Тема: ${topicLabels(specialty, matched).join(", ")}` : "Все темы специальности", `Источник: рекомендации РКО`, guidelineBasisLabel(basis)],
+        reasonShown: [matched.length ? `Тема: ${topicLabels(specialty, matched).join(", ")}` : "Все темы специальности"],
         observedAt: next.publicationYear ? `${next.publicationYear}-01-01` : null,
         evidence,
         source: catalogProvenance(next),
@@ -342,7 +343,7 @@ export function societyGuidelineChanges(ctx: AgentContext, specialty: SpecialtyI
       category: record.kind,
       title: record.titleRu,
       summary: changeSummary(changes, `${record.title} — ${kindLabel}.`),
-      reasonShown: [matched.length ? `Тема: ${topicLabels(specialty, matched).join(", ")}` : "Все темы специальности", preference.trusted ? `${record.society} в доверенных источниках` : record.society, guidelineBasisLabel("curated_delta")],
+      reasonShown: [matched.length ? `Тема: ${topicLabels(specialty, matched).join(", ")}` : "Все темы специальности"],
       observedAt: record.publishedAt ?? record.summarySource.publishedAt,
       evidence,
       source: {

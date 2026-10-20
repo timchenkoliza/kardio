@@ -157,7 +157,7 @@ export function guidelineChangesFromAttributes(attributes: Record<string, Result
 
 export function guidelineBasisLabel(basis: GuidelineComparisonBasis): string {
   if (basis === "available_text_pair") return "Сравнены доступные тексты двух версий";
-  if (basis === "curated_delta") return "Проверенный обзор изменений; не построчный full-text diff";
+  if (basis === "curated_delta") return "Проверенный обзор изменений, без построчного сравнения текстов";
   if (basis === "current_text_only") return "Доступен только текст новой версии";
   return "Сравнены только метаданные версий";
 }

@@ -22,7 +22,8 @@ export function isArticleResult(result: AgentResultView): boolean {
  */
 export function agentResultMedia(result: AgentResultView): AgentResultMedia | null {
   if (result.specialty !== "cardiology" || !isArticleResult(result)) return null;
-  const text = [result.title, result.summary, result.category ?? "", ...result.reasonShown].join(" ");
+  // Title and summary only: reasons list the user's topics and would bias the match.
+  const text = [result.title, result.summary].join(" ");
   const match = matchCardioIllustration({ text, kind: result.kind });
   if (!match) return null;
   return { src: match.asset.src, alt: match.asset.alt, credit: match.asset.credit, sourceUrl: match.asset.sourceUrl, label: match.asset.compactLabel };

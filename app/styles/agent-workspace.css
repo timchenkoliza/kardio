@@ -1059,3 +1059,17 @@
 @media (min-width: 768px) {
   .ws-studio-drafts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Feed illustration: full width on phones, a side thumbnail from tablets up */
+.ws-result.has-media .ws-result-media img { height: auto; aspect-ratio: 2 / 1; }
+@media (min-width: 768px) {
+  .ws-result.has-media .ws-result-body { display: grid; grid-template-columns: minmax(0, 1fr) 216px; column-gap: var(--ws-space-20); row-gap: var(--ws-space-8); align-items: start; }
+  .ws-result.has-media .ws-result-body > * { grid-column: 1; }
+  .ws-result.has-media .ws-result-body > .ws-result-media { grid-column: 2; grid-row: 1 / span 5; margin: 0; }
+  .ws-result.has-media .ws-result-media img { aspect-ratio: 3 / 2; }
+  .ws-result.has-media .ws-result-media figcaption { padding: var(--ws-space-4) var(--ws-space-8); }
+  .ws-result.has-media .ws-result-body > .ws-result-actions,
+  .ws-result.has-media .ws-result-body > .ws-evidence { grid-column: 1 / -1; }
+}
+/* Standalone pages have no sidebar column */
+.ws-app.ws-app-standalone { display: block; }

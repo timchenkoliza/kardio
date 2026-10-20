@@ -30,8 +30,8 @@ const PRACTICE_IMPACT: Record<string, string> = {
   "selexipag-ru-announced": "Это анонс. Не считать селексипаг зарегистрированным в РФ до появления подтверждаемой записи ГРЛС.",
   "esc-hf-2026-glp1-hfpef": "Это контекст клинической рекомендации; он не означает автоматического изменения российской инструкции или регистрационного статуса.",
   "esc-hf-2026-sglt2-inhospital": "Это контекст клинической рекомендации; он не равен изменению российской инструкции препарата.",
-  "single-af-2026": "Новый evidence-сигнал сам по себе не меняет официальную инструкцию или клиническую рекомендацию.",
-  "staree-2026": "Новый evidence-сигнал сам по себе не меняет официальную инструкцию или клиническую рекомендацию.",
+  "single-af-2026": "Результат исследования сам по себе не меняет официальную инструкцию или клиническую рекомендацию.",
+  "staree-2026": "Результат исследования сам по себе не меняет официальную инструкцию или клиническую рекомендацию.",
 };
 
 function regulatoryActions(record: DrugChangeRecord, assessment: DrugChangeAssessment): ResultAction[] {
@@ -162,11 +162,11 @@ export function drugStudyDrafts(ctx: AgentContext, articles: readonly PubmedArti
     const assessment: DrugChangeAssessment = {
       basis: "pubmed_metadata",
       officialVerification: "not_applicable",
-      sourceBasisLabel: "PubMed: библиографическая запись исследования",
+      sourceBasisLabel: "Библиографическая запись PubMed",
       officialVerificationLabel: null,
       verificationTarget: article.doi ? `DOI ${article.doi}` : "полный текст публикации",
       grlsRequired: false,
-      practiceImpact: "Новая публикация — evidence-сигнал. Она не означает автоматического изменения инструкции, регистрации или клинической рекомендации.",
+      practiceImpact: "Публикация сама по себе не меняет инструкцию, регистрацию или клинические рекомендации.",
     };
     return {
       key: stableId("drug-study", article.pmid),
@@ -175,8 +175,8 @@ export function drugStudyDrafts(ctx: AgentContext, articles: readonly PubmedArti
       kind: "drug_change" as const,
       category: "IMPORTANT_NEW_STUDY" satisfies DrugChangeType,
       title: truncate(article.title, 180),
-      summary: `Новая публикация в ${article.journal}${article.pubDate ? ` (${article.pubDate})` : ""}. Агент подтверждает факт публикации; клинический вывод требует текста исследования.`,
-      reasonShown: ["Рандомизированное исследование или лекарственная терапия в ваших темах", "Появилось в PubMed после прошлой проверки"],
+      summary: `${article.journal}${article.pubDate ? `, ${article.pubDate}` : ""}. Выводы — в тексте исследования.`,
+      reasonShown: ["Рандомизированное исследование или лекарственная терапия в ваших темах"],
       observedAt: article.sortDate,
       evidence: [evidence],
       source: pubmedProvenance(article, ctx.nowIso),

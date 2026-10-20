@@ -128,7 +128,7 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
     </article>;
   }
 
-  return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}`} aria-labelledby={`r-${result.id}`}>
+  return <article className={`ws-result ws-result-${result.kind}${result.newSinceLastSeen ? " is-new" : ""}${done ? " is-done" : ""}${media ? " has-media" : ""}`} aria-labelledby={`r-${result.id}`}>
     {isEvent && startDate && <div className="ws-date-block" aria-hidden="true"><strong>{Number(startDate.slice(8, 10))}</strong><span>{formatDateRu(startDate, { month: "short" })}</span></div>}
     <div className="ws-result-body">
       <div className="ws-result-meta">
@@ -145,7 +145,7 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
       </figure>}
       <p className="ws-result-summary">{result.summary}</p>
       {result.kind === "drug_change" && typeof result.attributes.inn === "string" && <p className="ws-result-facts">{result.attributes.inn}{result.attributes.brand ? ` · ${result.attributes.brand}` : ""}{result.attributes.holder ? ` · ${result.attributes.holder}` : ""}{result.attributes.changeDateNote ? ` · ${result.attributes.changeDateNote}` : ""}</p>}
-      {result.kind === "drug_change" && (drugSourceBasis || drugOfficialVerification) && <p className="ws-result-facts">{drugSourceBasis}{drugOfficialVerification ? `${drugSourceBasis ? " · " : ""}${drugOfficialVerification}` : ""}</p>}
+      {result.kind === "drug_change" && (drugSourceBasis || drugOfficialVerification) && <p className="ws-result-facts">{drugSourceBasis}{drugOfficialVerification && !drugPracticeImpact ? `${drugSourceBasis ? " · " : ""}${drugOfficialVerification}` : ""}</p>}
       {result.kind === "drug_change" && drugPracticeImpact && <p className="ws-result-facts"><strong>Что это значит:</strong> {drugPracticeImpact}</p>}
       {result.kind === "event" && <p className="ws-result-facts">{String(result.attributes.organizer ?? "")}{result.attributes.nmo === true ? " · в списке аккредитованных НМО" : ""}</p>}
       {result.kind === "guideline_change" && typeof result.attributes.deltas === "string" && result.attributes.deltas && <p className="ws-result-facts">{result.attributes.deltas}</p>}
@@ -153,7 +153,7 @@ export function ResultCard({ result, visual = false }: { result: AgentResultView
       <p className="ws-provenance">
         <span>{result.source.source}</span>
         <ModeBadge mode="LIVE" origin={result.source.dataOrigin} snapshotAt={result.source.dataOrigin === "runtime_api" ? null : result.source.retrievedAt} />
-        <SourceStandingNote standing={result.source.standing} note={result.source.standingNote} />
+        {result.source.standing !== "unreviewed" && <SourceStandingNote standing={result.source.standing} note={result.source.standingNote} />}
       </p>
       {result.evidence.length > 0 && <details className="ws-evidence" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) opened(false); }}>
         <summary>Утверждения и источники · {result.evidence.length}<ChevronDown size={14} aria-hidden="true" /></summary>
