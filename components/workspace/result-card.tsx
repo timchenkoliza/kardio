@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { useState } from "react";
 import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
+import { agentResultMedia } from "@/lib/ui/agent-result-media";
 import { ModeBadge } from "./mode-badge";
 import { useWorkspace } from "./workspace-provider";
 
@@ -37,7 +39,6 @@ function categoryLabel(result: AgentResultView): string | null {
 
 type ArtKind = "guideline" | "article" | "video" | "clinical" | "event";
 
-/** Content-kind colour family for the kind tag (design system: art-<kind>). */
 function artKind(result: AgentResultView): ArtKind | undefined {
   if (result.kind === "event") return "event";
   if (result.kind === "guideline_change") return "guideline";
@@ -68,7 +69,7 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
   </li>;
 }
 
-export function ResultCard({ result }: { result: AgentResultView; specialty: string }) {
+export function ResultCard({ result, visual = false }: { result: AgentResultView; specialty: string; visual?: boolean }) {
   const { command, setPendingAction, pending } = useWorkspace();
   const [saved, setSaved] = useState(Boolean(result.savedMaterialId));
   const [done, setDone] = useState(result.attributes.done === true);
@@ -80,6 +81,7 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
   const label = categoryLabel(result);
   const isEvent = result.kind === "event";
   const startDate = typeof result.attributes.startDate === "string" ? result.attributes.startDate : null;
+  const media = visual ? agentResultMedia(result) : null;
 
   function opened(evidence = false) {
     void command({ action: "openResult", resultId: result.id, evidence }, { quiet: true, refresh: false });
@@ -120,6 +122,10 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
       <h3 className="ws-result-title" id={`r-${result.id}`}>
         {internal?.href ? <Link href={internal.href} onClick={() => opened(false)}>{result.title}</Link> : result.title}
       </h3>
+      {media && <figure className="ws-result-media">
+        <img src={media.src} alt={media.alt} loading="lazy" decoding="async" />
+        <figcaption><span>Иллюстрация · {media.label}</span><a href={media.sourceUrl} target="_blank" rel="noreferrer">{media.credit}<ExternalLink size={11} aria-hidden="true" /></a></figcaption>
+      </figure>}
       <p className="ws-result-summary">{result.summary}</p>
       {result.kind === "drug_change" && typeof result.attributes.inn === "string" && <p className="ws-result-facts">{result.attributes.inn}{result.attributes.brand ? ` · ${result.attributes.brand}` : ""}{result.attributes.holder ? ` · ${result.attributes.holder}` : ""}{result.attributes.changeDateNote ? ` · ${result.attributes.changeDateNote}` : ""}</p>}
       {result.kind === "event" && <p className="ws-result-facts">{String(result.attributes.organizer ?? "")}{result.attributes.nmo === true ? " · в списке аккредитованных НМО" : ""}</p>}
@@ -147,5 +153,5 @@ export function ResultCard({ result }: { result: AgentResultView; specialty: str
 
 export function ResultList({ results, specialty, emptyText }: { results: AgentResultView[]; specialty: string; emptyText: string }) {
   if (!results.length) return <p className="ws-empty">{emptyText}</p>;
-  return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} />)}</div>;
+  return <div className="ws-result-list">{results.map((result, index) => <ResultCard key={result.id} result={result} specialty={specialty} visual={index < 2} />)}</div>;
 }
