@@ -29,6 +29,10 @@ function zip(name: string, content: string, deflate = true): Buffer {
 
 const DOCX_XML = `<?xml version="1.0"?><w:document><w:body><w:p><w:r><w:t>Шкала SCORE2</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">для 40–69 лет &amp; SCORE2-OP</w:t></w:r></w:p></w:body></w:document>`;
 
+// Command flows are unit-tested on the in-memory store, also when CI exports
+// DATABASE_URL for the whole job; the PostgreSQL store has its own integration test.
+delete process.env.DATABASE_URL;
+
 beforeEach(() => { resetMemorySession(SESSION); resetMemorySession(OTHER); });
 
 describe("my materials: upload → parse → index → personal retrieval", () => {
