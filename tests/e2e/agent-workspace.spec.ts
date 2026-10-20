@@ -90,6 +90,8 @@ test("composer routes intent → plan → tools → evidence-backed result", asy
   await expect(page.locator(".ws-route")).toContainText("Исследовать тему");
   await page.locator(".ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/agents\/research\?run=/, { timeout: 30_000 });
+  // The research trace is collapsed by default so the report stays first.
+  await page.locator(".ws-trace-disclosure > summary").click();
   const trace = page.locator(".ws-trace");
   await expect(trace.getByRole("heading", { name: "Как получен результат" })).toBeVisible();
   await expect(trace).toContainText("Искали в каталоге РКО и РКЖ");
