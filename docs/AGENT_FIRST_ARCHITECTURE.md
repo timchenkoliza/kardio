@@ -35,7 +35,7 @@ Nothing below the agent layer is a navigation item. Sources, PubMed, РКО, Tel
 | Commands | `server/agents/commands.ts` | zod-validated command union behind `POST /api/agents` |
 | Persistence | `server/agents/store/*`, `db/agent-schema.ts`, `db/migrations/0004_agent_workspace.sql` | PostgreSQL store, memory store, cookie profile mirror |
 | Telemetry | `server/agents/telemetry.ts`, `scripts/agent-metrics.ts` | 10 product events into `analytics_events`; aggregate metrics |
-| UI | `app/[specialty]/(workspace)/*`, `components/workspace/*`, `app/styles/agent-workspace.css` | command center, agent pages, materials, settings |
+| UI | `app/[specialty]/(workspace)/*`, `components/workspace/*`, `app/styles/agent-workspace.css`, `--ws-*` tokens in `app/styles/tokens.css`, `public/brand/` | command center, agent pages, materials, settings — Yandex Med design system (see `context/40_AGENT_FIRST_WORKSPACE.md`, Visual system) |
 
 ## 3. Agents
 

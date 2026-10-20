@@ -36,3 +36,8 @@ Every connector declares `LIVE`, `MOCK` or `UNAVAILABLE` plus its data origin (`
 ## Composer is not a chat
 
 The «Что хотите делегировать?» composer routes a task to one agent and opens that agent's result page with plan, evidence and next actions. There is no open-ended chat surface.
+
+## Visual system
+
+The workspace follows the Yandex Med design system: white `canvas` for content, `structural` sidebar, `surface` (#F2F2F2) for contained interaction (composer, chips, selected rows), one accent (#7275FF) for action, selection and focus only, accent-coloured text in `accent-ink`. Radii belong to a kind of object (tag 8, button 12, chip 18, card 20, composer 24, panel 28). Desktop shell: 280 px sidebar, composer on a centred 700 px rail. No gradients on UI surfaces, no uppercase labels, sentence case, the beta lockup and app icon exactly as supplied. Tokens live in `app/styles/tokens.css` (`--ws-*`); the workspace never introduces local colours, radii or shadows.
+
