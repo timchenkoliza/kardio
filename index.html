@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="color-scheme" content="light" />
 <title>Яндекс Мед — рабочее пространство врача</title>
-<link rel="stylesheet" href="styles-v4.css" />
+<link rel="stylesheet" href="styles-v5.css" />
 </head>
 <body>
 <div class="app">
@@ -15,10 +15,10 @@
       <strong>Яндекс Мед</strong>
     </div>
     <button class="specialty">Кардиология <span>⌄</span></button>
-    <div class="global-search">
+    <div class="global-search" aria-label="Поиск">
       <span class="search-ico">⌕</span>
-      <input placeholder="Тема, рекомендация или вопрос" />
-      <button>Найти ↗</button>
+      <input placeholder="Найти материал, источник или прошлый запрос" />
+      <button>Найти</button>
     </div>
     <div class="top-actions">
       <button class="quiet-btn" title="История">☰</button>
@@ -33,35 +33,44 @@
         <div>
           <div class="eyebrow">КАРДИОЛОГИЯ · ГЛАВНОЕ</div>
           <h1>Рабочее пространство врача</h1>
-          <p>Контекст, агенты и профессиональные обновления — в одном месте.</p>
+          <p>Агенты следят за профессиональным миром и возвращают только то, что требует внимания.</p>
         </div>
-        <div class="autonomy"><span class="pulse"></span><strong>6 агентов работают</strong><small>последняя проверка 08:20</small></div>
       </div>
 
-      <div class="context-chips" aria-label="Контекст врача">
-        <button class="chip active">ХСН</button>
-        <button class="chip active">Фибрилляция предсердий</button>
-        <button class="chip">Артериальная гипертензия</button>
-        <button class="chip">Липиды</button>
-        <button class="chip">Ишемическая болезнь сердца</button>
-        <button class="chip">＋</button>
+      <section class="since-summary" aria-label="С прошлого визита">
+        <div class="summary-copy">
+          <span class="summary-kicker"><i></i>С прошлого визита</span>
+          <strong>10 изменений требуют внимания</strong>
+          <span>Последняя проверка сегодня, 08:20 · следующая в 14:00</span>
+        </div>
+        <div class="summary-metrics">
+          <button data-filter-jump="guideline"><b>4</b><span>рекомендации</span></button>
+          <button data-filter-jump="drug"><b>4</b><span>препараты</span></button>
+          <button data-filter-jump="research"><b>1</b><span>исследование</span></button>
+          <button data-filter-jump="event"><b>1</b><span>событие</span></button>
+        </div>
+      </section>
+
+      <div class="profile-context" aria-label="Профессиональный контекст">
+        <span>Ваши темы:</span>
+        <button>ХСН</button><button>Фибрилляция предсердий</button><button>Артериальная гипертензия</button><button>＋ Изменить</button>
       </div>
 
       <section class="composer-card" id="composerCard">
-        <textarea id="prompt" placeholder="Опишите задачу или задайте профессиональный вопрос…"></textarea>
+        <textarea id="prompt" placeholder="Что нужно сделать?"></textarea>
         <div class="composer-context" id="contextRow">
-          <button class="context-pill">▧ ESC 2026</button>
-          <button class="context-pill">▧ РКО · ХСН</button>
+          <button class="context-pill">@ ESC 2026</button>
+          <button class="context-pill">@ РКО · ХСН</button>
           <button class="context-pill">▤ Мои материалы · 3</button>
           <button class="context-pill add">＋ Добавить контекст</button>
         </div>
         <div class="composer-foot">
           <div class="composer-tools">
-            <button class="tool-btn" id="attachBtn">⌕ Файл</button>
+            <button class="tool-btn" id="attachBtn">＋ Файл</button>
             <button class="tool-btn">◎ Источники</button>
-            <button class="tool-btn" id="modeBtn">✦ Полный ответ</button>
           </div>
-          <button class="send" id="sendBtn">↑</button>
+          <button class="mode-btn" id="modeBtn">✦ Клинический разбор</button>
+          <button class="send" id="sendBtn" aria-label="Отправить">↑</button>
         </div>
       </section>
 
@@ -72,20 +81,17 @@
         <div class="answer-actions"><button>♡ Сохранить</button><button>▧ Источники</button><button>↗ Открыть глубже</button></div>
       </section>
 
-      <section class="materials-strip">
-        <div class="strip-icon">✦</div>
-        <div class="strip-copy"><strong>Контекст из ваших материалов</strong><span>3 файла используются агентами в ответах</span></div>
-        <div class="mini-files">
-          <span>PDF · Выписка</span><span>DOC · Протокол</span><span>URL · Статья</span>
-        </div>
-        <button class="secondary" id="materialsBtn">Управлять</button>
+      <section class="materials-line">
+        <div class="materials-left"><span class="materials-glyph">▤</span><div><strong>Личный контекст подключён</strong><span>3 материала используются агентами в ответах</span></div></div>
+        <div class="materials-tags"><span>PDF · Выписка</span><span>DOC · Протокол</span><span>URL · Статья</span></div>
+        <button id="materialsBtn">Управлять</button>
       </section>
 
-      <section class="feed-section">
+      <section class="feed-section" id="feedSection">
         <div class="section-head">
           <div>
-            <div class="eyebrow">С ПРОШЛОГО ВИЗИТА</div>
-            <h2>Агенты нашли 10 изменений</h2>
+            <div class="eyebrow">ДЛЯ ВАС СЕГОДНЯ</div>
+            <h2>Главное, что нашли агенты</h2>
           </div>
           <div class="feed-controls">
             <button class="filter active" data-filter="all">Все</button>
@@ -97,57 +103,82 @@
         </div>
 
         <div class="feed" id="feed">
-          <article class="feed-item" data-type="guideline">
-            <div class="feed-visual guideline-art"><span>ESC</span><i></i></div>
+          <article class="feed-item guideline-item" data-type="guideline">
+            <div class="feed-visual guideline-art" aria-hidden="true">
+              <div class="doc-stack back"></div><div class="doc-stack front">
+                <span class="doc-title">ESC</span>
+                <div class="diff-line plus">+</div><div class="diff-line neutral"></div><div class="diff-line minus">−</div>
+              </div>
+              <div class="glow-dot"></div>
+            </div>
             <div class="feed-content">
               <div class="item-meta"><span class="type">Изменение рекомендаций</span><span>сегодня · 08:20</span></div>
               <h3>ESC: 3 изменения в ведении ХСН, которые стоит проверить в практике</h3>
-              <p>Агент сравнил версии документа и выделил только изменения по терапии, коморбидностям и маршрутизации.</p>
-              <div class="why"><b>Почему здесь</b> ХСН входит в ваши темы · источник ESC доверенный</div>
-              <div class="item-actions"><button class="ask" data-prompt="Что именно изменилось в рекомендациях ESC по ХСН?">Обсудить с агентом</button><button>Открыть изменения</button><button>♡</button></div>
+              <p>Агент сравнил версии документа и выделил только клинически значимые изменения.</p>
+              <div class="guideline-diff">
+                <span class="plus">+ Усилен акцент на раннее достижение целевой терапии</span>
+                <span class="change">↗ Уточнены сценарии ведения коморбидностей</span>
+                <span class="minus">− Исключён один устаревший маршрут наблюдения</span>
+              </div>
+              <div class="relevance">✦ Для вас · ХСН · ESC</div>
+              <div class="item-actions"><button class="ask" data-prompt="Что именно изменилось в рекомендациях ESC по ХСН?">Обсудить с агентом</button><button>Открыть diff</button><button>♡</button></div>
             </div>
           </article>
 
-          <article class="feed-item" data-type="drug">
-            <div class="feed-visual drug-art"><span>Rx</span><i class="pill p1"></i><i class="pill p2"></i></div>
+          <article class="feed-item drug-item" data-type="drug">
+            <div class="feed-visual drug-art" aria-hidden="true">
+              <div class="blister"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="glass-pill"><span></span></div>
+            </div>
             <div class="feed-content">
               <div class="item-meta"><span class="type">Препараты · мониторинг</span><span>сегодня · 08:17</span></div>
               <h3>По вашим темам: 2 новые регистрации и 1 ограничение безопасности</h3>
-              <div class="drug-stats"><span><b>+2</b> регистрации</span><span><b>−1</b> регистрация прекращена</span><span><b>1</b> ограничение</span><span><b>+1</b> исследование</span></div>
-              <div class="why"><b>Почему здесь</b> ФП · антитромботическая терапия · изменения после прошлого просмотра</div>
+              <div class="drug-stats"><span><b>+2</b>регистрации</span><span><b>−1</b>прекращена</span><span><b>1</b>safety update</span><span><b>+1</b>исследование</span></div>
+              <div class="relevance">✦ Для вас · ФП · антитромботическая терапия</div>
               <div class="item-actions"><button class="ask" data-prompt="Покажи изменения по препаратам подробнее">Разобрать изменения</button><button>Первоисточники</button><button>♡</button></div>
             </div>
           </article>
 
           <article class="feed-item partner" data-type="partner">
-            <div class="feed-visual partner-art"><div class="heart">♡</div><svg viewBox="0 0 160 100"><path d="M18 63h31l8-13 10 27 13-42 13 28h49"/></svg></div>
+            <div class="feed-visual partner-art" aria-hidden="true">
+              <div class="glass-orbit orbit-a"></div><div class="glass-orbit orbit-b"></div><div class="heart-core">♡</div><div class="ecg-line"></div>
+            </div>
             <div class="feed-content">
               <div class="item-meta"><span class="type partner-type">Партнёрский материал · Гедеон Рихтер</span><span>10 минут</span></div>
               <h3>Тройная антитромботическая терапия: клинические сценарии и риски</h3>
               <p>Экспертный видеоразбор с алгоритмами для пациентов с высоким ишемическим риском.</p>
-              <div class="why"><b>Почему показан</b> Совпадает с вашими темами: ФП и антитромботическая терапия. Не влияет на evidence-ответ.</div>
+              <div class="relevance">Партнёрский материал · совпадает с темами ФП и антитромботической терапии</div>
               <div class="item-actions"><button>Открыть материал</button><button>Сохранить</button><button>•••</button></div>
             </div>
           </article>
 
-          <article class="feed-item" data-type="research">
-            <div class="feed-visual research-art"><span>N</span><b>Nature<br>Medicine</b></div>
+          <article class="feed-item research-item" data-type="research">
+            <div class="feed-visual research-art" aria-hidden="true">
+              <div class="data-plane"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="paper-node"><span>N</span><b>Nature Medicine</b></div>
+              <div class="trend-line"></div>
+            </div>
             <div class="feed-content">
               <div class="item-meta"><span class="type">Исследование</span><span>сегодня · 07:58</span></div>
               <h3>SGLT2 и сердечная недостаточность: новый анализ долгосрочных исходов</h3>
+              <div class="paper-meta"><span>Когорта · n=4 218</span><span>36 месяцев</span><span>Primary endpoint ↓18%</span></div>
               <p>Агент сопоставил популяцию исследования с вашими интересами и вынес ограничения применимости.</p>
-              <div class="why"><b>Почему здесь</b> ХСН · SGLT2 · высокий тематический матч</div>
+              <div class="relevance">✦ Для вас · ХСН · SGLT2 · высокий тематический матч</div>
               <div class="item-actions"><button class="ask" data-prompt="Сделай evidence brief по новому исследованию SGLT2">Evidence brief</button><button>PubMed ↗</button><button>♡</button></div>
             </div>
           </article>
 
-          <article class="feed-item" data-type="event">
-            <div class="feed-visual event-art"><span>17</span><small>НОЯ</small></div>
+          <article class="feed-item event-item" data-type="event">
+            <div class="feed-visual event-art" aria-hidden="true">
+              <div class="calendar-card"><span>17</span><small>НОЯБРЯ</small><i></i></div>
+              <div class="calendar-shadow"></div>
+            </div>
             <div class="feed-content">
               <div class="item-meta"><span class="type">Событие</span><span>через 28 дней</span></div>
               <h3>Вебинар по антитромботической терапии — высокий матч с вашими темами</h3>
-              <p>Практический разбор, 60 минут. Агент поставил событие выше широких конференций из-за тематического совпадения.</p>
-              <div class="why"><b>Почему здесь</b> ФП · клинический формат · доступно онлайн</div>
+              <div class="event-meta"><span>Онлайн</span><span>60 минут</span><span>Практический разбор</span></div>
+              <p>Агент поставил событие выше широких конференций из-за тематического совпадения.</p>
+              <div class="relevance">✦ Для вас · ФП · клинический формат</div>
               <div class="item-actions"><button>Подробнее</button><button>＋ В календарь</button><button>Скрыть</button></div>
             </div>
           </article>
@@ -156,28 +187,18 @@
     </section>
 
     <aside class="right-rail">
-      <section class="rail-card discuss">
-        <div class="rail-title">Кем обсудить</div>
-        <p>Выберите режим — контекст и источники останутся в задаче.</p>
+      <section class="mode-panel">
+        <div class="rail-kicker">РЕЖИМ РАБОТЫ</div>
+        <div class="rail-title">Как разобрать задачу</div>
+        <p>Контекст и выбранные источники сохраняются при переключении режима.</p>
         <button class="persona active" data-agent="clinical"><span class="persona-icon">✚</span><span><strong>Клинический разбор</strong><small>Рекомендации и evidence</small></span></button>
         <button class="persona" data-agent="research"><span class="persona-icon">⌕</span><span><strong>Исследовать тему</strong><small>Литература и источники</small></span></button>
         <button class="persona" data-agent="risk"><span class="persona-icon">◇</span><span><strong>Проверить риски</strong><small>Ограничения и red flags</small></span></button>
         <button class="persona" data-agent="materials"><span class="persona-icon">▤</span><span><strong>По моим материалам</strong><small>Личная база врача</small></span></button>
-      </section>
-
-      <section class="rail-card agents-status">
-        <div class="rail-title">Ваши агенты</div>
-        <div class="status-row"><span><i class="live"></i>Рекомендации</span><b>4 новых</b></div>
-        <div class="status-row"><span><i class="live"></i>Препараты</span><b>4 изменения</b></div>
-        <div class="status-row"><span><i class="live"></i>Исследования</span><b>1 новое</b></div>
-        <div class="status-row"><span><i class="live"></i>События</span><b>1 подходит</b></div>
-        <button class="rail-link">Настроить агентов →</button>
-      </section>
-
-      <section class="rail-card next-run">
-        <div class="rail-title">Следующая проверка</div>
-        <strong>Сегодня, 14:00</strong>
-        <p>Рекомендации · препараты · ваши темы</p>
+        <div class="mode-status">
+          <div><span class="live"></span><strong>6 агентов активны</strong></div>
+          <span>Следующая проверка · 14:00</span>
+        </div>
       </section>
     </aside>
   </main>
