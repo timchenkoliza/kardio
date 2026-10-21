@@ -1,0 +1,113 @@
+name: Control Plane shadow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  statuses: read
+
+concurrency:
+  group: control-plane-shadow-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shadow-decision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Self-test release organization
+        run: npx vitest run tests/unit/control-plane*.test.ts
+
+      - name: Collect exact PR diff
+        shell: bash
+        run: |
+          if [ -n "$BASE_SHA" ] && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" > control-plane-changed-files.txt
+          else
+            git show --pretty='' --name-only "$HEAD_SHA" > control-plane-changed-files.txt
+          fi
+
+      - name: Resolve Change contract
+        id: contract
+        shell: bash
+        run: |
+          CONTRACT=$(grep -E '^control-plane/changes/.*\.json$' control-plane-changed-files.txt | head -1 || true)
+          if [ -z "$CONTRACT" ]; then
+            CONTRACT="control-plane-uncontracted-change.json"
+            cat > "$CONTRACT" <<JSON
+          {
+            "change_id": "UNCONTRACTED-${HEAD_SHA}",
+            "title": "Uncontracted change",
+            "problem": "No machine-readable Change contract was supplied",
+            "hypothesis": "unknown",
+            "guardrails": []
+          }
+          JSON
+          fi
+          echo "path=$CONTRACT" >> "$GITHUB_OUTPUT"
+
+      - name: Collect existing GitHub evidence
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx tsx control-plane/collect-github-evidence.ts \
+            --repo "$GITHUB_REPOSITORY" \
+            --candidate-sha "$HEAD_SHA" \
+            --out control-plane-evidence.json
+
+      - name: Run deterministic shadow control plane
+        run: |
+          npx tsx control-plane/runner.ts \
+            --contract "${{ steps.contract.outputs.path }}" \
+            --changed-files control-plane-changed-files.txt \
+            --candidate-sha "$HEAD_SHA" \
+            --baseline-sha "$BASE_SHA" \
+            --evidence control-plane-evidence.json \
+            --out control-plane-output
+
+      - name: Preserve evidence snapshot
+        if: always()
+        shell: bash
+        run: |
+          if [ -f control-plane-evidence.json ]; then
+            cp control-plane-evidence.json control-plane-output/github_evidence.json
+          fi
+
+      - name: Publish decision summary
+        if: always()
+        run: |
+          if [ -f control-plane-output/human_readable_summary.md ]; then
+            cat control-plane-output/human_readable_summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: control-plane-shadow-${{ github.event.pull_request.number || 'manual' }}-${{ github.sha }}
+          path: control-plane-output/
+          retention-days: 30
+          if-no-files-found: warn
+
+# Shadow mode is intentionally advisory: BLOCK/HOLD do not fail the workflow.
+# Only a broken control-plane implementation/self-test fails this job.
+# Evidence is a point-in-time snapshot; later workflow/event-driven refresh will recompute
+# the same Change when CI/DS/preview/telemetry evidence arrives.

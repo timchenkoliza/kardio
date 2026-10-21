@@ -50,6 +50,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run test:integration
+      - run: npm run test:simulations
+        name: Run environment simulations
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run build
       - run: npx playwright install --with-deps chromium
