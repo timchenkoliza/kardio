@@ -1,6 +1,6 @@
-version: 1
+version: 2
 suite: kardio-v1
-purpose: pre-production behavioral and environment simulations for product changes
+purpose: pre-production behavioral, environment, experience and release simulations for product changes
 
 personas:
   cardiologist_returning:
@@ -32,77 +32,146 @@ baseline_scenarios:
   - id: REF-PEDS-001
     persona: pediatrician_new
     input: "длительность антибиотикотерапии при остром среднем отите у детей"
-    asserts:
-      - no_cross_specialty_topic_leakage
-      - evidence_present
-      - unsupported_claims_zero
-      - source_links_present
+    asserts: [no_cross_specialty_topic_leakage, evidence_present, unsupported_claims_zero, source_links_present]
   - id: DRUG-ENDO-001
     persona: endocrinologist_drug
     input: "дапаглифлозин противопоказания"
-    asserts:
-      - drug_label_source_present
-      - evidence_present
-      - ru_status_not_overclaimed_when_grls_unavailable
+    asserts: [drug_label_source_present, evidence_present, ru_status_not_overclaimed_when_grls_unavailable]
   - id: REF-NEURO-001
     persona: neurologist_returning
     input: "профилактика мигрени у взрослых"
-    asserts:
-      - specialty_scope_correct
-      - relevant_results_ranked_before_adjacent_results
-      - evidence_present
-  - id: CARDIO-FEED-001
+    asserts: [specialty_scope_correct, relevant_results_ranked_before_adjacent_results, evidence_present]
+  - id: CARDIO-HOME-001
     persona: cardiologist_returning
     action: open_home
+    asserts: [result_cards_present_when_results_exist, partner_content_is_disclosed, no_expired_events]
+
+experience_compiler:
+  - id: EXP-SAME-JOB-001
+    purpose: same semantic job expressed differently must resolve to same module family
+    variants: 10
+    base_job: reference_answer
     asserts:
-      - personalized_feed_renders
-      - result_cards_present_when_agent_results_exist
-      - partner_content_is_disclosed
-      - no_expired_events
+      - same_primary_job
+      - same_module_family
+      - stable_action_semantics
+
+  - id: EXP-REP-TREND-001
+    purpose: trend over time should use visual encoding when it lowers cognitive work
+    input_shape: time_series_many_points
+    expected_representation: LINE_CHART
+    asserts:
+      - visualization_present
+      - concise_text_takeaway_present
+      - accessible_data_fallback_present
+
+  - id: EXP-REP-EXACT-001
+    purpose: three exact values must not create decorative chart spam
+    input_shape: three_exact_values
+    expected_representation: TABLE
+    forbidden_representation: [BAR_CHART, LINE_CHART, AREA_CHART]
+    asserts:
+      - exact_values_preserved
+      - no_unnecessary_chart
+
+  - id: EXP-REP-ONE-VALUE-001
+    purpose: one value is not a chart
+    input_shape: one_exact_value
+    expected_representation: SHORT_TEXT
+    asserts: [no_chart]
+
+  - id: EXP-EXPERT-DENSITY-001
+    persona: cardiologist_returning
+    interaction_profile:
+      expertise: high
+      density_preference: compact
+      evidence_depth: high
+    asserts:
+      - factual_content_unchanged
+      - denser_presentation_allowed
+      - core_navigation_unchanged
+
+  - id: EXP-PERSONALIZATION-LOWCONF-001
+    interaction_profile:
+      inferred_preference_confidence: 0.42
+    asserts:
+      - default_ux_used
+      - no_structural_adaptation
+
+  - id: EXP-PERSONALIZATION-STABLE-001
+    interaction_profile:
+      inferred_preference_confidence: 0.88
+      preferred_explanation: visual_first
+    asserts:
+      - meaning_unchanged
+      - safety_thresholds_unchanged
+      - only_allowed_presentation_dimensions_change
+
+  - id: EXP-ONBOARDING-NEWCAP-001
+    feature_state: meaningful_new_capability
+    user_state: unseen
+    current_job_relevant: true
+    interruption_cost: acceptable
+    asserts:
+      - contextual_guide_shown
+      - one_capability_only
+      - immediate_action_available
+
+  - id: EXP-ONBOARDING-DISMISS-001
+    feature_state: meaningful_new_capability
+    user_state: dismissed
+    asserts:
+      - guide_not_repeated
+
+  - id: EXP-ONBOARDING-MASTERED-001
+    feature_state: meaningful_new_capability
+    user_state: mastered
+    asserts:
+      - guide_suppressed
+
+  - id: EXP-STABLE-SHELL-001
+    mutation: apply_personalized_layout_blueprint
+    asserts:
+      - navigation_landmarks_unchanged
+      - action_semantics_unchanged
+      - factual_meaning_unchanged
+      - safety_thresholds_unchanged
+
+  - id: EXP-MODULE-NOVELTY-001
+    scenario: existing_module_satisfies_job
+    candidate_proposes_new_module: true
+    expected_decision: BLOCK
+    asserts:
+      - existing_module_preferred
+      - new_module_requires_justification
 
 failure_injections:
   dependencies:
     - id: FAIL-PUBMED-429
       target: pubmed
       mode: rate_limit
-      expected_behavior:
-        - no_crash
-        - explicit_degraded_state
-        - no_fabricated_abstracts
-        - retry_budget_respected
+      expected_behavior: [no_crash, explicit_degraded_state, no_fabricated_abstracts, retry_budget_respected]
     - id: FAIL-PUBMED-DOWN
       target: pubmed
       mode: unavailable
-      expected_behavior:
-        - no_crash
-        - unavailable_source_disclosed
-        - unsupported_claims_zero
+      expected_behavior: [no_crash, unavailable_source_disclosed, unsupported_claims_zero]
     - id: FAIL-OPENFDA-DOWN
       target: openfda
       mode: unavailable
-      expected_behavior:
-        - no_crash
-        - label_not_claimed_as_verified
-        - fallback_is_explicit
+      expected_behavior: [no_crash, label_not_claimed_as_verified, fallback_is_explicit]
     - id: FAIL-DB-DOWN
       target: postgres
       mode: unavailable
-      expected_behavior:
-        - request_fails_closed_for_persistent_actions
-        - no_false_success_message
+      expected_behavior: [request_fails_closed_for_persistent_actions, no_false_success_message]
     - id: FAIL-DB-SLOW
       target: postgres
       mode: latency
       latency_ms: 3000
-      expected_behavior:
-        - bounded_request_latency
-        - no_duplicate_write
+      expected_behavior: [bounded_request_latency, no_duplicate_write]
     - id: FAIL-STALE-SNAPSHOT
       target: curated_snapshot
       mode: stale
-      expected_behavior:
-        - freshness_visible
-        - stale_data_not_presented_as_live
+      expected_behavior: [freshness_visible, stale_data_not_presented_as_live]
 
 agent_adversarial:
   - id: ADV-EVIDENCE-001
@@ -125,32 +194,22 @@ state_and_migration:
   - id: STATE-MIGRATION-001
     setup: production_like_schema_snapshot
     mutation: apply_all_pending_migrations_twice
-    asserts:
-      - first_apply_succeeds
-      - second_apply_is_idempotent_or_cleanly_noop
-      - existing_rows_preserved
+    asserts: [first_apply_succeeds, second_apply_is_idempotent_or_cleanly_noop, existing_rows_preserved]
   - id: STATE-ACTION-001
     setup: existing_saved_result
     mutation: repeat_same_save_command
-    asserts:
-      - no_duplicate_material
+    asserts: [no_duplicate_material]
   - id: STATE-CONCURRENCY-001
     setup: same_session
     mutation: two_parallel_agent_runs
-    asserts:
-      - no_corrupted_profile
-      - no_duplicate_irreversible_action
+    asserts: [no_corrupted_profile, no_duplicate_irreversible_action]
 
 ui_and_device:
   viewports:
     - { width: 390, height: 844, label: mobile }
     - { width: 768, height: 1024, label: tablet }
     - { width: 1440, height: 1100, label: desktop }
-  asserts:
-    - no_blocking_ds_regression
-    - primary_action_reachable
-    - evidence_disclosure_reachable
-    - no_horizontal_overflow
+  asserts: [no_blocking_ds_regression, primary_action_reachable, evidence_disclosure_reachable, no_horizontal_overflow]
 
 release_simulations:
   - id: RELEASE-001
@@ -160,7 +219,7 @@ release_simulations:
     scenario: candidate_has_green_ci_and_simulations_but_missing_required_live_source_smoke_for_R4
     expected_decision: BLOCK
   - id: RELEASE-003
-    scenario: R2_candidate_all_required_gates_green
+    scenario: R2_E2_candidate_all_required_gates_green
     expected_decision: CANARY_ELIGIBLE
     max_percent: 5
   - id: RELEASE-004
@@ -169,12 +228,24 @@ release_simulations:
   - id: RELEASE-005
     scenario: target_metric_down_but_guardrails_green
     expected_decision: HOLD
+  - id: RELEASE-006
+    scenario: E3_change_missing_personalization_privacy_gate
+    expected_decision: BLOCK
+  - id: RELEASE-007
+    scenario: stable_shell_regression_seen_in_canary
+    expected_decision: ROLLBACK_RECOMMENDED
+  - id: RELEASE-008
+    scenario: user_visible_paths_changed_without_experience_contract
+    expected_experience_impact: E2
+    expected_decision: BLOCK
 
 artifacts_required_per_run:
   - change_contract.json
   - candidate_sha.txt
   - baseline_sha.txt
   - risk_assessment.json
+  - experience_manifest_samples.json
+  - decision_traces.json
   - gate_results.json
   - simulation_results.json
   - release_decision.json
@@ -186,3 +257,7 @@ hard_invariants:
   - simulation_never_claims_live_source_success_when_fixture_was_used
   - evidence_is_bound_to_exact_candidate_sha
   - failed_required_gate_cannot_be_overridden_by_llm
+  - llm_never_renders_arbitrary_runtime_frontend
+  - experience_manifest_must_validate_before_render
+  - personalization_never_changes_meaning_or_safety_thresholds
+  - structural_personalization_requires_blueprint_invalidation
