@@ -145,7 +145,7 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
     {plan && !busy && <div className="pt-plan" role="group" aria-labelledby={`${inputId}-plan`} data-plan={plan.reason}>
       <p id={`${inputId}-plan`} className="pt-clarify-question">{plan.title}:</p>
       <ol className="pt-plan-steps">{plan.steps.map(step => <li key={step}>{step}</li>)}</ol>
-      <div className="pt-card-actions"><button type="button" className="ws-button is-primary" onClick={() => void submit(undefined, { planConfirmed: plan.id })}>Продолжить</button></div>
+      <div className="pt-card-actions"><button type="button" className="ws-button" onClick={() => void submit(undefined, { planConfirmed: plan.id })}>Продолжить</button></div>
     </div>}
     {!text && examples.length > 0 && <div className="ws-examples" aria-label="Примеры запросов">{examples.map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div>}
   </form>;

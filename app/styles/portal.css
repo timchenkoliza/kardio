@@ -207,6 +207,7 @@
 .pt-clarify-question { margin: 0; font-size: var(--font-size-body-compact); font-weight: var(--font-weight-semibold); color: var(--ws-text); }
 .pt-clarify .ws-muted,
 .pt-plan .ws-muted { margin: 0; font-size: var(--font-size-caption); }
+.pt-plan .ws-button { align-self: flex-start; min-height: var(--ws-touch-target); }
 .pt-plan-steps { margin: 0; padding-left: var(--ws-space-20); display: grid; gap: var(--ws-space-4); font-size: var(--font-size-body-compact); color: var(--ws-text); }
 
 /* What is being done, and the refinement applied to an open result */
