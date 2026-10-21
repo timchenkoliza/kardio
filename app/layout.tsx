@@ -34,8 +34,9 @@ import "./styles/research-consumer.css";
 import "./styles/research-report-tools.css";
 import "./styles/research-comparison.css";
 import "./styles/research-background.css";
+import "./styles/portal.css";
 
-export const metadata: Metadata = { title: "Яндекс Мед · рабочее пространство врача", description: "AI-агенты выполняют профессиональные задачи врача по доверенным источникам: обновления, рекомендации, препараты, события, обучение и личные материалы." };
+export const metadata: Metadata = { title: "Яндекс Мед · для врачей", description: "Профессиональные ответы, клинические рекомендации, препараты и обновления по специальности — с источником и датой у каждого утверждения." };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="ru"><body>{children}</body></html>;

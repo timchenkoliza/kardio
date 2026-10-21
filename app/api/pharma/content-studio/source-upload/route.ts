@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import type { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { canUseAgentCapability } from "@/lib/access/agent-entitlements";
@@ -21,7 +22,7 @@ const httpUrl = z.string().trim().max(1200).refine(value => {
   } catch { return false; }
 });
 const fieldsSchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   packageId,
   sourceKind: z.enum(["partner_material", "external_reference"]),
   title: z.string().trim().max(240).optional(),

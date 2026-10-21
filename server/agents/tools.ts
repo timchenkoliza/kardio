@@ -55,9 +55,13 @@ export function searchMedical(ctx: AgentContext, args: { query?: string | null; 
   });
 }
 
-/** PubMed scope of the physician's specialty, used when no topic narrows the search. */
+/**
+ * PubMed scope of the physician's specialty, used when no topic narrows the
+ * search. Matched on titles: an abstract that merely mentions children is not
+ * a pediatric guideline, and «why you see this» must stay true.
+ */
 export function specialtyScopeTerm(ctx: AgentContext): string {
-  return specialties[ctx.specialty].pubmedScope;
+  return specialties[ctx.specialty].pubmedScope.replace(/\[tiab\]/g, "[ti]");
 }
 
 export function pubmedTermForTopics(ctx: AgentContext, topics: readonly string[] = ctx.preference.topics): string | null {

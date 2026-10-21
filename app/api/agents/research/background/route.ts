@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import { after, type NextRequest } from "next/server";
 import { z } from "zod";
 import { RESEARCH_CONTENT_SCOPES, RESEARCH_MODES, RESEARCH_SOURCE_SCOPES, normalizeResearchDomains } from "@/lib/agents/research-options";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const bodySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   text: z.string().trim().min(2).max(1200),
   mode: z.enum(RESEARCH_MODES),
   sourceScope: z.enum(RESEARCH_SOURCE_SCOPES),
@@ -22,7 +23,7 @@ const bodySchema = z.object({
 }).strict();
 
 const querySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   job: z.string().startsWith("rjob-").max(80).optional(),
 });
 

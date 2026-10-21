@@ -49,6 +49,8 @@ export interface DrugLabel {
   setId: string;
   version: string | null;
   route: string[];
+  /** «HUMAN PRESCRIPTION DRUG» or «HUMAN OTC DRUG». Prescription labels are preferred. */
+  productType: string | null;
   sections: DrugLabelSection[];
   dailyMedUrl: string;
   apiUrl: string;
@@ -81,7 +83,7 @@ function strings(value: unknown): string[] {
 
 /** Labels repeat the section heading ("1 INDICATIONS & USAGE …"); drop it and cut on a sentence. */
 export function cleanSection(raw: string, limit = SECTION_CHARS): { text: string; truncated: boolean } {
-  let text = raw.replace(/\s+/g, " ").trim();
+  let text = raw.replace(/\s*■\s*/g, " • ").replace(/\s+/g, " ").trim();
   text = text.replace(/^(?:\d+(?:\.\d+)?\s+)?[A-Z][A-Z &/,()-]{3,80}?(?=\s+[A-Z][a-z])/u, "").trim();
   if (text.length <= limit) return { text, truncated: false };
   const cut = text.slice(0, limit);
@@ -122,6 +124,7 @@ export function parseLabel(record: Record<string, unknown>, apiUrl: string): Dru
     setId,
     version: typeof record.version === "string" ? record.version : null,
     route: strings(openfda.route).slice(0, 3),
+    productType: first(openfda.product_type),
     sections,
     dailyMedUrl: `https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=${encodeURIComponent(setId)}`,
     apiUrl,
@@ -129,10 +132,18 @@ export function parseLabel(record: Record<string, unknown>, apiUrl: string): Dru
 }
 
 export async function lookupDrugLabelLive(genericName: string, options: { fetchImpl?: FetchLike; timeoutMs?: number; disabled?: boolean; now?: () => Date } = {}): Promise<DrugLabelResult> {
+  // A physician needs the prescribing information; an OTC consumer label is the fallback.
+  const prescription = await lookupLabel(genericName, "HUMAN PRESCRIPTION DRUG", options);
+  if (prescription.status !== "not_found") return prescription;
+  return lookupLabel(genericName, null, options);
+}
+
+async function lookupLabel(genericName: string, productType: string | null, options: { fetchImpl?: FetchLike; timeoutMs?: number; disabled?: boolean; now?: () => Date }): Promise<DrugLabelResult> {
   const started = Date.now();
   const retrievedAt = (options.now?.() ?? new Date()).toISOString();
   const name = genericName.trim().toLowerCase().replace(/"/g, "");
-  const params = new URLSearchParams({ search: `openfda.generic_name:"${name}"`, sort: "effective_time:desc", limit: "1" });
+  const search = productType ? `openfda.generic_name:"${name}" AND openfda.product_type:"${productType}"` : `openfda.generic_name:"${name}"`;
+  const params = new URLSearchParams({ search, sort: "effective_time:desc", limit: "1" });
   const apiKey = process.env.OPENFDA_API_KEY?.trim();
   if (apiKey) params.set("api_key", apiKey);
   const url = `${BASE}?${params.toString()}`;

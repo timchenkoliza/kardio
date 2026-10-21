@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import {
@@ -19,7 +20,7 @@ export const maxDuration = 60;
 
 const domainInput = z.string().trim().min(1).max(253);
 const bodySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   text: z.string().trim().min(2).max(1200),
   mode: z.enum(RESEARCH_MODES),
   sourceScope: z.enum(RESEARCH_SOURCE_SCOPES),

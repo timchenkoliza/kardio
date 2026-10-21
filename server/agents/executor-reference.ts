@@ -107,7 +107,7 @@ function labelDraft(ctx: AgentContext, drug: DrugEntry, label: DrugLabel, popula
     kind: "drug_label",
     category: "fda_label",
     title: `${drug.ru[0].toLocaleUpperCase("ru-RU")}${drug.ru.slice(1)} (${label.genericName || drug.inn}): инструкция FDA`,
-    summary: [brands ? `Торговые названия в США: ${brands}` : null, label.effectiveDate ? `инструкция от ${label.effectiveDate}` : null, label.route.length ? label.route.join(", ").toLowerCase() : null].filter(Boolean).join(" · "),
+    summary: [label.productType === "HUMAN OTC DRUG" ? "Безрецептурный препарат в США (инструкция для пациента)" : label.productType === "HUMAN PRESCRIPTION DRUG" ? "Рецептурная инструкция США" : null, brands ? `торговые названия в США: ${brands}` : null, label.route.length ? label.route.join(", ").toLowerCase() : null].filter(Boolean).join(" · "),
     reasonShown: [`Препарат из вашего вопроса: ${drug.ru}`, "Инструкция США, не российская: сверьте с ГРЛС"],
     observedAt: label.effectiveDate,
     evidence,
@@ -215,7 +215,7 @@ export async function reference(ctx: AgentContext): Promise<ExecutorResult> {
   const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - REFERENCE_YEARS, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
   const maxDate = entrezDate(ctx.now);
   const approved = approvedJournals();
-  let articles: PubmedArticle[] = [];
+  const articles: PubmedArticle[] = [];
   const approvedPmids = new Set<string>();
   if (term) {
     const search = (journals?: string[], searchTerm = term, retmax = 6) => tools.searchPubmed(ctx, { term: searchTerm, minDate, maxDate, retmax, journals, publicationTypes: REFERENCE_PUBLICATION_TYPES, sort: "relevance" });

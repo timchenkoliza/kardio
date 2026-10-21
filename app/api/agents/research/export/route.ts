@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
@@ -17,7 +18,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const querySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   run: z.string().regex(/^run-/u).max(80),
   mode: z.enum(RESEARCH_MODES).default("brief"),
   style: z.enum(RESEARCH_CITATION_STYLES).default("gost"),

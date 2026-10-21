@@ -6,15 +6,15 @@ import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
 import { entrezDate } from "./adapters/pubmed";
 import type { AgentContext } from "./context";
-import type { ResultDraft, ToolOutput } from "./drafts";
+import type { ResultDraft } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
 import { evidenceFromCatalog, evidenceFromPubmed, evidenceFromQuote, catalogProvenance, pubmedProvenance } from "./services/evidence";
-import { eventDrafts } from "./services/event";
+import { eventDrafts, rejectedListingCount } from "./services/event";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
 import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
-import { finishWithChecks, PlanBuilder, topicsDetail, verificationSummary, type ExecutorResult } from "./plan";
+import { finishWithChecks, PlanBuilder, topicsDetail, type ExecutorResult } from "./plan";
 import { reference } from "./executor-reference";
 import { learning } from "./executor-learning";
 
@@ -284,6 +284,8 @@ async function events(ctx: AgentContext): Promise<ExecutorResult> {
   const found = builder.record("Нашли события и привели к единому виду", await tools.searchEvents(scoped), items => countLabel(items.length, ["подходящее событие", "подходящих события", "подходящих событий"]));
   const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(scoped), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
   const drafts = await finishWithChecks(builder, scoped, [...eventDrafts(scoped, found.slice(0, 12)), ...partner]);
+  const rejected = rejectedListingCount(scoped);
+  if (rejected) builder.notices.push(`Скрыто событий из источников, отклонённых врачами: ${rejected}`);
   const organic = drafts.filter(draft => !draft.partner).length;
   const covered = ctx.specialty === "cardiology";
   builder.note("Подготовили следующий шаг", "Календарь и переход к регистрации — только после вашего подтверждения");

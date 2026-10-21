@@ -25,7 +25,7 @@ export function CatchUpRunner({ enabled }: { enabled: boolean }) {
       if (result?.ran?.length) router.refresh();
     });
   }, [command, enabled, router]);
-  return running ? <p className="ws-catchup" role="status"><RefreshCw size={14} className="ws-spin" aria-hidden="true" />Агенты проверяют источники с вашего прошлого визита…</p> : null;
+  return running ? <p className="ws-catchup" role="status"><RefreshCw size={14} className="ws-spin" aria-hidden="true" />Источники проверяются с вашего прошлого визита…</p> : null;
 }
 
 /** Marks an agent as seen after the page has shown this visit's "new" flags. */

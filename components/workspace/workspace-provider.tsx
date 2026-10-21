@@ -15,6 +15,7 @@ export interface CommandResponse {
   actions?: ActionRequest[];
   material?: Material;
   notices?: string[];
+  redirect?: string;
 }
 
 interface WorkspaceContextValue {
