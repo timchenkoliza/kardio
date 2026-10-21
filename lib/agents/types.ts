@@ -10,8 +10,8 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { SourceStanding } from "./source-policy";
 
-export type AgentId = "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
-export const AGENT_IDS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
+export type AgentId = "reference" | "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
+export const AGENT_IDS: readonly AgentId[] = ["reference", "whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
 
 /** Integration honesty: every adapter declares exactly one of these. */
 export type IntegrationMode = "LIVE" | "MOCK" | "UNAVAILABLE";
@@ -70,7 +70,9 @@ export type ToolName =
   | "indexUserMaterial"
   | "searchUserMaterials"
   | "generateLearningPlan"
-  | "matchPartnerContent";
+  | "matchPartnerContent"
+  | "lookupDrugLabel"
+  | "readAbstracts";
 
 export interface Provenance {
   connectorId: string;
@@ -115,6 +117,8 @@ export type ResultKind =
   | "research_finding"
   | "learning_module"
   | "material_hit"
+  | "reference_answer"
+  | "drug_label"
   | "partner";
 
 export type ResultActionKind = "open_internal" | "open_source" | "save" | "calendar" | "registration" | "email";
@@ -244,6 +248,10 @@ export interface UserProfile {
   configuredAt: string | null;
   lastVisitAt: string | null;
   previousVisitAt: string | null;
+  /** First portal open for this specialty (retention cohort anchor). */
+  firstSeenAt: string | null;
+  /** First result page with at least one source-supported finding (activation). */
+  firstValueAt: string | null;
   updatedAt: string;
 }
 
@@ -306,7 +314,7 @@ export interface ActionRequest {
 export interface ConnectorDescriptor {
   id: string;
   name: string;
-  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
+  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "drug_labels" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
   mode: IntegrationMode;
   dataOrigin: DataOrigin;
   snapshotAt: string | null;
@@ -333,7 +341,7 @@ export interface AgentDefinition {
   name: string;
   job: string;
   description: string;
-  icon: "sparkles" | "scale" | "pill" | "search" | "calendar" | "graduation" | "folder";
+  icon: "sparkles" | "scale" | "pill" | "search" | "calendar" | "graduation" | "folder" | "answer";
   inputs: AgentInputSpec[];
   preferenceGroups: Array<"topics" | "contentTypes" | "sources" | "frequency" | "delivery" | "formats" | "horizon" | "goals">;
   supportedTools: ToolName[];

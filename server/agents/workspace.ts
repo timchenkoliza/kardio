@@ -1,3 +1,4 @@
+import type { PortalJob } from "@/lib/portal/jobs";
 import { AGENT_DEFINITIONS, AGENT_ORDER, agentHref } from "@/lib/agents/definitions";
 import { countLabel, DRUG_CHANGE_LABEL, plural } from "@/lib/agents/format";
 import { defaultProfile, effectivePreference, isConfigured, isNewSinceLastSeen, isRunDue, normalizeProfile, withNewFlags, type EffectivePreference } from "@/lib/agents/profile";
@@ -20,6 +21,7 @@ import { isRehydrated, markRehydrationConsumed } from "./store/mirror";
 export const MONITORING_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "events"];
 
 export const AGENT_CONNECTORS: Record<AgentId, string[]> = {
+  reference: ["pubmed", "openfda-labels", "regulatory-news", "grls", "catalog"],
   whats_new: ["catalog", "pubmed", "esc-guidelines", "regulatory-news", "partner-channel"],
   guidelines: ["catalog", "esc-guidelines"],
   drugs: ["regulatory-news", "grls", "pubmed", "journals", "partner-channel"],
@@ -62,7 +64,7 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
 
   let state: AgentCardState["state"];
   if (!subscription.enabled) state = "disabled";
-  else if (!isConfigured(profile) && definition.id !== "materials" && definition.id !== "research") state = "needs_setup";
+  else if (!isConfigured(profile) && definition.id !== "materials" && definition.id !== "research" && definition.id !== "reference") state = "needs_setup";
   else if (latestRun?.status === "failed" || latestRun?.status === "blocked") state = "failed";
   else if (!latestRun) state = "ready";
   else if (fresh.length) state = "fresh";
@@ -123,9 +125,13 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
     case "materials":
       headline = "Ищет только в ваших документах и сохранённом";
       break;
+    case "reference":
+      headline = latestRun?.input.text ? `Последний вопрос: «${latestRun.input.text.slice(0, 60)}${latestRun.input.text.length > 60 ? "…" : ""}»` : "Ответ по источникам на профессиональный вопрос";
+      break;
   }
 
   const primaryLabel: Record<AgentId, string> = {
+    reference: "Задать вопрос",
     whats_new: fresh.length ? "Смотреть новое" : "Открыть сводку",
     guidelines: "Смотреть изменения",
     drugs: fresh.length ? "Что изменилось" : "Открыть",
@@ -270,12 +276,12 @@ export async function catalogFor(specialty: SpecialtyId) {
   return { content, sources };
 }
 
-export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration"; text?: string | null; routed?: ReturnType<typeof routeTask> | null }): Promise<RunOutcome> {
+export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration"; text?: string | null; routed?: ReturnType<typeof routeTask> | null; job?: PortalJob | null }): Promise<RunOutcome> {
   const store = workspaceStore();
   const profile = await loadProfile(sessionId, specialty);
   const catalog = await catalogFor(specialty);
   const rehydrated = isRehydrated(sessionId, specialty);
-  const outcome = await runAgent({ store, sessionId, catalog, rehydrated }, { agentId, specialty, profile, trigger: options.trigger, text: options.text, routed: options.routed });
+  const outcome = await runAgent({ store, sessionId, catalog, rehydrated }, { agentId, specialty, profile, trigger: options.trigger, text: options.text, routed: options.routed, job: options.job ?? null });
   if (rehydrated) markRehydrationConsumed(sessionId, specialty);
   const fresh = await loadProfile(sessionId, specialty);
   fresh.subscriptions[agentId] = { ...fresh.subscriptions[agentId], lastRunAt: outcome.run.completedAt ?? outcome.run.startedAt, lastRunId: outcome.run.id };

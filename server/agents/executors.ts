@@ -1,70 +1,30 @@
 import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
-import type { AgentId, PlanStep, ToolUse } from "@/lib/agents/types";
+import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
+import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
+import { specialties } from "@/lib/specialty";
+import { entrezDate } from "./adapters/pubmed";
 import type { AgentContext } from "./context";
 import type { ResultDraft, ToolOutput } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
-import { evidenceFromCatalog, evidenceFromPubmed, catalogProvenance, pubmedProvenance } from "./services/evidence";
+import { evidenceFromCatalog, evidenceFromPubmed, evidenceFromQuote, catalogProvenance, pubmedProvenance } from "./services/evidence";
 import { eventDrafts } from "./services/event";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
 import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
+import { finishWithChecks, PlanBuilder, topicsDetail, verificationSummary, type ExecutorResult } from "./plan";
+import { reference } from "./executor-reference";
+import { learning } from "./executor-learning";
+
+export type { ExecutorResult } from "./plan";
 
 /**
  * Agent executors: each agent owns a goal and composes shared tools into a
  * plan. Plan step labels are written for the physician; tool names stay
  * internal and are only recorded for audit.
  */
-
-export interface ExecutorResult {
-  intent: string;
-  plan: PlanStep[];
-  toolsUsed: ToolUse[];
-  drafts: ResultDraft[];
-  synthesis: string | null;
-  notices: string[];
-}
-
-class PlanBuilder {
-  plan: PlanStep[] = [];
-  toolsUsed: ToolUse[] = [];
-  notices: string[] = [];
-
-  note(label: string, detail: string | null = null) {
-    this.plan.push({ id: `step-${this.plan.length + 1}`, label, tool: null, status: "done", detail, connectorIds: [] });
-  }
-
-  record<T>(label: string, output: ToolOutput<T>, describe: (items: T[]) => string): T[] {
-    this.toolsUsed.push(output.use);
-    const status: PlanStep["status"] = output.use.status === "failed" ? "failed" : output.use.status === "unavailable" ? "skipped" : output.use.status === "blocked" ? "blocked" : "done";
-    const detail = output.use.status === "unavailable" || output.use.status === "failed"
-      ? (output.use.note ?? "Источник недоступен — шаг пропущен")
-      : [describe(output.items), output.use.note].filter(Boolean).join(" · ");
-    this.plan.push({ id: `step-${this.plan.length + 1}`, label, tool: output.use.tool, status, detail, connectorIds: output.use.connectorIds });
-    return output.items;
-  }
-}
-
-function verificationSummary(drafts: readonly ResultDraft[]): string {
-  const evidence = drafts.flatMap(draft => draft.evidence);
-  const supported = evidence.filter(item => item.verificationStatus === "SUPPORTED").length;
-  const partial = evidence.filter(item => item.verificationStatus === "PARTIALLY_SUPPORTED").length;
-  const unknown = evidence.filter(item => item.verificationStatus === "UNKNOWN").length;
-  const unsupported = evidence.filter(item => item.verificationStatus === "UNSUPPORTED").length;
-  return [`${supported} подтверждено`, partial ? `${partial} частично` : null, unknown ? `${unknown} не удалось проверить` : null, unsupported ? `${unsupported} не подтверждено` : null].filter(Boolean).join(", ");
-}
-
-async function finishWithChecks(builder: PlanBuilder, ctx: AgentContext, drafts: ResultDraft[]): Promise<ResultDraft[]> {
-  const checked = builder.record("Проверили утверждения по источникам", await tools.factCheck(drafts), items => verificationSummary(items));
-  return builder.record("Упорядочили по силе источников", await tools.rankEvidence(ctx, checked), items => countLabel(items.length, ["находка", "находки", "находок"]));
-}
-
-function topicsDetail(ctx: AgentContext): string {
-  const labels = topicLabels(ctx.specialty, ctx.preference.topics);
-  return labels.length ? `Темы: ${labels.join(", ")}` : "Темы не выбраны — смотрим всю специальность";
-}
 
 async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
@@ -110,7 +70,11 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
   let pubmedDrafts: ResultDraft[] = [];
   if (!wants.size || wants.has("research")) {
     const window = pubmedWindow(ctx, 14);
-    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term: tools.pubmedTermForTopics(ctx), ...window, retmax: 5, journals: tools.trustedJournals(ctx), publicationTypes: CLINICAL_PUBLICATION_TYPES }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
+    const topicTerm = tools.pubmedTermForTopics(ctx);
+    // No topics yet: the specialty itself is the scope (value before configuration).
+    const term = topicTerm ?? tools.specialtyScopeTerm(ctx);
+    const scopeReason = topicTerm ? "Новая публикация по вашим темам" : `Новая публикация по специальности «${specialties[ctx.specialty].name}»`;
+    const articles = builder.record("Искали новые публикации в PubMed", await tools.searchPubmed(ctx, { term, ...window, retmax: 5, journals: tools.trustedJournals(ctx), publicationTypes: CLINICAL_PUBLICATION_TYPES }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + ` с ${window.minDate}`);
     pubmedDrafts = articles.map(article => ({
       key: stableId("update", "pubmed", article.pmid),
       agentId: ctx.agentId,
@@ -119,12 +83,12 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
       category: "publication",
       title: truncate(article.title, 180),
       summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.authors.length ? ` · ${article.authors.slice(0, 3).join(", ")}${article.authors.length > 3 ? " и др." : ""}` : ""}`,
-      reasonShown: ["Новая публикация по вашим темам", "Клинические исследования и обзоры из отобранных журналов"],
+      reasonShown: [scopeReason, "Клинические исследования и обзоры из журналов, одобренных врачами"],
       observedAt: article.sortDate,
       evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
       source: pubmedProvenance(article, ctx.nowIso),
       actions: [{ kind: "open_source" as const, label: "PubMed", href: article.url, requiresConfirmation: false }, { kind: "save" as const, label: "Сохранить", href: null, requiresConfirmation: false }],
-      attributes: { journal: article.journal, pmid: article.pmid, doi: article.doi },
+      attributes: { journal: article.journal, pmid: article.pmid, doi: article.doi, studyType: studyTypeLabel(article.publicationTypes) },
       partner: null,
       rank: 0,
     }));
@@ -134,16 +98,75 @@ async function whatsNew(ctx: AgentContext): Promise<ExecutorResult> {
   return { intent: "monitor_updates", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
 }
 
+const GUIDELINE_PUBLICATION_TYPES = ["Practice Guideline", "Guideline", "Consensus Development Conference"];
+
+export function studyTypeLabel(types: readonly string[]): string | null {
+  if (types.some(type => /guideline/i.test(type))) return "Клинические рекомендации";
+  if (types.some(type => /consensus/i.test(type))) return "Согласительный документ";
+  if (types.includes("Meta-Analysis")) return "Метаанализ";
+  if (types.includes("Systematic Review")) return "Систематический обзор";
+  if (types.includes("Randomized Controlled Trial")) return "Рандомизированное исследование";
+  if (types.includes("Review")) return "Обзор";
+  return null;
+}
+
+/**
+ * Guidelines job. Cardiology adds the canonical catalog version chains and the
+ * ESC snapshot; every specialty gets recently published guidelines from
+ * PubMed. Russian official status is a hand-off to the rubricator: it is not
+ * connected and never asserted.
+ */
 async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
-  builder.note("Определили область", `${topicsDetail(ctx)} · период ${ctx.preference.horizonDays} дней`);
+  const question = ctx.inputText?.trim() ?? "";
+  const concepts = question ? conceptsIn(question, ctx.specialty).filter(concept => concept.kind !== "modifier") : [];
+  builder.note("Определили область", question ? `Вопрос: «${truncate(question, 100)}»${concepts.length ? ` · ${concepts.map(item => item.label).join(", ")}` : ""}` : `${topicsDetail(ctx)} · период ${ctx.preference.horizonDays} дней`);
   const diffs = builder.record("Нашли новые версии и сравнили с прежними", await tools.guidelineDiff(ctx), items => {
     const changed = items.filter(item => item.category !== "needs_check").length;
     const check = items.length - changed;
     return [countLabel(changed, ["изменение", "изменения", "изменений"]), check ? `${check} требуют проверки актуальности` : null].filter(Boolean).join(", ");
   });
-  const drafts = await finishWithChecks(builder, ctx, diffs);
-  return { intent: "compare_guidelines", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
+
+  const questionTerm = concepts.length ? pubmedTermFor(concepts) : null;
+  const topicTerm = tools.pubmedTermForTopics(ctx);
+  const term = questionTerm ?? topicTerm ?? tools.specialtyScopeTerm(ctx);
+  const years = question ? 5 : 2;
+  const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - years, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
+  const articles = builder.record("Искали опубликованные рекомендации в PubMed", await tools.searchPubmed(ctx, { term, minDate, maxDate: entrezDate(ctx.now), retmax: question ? 6 : 4, publicationTypes: GUIDELINE_PUBLICATION_TYPES, sort: question ? "relevance" : "pub_date" }), items => countLabel(items.length, ["документ", "документа", "документов"]) + ` за ${years} ${years === 2 ? "года" : "лет"}`);
+  const conclusions = question && articles.length ? builder.record("Прочитали рефераты рекомендаций", await tools.readAbstracts(ctx, articles.slice(0, 4).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
+  const byPmid = new Map(conclusions.map(item => [item.pmid, item]));
+  const scopeReason = questionTerm ? `По вопросу: ${concepts.map(item => item.label).join(", ")}` : topicTerm ? `Темы: ${topicLabels(ctx.specialty, ctx.preference.topics).join(", ")}` : `Специальность: ${specialties[ctx.specialty].name}`;
+  const publications: ResultDraft[] = articles.map(article => {
+    const abstract = byPmid.get(article.pmid);
+    const bibliographic = factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso));
+    const quote = abstract?.conclusion ? factCheckEvidence({ ...evidenceFromQuote({ connectorId: "pubmed", sourceName: `${article.journal} · ${article.sortDate?.slice(0, 4) ?? ""}`.trim(), sourceUrl: article.url, publisher: article.journalFull ?? article.journal, retrievedAt: ctx.nowIso, publishedAt: article.sortDate, claim: abstract.conclusion, quote: abstract.sections.find(section => section.label === abstract.conclusionLabel)?.text ?? abstract.conclusion, quoteLanguage: "en", quoteKind: "verbatim", level: "guideline", secondary: false, verifyIn: null, dataOrigin: "runtime_api" }), provenance: { ...pubmedProvenance(article, ctx.nowIso), journal: article.journal } }) : null;
+    return {
+      key: stableId("guideline-publication", article.pmid),
+      agentId: ctx.agentId,
+      specialty: ctx.specialty,
+      kind: "guideline_change" as const,
+      category: "guideline_publication",
+      title: truncate(article.title, 220),
+      summary: [studyTypeLabel(article.publicationTypes), article.journal, article.pubDate].filter(Boolean).join(" · "),
+      reasonShown: [scopeReason, "Международная публикация: статус в РФ сверяйте с рубрикатором Минздрава"],
+      observedAt: article.sortDate,
+      evidence: quote ? [quote, bibliographic] : [bibliographic],
+      source: pubmedProvenance(article, ctx.nowIso),
+      actions: [
+        { kind: "open_source" as const, label: "PubMed", href: article.url, requiresConfirmation: false },
+        { kind: "open_source" as const, label: "Рубрикатор КР Минздрава", href: "https://cr.minzdrav.gov.ru/", requiresConfirmation: false },
+        { kind: "save" as const, label: "Сохранить", href: null, requiresConfirmation: false },
+      ],
+      attributes: { society: article.journal, journal: article.journal, pmid: article.pmid, studyType: studyTypeLabel(article.publicationTypes), conclusionLabel: abstract?.conclusionLabel ?? null },
+      partner: null,
+      rank: 0,
+    };
+  });
+  const drafts = await finishWithChecks(builder, ctx, [...diffs, ...publications]);
+  const synthesis = question
+    ? [`По теме «${truncate(question, 100)}»: ${countLabel(diffs.length, ["изменение", "изменения", "изменений"])} в каталоге рекомендаций специальности и ${countLabel(publications.length, ["опубликованный документ", "опубликованных документа", "опубликованных документов"])} в PubMed.`, "Российские клинические рекомендации и их статус проверяются в рубрикаторе Минздрава: он пока не подключён, поэтому статус не утверждается."].join("\n\n")
+    : null;
+  return { intent: "compare_guidelines", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };
 }
 
 async function drugs(ctx: AgentContext): Promise<ExecutorResult> {
@@ -237,22 +260,37 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   return { intent: "research_question", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };
 }
 
-async function events(ctx: AgentContext): Promise<ExecutorResult> {
-  const builder = new PlanBuilder();
-  builder.note("Учли ваши условия", `${topicsDetail(ctx)} · ${ctx.preference.formats.length ? countLabel(ctx.preference.formats.length, ["формат", "формата", "форматов"]) : "любой формат"} · ${ctx.preference.horizonDays} дней`);
-  const found = builder.record("Нашли события и привели к единому виду", await tools.searchEvents(ctx), items => countLabel(items.length, ["подходящее событие", "подходящих события", "подходящих событий"]));
-  const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(ctx), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
-  const drafts = await finishWithChecks(builder, ctx, [...eventDrafts(ctx, found.slice(0, 12)), ...partner]);
-  builder.note("Подготовили следующий шаг", "Календарь и переход к регистрации — только после вашего подтверждения");
-  return { intent: "find_events", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
+const FORMAT_WORDS: ReadonlyArray<{ id: EventFormatPref; match: RegExp }> = [
+  { id: "online", match: /онлайн|вебинар|дистанц|online/u },
+  { id: "moscow", match: /москв/u },
+  { id: "spb", match: /петербург|спб|питер/u },
+  { id: "regions", match: /регион/u },
+  { id: "international", match: /зарубеж|международн|за рубеж|esc|aha/u },
+];
+
+/** Formats the physician named in the request; none named means any format. */
+export function formatsMentioned(text: string): EventFormatPref[] {
+  const value = text.toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+  return FORMAT_WORDS.filter(item => item.match.test(value)).map(item => item.id);
 }
 
-async function learning(ctx: AgentContext): Promise<ExecutorResult> {
+async function events(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
-  builder.note("Учли цели и темы", topicsDetail(ctx));
-  const modules = builder.record("Собрали маршрут из рекомендаций, лекций и событий", await tools.generateLearningPlan(ctx), items => countLabel(items.length, ["модуль", "модуля", "модулей"]));
-  const checked = builder.record("Проверили версии и источники", await tools.factCheck(modules), items => verificationSummary(items));
-  return { intent: "plan_learning", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts: checked, synthesis: null, notices: builder.notices };
+  // A portal request is scoped by its own words: formats it names, a longer horizon, no hidden saved filters.
+  const scoped: AgentContext = ctx.job === "events" && ctx.inputText
+    ? { ...ctx, preference: { ...ctx.preference, formats: formatsMentioned(ctx.inputText), horizonDays: Math.max(ctx.preference.horizonDays, 120) } }
+    : ctx;
+  builder.note("Учли ваши условия", `${topicsDetail(scoped)} · ${scoped.preference.formats.length ? countLabel(scoped.preference.formats.length, ["формат", "формата", "форматов"]) : "любой формат"} · ${scoped.preference.horizonDays} дней`);
+  const found = builder.record("Нашли события и привели к единому виду", await tools.searchEvents(scoped), items => countLabel(items.length, ["подходящее событие", "подходящих события", "подходящих событий"]));
+  const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(scoped), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
+  const drafts = await finishWithChecks(builder, scoped, [...eventDrafts(scoped, found.slice(0, 12)), ...partner]);
+  const organic = drafts.filter(draft => !draft.partner).length;
+  const covered = ctx.specialty === "cardiology";
+  builder.note("Подготовили следующий шаг", "Календарь и переход к регистрации — только после вашего подтверждения");
+  const synthesis = covered
+    ? (organic ? null : "В снимке афиш нет подходящих событий на ближайшие месяцы. Проверьте календари организаторов — ссылки ниже.")
+    : `Проверенной афиши событий по специальности «${specialties[ctx.specialty].name}» пока нет. События не подставляются из других специальностей и не придумываются — ниже календари организаторов и портал НМО для самостоятельного поиска.`;
+  return { intent: "find_events", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };
 }
 
 async function materials(ctx: AgentContext): Promise<ExecutorResult> {
@@ -302,6 +340,7 @@ async function materials(ctx: AgentContext): Promise<ExecutorResult> {
 }
 
 export const EXECUTORS: Record<AgentId, (ctx: AgentContext) => Promise<ExecutorResult>> = {
+  reference,
   whats_new: whatsNew,
   guidelines,
   drugs,

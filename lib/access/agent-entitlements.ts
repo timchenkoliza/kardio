@@ -47,6 +47,7 @@ export interface AgentAccessOverride {
 }
 
 export const PHYSICIAN_AGENTS: readonly AgentId[] = [
+  "reference",
   "whats_new",
   "guidelines",
   "drugs",

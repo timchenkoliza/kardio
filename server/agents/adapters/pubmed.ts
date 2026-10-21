@@ -12,6 +12,8 @@ export interface PubmedQuery {
   journals?: string[];
   /** PubMed publication types ([pt]), e.g. clinical trials and systematic reviews. */
   publicationTypes?: string[];
+  /** "pub_date" (default) for monitoring; "relevance" (PubMed Best Match) for answering a question. */
+  sort?: "pub_date" | "relevance";
 }
 
 /** Study types the physicians' validation asks for in a literature feed (PubMed «Clinical Queries»). */
@@ -99,7 +101,8 @@ class PubmedHttpError extends Error {
  * through a shared slot clock instead of failing with HTTP 429.
  */
 let nextSlotAt = 0;
-async function waitForSlot(intervalMs: number): Promise<void> {
+/** Shared NCBI slot clock: every E-utilities call from this instance goes through it. */
+export async function waitForSlot(intervalMs: number): Promise<void> {
   if (intervalMs <= 0) return;
   const now = Date.now();
   const startAt = Math.max(now, nextSlotAt);
@@ -139,7 +142,7 @@ export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?
   const fetchImpl = options.fetchImpl ?? (globalThis.fetch as unknown as FetchLike | undefined);
   if (!fetchImpl) return { status: "unavailable", query: term, total: 0, articles: [], error: "Сетевой клиент недоступен", durationMs: 0 };
 
-  const params = new URLSearchParams({ db: "pubmed", retmode: "json", sort: "pub_date", retmax: String(Math.min(Math.max(query.retmax ?? 6, 1), 20)), term, tool: "kardio-workspace" });
+  const params = new URLSearchParams({ db: "pubmed", retmode: "json", sort: query.sort ?? "pub_date", retmax: String(Math.min(Math.max(query.retmax ?? 6, 1), 20)), term, tool: "kardio-workspace" });
   if (query.minDate && query.maxDate) {
     params.set("datetype", "edat");
     params.set("mindate", query.minDate);

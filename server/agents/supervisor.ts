@@ -4,7 +4,10 @@ import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunTrigger, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
+import type { PortalJob } from "@/lib/portal/jobs";
+import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
+import { fetchPubmedAbstracts, type PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
 import type { AgentContext } from "./context";
 import type { ResultDraft } from "./drafts";
 import { EXECUTORS, type ExecutorResult } from "./executors";
@@ -29,6 +32,8 @@ export interface SupervisorDeps {
   sessionId: string;
   catalog: { content: ContentObject[]; sources: Source[] };
   pubmed?: (query: PubmedQuery) => Promise<PubmedSearchResult>;
+  abstracts?: (pmids: readonly string[]) => Promise<PubmedAbstractsResult>;
+  drugLabel?: (genericName: string) => Promise<DrugLabelResult>;
   now?: () => Date;
   /** True when the profile was restored from the browser mirror after a cold start. */
   rehydrated?: boolean;
@@ -52,6 +57,7 @@ export function selectAgent(routed: RoutedIntent): AgentId {
 }
 
 const PLAN_TEMPLATES: Record<AgentId, string[]> = {
+  reference: ["Вопрос и термины поиска", "Инструкция препарата", "Обзоры и рекомендации", "Выводы источников", "Проверка утверждений"],
   whats_new: ["Определить окно «с прошлого визита»", "Каталог РКО и РКЖ", "Рекомендации", "Препараты", "PubMed", "Проверка утверждений", "Ранжирование"],
   guidelines: ["Область и период", "Версии и отличия", "Проверка утверждений", "Ранжирование"],
   drugs: ["Что отслеживать", "Регистрации, ограничения, рекомендации", "Новые исследования", "Проверка утверждений", "Ранжирование"],
@@ -170,7 +176,7 @@ function scopedPreference(preference: ReturnType<typeof effectivePreference>, ag
   return preference;
 }
 
-export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null }): Promise<RunOutcome> {
+export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null }): Promise<RunOutcome> {
   const now = deps.now?.() ?? new Date();
   const nowIso = now.toISOString();
   const started = Date.now();
@@ -189,7 +195,7 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     completedAt: null,
     status: "running",
     input: { text: null, preferenceDigest: preferenceDigest(preference) },
-    intent: routed?.intent ?? null,
+    intent: request.job ?? routed?.intent ?? null,
     plan: [],
     toolsUsed: [],
     resultIds: [],
@@ -218,9 +224,10 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     }
   }
 
-  const [materials, existing] = await Promise.all([
-    request.agentId === "materials" ? deps.store.listMaterials(deps.sessionId, request.specialty) : Promise.resolve([] as Material[]),
+  const [materials, existing, history] = await Promise.all([
+    request.agentId === "materials" || request.agentId === "learning" ? deps.store.listMaterials(deps.sessionId, request.specialty) : Promise.resolve([] as Material[]),
     deps.store.listResults(deps.sessionId, request.specialty, request.agentId),
+    request.agentId === "learning" ? deps.store.listRuns(deps.sessionId, request.specialty, undefined, 60) : Promise.resolve([] as AgentRun[]),
   ]);
   const ctx: AgentContext = {
     agentId: request.agentId,
@@ -233,7 +240,11 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     catalog: deps.catalog,
     materials,
     pubmed: deps.pubmed ?? (query => searchPubmedLive(query)),
+    abstracts: deps.abstracts ?? (pmids => fetchPubmedAbstracts(pmids)),
+    drugLabel: deps.drugLabel ?? (name => lookupDrugLabelLive(name)),
     inputText,
+    job: request.job ?? null,
+    history: history.filter(item => item.id !== runId),
   };
 
   let executed: ExecutorResult;

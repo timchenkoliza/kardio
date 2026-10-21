@@ -13,6 +13,10 @@ function pubmedMode(): IntegrationMode {
   return process.env.PUBMED_DISABLED === "1" ? "UNAVAILABLE" : "LIVE";
 }
 
+function openfdaMode(): IntegrationMode {
+  return process.env.OPENFDA_DISABLED === "1" ? "UNAVAILABLE" : "LIVE";
+}
+
 export function connectorRegistry(): ConnectorDescriptor[] {
   return [
     { id: "catalog", name: "Каталог РКО и РКЖ", kind: "catalog", mode: "LIVE", dataOrigin: "catalog_snapshot", snapshotAt: GOLDENSET_SNAPSHOT_AT, description: "Канонический набор: рекомендации РКО, видеолекции разработчиков, новости РКО и РКЖ с версиями и статусом актуальности", limitations: "Импортированный снимок; права на полные тексты на проверке, поэтому доступны карточки и ссылки на первоисточник" },
@@ -20,6 +24,8 @@ export function connectorRegistry(): ConnectorDescriptor[] {
     { id: "journals", name: "Профессиональные журналы", kind: "literature", mode: pubmedMode(), dataOrigin: "runtime_api", snapshotAt: null, description: "NEJM, The Lancet, European Heart Journal, Circulation, РКЖ — через фильтр журналов PubMed", limitations: "Полные тексты и подписки издателей не подключены" },
     { id: "esc-guidelines", name: "Рекомендации ESC", kind: "guidelines", mode: "LIVE", dataOrigin: "curated_snapshot", snapshotAt: GUIDELINE_SNAPSHOT_RETRIEVED_AT, description: "Публикации рекомендаций ESC 2026 и согласительных документов с цитатами из источников", limitations: "Снимок обновляется редакцией; полный текст рекомендаций не загружен" },
     { id: "regulatory-news", name: "Регуляторные изменения", kind: "regulatory", mode: "LIVE", dataOrigin: "curated_snapshot", snapshotAt: DRUG_SNAPSHOT_RETRIEVED_AT, description: "Публичные сообщения о регистрациях, ограничениях и других лекарственных изменениях", limitations: "Это сигналы из публичных страниц, а не замена официальным реестрам. Регуляторный статус подтверждается только соответствующим первичным источником" },
+    { id: "openfda-labels", name: "Инструкции FDA (openFDA)", kind: "drug_labels", mode: openfdaMode(), dataOrigin: "runtime_api", snapshotAt: null, description: "Разделы действующей инструкции препарата в США (Structured Product Labeling) через openFDA во время запроса", limitations: "Это инструкции FDA, а не инструкции, зарегистрированные в России. openFDA предупреждает, что данные не валидированы: решение сверяется с ГРЛС и первоисточником на DailyMed" },
+    { id: "cr-rubricator", name: "Рубрикатор клинических рекомендаций Минздрава", kind: "guidelines", mode: "UNAVAILABLE", dataOrigin: "none", snapshotAt: null, description: "cr.minzdrav.gov.ru — официальный статус клинических рекомендаций в России", limitations: "Программный доступ нестабилен и не подключён; продукт даёт переход в рубрикатор для проверки статуса" },
     { id: "grls", name: "ГРЛС Минздрава", kind: "regulatory", mode: "UNAVAILABLE", dataOrigin: "none", snapshotAt: null, description: "Государственный реестр лекарственных средств", limitations: "ГРЛС не подключён. Ссылка для ручной проверки не является доказательством, а сообщения СМИ/компаний не подтверждают официальный статус регистрации или инструкции в РФ" },
     { id: "events-listings", name: "Афиши профессиональных событий", kind: "events", mode: "LIVE", dataOrigin: "curated_snapshot", snapshotAt: EVENTS_SNAPSHOT_RETRIEVED_AT, description: "Конгрессы ESC и AHA со страниц организаторов", limitations: "Снимок афиш; мероприятия из агрегатора rnmo.ru скрыты — врачи отклонили этот источник; аккредитованные мероприятия НМО проверяйте на edu.rosminzdrav.ru" },
     { id: "nmo-portal", name: "Портал НМО", kind: "events", mode: "UNAVAILABLE", dataOrigin: "none", snapshotAt: null, description: "edu.rosminzdrav.ru — учёт баллов и запись на мероприятия", limitations: "Вход под вашей учётной записью не подключён" },

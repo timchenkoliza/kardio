@@ -19,6 +19,8 @@ const KIND_LABEL: Record<AgentResultView["kind"], string> = {
   research_finding: "Находка",
   learning_module: "Модуль",
   material_hit: "Ваш материал",
+  reference_answer: "Вывод источника",
+  drug_label: "Инструкция",
   partner: "Партнёрский материал",
 };
 

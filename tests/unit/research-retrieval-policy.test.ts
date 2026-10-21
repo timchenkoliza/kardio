@@ -101,6 +101,10 @@ describe("research retrieval policy", () => {
         return { status: "ok", query: query.term, total: 0, articles: [], error: null, durationMs: 1 };
       },
       inputText: "фибрилляция предсердий",
+      abstracts: async () => ({ status: "ok", abstracts: [], error: null, durationMs: 0 }),
+      drugLabel: async name => ({ status: "not_found", query: name, label: null, total: 0, error: null, durationMs: 0, retrievedAt: "2026-10-20T00:00:00.000Z" }),
+      job: null,
+      history: [],
     };
 
     const output = await searchPubmed(ctx, { term: "atrial fibrillation[tiab]", retmax: 6 });

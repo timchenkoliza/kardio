@@ -1,7 +1,9 @@
 import { defaultProfile, effectivePreference } from "@/lib/agents/profile";
 import type { AgentId, AgentPreference, UserProfile } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
+import type { DrugLabelResult } from "@/server/agents/adapters/openfda";
 import type { PubmedArticle, PubmedQuery, PubmedSearchResult } from "@/server/agents/adapters/pubmed";
+import type { PubmedAbstract, PubmedAbstractsResult } from "@/server/agents/adapters/pubmed-abstracts";
 import type { AgentContext } from "@/server/agents/context";
 import { listContent, listSources } from "@/server/repositories/catalog";
 
@@ -20,6 +22,24 @@ export function fakePubmed(articles: PubmedArticle[], status: PubmedSearchResult
   return Object.assign(fn, { calls });
 }
 
+export function fakeAbstracts(abstracts: PubmedAbstract[] = [], status: PubmedAbstractsResult["status"] = "ok") {
+  const calls: string[][] = [];
+  const fn = async (pmids: readonly string[]): Promise<PubmedAbstractsResult> => {
+    calls.push([...pmids]);
+    return { status, abstracts: status === "ok" ? abstracts.filter(item => pmids.includes(item.pmid)) : [], error: status === "ok" ? null : "PubMed сейчас недоступен", durationMs: 1 };
+  };
+  return Object.assign(fn, { calls });
+}
+
+export function fakeDrugLabel(result: Partial<DrugLabelResult> | null = null) {
+  const calls: string[] = [];
+  const fn = async (name: string): Promise<DrugLabelResult> => {
+    calls.push(name);
+    return { status: "not_found", query: name, label: null, total: 0, error: null, durationMs: 1, retrievedAt: FIXED_NOW.toISOString(), ...(result ?? {}) };
+  };
+  return Object.assign(fn, { calls });
+}
+
 export function profileWith(specialty: SpecialtyId, topics: string[], overrides: Partial<Record<AgentId, Partial<AgentPreference>>> = {}): UserProfile {
   const profile = defaultProfile(specialty, FIXED_NOW.toISOString());
   profile.interests.topics = topics;
@@ -27,7 +47,7 @@ export function profileWith(specialty: SpecialtyId, topics: string[], overrides:
   return profile;
 }
 
-export async function testContext(args: { agentId: AgentId; topics: string[]; specialty?: SpecialtyId; lastSeenAt?: string | null; text?: string | null; profile?: UserProfile; pubmed?: AgentContext["pubmed"] }): Promise<AgentContext> {
+export async function testContext(args: { agentId: AgentId; topics: string[]; specialty?: SpecialtyId; lastSeenAt?: string | null; text?: string | null; profile?: UserProfile; pubmed?: AgentContext["pubmed"]; abstracts?: AgentContext["abstracts"]; drugLabel?: AgentContext["drugLabel"]; job?: AgentContext["job"]; history?: AgentContext["history"]; materials?: AgentContext["materials"] }): Promise<AgentContext> {
   const specialty = args.specialty ?? "cardiology";
   const profile = args.profile ?? profileWith(specialty, args.topics);
   const [content, sources] = await Promise.all([listContent(specialty), listSources(specialty)]);
@@ -40,8 +60,12 @@ export async function testContext(args: { agentId: AgentId; topics: string[]; sp
     preference: effectivePreference(profile, args.agentId),
     lastSeenAt: args.lastSeenAt ?? null,
     catalog: { content, sources },
-    materials: [],
+    materials: args.materials ?? [],
     pubmed: args.pubmed ?? fakePubmed([]),
+    abstracts: args.abstracts ?? fakeAbstracts(),
+    drugLabel: args.drugLabel ?? fakeDrugLabel(),
     inputText: args.text ?? null,
+    job: args.job ?? null,
+    history: args.history ?? [],
   };
 }
