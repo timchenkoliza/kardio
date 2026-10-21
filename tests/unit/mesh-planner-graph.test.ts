@@ -1,14 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildEvidenceGraph } from "@/lib/mesh/evidence-graph";
 import { compileIntent } from "@/lib/mesh/intent";
 import { planSources } from "@/lib/mesh/planner";
 import type { SourceId, SourceStatusReport } from "@/lib/mesh/sources";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
-import { executePlan } from "@/server/mesh/execute";
 import { createSourceRegistry, descriptors } from "@/server/mesh/sources/registry";
 import { meshMemoryEvents } from "@/server/mesh/telemetry";
-import { fakeAbstracts, fakeArticle, fakePubmed, testContext } from "./agent-test-utils";
-import { FixtureDriver } from "./mesh-test-utils";
+import { acceptanceGraph, FixtureDriver } from "./mesh-test-utils";
 
 const ACCEPTANCE = "Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?";
 
@@ -77,21 +74,8 @@ describe("SourcePlanner — minimal source set per requirement", () => {
 });
 
 describe("Evidence Graph v0.1 — traceable, conflict-preserving", () => {
-  async function acceptanceGraph() {
-    const driver = new FixtureDriver();
-    const registry = createSourceRegistry({ browserDriver: driver, site: { minIntervalMs: 0 } });
-    const review = { ...fakeArticle("38000001", "Empagliflozin in heart failure with preserved ejection fraction: a systematic review"), journal: "Cochrane Database Syst Rev", publicationTypes: ["Systematic Review"], sortDate: "2024-05-01" };
-    const ctx = await testContext({ agentId: "reference", topics: [], text: ACCEPTANCE, job: "guidelines", pubmed: fakePubmed([review]), abstracts: fakeAbstracts([{ pmid: "38000001", sections: [{ label: "AUTHORS' CONCLUSIONS", text: "In people with HFpEF, SGLT2 inhibitors reduced the risk of hospitalisation for heart failure." }], conclusion: "In people with HFpEF, SGLT2 inhibitors reduced the risk of hospitalisation for heart failure.", conclusionLabel: "AUTHORS' CONCLUSIONS" }]) });
-    const intent = compileIntent(ACCEPTANCE, "cardiology");
-    const statuses = await statusesOf(registry);
-    const plan = planSources({ intent, sources: descriptors(registry), statuses });
-    const execution = await executePlan({ plan, intent, registry, ctx, sessionId: "graph-test" });
-    const graph = buildEvidenceGraph({ id: "graph-1", intent, plan, results: execution.results, descriptors: descriptors(registry), statuses, now: ctx.nowIso });
-    return { graph, plan, execution, driver };
-  }
-
   it("executes the plan: fallbacks only when needed, hand-offs without network", async () => {
-    const { execution, plan, driver } = await acceptanceGraph();
+    const { execution, plan, driver } = await acceptanceGraph({ sessionId: "graph-test" });
     const outcome = (sourceId: string) => execution.results.filter(result => result.invocation.sourceId === sourceId).map(result => result.invocation.outcome);
     expect(outcome("goldenset_catalog")).toEqual(["empty"]); // no HF guideline in the Golden Set
     expect(outcome("medi")).toEqual(["ok", "ok"]); // fallback for the guideline + drug reference
