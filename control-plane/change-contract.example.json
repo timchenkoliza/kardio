@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "change_id": "CHG-2026-10-21-example",
+  "title": "Improve reference-answer relevance without weakening evidence policy",
+  "owner": "product",
+  "status": "IDEA",
+  "problem": {
+    "user_segment": "verified physician",
+    "job": "get a practical source-backed answer to a clinical question",
+    "observed_failure": "adjacent or cross-specialty results can rank above the intended question",
+    "evidence": [
+      "live smoke result",
+      "production/user evidence when available"
+    ]
+  },
+  "hypothesis": "If query scoping and relevance ranking are tightened while source verification remains unchanged, useful-answer rate will improve without increasing unsupported claims.",
+  "target": {
+    "primary_metric": "useful_answer_rate",
+    "expected_direction": "increase",
+    "minimum_effect": null
+  },
+  "guardrails": [
+    { "metric": "unsupported_claim_rate", "operator": "==", "value": 0 },
+    { "metric": "safety_breach_count", "operator": "==", "value": 0 },
+    { "metric": "p95_latency_relative_change", "operator": "<=", "value": 0.2 }
+  ],
+  "scope": {
+    "expected_paths": [
+      "server/agents/**",
+      "lib/portal/**"
+    ],
+    "out_of_scope": [
+      "db/**",
+      "migrations/**",
+      "auth"
+    ]
+  },
+  "risk": {
+    "declared": "R2",
+    "computed": null,
+    "final": null
+  },
+  "eval_contract": {
+    "must_pass": [
+      "REF-PEDS-001",
+      "REF-NEURO-001",
+      "ADV-SPECIALTY-001",
+      "ADV-EVIDENCE-001"
+    ],
+    "must_not_regress": [
+      "existing unit suite",
+      "existing integration suite",
+      "existing e2e suite"
+    ]
+  },
+  "release": {
+    "initial_exposure_percent": 0,
+    "requested_canary_percent": 5,
+    "kill_criteria": [
+      "unsupported_claim_rate > 0",
+      "safety_breach_count > 0",
+      "error rate exceeds policy threshold"
+    ]
+  },
+  "human_decisions": {
+    "required_before_main_merge": true,
+    "required_before_first_canary": true
+  }
+}
