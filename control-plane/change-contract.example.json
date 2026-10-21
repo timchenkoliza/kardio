@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "change_id": "CHG-2026-10-21-example",
-  "title": "Improve reference-answer relevance without weakening evidence policy",
+  "title": "Improve reference-answer relevance without weakening evidence or changing the user mental model",
   "owner": "product",
   "status": "IDEA",
   "problem": {
@@ -13,7 +13,7 @@
       "production/user evidence when available"
     ]
   },
-  "hypothesis": "If query scoping and relevance ranking are tightened while source verification remains unchanged, useful-answer rate will improve without increasing unsupported claims.",
+  "hypothesis": "If query scoping and relevance ranking are tightened while source verification and interaction semantics remain unchanged, useful-answer rate will improve without increasing unsupported claims or cognitive effort.",
   "target": {
     "primary_metric": "useful_answer_rate",
     "expected_direction": "increase",
@@ -22,8 +22,81 @@
   "guardrails": [
     { "metric": "unsupported_claim_rate", "operator": "==", "value": 0 },
     { "metric": "safety_breach_count", "operator": "==", "value": 0 },
-    { "metric": "p95_latency_relative_change", "operator": "<=", "value": 0.2 }
+    { "metric": "p95_latency_relative_change", "operator": "<=", "value": 0.2 },
+    { "metric": "module_reroute_rate_relative_change", "operator": "<=", "value": 0.05 },
+    { "metric": "representation_override_rate_relative_change", "operator": "<=", "value": 0.05 }
   ],
+  "semantic_triggers": [
+    "source_verification"
+  ],
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "reference_answer",
+    "secondary_jobs": [],
+    "impact_triggers": [
+      "result_ranking_change"
+    ],
+    "capability_transition": "none",
+    "module": {
+      "strategy": "reuse",
+      "allowed_modules": [
+        "reference"
+      ],
+      "forbidden_modules": [
+        "research"
+      ],
+      "new_module_justification": null
+    },
+    "representation": {
+      "primary": "SHORT_TEXT",
+      "secondary": [
+        "EVIDENCE_STACK",
+        "SOURCE_TRAIL"
+      ],
+      "visualization": "forbidden",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": {
+      "navigation_landmarks_unchanged": true,
+      "action_semantics_unchanged": true,
+      "factual_meaning_unchanged": true,
+      "safety_thresholds_unchanged": true
+    },
+    "personalization": {
+      "mode": "none",
+      "allowed_dimensions": [],
+      "min_confidence": 0.65,
+      "inferred_traits_expire": true,
+      "sensitive_traits_forbidden": true,
+      "structural_layout_change": false,
+      "blueprint_invalidation_triggers": []
+    },
+    "onboarding": {
+      "meaningful_capability_transition": false,
+      "required_when_relevant": false,
+      "dismissal_respected": true,
+      "mastery_suppresses_future_guides": true
+    },
+    "cache": {
+      "blueprint_cacheable": true,
+      "invalidation_triggers": [
+        "module_registry_version_changed",
+        "representation_policy_version_changed"
+      ]
+    },
+    "golden_set": {
+      "required_cases": [
+        "REF-PEDS-001",
+        "REF-NEURO-001",
+        "ADV-SPECIALTY-001",
+        "ADV-EVIDENCE-001"
+      ],
+      "same_job_paraphrase_count": 10,
+      "require_default_ux_on_low_personalization_confidence": true
+    }
+  },
   "scope": {
     "expected_paths": [
       "server/agents/**",
@@ -32,33 +105,44 @@
     "out_of_scope": [
       "db/**",
       "migrations/**",
-      "auth"
+      "auth",
+      "core navigation",
+      "design tokens",
+      "onboarding"
     ]
   },
   "risk": {
-    "declared": "R2",
-    "computed": null,
-    "final": null
+    "engineering_declared": "R4",
+    "engineering_computed": null,
+    "experience_declared": "E2",
+    "experience_computed": null,
+    "final_rollout_ceiling": null
   },
   "eval_contract": {
     "must_pass": [
       "REF-PEDS-001",
       "REF-NEURO-001",
       "ADV-SPECIALTY-001",
-      "ADV-EVIDENCE-001"
+      "ADV-EVIDENCE-001",
+      "EXP-SAME-JOB-001",
+      "EXP-REPRESENTATION-STABLE-001"
     ],
     "must_not_regress": [
       "existing unit suite",
       "existing integration suite",
-      "existing e2e suite"
+      "existing e2e suite",
+      "stable shell",
+      "evidence semantics"
     ]
   },
   "release": {
     "initial_exposure_percent": 0,
-    "requested_canary_percent": 5,
+    "requested_canary_percent": 1,
     "kill_criteria": [
       "unsupported_claim_rate > 0",
       "safety_breach_count > 0",
+      "stable_shell_regression == true",
+      "personalization_privacy_breach == true",
       "error rate exceeds policy threshold"
     ]
   },
