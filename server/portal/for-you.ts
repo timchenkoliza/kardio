@@ -182,7 +182,9 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
     .map(result => resultCard(result, specialty, isNew(result)));
 
   const learningRun = args.runs.find(run => run.agentId === "learning" && run.status !== "running");
-  const learning = learningRun ? currentResults(args.results.filter(result => result.agentId === "learning"), learningRun).filter(result => result.attributes.done !== true).sort((a, b) => a.rank - b.rank)[0] : undefined;
+  // The learning step should add something: skip a reading already shown as an update card.
+  const shownUrls = new Set(updates.map(card => card.source.url).filter(Boolean));
+  const learning = learningRun ? currentResults(args.results.filter(result => result.agentId === "learning"), learningRun).filter(result => result.attributes.done !== true && !shownUrls.has(result.source.sourceUrl)).sort((a, b) => a.rank - b.rank)[0] : undefined;
   const learningCard = learning ? resultCard(learning, specialty, false) : null;
 
   const savedCard: ForYouCard | null = args.materials.length ? {
