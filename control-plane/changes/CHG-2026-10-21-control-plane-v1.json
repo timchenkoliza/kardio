@@ -1,0 +1,69 @@
+{
+  "change_id": "CHG-2026-10-21-control-plane-v1",
+  "title": "Introduce shadow product-engineering control plane",
+  "problem": {
+    "user_segment": "product owner",
+    "job": "turn a product hypothesis into a safe evidence-backed release decision",
+    "observed_failure": "implementation, testing, rollout and product intent are currently coordinated manually across separate tools",
+    "evidence": [
+      "existing CI and DS audit are separate pipelines",
+      "release decisions are not yet represented as one machine-readable Change lifecycle"
+    ]
+  },
+  "hypothesis": "If product intent, risk, evidence and rollout policy are bound to one immutable Change and exact candidate SHA, time-to-production-evidence can fall without increasing false-green releases.",
+  "target_metric": {
+    "name": "time_to_production_evidence",
+    "desired_direction": "decrease"
+  },
+  "guardrails": [
+    { "name": "false_green_decisions", "operator": "=", "threshold": 0 },
+    { "name": "main_write_from_shadow_mode", "operator": "=", "threshold": 0 }
+  ],
+  "semantic_triggers": [],
+  "expected_paths": [
+    "control-plane/**",
+    "tests/unit/control-plane*.test.ts",
+    ".github/workflows/control-plane-shadow.yml"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "shadow runner writes main",
+    "failed gate can be overridden by model output",
+    "evidence from another SHA is accepted"
+  ],
+  "experience_contract": {
+    "user_visible": false,
+    "primary_job": "internal_release_governance",
+    "impact_triggers": [],
+    "capability_transition": "none",
+    "module": {
+      "strategy": "reuse",
+      "allowed_modules": []
+    },
+    "representation": {
+      "primary": "TEXT",
+      "secondary": [],
+      "visualization": "forbidden",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": {
+      "navigation_landmarks_unchanged": true,
+      "action_semantics_unchanged": true,
+      "factual_meaning_unchanged": true,
+      "safety_thresholds_unchanged": true
+    },
+    "personalization": {
+      "mode": "none",
+      "inferred_traits_expire": true,
+      "sensitive_traits_forbidden": true
+    },
+    "onboarding": {
+      "meaningful_capability_transition": false,
+      "required_when_relevant": false,
+      "dismissal_respected": true,
+      "mastery_suppresses_future_guides": true
+    }
+  }
+}
