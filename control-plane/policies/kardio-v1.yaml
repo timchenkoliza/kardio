@@ -1,0 +1,142 @@
+version: 1
+mode: shadow
+project: kardio
+
+risk_classes:
+  R0:
+    description: Copy, docs, non-functional presentation changes
+    path_patterns:
+      - "docs/**"
+      - "**/*.md"
+    required_gates: [static, preview]
+    max_recommended_rollout_percent: 100
+
+  R1:
+    description: UI/layout/product interaction without medical or persistent-state semantics
+    path_patterns:
+      - "components/**"
+      - "app/**/*.tsx"
+      - "styles/**"
+    required_gates: [static, e2e, ds_audit, preview]
+    max_recommended_rollout_percent: 20
+
+  R2:
+    description: Agent behavior, routing, prompts, source ranking, content selection
+    path_patterns:
+      - "server/agents/**"
+      - "lib/agents/**"
+      - "lib/portal/**"
+    required_gates: [static, unit, integration, eval, simulation, preview]
+    max_recommended_rollout_percent: 5
+
+  R3:
+    description: Database, migrations, API, auth, persistent state, external actions
+    path_patterns:
+      - "db/**"
+      - "migrations/**"
+      - "app/api/**"
+      - "server/http.ts"
+      - "server/services/**"
+      - "server/agents/store/**"
+    required_gates: [static, migration, unit, integration, e2e, simulation, preview, human_engineering_review]
+    max_recommended_rollout_percent: 1
+
+  R4:
+    description: Medical evidence policy, safety-critical behavior, claims or clinical-risk gates
+    semantic_triggers:
+      - "medical_evidence"
+      - "drug_safety"
+      - "contraindication"
+      - "clinical_recommendation"
+      - "source_verification"
+    required_gates: [static, unit, integration, medical_eval, adversarial_simulation, live_source_smoke, preview, human_domain_review]
+    max_recommended_rollout_percent: 1
+
+risk_resolution:
+  strategy: highest_wins
+  unknown_change_defaults_to: R3
+
+release_stages:
+  - name: preview
+    exposure_percent: 0
+  - name: canary_1
+    exposure_percent: 1
+  - name: canary_5
+    exposure_percent: 5
+  - name: cohort_20
+    exposure_percent: 20
+  - name: cohort_50
+    exposure_percent: 50
+  - name: stable
+    exposure_percent: 100
+
+promotion_rules:
+  common:
+    require_same_commit_sha_across_evidence: true
+    blocking_ci_failures_allowed: 0
+    blocking_ds_findings_allowed: 0
+    unresolved_high_severity_security_findings_allowed: 0
+    missing_required_evidence_is_blocking: true
+
+  preview_to_canary_1:
+    require_all_risk_gates_green: true
+    require_baseline_comparison: true
+
+  canary_1_to_canary_5:
+    min_observation_events: 50
+    max_error_rate_relative_increase: 0.10
+    max_p95_latency_relative_increase: 0.20
+    zero_new_safety_breaches: true
+
+  canary_5_to_cohort_20:
+    min_observation_events: 200
+    max_error_rate_relative_increase: 0.05
+    zero_new_safety_breaches: true
+    require_target_metric_non_negative: true
+
+  cohort_20_to_cohort_50:
+    min_observation_events: 500
+    require_target_metric_positive_or_neutral_with_confidence: true
+
+  cohort_50_to_stable:
+    min_observation_events: 1000
+    zero_blocking_guardrail_breaches: true
+    require_learning_capture: true
+
+rollback_triggers:
+  immediate:
+    - safety_breach
+    - evidence_integrity_breach
+    - destructive_migration_failure
+    - auth_or_access_control_regression
+    - sustained_5xx_spike
+  hold:
+    - latency_guardrail_breach
+    - target_metric_degradation
+    - simulation_mismatch_seen_in_prod
+
+permissions:
+  product_orchestrator:
+    can_create_change: true
+    can_create_branch: true
+    can_request_preview: true
+    can_recommend_rollout: true
+    can_merge_main: false
+    can_change_rollout_percent: false
+  branch_engineer:
+    can_write_feature_branch: true
+    can_merge_main: false
+  release_controller:
+    can_recommend_rollout: true
+    can_execute_rollout: false
+  human_owner:
+    required_for:
+      - merge_main
+      - canary_start
+      - rollback_execution
+
+shadow_exit_criteria:
+  min_completed_changes: 5
+  max_false_green_decisions: 0
+  max_false_block_rate: 0.20
+  every_incident_backfilled_as_regression_case: true
