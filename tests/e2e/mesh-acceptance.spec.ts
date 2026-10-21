@@ -24,6 +24,8 @@ test("acceptance: empagliflozin in HFpEF renders a compiled, sourced, honest gui
   await expect(page.locator(".pt-input .ws-route")).toContainText("клинические рекомендации");
   await page.locator(".pt-input .ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=/, { timeout: 100_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Клинические рекомендации" })).toBeVisible();
 
   // The interior is compiled from a manifest; the shell is unchanged.

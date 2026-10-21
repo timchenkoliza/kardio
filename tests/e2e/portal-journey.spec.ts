@@ -21,6 +21,8 @@ async function ask(page: Page, text: string) {
   await page.getByRole("textbox", { name: "Что хотите узнать или сделать?" }).fill(text);
   await page.locator(".pt-input .ws-composer-run").click();
   await expect(page).toHaveURL(/\/ask\?run=/, { timeout: 45_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   await expect(page.locator(".pt-result")).toBeVisible();
 }
 
@@ -65,6 +67,8 @@ test("first value without any profile: a drug question routes to the drug job an
   await expect(page.locator(".pt-input .ws-route")).toContainText("справку по препарату");
   await page.locator(".pt-input .ws-composer-run").click();
   await expect(page).toHaveURL(/\/endocrinology\/ask\?run=/, { timeout: 45_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Справка по препарату" })).toBeVisible();
   const result = page.locator(".pt-result");
   const label = result.locator(".pt-drug").first();
@@ -114,6 +118,8 @@ test("learning works from cold start and explains itself without invented histor
   await page.goto("/obgyn/ask?job=learning");
   await page.getByRole("button", { name: "Подобрать по моим вопросам" }).click();
   await expect(page).toHaveURL(/\/obgyn\/ask\?run=/, { timeout: 45_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   const synthesis = page.locator(".pt-synthesis");
   await expect(synthesis).toContainText("Почему");
   await expect(synthesis).not.toContainText(/обращались к теме|часто спрашиваете/);

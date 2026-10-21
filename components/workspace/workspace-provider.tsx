@@ -21,7 +21,7 @@ export interface CommandResponse {
 interface WorkspaceContextValue {
   specialty: SpecialtyId;
   pending: boolean;
-  command: (body: Record<string, unknown>, options?: { refresh?: boolean; quiet?: boolean }) => Promise<CommandResponse | null>;
+  command: (body: Record<string, unknown>, options?: { refresh?: boolean; quiet?: boolean; timeoutMs?: number }) => Promise<CommandResponse | null>;
   upload: (form: FormData) => Promise<{ material: Material; notices: string[] } | null>;
   notify: (message: string, tone?: "info" | "error") => void;
   pendingAction: ActionRequest | null;
@@ -69,11 +69,14 @@ export function WorkspaceProvider({ specialty, children }: { specialty: Specialt
 
   const notify = useCallback((message: string, tone: "info" | "error" = "info") => setToast({ message, tone }), []);
 
-  const command = useCallback(async (body: Record<string, unknown>, options: { refresh?: boolean; quiet?: boolean } = {}) => {
+  const command = useCallback(async (body: Record<string, unknown>, options: { refresh?: boolean; quiet?: boolean; timeoutMs?: number } = {}) => {
     inflight.current += 1;
     if (!options.quiet) setPending(true);
+    // Bounded: a command that does not answer in time is reported, never awaited forever.
+    const controller = new AbortController();
+    const timer = options.timeoutMs ? window.setTimeout(() => controller.abort(), options.timeoutMs) : null;
     try {
-      const response = await withSessionGate(() => fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ specialty, ...body }) }));
+      const response = await withSessionGate(() => fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ specialty, ...body }), signal: controller.signal }));
       if (!response.ok) {
         if (!options.quiet) setToast({ message: await errorMessage(response), tone: "error" });
         return null;
@@ -83,9 +86,10 @@ export function WorkspaceProvider({ specialty, children }: { specialty: Specialt
       if (options.refresh !== false) router.refresh();
       return result;
     } catch {
-      if (!options.quiet) setToast({ message: "Нет связи с сервером. Проверьте подключение.", tone: "error" });
+      if (!options.quiet) setToast({ message: controller.signal.aborted ? "Сервер не ответил вовремя. Попробуйте ещё раз." : "Нет связи с сервером. Проверьте подключение.", tone: "error" });
       return null;
     } finally {
+      if (timer) window.clearTimeout(timer);
       inflight.current -= 1;
       if (inflight.current === 0) setPending(false);
     }

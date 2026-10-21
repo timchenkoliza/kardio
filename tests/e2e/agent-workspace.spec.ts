@@ -83,6 +83,8 @@ test("an evidence question routes to the research job with a checked trace", asy
   await expect(page.locator(".pt-input .ws-route")).toContainText("разбор по исследованиям");
   await page.locator(".pt-input .ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=/, { timeout: 45_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Разбор по исследованиям" })).toBeVisible();
   await expect(page.locator(".pt-synthesis")).toContainText("Чего не хватает");
   await page.locator(".ws-trace-disclosure > summary").click();
