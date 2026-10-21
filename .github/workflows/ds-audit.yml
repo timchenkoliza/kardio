@@ -1,0 +1,107 @@
+name: DS audit
+
+# Design-system audit of a Vercel deployment (tools/ds-audit/README.md).
+# - repository_dispatch `vercel.deployment.success` is sent by the Vercel GitHub integration.
+#   It only fires for a workflow file that exists on the default branch, and the run uses
+#   the default branch's code: the auditor that judges a PR is never the PR's own code.
+# - workflow_dispatch is the manual fallback (any URL, deep mode, baseline seeding).
+# The audit only reads the deployment over HTTP: it never deploys and never writes to the product.
+# No Anthropic API key is used: the semantic layer is off in v1.
+
+on:
+  repository_dispatch:
+    types: [vercel.deployment.success]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL деплоя, например https://kardio-eta.vercel.app
+        required: true
+        type: string
+      mode:
+        description: manual — аудит с комментарием; baseline — сохранить базовый отчёт для sha; deep — полный аудит (смысловой слой в v1 выключен)
+        required: true
+        default: manual
+        type: choice
+        options: [manual, baseline, deep]
+      sha:
+        description: SHA коммита этого деплоя (нужен для baseline и для статуса PR)
+        required: false
+        type: string
+      base_sha:
+        description: SHA базового коммита для сравнения (manual)
+        required: false
+        type: string
+      pr_number:
+        description: Номер PR для комментария и статуса (manual)
+        required: false
+        type: string
+      routes:
+        description: Маршруты через запятую; по умолчанию стандартный набор и навигация
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: ds-audit-${{ github.event.client_payload.git.sha || inputs.sha || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DS_AUDIT_VERCEL_PROJECT: ${{ vars.DS_AUDIT_VERCEL_PROJECT || 'kardio' }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      DS_AUDIT_PRODUCTION_REF: ${{ github.event.repository.default_branch }}
+      DS_AUDIT_STATE_DIR: .ds-audit-state
+      DS_AUDIT_OUT_DIR: ds-audit-output
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # Audit state (baselines of main commits, deployment URLs, semantic cache) lives in the
+      # GitHub Actions cache: restore the newest snapshot, save a new one under a unique key.
+      # Runs of repository_dispatch / workflow_dispatch on main share the main-branch cache scope.
+      - name: Restore audit state
+        uses: actions/cache/restore@v4
+        with:
+          path: .ds-audit-state
+          key: ds-audit-state-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ds-audit-state-v1-
+
+      - run: mkdir -p .ds-audit-state ds-audit-output
+
+      - name: Run DS audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tsx tools/ds-audit/cli.ts ci
+
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ds-audit-${{ github.run_id }}
+          path: ds-audit-output/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Save audit state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ds-audit-state
+          key: ds-audit-state-v1-${{ github.run_id }}-${{ github.run_attempt }}
