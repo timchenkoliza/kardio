@@ -1077,8 +1077,6 @@
 /* Home feed «Что нового для вас»: the first view. One column on phones, lead + two columns on desktop. */
 .ws-feed-head { display: flex; flex-direction: column; gap: var(--ws-space-8); padding-top: var(--ws-space-8); min-width: 0; }
 .ws-feed-head h1 { margin: 0; font-size: var(--font-size-heading-1); font-weight: var(--font-weight-bold); line-height: var(--ws-leading-heading-1); letter-spacing: var(--ws-tracking-heading-1); }
-/* DS auditor end-to-end test: deliberate R-01 regression (off-palette text colour). Not for merge. */
-.ws-feed-head h1 { color: var(--ws-art-line); }
 .ws-feed { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-12); }
 .ws-feed-slot { min-width: 0; }
 .ws-feed-slot > .ws-result { height: 100%; }
