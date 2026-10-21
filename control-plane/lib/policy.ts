@@ -148,8 +148,8 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
       "accessibility_eval",
       "human_product_review",
     ],
-    maxRecommendedRollout_percent: 1
-  } as unknown as ExperienceImpactPolicy,
+    maxRecommendedRolloutPercent: 1,
+  },
 };
 
 export const UNKNOWN_CHANGE_DEFAULT: RiskClass = "R3";
