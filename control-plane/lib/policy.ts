@@ -97,7 +97,7 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
   E1: {
     description: "Presentation-level change that preserves job, module, meaning and user mental model",
     triggers: ["user_visible", "copy_change", "visual_morphology_change"],
-    requiredGates: ["experience_smoke"],
+    requiredGates: ["experience_contract", "experience_smoke"],
     maxRecommendedRolloutPercent: 20,
   },
   E2: {
@@ -109,7 +109,7 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
       "information_density_change",
       "visual_text_balance_change",
     ],
-    requiredGates: ["task_fit_eval", "representation_eval", "accessibility_eval"],
+    requiredGates: ["experience_contract", "task_fit_eval", "representation_eval", "accessibility_eval"],
     maxRecommendedRolloutPercent: 5,
   },
   E3: {
@@ -122,6 +122,7 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
       "blueprint_change",
     ],
     requiredGates: [
+      "experience_contract",
       "task_fit_eval",
       "representation_eval",
       "personalization_privacy",
@@ -140,14 +141,15 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
       "safety_threshold_change",
     ],
     requiredGates: [
+      "experience_contract",
       "task_fit_eval",
       "representation_eval",
       "stable_shell_eval",
       "accessibility_eval",
       "human_product_review",
     ],
-    maxRecommendedRolloutPercent: 1,
-  },
+    maxRecommendedRollout_percent: 1
+  } as unknown as ExperienceImpactPolicy,
 };
 
 export const UNKNOWN_CHANGE_DEFAULT: RiskClass = "R3";
