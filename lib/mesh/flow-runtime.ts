@@ -67,12 +67,19 @@ function previousVersionOf(graph: EvidenceGraph): { document: GraphDocument; lab
   return candidates[0] ?? null;
 }
 
+const CHILDREN_SECTION = /у детей|детям|детск|pediatric/iu;
+const CHILDREN_MENTION = /(?<![\p{L}])(?:дет(?:и|ям|ей|ский|ского|ском)|ребен\p{L}*|подрост\p{L}*|новорожденн\p{L}*|младенц\p{L}*|children|pediatric)/iu;
+
+/** What the instruction says about children: its own section, then dosing text that names children. */
 function pediatricClaims(graph: EvidenceGraph): string[] {
   const chunks = new Map(graph.chunks.map(chunk => [chunk.id, chunk]));
-  const instructions = new Set(graph.documents.filter(document => document.kind === "drug_instruction").map(document => document.id));
-  return graph.claims
-    .filter(claim => instructions.has(claim.documentId) && claim.verification !== "UNSUPPORTED" && claim.chunkId && /у детей|детям|детск/iu.test(chunks.get(claim.chunkId)?.heading ?? ""))
-    .map(claim => claim.id);
+  const labels = new Set(graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label").map(document => document.id));
+  const usable = graph.claims.filter(claim => labels.has(claim.documentId) && claim.verification !== "UNSUPPORTED");
+  const section = usable.filter(claim => claim.chunkId && CHILDREN_SECTION.test(chunks.get(claim.chunkId)?.heading ?? ""));
+  const dosing = usable.filter(claim => claim.kind === "dosing" && !section.includes(claim) && CHILDREN_MENTION.test(claim.statement));
+  // Russian instruction first, then other jurisdictions (shown with their boundary).
+  const ru = (id: string) => Number(graph.documents.find(document => document.id === id)?.jurisdiction !== "RU");
+  return [...section, ...dosing].sort((a, b) => ru(a.documentId) - ru(b.documentId)).map(claim => claim.id);
 }
 
 export function evaluateCondition(condition: FlowCondition, graph: EvidenceGraph): boolean {
@@ -130,7 +137,7 @@ function derive(operation: string, graph: EvidenceGraph, directives: FlowDirecti
       (directives.moduleProps.drug_reference ??= {}).pediatricSection = true;
       return;
     case "pediatric_gap": {
-      if (graph.documents.some(document => document.kind === "drug_instruction")) directives.gaps.push("в найденной инструкции нет отдельного раздела о применении у детей — возрастные ограничения смотрите в противопоказаниях");
+      if (graph.documents.some(document => document.kind === "drug_instruction" || document.kind === "drug_label")) directives.gaps.push("в выдержках инструкции нет отдельных сведений о детях — дозирование и возрастные ограничения для детей проверьте в полной инструкции");
       (directives.moduleProps.drug_reference ??= {}).pediatricSection = false;
       return;
     }

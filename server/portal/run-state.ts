@@ -59,6 +59,16 @@ export interface RunStatusView {
   patch: ExperiencePatch | null;
   progress: Pick<RunProgress, "stepsDone" | "stepsTotal" | "pending" | "firstModuleMs"> | null;
   updatedAt: string | null;
+  /** How the run was executed (ids and verdicts only — diagnostics, never rendered). */
+  execution?: {
+    class: string;
+    skill: { id: string; version: string; mode: string; confidence: number } | null;
+    branches: string[];
+    fallback: string | null;
+    shadow: { verdict: string; reasons: string[]; lostModules: string[]; addedModules: string[]; addedSources: string[]; genericMs: number; skillMs: number } | null;
+    timings: { totalMs: number; firstModuleMs: number | null };
+    patches: number;
+  } | null;
 }
 
 export function runStatusView(runId: string, lookup: RunLookup): RunStatusView {
@@ -73,5 +83,14 @@ export function runStatusView(runId: string, lookup: RunLookup): RunStatusView {
     patch: run.progress?.patch ?? null,
     progress: run.progress ? { stepsDone: run.progress.stepsDone, stepsTotal: run.progress.stepsTotal, pending: run.progress.pending, firstModuleMs: run.progress.firstModuleMs } : null,
     updatedAt: run.progress?.updatedAt ?? run.completedAt ?? run.startedAt,
+    execution: run.execution ? {
+      class: run.execution.class,
+      skill: run.execution.skill ? { id: run.execution.skill.id, version: run.execution.skill.version, mode: run.execution.skill.mode, confidence: run.execution.skill.confidence } : null,
+      branches: run.execution.flow?.branches ?? [],
+      fallback: run.execution.fallback?.reason ?? null,
+      shadow: run.execution.shadow ? { verdict: run.execution.shadow.verdict, reasons: run.execution.shadow.reasons, lostModules: run.execution.shadow.lostModules, addedModules: run.execution.shadow.addedModules, addedSources: run.execution.shadow.addedSources, genericMs: run.execution.shadow.generic.durationMs, skillMs: run.execution.shadow.skill.durationMs } : null,
+      timings: run.execution.timings,
+      patches: run.patches?.length ?? 0,
+    } : null,
   };
 }

@@ -15,9 +15,9 @@ export const PEDIATRIC_DRUG_FLOW: IntentFlow = {
   steps: [
     { id: "resolve_drug_population", kind: "resolve", label: "Определяем препарат и возраст" },
     { id: "retrieve_instruction", kind: "retrieve", label: "Открываем инструкцию", requirements: ["russian_drug_reference"] },
-    { id: "pediatric_section", kind: "branch", label: "Есть ли в инструкции раздел о детях", branch: { when: "pediatric_section_found", then: ["pediatric_first"], otherwise: ["pediatric_gap"] } },
-    { id: "pediatric_first", kind: "derive", label: "Показываем раздел о детях первым", operation: "pediatric_first" },
-    { id: "pediatric_gap", kind: "derive", label: "Отмечаем, что отдельного раздела нет", operation: "pediatric_gap" },
+    { id: "pediatric_section", kind: "branch", label: "Есть ли в инструкции сведения о детях", branch: { when: "pediatric_section_found", then: ["pediatric_first"], otherwise: ["pediatric_gap"] } },
+    { id: "pediatric_first", kind: "derive", label: "Показываем сведения о детях первыми", operation: "pediatric_first" },
+    { id: "pediatric_gap", kind: "derive", label: "Отмечаем, что сведений о детях нет", operation: "pediatric_gap" },
     { id: "retrieve_research", kind: "retrieve", label: "Добавляем публикации о детях", requirements: ["current_research"] },
     { id: "validate", kind: "validate", label: "Проверяем, что каждое утверждение подтверждено источником" },
     { id: "compile", kind: "compile", label: "Собираем результат" },

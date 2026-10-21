@@ -32,8 +32,9 @@ export const PEDIATRIC_DRUG_REFERENCE: IntentSkill = {
   flowId: "pediatric_drug_reference.flow",
   experiencePolicy: {
     modules: ["key_takeaway", "drug_reference", "conflict", "evidence", "sources", "handoff", "next_actions"],
-    takeaway: { drug: [["warning", 1], ["contraindication", 1], ["indication", 2], ["dosing", 1]], answer: [["warning", 1], ["contraindication", 1], ["indication", 2], ["review_conclusion", 1]] },
-    explanation: "Открываем инструкцию: раздел о детях, противопоказания и дозирование как в тексте",
+    // Children first (by the flow), then age limits in contraindications, dosing as written, indications.
+    takeaway: { drug: [["contraindication", 1], ["dosing", 1], ["warning", 1], ["indication", 2]], answer: [["contraindication", 1], ["dosing", 1], ["warning", 1], ["indication", 1], ["review_conclusion", 1]] },
+    explanation: "Открываем инструкцию: что сказано о детях, противопоказания и дозирование — как в тексте",
   },
   evaluationContract: {
     cases: [
