@@ -7,7 +7,8 @@ import { cleanSection, dedupeChangeList, parseLabel } from "@/server/agents/adap
 import { publicationDates } from "@/server/agents/adapters/pubmed";
 import { extractConclusion } from "@/server/agents/adapters/pubmed-abstracts";
 import { chooseLearningSignal, learning } from "@/server/agents/executor-learning";
-import { reference, rerankByTitle } from "@/server/agents/executor-reference";
+import { evidenceAnswer as reference } from "@/server/mesh/executor";
+import { rerankByTitle } from "@/server/mesh/sources/pubmed";
 import { EXECUTORS } from "@/server/agents/executors";
 import { validateEvidence } from "@/server/agents/supervisor";
 import { buildForYou } from "@/server/portal/for-you";

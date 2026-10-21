@@ -69,11 +69,11 @@ const DATE = (document: GraphDocument | undefined) => document?.version.date ?? 
 
 /** Claim priority for the key takeaway per job family, with a per-kind cap. */
 const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
-  guideline: [["guideline_metadata", 2], ["currentness", 2], ["guideline_statement", 2], ["society_assertion", 2], ["indication", 1], ["review_conclusion", 1], ["drug_not_mentioned", 1]],
+  guideline: [["currentness", 1], ["guideline_statement", 1], ["guideline_metadata", 1], ["drug_not_mentioned", 1], ["indication", 1], ["society_assertion", 1], ["review_conclusion", 1]],
   drug: [["indication", 3], ["contraindication", 1], ["regulatory_signal", 2], ["product_listing", 4], ["warning", 1], ["dosing", 1]],
   answer: [["review_conclusion", 3], ["indication", 1], ["guideline_statement", 1], ["society_assertion", 1], ["currentness", 1]],
 };
-const TAKEAWAY_MAX = 7;
+const TAKEAWAY_MAX = 6;
 
 function takeawayClaims(graph: EvidenceGraph): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
@@ -84,20 +84,33 @@ function takeawayClaims(graph: EvidenceGraph): string[] {
     && (claim.kind !== "indication" || !nosology || family === "drug" || claim.entityIds.includes(nosology))
     && (claim.kind !== "product_listing" || graph.job === "inn_lookup");
   const onSubtype = (claim: NormalizedClaim) => Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
+  const terms = graph.context.terms ?? [];
+  const onTopic = (claim: NormalizedClaim) => { const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase(); return terms.filter(term => text.includes(term)).length; };
   const picked: string[] = [];
   for (const [kind, cap] of TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
       // On the asked subtype first, Russian sources before international, newer first, then source relevance.
-      .sort((a, b) => onSubtype(b) - onSubtype(a)
+      .sort((a, b) => onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
         || Number(docs.get(a.documentId)?.jurisdiction !== "RU") - Number(docs.get(b.documentId)?.jurisdiction !== "RU")
         || DATE(docs.get(b.documentId)).localeCompare(DATE(docs.get(a.documentId)))
         || Number(docs.get(a.documentId)?.attributes.relevance ?? 0) - Number(docs.get(b.documentId)?.attributes.relevance ?? 0));
-    for (const claim of candidates.slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
+    // Document metadata is already in each item's source line; it is shown only for a document with nothing else picked.
+    const pool = kind === "guideline_metadata" ? candidates.filter(claim => !picked.some(id => graph.claims.find(item => item.id === id)?.documentId === claim.documentId)) : candidates;
+    for (const claim of pool.slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
   }
   return picked;
 }
 
-function moduleFor(family: ModuleFamily, graph: EvidenceGraph, input: CompileInput): ManifestModule | null {
+/** Claims that speak about the question's drug, class or subtype first (deterministic word overlap). */
+function relevance(graph: EvidenceGraph, claim: NormalizedClaim): number {
+  const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+  const subtype = graph.context.subtype;
+  return (graph.context.terms ?? []).filter(term => text.includes(term)).length * 2 + Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
+}
+
+function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: CompileInput): ManifestModule | null {
+  // Claims a source does not support (e.g. physician-rejected sources) are never shown as evidence.
+  const graph: EvidenceGraph = { ...fullGraph, claims: fullGraph.claims.filter(claim => claim.verification !== "UNSUPPORTED") };
   const id = `${family}-${hash([graph.id, family])}`;
   const base = { id, family, title: MODULE_POLICY[family].title, emphasis: "secondary" as const, collapsed: false, claimIds: [] as string[], documentIds: [] as string[], resultKeys: [] as string[], props: {} as ManifestModule["props"] };
   const keysFor = (documentIds: readonly string[]) => documentIds.map(documentId => input.resultKeys?.[documentId]).filter((key): key is string => Boolean(key));
@@ -112,7 +125,10 @@ function moduleFor(family: ModuleFamily, graph: EvidenceGraph, input: CompileInp
       const docs = graph.documents.filter(document => document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication").sort(byDate);
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
-      const claimIds = graph.claims.filter(claim => ids.has(claim.documentId) && (claim.kind === "guideline_metadata" || claim.kind === "currentness" || claim.kind === "guideline_statement" || claim.kind === "society_assertion" || claim.kind === "drug_not_mentioned")).map(claim => claim.id);
+      // Russian guideline: every statement about it; society summaries: the three most on-topic assertions (the rest is one click away).
+      const society = graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "society_assertion");
+      const topSociety = new Set(docs.filter(document => document.kind === "society_guideline_summary").flatMap(document => society.filter(claim => claim.documentId === document.id).map((claim, order) => ({ claim, order })).sort((a, b) => relevance(graph, b.claim) - relevance(graph, a.claim) || a.order - b.order).slice(0, 3).map(item => item.claim.id)));
+      const claimIds = graph.claims.filter(claim => ids.has(claim.documentId) && (claim.kind === "guideline_metadata" || claim.kind === "currentness" || claim.kind === "guideline_statement" || claim.kind === "drug_not_mentioned" || (claim.kind === "society_assertion" && topSociety.has(claim.id)))).map(claim => claim.id);
       const label = [graph.context.nosology ? graph.entities.find(entity => entity.id === `nosology:${graph.context.nosology}`)?.label : null, graph.context.subtype ? graph.entities.find(entity => entity.id === `subtype:${graph.context.subtype}`)?.label : null].filter(Boolean).join(" ");
       return { ...base, title: label ? `${base.title}: ${label}`.slice(0, 120) : base.title, documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { order: "newest_first", versions: docs.length } };
     }
@@ -124,7 +140,10 @@ function moduleFor(family: ModuleFamily, graph: EvidenceGraph, input: CompileInp
       const docs = graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label" || (graph.job === "inn_lookup" && document.kind === "inn_listing"));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
-      return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId)).map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
+      const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
+      // Outside the drug job, indications are shown only for the disease asked about; safety sections stay.
+      const claimIds = graph.claims.filter(claim => ids.has(claim.documentId) && (graph.family === "drug" || claim.kind !== "indication" || !nosology || claim.entityIds.includes(nosology))).map(claim => claim.id);
+      return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
     }
     case "evidence": {
       const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
@@ -141,7 +160,8 @@ function moduleFor(family: ModuleFamily, graph: EvidenceGraph, input: CompileInp
       return handoffs.length ? { ...base, props: { sourceIds: [...new Set(handoffs.map(source => source.id))] } } : null;
     }
     case "next_actions":
-      return { ...base, props: {} };
+      // Nothing was found: the useful next step is to rephrase, not to run another job on the same words.
+      return graph.documents.length ? { ...base, props: {} } : null;
     case "notices":
       return graph.gaps.length ? { ...base, props: { gaps: graph.gaps } } : null;
     default:

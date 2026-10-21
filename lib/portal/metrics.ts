@@ -55,6 +55,8 @@ export const USEFUL_ACTION_EVENTS: readonly PortalEventName[] = ["source_opened"
 export interface PortalEventPayload {
   specialty: string;
   job?: string;
+  /** Fine-grained job type (lib/mesh/jobs.ts) behind the result family. */
+  jobType?: string;
   capability?: string;
   resultId?: string;
   runId?: string;

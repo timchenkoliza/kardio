@@ -1,7 +1,9 @@
 import type { EffectivePreference } from "@/lib/agents/profile";
 import type { AgentId, AgentRun, Material, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
+import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { PortalJob } from "@/lib/portal/jobs";
+import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import type { DrugLabelResult } from "./adapters/openfda";
 import type { PubmedQuery, PubmedSearchResult } from "./adapters/pubmed";
 import type { PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
@@ -27,4 +29,10 @@ export interface AgentContext {
   job: PortalJob | null;
   /** This physician's earlier runs in this specialty (newest first): real behaviour signals, never invented. */
   history: AgentRun[];
+  /** Compiled intent when the run came from the portal input (mesh-executed jobs). */
+  intent?: NormalizedIntent | null;
+  /** Browser driver for browser-capable sources; undefined = select automatically, null = none. */
+  browserDriver?: BrowserDriver | null;
+  /** Session for internal observability (ids only). */
+  sessionId?: string | null;
 }

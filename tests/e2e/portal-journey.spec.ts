@@ -67,14 +67,17 @@ test("first value without any profile: a drug question routes to the drug job an
   await expect(page).toHaveURL(/\/endocrinology\/ask\?run=/, { timeout: 45_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Справка по препарату" })).toBeVisible();
   const result = page.locator(".pt-result");
-  const label = result.locator(".pt-drug");
+  const label = result.locator(".pt-drug").first();
   if (await label.count()) {
-    await expect(label.first()).toContainText("Это инструкция, утверждённая в США");
-    await expect(label.first().getByRole("link", { name: /DailyMed/ })).toHaveAttribute("href", /dailymed\.nlm\.nih\.gov/);
+    // Russian instruction (MEDI copy) first; the US label only stands in, and each says which jurisdiction it is.
+    const russian = (await label.innerText()).includes("Копия российской инструкции");
+    await expect(label).toContainText(russian ? "Копия российской инструкции" : "Это инструкция, утверждённая в США");
+    await expect(label.getByRole("link", { name: russian ? /МЕДИ РУ/ : /DailyMed/ })).toHaveAttribute("href", russian ? /medi\.ru\/instrukciya\// : /dailymed\.nlm\.nih\.gov/);
+    await expect(label.getByRole("link", { name: "Проверить в ГРЛС" })).toHaveAttribute("href", "https://grls.rosminzdrav.ru/");
   } else {
     await expect(result).toContainText("Чего не хватает");
   }
-  await expect(page.locator(".pt-synthesis")).toContainText("ГРЛС");
+  await expect(page.locator(".pt-synthesis").first()).toContainText("ГРЛС");
 });
 
 test("guideline question routes to guidelines and never asserts Russian status", async ({ page }) => {
@@ -132,7 +135,7 @@ test("unknown intent falls back to an honest answer page", async ({ page }) => {
   await page.goto("/therapy");
   await ask(page, "привет");
   await expect(page.getByRole("heading", { level: 1, name: "Ответ по источникам" })).toBeVisible();
-  await expect(page.locator(".pt-result")).toContainText(/Подходящих источников не нашлось|Чего не хватает/);
+  await expect(page.locator(".pt-result")).toContainText(/Подходящих\sисточников\sне\sнашлось|Чего\sне\sхватает/u);
 });
 
 test("image interpretation requests are stopped before they run", async ({ page }) => {

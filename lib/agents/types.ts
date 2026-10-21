@@ -72,7 +72,9 @@ export type ToolName =
   | "generateLearningPlan"
   | "matchPartnerContent"
   | "lookupDrugLabel"
-  | "readAbstracts";
+  | "readAbstracts"
+  /** One planned source invocation of the source mesh (any source, any execution mode). */
+  | "readSource";
 
 export interface Provenance {
   connectorId: string;
@@ -209,6 +211,19 @@ export interface AgentRun {
   durationMs: number | null;
   riskNotices: string[];
   synthesis: string | null;
+  /** Compiled experience of mesh-executed jobs: the manifest and the evidence graph it points at. */
+  experience?: RunExperience | null;
+}
+
+/**
+ * Stored with the run so the result page renders exactly what was compiled.
+ * Types live in lib/mesh; kept structural here to avoid a dependency cycle.
+ */
+export interface RunExperience {
+  intentId: string;
+  manifest: import("@/lib/mesh/manifest").ExperienceManifest;
+  graph: import("@/lib/mesh/evidence").EvidenceGraph;
+  plan: { id: string; steps: number; invocations: number; reused: boolean };
 }
 
 export interface AgentPreference {

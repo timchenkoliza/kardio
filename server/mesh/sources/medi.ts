@@ -541,7 +541,8 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
         return emptyResult(request, { sourceId: "medi", outcome: "empty", status: report.status, execution: report.execution, started, errorCode: error.machineCode, note: "На МЕДИ РУ нет такой страницы", urls: provenance.visits.map(visit => visit.url) });
       }
       const code = isSourceToolError(error) ? error.machineCode : "unexpected";
-      const note = isSourceToolError(error) && error.code === "layout_changed" ? "Структура страницы МЕДИ РУ изменилась — источник не прочитан, результат не подставлен" : `МЕДИ РУ не ответил: ${isSourceToolError(error) ? error.code : "ошибка"}`;
+      const reason: Record<string, string> = { network: "соединение прервалось", timeout: "не ответил вовремя", http_error: "ответил ошибкой", robots_disallow: "страница закрыта для автоматического доступа", page_budget_exceeded: "превышен лимит страниц на запрос", driver_unavailable: "браузер недоступен" };
+      const note = isSourceToolError(error) && error.code === "layout_changed" ? "Структура страницы МЕДИ РУ изменилась — источник не прочитан, результат не подставлен" : `МЕДИ РУ: ${isSourceToolError(error) ? reason[error.code] ?? error.code : "ошибка"}`;
       return emptyResult(request, { sourceId: "medi", outcome: "failed", status: report.status, execution: report.execution, started, errorCode: code, note, urls: provenance.visits.map(visit => visit.url) });
     }
   }

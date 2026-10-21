@@ -47,7 +47,7 @@ export function profileWith(specialty: SpecialtyId, topics: string[], overrides:
   return profile;
 }
 
-export async function testContext(args: { agentId: AgentId; topics: string[]; specialty?: SpecialtyId; lastSeenAt?: string | null; text?: string | null; profile?: UserProfile; pubmed?: AgentContext["pubmed"]; abstracts?: AgentContext["abstracts"]; drugLabel?: AgentContext["drugLabel"]; job?: AgentContext["job"]; history?: AgentContext["history"]; materials?: AgentContext["materials"] }): Promise<AgentContext> {
+export async function testContext(args: { agentId: AgentId; topics: string[]; specialty?: SpecialtyId; lastSeenAt?: string | null; text?: string | null; profile?: UserProfile; pubmed?: AgentContext["pubmed"]; abstracts?: AgentContext["abstracts"]; drugLabel?: AgentContext["drugLabel"]; job?: AgentContext["job"]; history?: AgentContext["history"]; materials?: AgentContext["materials"]; browserDriver?: AgentContext["browserDriver"] }): Promise<AgentContext> {
   const specialty = args.specialty ?? "cardiology";
   const profile = args.profile ?? profileWith(specialty, args.topics);
   const [content, sources] = await Promise.all([listContent(specialty), listSources(specialty)]);
@@ -67,5 +67,8 @@ export async function testContext(args: { agentId: AgentId; topics: string[]; sp
     inputText: args.text ?? null,
     job: args.job ?? null,
     history: args.history ?? [],
+    // Unit tests never open real websites: browser-capable sources are off unless a fixture driver is given.
+    browserDriver: args.browserDriver === undefined ? null : args.browserDriver,
+    sessionId: "unit-test",
   };
 }

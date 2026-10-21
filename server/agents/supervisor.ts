@@ -4,7 +4,9 @@ import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunTrigger, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
+import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import type { PortalJob } from "@/lib/portal/jobs";
+import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
 import { fetchPubmedAbstracts, type PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
@@ -37,6 +39,8 @@ export interface SupervisorDeps {
   now?: () => Date;
   /** True when the profile was restored from the browser mirror after a cold start. */
   rehydrated?: boolean;
+  /** Browser driver for browser-capable sources (tests inject fixtures; null disables). */
+  browserDriver?: BrowserDriver | null;
 }
 
 export interface RunOutcome {
@@ -57,7 +61,7 @@ export function selectAgent(routed: RoutedIntent): AgentId {
 }
 
 const PLAN_TEMPLATES: Record<AgentId, string[]> = {
-  reference: ["Вопрос и термины поиска", "Инструкция препарата", "Обзоры и рекомендации", "Выводы источников", "Проверка утверждений"],
+  reference: ["Разбор запроса", "План источников", "Чтение источников", "Граф доказательств", "Сборка ответа"],
   whats_new: ["Определить окно «с прошлого визита»", "Каталог РКО и РКЖ", "Рекомендации", "Препараты", "PubMed", "Проверка утверждений", "Ранжирование"],
   guidelines: ["Область и период", "Версии и отличия", "Проверка утверждений", "Ранжирование"],
   drugs: ["Что отслеживать", "Регистрации, ограничения, рекомендации", "Новые исследования", "Проверка утверждений", "Ранжирование"],
@@ -176,7 +180,7 @@ function scopedPreference(preference: ReturnType<typeof effectivePreference>, ag
   return preference;
 }
 
-export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null }): Promise<RunOutcome> {
+export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null }): Promise<RunOutcome> {
   const now = deps.now?.() ?? new Date();
   const nowIso = now.toISOString();
   const started = Date.now();
@@ -245,6 +249,10 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     inputText,
     job: request.job ?? null,
     history: history.filter(item => item.id !== runId),
+    // The intent is recompiled from the sanitized text: nothing redacted by the risk gate reaches the sources.
+    intent: request.intent && inputText ? compileIntent(inputText, request.specialty, { job: request.intent.job.explicit ? request.intent.job.family : null }) : null,
+    ...(deps.browserDriver !== undefined ? { browserDriver: deps.browserDriver } : {}),
+    sessionId: deps.sessionId,
   };
 
   let executed: ExecutorResult;
@@ -277,6 +285,7 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   run.plan = executed.plan;
   run.toolsUsed = executed.toolsUsed;
   run.synthesis = executed.synthesis;
+  run.experience = executed.experience ?? null;
   run.riskNotices = [...new Set([...run.riskNotices, ...executed.notices, ...validation.notes])];
   run.resultIds = merged.results.map(result => result.id);
   run.newResultCount = merged.newCount;

@@ -168,8 +168,21 @@ export class PlaywrightDriver implements BrowserDriver {
   async open(url: string, options: OpenOptions): Promise<PageSnapshot> {
     const started = Date.now();
     return this.withPage(url, options, async page => {
-      const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: options.timeoutMs });
-      return { requestedUrl: url, finalUrl: page.url(), status: response?.status() ?? 0, html: await page.content(), fetchedAt: new Date().toISOString(), driver: "playwright", durationMs: Date.now() - started };
+      // One retry for a dropped connection (some hosts reset idle connections); any other failure is reported as is.
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: options.timeoutMs });
+          if (!response && attempt === 0) continue;
+          return { requestedUrl: url, finalUrl: page.url(), status: response?.status() ?? 0, html: await page.content(), fetchedAt: new Date().toISOString(), driver: "playwright", durationMs: Date.now() - started };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "";
+          if (attempt === 0 && /ERR_CONNECTION_(?:RESET|CLOSED|REFUSED)|ERR_EMPTY_RESPONSE|ERR_NETWORK_CHANGED|ERR_SOCKET/u.test(message)) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            continue;
+          }
+          throw error;
+        }
+      }
     });
   }
 

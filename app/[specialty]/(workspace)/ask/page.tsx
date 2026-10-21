@@ -8,6 +8,7 @@ import type { SpecialtyId } from "@/lib/domain/types";
 import { isPortalJob, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { JobIcon } from "@/components/portal/job-icon";
+import { ExperienceView } from "@/components/experience/experience-view";
 import { JobResult } from "@/components/portal/job-results";
 import { PortalInput } from "@/components/portal/portal-input";
 import { FollowupJobButton } from "@/components/portal/result-actions";
@@ -107,12 +108,14 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     </header>
 
     <div className="pt-result">
-      <JobResult job={job} run={run} results={organic} partner={partner} specialty={specialty} adapter={adapter} />
+      {run.experience && run.status !== "blocked" && run.status !== "failed"
+        ? <ExperienceView run={run} experience={run.experience} results={views} />
+        : <JobResult job={job} run={run} results={organic} partner={partner} specialty={specialty} adapter={adapter} />}
     </div>
 
     <details className="ws-trace-disclosure">
       <summary>Как искали и что было доступно</summary>
-      <RunTrace run={run} connectors={connectors} now={now} showSynthesis={false} />
+      <RunTrace run={run} connectors={connectors} now={now} showSynthesis={false} showConnectors={!run.experience} />
     </details>
 
     <section className="ws-section" aria-labelledby="pt-followup-title">

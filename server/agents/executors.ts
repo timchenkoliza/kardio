@@ -15,7 +15,7 @@ import { materialEvidenceId, materialProvenance } from "./services/material";
 import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
 import { finishWithChecks, PlanBuilder, topicsDetail, type ExecutorResult } from "./plan";
-import { reference } from "./executor-reference";
+import { evidenceAnswer } from "@/server/mesh/executor";
 import { learning } from "./executor-learning";
 
 export type { ExecutorResult } from "./plan";
@@ -360,8 +360,12 @@ async function materials(ctx: AgentContext): Promise<ExecutorResult> {
   return { intent: "ask_my_materials", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: [] };
 }
 
+/**
+ * Executors behind capabilities. `reference` hosts the evidence_answer
+ * capability (source mesh); the others are the existing implementations.
+ */
 export const EXECUTORS: Record<AgentId, (ctx: AgentContext) => Promise<ExecutorResult>> = {
-  reference,
+  reference: evidenceAnswer,
   whats_new: whatsNew,
   guidelines,
   drugs,

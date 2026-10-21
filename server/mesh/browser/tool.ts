@@ -122,7 +122,8 @@ export class BrowserSourceTool {
     const snapshot = await this.driver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
     this.visits.push({ url: absolute, status: snapshot.status, driver: snapshot.driver, fetchedAt: snapshot.fetchedAt, cached: false });
     if (snapshot.status === 404 || snapshot.status === 410) throw new SourceToolError("not_found", String(snapshot.status), absolute);
-    if (snapshot.status >= 400 || snapshot.status === 0) throw new SourceToolError("http_error", String(snapshot.status), absolute);
+    if (snapshot.status === 0) throw new SourceToolError("network", "no response", absolute);
+    if (snapshot.status >= 400) throw new SourceToolError("http_error", String(snapshot.status), absolute);
     shared.cache.set(absolute, { snapshot, expires: Date.now() + this.site.cacheTtlSeconds * 1000 });
     if (shared.cache.size > 400) shared.cache.delete(shared.cache.keys().next().value!);
     return { snapshot, document: parseDocument(snapshot.html), cached: false };

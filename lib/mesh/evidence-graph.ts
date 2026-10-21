@@ -37,7 +37,7 @@ function sameScope(a: NormalizedClaim, b: NormalizedClaim, intent: NormalizedInt
 
 export function detectConflicts(claims: readonly NormalizedClaim[], documents: ReadonlyMap<string, NormalizedDocument>, intent: NormalizedIntent): GraphConflict[] {
   const conflicts: GraphConflict[] = [];
-  const pool = claims.filter(claim => SUBSTANTIVE.has(claim.kind) && claim.polarity !== "neutral");
+  const pool = claims.filter(claim => SUBSTANTIVE.has(claim.kind) && claim.polarity !== "neutral" && claim.verification !== "UNSUPPORTED");
   for (let i = 0; i < pool.length; i += 1) {
     for (let j = i + 1; j < pool.length; j += 1) {
       const a = pool[i];
@@ -72,6 +72,17 @@ function freshnessFor(document: NormalizedDocument, now: string): GraphFreshness
   if (document.state === "SNAPSHOT") return { documentId: document.id, state: "snapshot", reason: `Снимок от ${document.retrievedAt.slice(0, 10)}`, checkedAt: now };
   if (document.state === "LIVE") return { documentId: document.id, state: "live", reason: `Получено ${document.retrievedAt.slice(0, 10)}`, checkedAt: now };
   return { documentId: document.id, state: "unknown", reason: "Дата проверки неизвестна", checkedAt: now };
+}
+
+/** Words that make a claim on-topic for this question: the drug (INN and Russian name), its class, the subtype. */
+export function topicTerms(intent: NormalizedIntent): string[] {
+  const words = new Set<string>();
+  for (const drug of intent.entities.drugs) { words.add(drug.inn.toLowerCase()); words.add(drug.ru.toLowerCase()); }
+  for (const concept of intent.entities.concepts.filter(item => item.kind === "concept")) {
+    for (const word of concept.term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").replace(/[()"*]/gu, " ").split(/\s+/u)) if (word.length >= 4) words.add(word.toLowerCase());
+  }
+  if (intent.context.subtype) words.add(intent.context.subtype.id.split("/").at(-1)!);
+  return [...words];
 }
 
 export function buildEvidenceGraph(args: {
@@ -132,7 +143,13 @@ export function buildEvidenceGraph(args: {
 
   const gaps: string[] = [];
   for (const item of plan.unmet) gaps.push(`${REQUIREMENT_LABEL[item.requirement]} — ${item.reason}`);
-  for (const requirement of intent.requirements) {
+  // Required evidence, and any evidence a primary step was planned for (stand-ins included), that came back empty.
+  const expected = [...new Set([...intent.requirements, ...plan.steps.filter(step => step.role === "primary").map(step => step.requirement)])];
+  for (const requirement of expected) {
+    if (!coverage[requirement]) {
+      const steps = plan.steps.filter(step => step.requirement === requirement);
+      if (steps.length) coverage[requirement] = steps.some(step => invocations.some(item => item.stepId === step.id && item.documentIds.length)) ? "met" : "missing";
+    }
     if (coverage[requirement] !== "missing") continue;
     const notes = plan.steps.filter(step => step.requirement === requirement).map(step => invocations.find(item => item.stepId === step.id)?.note).filter(Boolean);
     gaps.push(`${REQUIREMENT_LABEL[requirement]} — ${notes[0] ?? "источники ничего не нашли"}`);
@@ -153,7 +170,7 @@ export function buildEvidenceGraph(args: {
     job: intent.job.primary,
     family: intent.job.family,
     specialty: intent.context.specialty,
-    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn) },
+    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent) },
     sources,
     documents: graphDocuments,
     versions: [...documents.values()].map(document => ({ documentId: document.id, ...document.version })),

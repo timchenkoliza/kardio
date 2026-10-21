@@ -2,7 +2,9 @@ import type { ActionRequest, AgentId, AgentResult, AgentRun, UserProfile } from 
 import type { SpecialtyId } from "@/lib/domain/types";
 import { askHref, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
 import { lengthBucket } from "@/lib/portal/metrics";
-import { routePortalIntent, type PortalRoute } from "@/lib/portal/router";
+import { capabilityForJob } from "@/lib/mesh/capabilities";
+import { compileIntent } from "@/lib/mesh/intent";
+import type { PortalRoute } from "@/lib/portal/router";
 import { workspaceStore } from "@/server/agents/store";
 import { executeRun, loadProfile } from "@/server/agents/workspace";
 import { recordPortalEvent } from "./telemetry";
@@ -10,10 +12,11 @@ import { recordPortalEvent } from "./telemetry";
 /**
  * Portal Manager: owns the physician's request and its final result.
  *
- *   intent → route (deterministic) → capability (agent) → validation + provenance
- *          → job-specific result → next action / return loop
+ *   intent (compiled) → capability → source plan → evidence graph
+ *          → experience manifest → result → next action / return loop
  *
- * Agents stay implementation units; this layer speaks in jobs.
+ * The physician owns the intent; the system owns execution. Capabilities and
+ * sources stay implementation units; this layer speaks in jobs.
  */
 
 export interface AskOutcome {
@@ -27,22 +30,24 @@ export interface AskOutcome {
 }
 
 export async function handleAsk(sessionId: string, specialty: SpecialtyId, text: string, options: { job?: PortalJob | null; followup?: boolean } = {}): Promise<AskOutcome> {
-  const route = routePortalIntent(text, specialty, { job: options.job ?? null });
+  const intent = compileIntent(text, specialty, { job: options.job ?? null });
+  const route = intent.route;
+  const capability = capabilityForJob(intent.job.primary);
   await recordPortalEvent(sessionId, "primary_intent_submitted", { specialty, lengthBucket: lengthBucket(text), explicitJob: Boolean(options.job) });
-  await recordPortalEvent(sessionId, "intent_routed", { specialty, job: route.job, capability: route.agentId, confidence: route.confidence, explicitJob: Boolean(options.job) });
+  await recordPortalEvent(sessionId, "intent_routed", { specialty, job: route.job, capability: capability.id, confidence: route.confidence, explicitJob: Boolean(options.job), jobType: intent.job.primary });
   if (options.followup) await recordPortalEvent(sessionId, "followup_started", { specialty, job: route.job });
 
-  const previous = await workspaceStore().listRuns(sessionId, specialty, route.agentId, 30);
+  const previous = await workspaceStore().listRuns(sessionId, specialty, capability.host, 30);
   if (previous.some(run => run.input.text && jobForRun(run) === route.job)) await recordPortalEvent(sessionId, "repeat_job", { specialty, job: route.job });
 
-  const outcome = await executeRun(sessionId, specialty, route.agentId, { trigger: "composer", text, routed: route.routed, job: route.job });
+  const outcome = await executeRun(sessionId, specialty, capability.host, { trigger: "composer", text, routed: route.routed, job: route.job, intent });
   if (route.job === "research" && outcome.run.status !== "blocked" && outcome.run.resultIds.length) {
     await recordPortalEvent(sessionId, "research_result_completed", { specialty, job: route.job, runId: outcome.run.id, count: outcome.run.resultIds.length });
   }
   return {
     runId: outcome.run.id,
     job: route.job,
-    agentId: route.agentId,
+    agentId: capability.host,
     href: askHref(specialty, { run: outcome.run.id }),
     actions: outcome.actions,
     notices: outcome.run.riskNotices,

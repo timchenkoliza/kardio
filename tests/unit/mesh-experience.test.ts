@@ -50,7 +50,10 @@ describe("Experience Compiler — bounded, deterministic, evidence-bound", () =>
     }
     const takeaway = output.manifest.modules[0];
     const kinds = takeaway.claimIds.map(id => graph.claims.find(claim => claim.id === id)!.kind);
-    expect(kinds).toEqual(expect.arrayContaining(["guideline_metadata", "currentness", "guideline_statement"]));
+    expect(kinds.slice(0, 2)).toEqual(["currentness", "guideline_statement"]);
+    // The document's metadata is in each item's source line, so it is not repeated as a separate item.
+    expect(kinds).not.toContain("guideline_metadata");
+    expect(kinds.length).toBeLessThanOrEqual(6);
   });
 
   it("the physician's real signals only: no personalisation is claimed without them", async () => {

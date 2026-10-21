@@ -1,5 +1,5 @@
 import { countLabel } from "@/lib/agents/format";
-import type { PlanStep, ToolUse } from "@/lib/agents/types";
+import type { PlanStep, RunExperience, ToolUse } from "@/lib/agents/types";
 import { topicLabels } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
 import type { ResultDraft, ToolOutput } from "./drafts";
@@ -13,6 +13,8 @@ export interface ExecutorResult {
   drafts: ResultDraft[];
   synthesis: string | null;
   notices: string[];
+  /** Compiled experience (mesh-executed jobs only). */
+  experience?: RunExperience | null;
 }
 
 export class PlanBuilder {

@@ -34,7 +34,7 @@ export const AGENT_DEFINITIONS: Record<AgentId, AgentDefinition> = {
     icon: "answer",
     inputs: [{ id: "text", label: "Вопрос", required: true }],
     preferenceGroups: ["delivery"],
-    supportedTools: ["searchPubmed", "readAbstracts", "lookupDrugLabel", "findDrugChanges", "searchMedical", "factCheck", "riskCheck", "rankEvidence"],
+    supportedTools: ["readSource", "searchPubmed", "readAbstracts", "lookupDrugLabel", "findDrugChanges", "searchMedical", "factCheck", "riskCheck", "rankEvidence"],
     triggerMode: "on_demand",
     outputSchema: ["reference_answer", "drug_label", "drug_change", "research_finding"],
     safetyPolicy: { ...baseSafety, partnerContent: "not_applicable" },

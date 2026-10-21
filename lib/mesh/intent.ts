@@ -90,6 +90,8 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
   const optional: EvidenceRequirement[] = [...definition.optional];
   // A named drug in a guideline or answer question needs the Russian instruction to be honest.
   if (drugs.length && (job === "guideline_check" || job === "reference_answer")) requirements.push("russian_drug_reference");
+  // A clinical question about a recognised disease is incomplete for a Russian physician without the Russian guideline.
+  if (domain.nosology && job === "reference_answer") requirements.push("russian_guideline");
   for (const requirement of scenario?.requirements ?? []) {
     // Scenario requirements are «official status» hand-offs and society sources: optional unless the scenario is specific.
     if (scenario?.nosology) requirements.push(requirement);

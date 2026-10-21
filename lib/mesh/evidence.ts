@@ -208,7 +208,8 @@ export interface EvidenceGraph {
   job: JobType;
   family: PortalJob;
   specialty: SpecialtyId;
-  context: { nosology: string | null; subtype: string | null; drugs: string[] };
+  /** Interpreted question context; `terms` are lowercase words that make a claim on-topic (drug INN/names, drug class, subtype). */
+  context: { nosology: string | null; subtype: string | null; drugs: string[]; terms?: string[] };
   sources: GraphSource[];
   documents: GraphDocument[];
   versions: Array<{ documentId: string } & DocumentVersion>;
