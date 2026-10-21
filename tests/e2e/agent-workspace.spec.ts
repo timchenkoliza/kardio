@@ -49,7 +49,10 @@ test("visual configuration without prompts runs the agents", async ({ page }) =>
   const drugs = page.locator('.ws-agent-card[data-agent="drugs"]');
   await expect(drugs).toContainText(/регистрац/);
   await expect(page.locator('.ws-agent-card[data-agent="whats_new"]')).toContainText(/по вашим темам|с вашего прошлого визита/);
-  await expect(page.getByRole("heading", { level: 2, name: "Последние результаты" })).toBeVisible();
+  // Agent findings lead the home feed (the former «Последние результаты» block); catalog fill uses .ws-feed-card.
+  const feed = page.getByRole("region", { name: "Лента «Что нового для вас»" });
+  await expect(feed.locator(".ws-result").first()).toBeVisible();
+  await expect(feed.getByRole("link", { name: "Вся сводка «Что нового для меня»" })).toBeVisible();
 });
 
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {

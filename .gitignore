@@ -11,3 +11,7 @@ node_modules/
 test-results/
 playwright-report/
 coverage/
+
+# DS audit (tools/ds-audit)
+ds-audit-output/
+.ds-audit-state/

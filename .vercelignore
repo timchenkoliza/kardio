@@ -8,3 +8,8 @@ coverage/
 .env.*
 private-data/
 .DS_Store
+/tools/
+/design-system/
+/docs/audits/
+/ds-audit-output/
+/.ds-audit-state/
