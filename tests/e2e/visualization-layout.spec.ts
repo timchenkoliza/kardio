@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * Medical-image interpretation is not part of the product. The legacy
- * visualization surface is retired and the agent workspace blocks requests to
+ * visualization surface is retired and the portal input blocks requests to
  * interpret scans or ECGs before any tool runs.
  */
 test("legacy imaging surface is retired", async ({ page }) => {
@@ -14,9 +14,9 @@ test("legacy imaging surface is retired", async ({ page }) => {
 
 test("the workspace refuses to interpret medical images", async ({ page }) => {
   await page.goto("/cardiology");
-  await page.getByRole("textbox", { name: "Что хотите делегировать?" }).fill("Расшифруй ЭКГ пациента и опиши снимок");
+  await page.getByRole("textbox", { name: "Что хотите узнать или сделать?" }).fill("Расшифруй ЭКГ пациента и опиши снимок");
   await expect(page.getByText("Интерпретация медицинских изображений не поддерживается.").first()).toBeVisible();
-  await expect(page.locator(".ws-composer-run")).toBeDisabled();
+  await expect(page.locator(".pt-input .ws-composer-run")).toBeDisabled();
 });
 
 test("navigation offers no image analysis entry", async ({ page }) => {
