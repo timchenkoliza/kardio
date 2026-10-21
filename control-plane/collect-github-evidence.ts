@@ -86,6 +86,7 @@ async function productQualityEvidence(): Promise<GateResult[]> {
     groupGate("migration", steps, [has("db:migrate"), exact("Run npm run db:seed"), exact("Verify idempotent import")]),
     groupGate("unit", steps, [exact("Run npm test")]),
     groupGate("integration", steps, [has("test:integration")]),
+    groupGate("simulation", steps, [exact("Run environment simulations")]),
     groupGate("e2e", steps, [has("test:e2e")]),
   ];
 }
