@@ -205,3 +205,52 @@ export function graphIndex(graph: EvidenceGraph) {
     source: new Map(graph.sources.map(source => [source.id, source])),
   };
 }
+
+/**
+ * Merge a targeted retrieval into an existing graph (result as context): the
+ * graph keeps its id — so module identities survive — documents re-read by the
+ * retrieval replace their earlier normalization, conflicts are re-detected
+ * over everything, and a requirement the retrieval met is no longer a gap.
+ */
+export function mergeEvidence(graph: EvidenceGraph, args: { intent: NormalizedIntent; plan: ExecutionPlan; results: readonly SourceResult[]; descriptors: readonly SourceDescriptor[]; statuses: Partial<Record<SourceId, SourceStatusReport>>; now: string }): EvidenceGraph {
+  const added = buildEvidenceGraph({ id: graph.id, intent: args.intent, plan: args.plan, results: args.results, descriptors: args.descriptors, statuses: args.statuses, now: args.now });
+  const replaced = new Set(added.documents.map(document => document.id));
+  const keepDoc = (id: string) => !replaced.has(id);
+  const documents = [...graph.documents.filter(document => keepDoc(document.id)), ...added.documents];
+  const claims = [...graph.claims.filter(claim => keepDoc(claim.documentId)), ...added.claims];
+  const claimIds = new Set(claims.map(claim => claim.id));
+  const byId = new Map(documents.map(document => [document.id, document as unknown as NormalizedDocument]));
+  const conflicts = detectConflicts(claims, byId, args.intent);
+  const sources = [...graph.sources];
+  for (const source of added.sources) {
+    const index = sources.findIndex(item => item.id === source.id && item.requirement === source.requirement);
+    if (index >= 0) sources[index] = source.outcome === "ok" || sources[index].outcome !== "ok" ? source : sources[index];
+    else sources.push(source);
+  }
+  const coverage = { ...graph.confidence.coverage };
+  const met: EvidenceRequirement[] = [];
+  for (const [requirement, state] of Object.entries(added.confidence.coverage) as Array<[EvidenceRequirement, CoverageState]>) {
+    if (state === "met" || !coverage[requirement]) coverage[requirement] = state;
+    if (state === "met") met.push(requirement);
+  }
+  const extraction = claims.map(claim => claim.confidence);
+  return {
+    ...graph,
+    documents,
+    claims,
+    chunks: [...graph.chunks.filter(chunk => keepDoc(chunk.documentId)), ...added.chunks],
+    versions: [...graph.versions.filter(version => keepDoc(version.documentId)), ...added.versions],
+    entities: [...new Map([...graph.entities, ...added.entities].map(entity => [entity.id, entity])).values()],
+    relations: [...graph.relations.filter(relation => relation.type !== "conflicts_with" && (claimIds.has(relation.from) || !graph.claims.some(claim => claim.id === relation.from))), ...added.relations.filter(relation => relation.type !== "conflicts_with"), ...conflicts.map(conflict => ({ id: hashId("rel", ["conflicts_with", ...conflict.claimIds]), type: "conflicts_with" as const, from: conflict.claimIds[0], to: conflict.claimIds[1], status: "candidate" as const, method: "rule:polarity+scope", note: conflict.explanation }))],
+    conflicts,
+    sources,
+    freshness: [...graph.freshness.filter(item => keepDoc(item.documentId)), ...added.freshness],
+    confidence: {
+      extractionMin: extraction.length ? Math.min(...extraction) : 0,
+      extractionMean: extraction.length ? Math.round((extraction.reduce((sum, value) => sum + value, 0) / extraction.length) * 100) / 100 : 0,
+      coverage,
+    },
+    gaps: graph.gaps.filter(gap => !met.some(requirement => gap.startsWith(REQUIREMENT_LABEL[requirement]))),
+    complete: true,
+  };
+}

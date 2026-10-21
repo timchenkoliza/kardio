@@ -160,7 +160,7 @@ export function createPubmedAdapter(): SourceAdapter {
     if (!term) return emptyResult(request, { sourceId: "pubmed", outcome: "empty", status: report.status, execution: "api", started, note: "В вопросе нет распознанных терминов для поиска" });
 
     const types = request.requirement === "international_guideline" ? GUIDELINE_TYPES : REFERENCE_PUBLICATION_TYPES;
-    const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - YEARS, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
+    const minDate = request.since ? entrezDate(new Date(Date.UTC(request.since, 0, 1))) : entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - YEARS, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
     const maxDate = entrezDate(ctx.now);
     const approved = approvedJournals();
     const approvedPmids = new Set<string>();

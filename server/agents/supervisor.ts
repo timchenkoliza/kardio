@@ -183,6 +183,31 @@ function scopedPreference(preference: ReturnType<typeof effectivePreference>, ag
   return preference;
 }
 
+/** A source context for a targeted retrieval outside a full run (a refinement of an open result). */
+export function retrievalContext(args: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; catalog: { content: ContentObject[]; sources: Source[] }; sessionId: string; now?: Date; browserDriver?: BrowserDriver | null }): AgentContext {
+  const now = args.now ?? new Date();
+  return {
+    agentId: args.agentId,
+    specialty: args.specialty,
+    now,
+    nowIso: now.toISOString(),
+    profile: args.profile,
+    preference: effectivePreference(args.profile, args.agentId),
+    lastSeenAt: null,
+    catalog: args.catalog,
+    materials: [],
+    pubmed: query => searchPubmedLive(query),
+    abstracts: pmids => fetchPubmedAbstracts(pmids),
+    drugLabel: name => lookupDrugLabelLive(name),
+    inputText: null,
+    job: null,
+    history: [],
+    ...(args.browserDriver !== undefined ? { browserDriver: args.browserDriver } : {}),
+    sessionId: args.sessionId,
+    progress: null,
+  };
+}
+
 /** A run that is not finished by this time after creation is reported as expired (its execution was lost). */
 export const RUN_EXECUTION_DEADLINE_MS = 90_000;
 
@@ -232,7 +257,7 @@ function progressBase(run: AgentRun): RunProgress {
  * returned to the browser already exists in storage. Unsafe input is
  * blocked here (a terminal run); everything else is queued.
  */
-export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; now?: Date }): Promise<AgentRun> {
+export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; now?: Date }): Promise<AgentRun> {
   const now = request.now ?? new Date();
   const preference = effectivePreference(request.profile, request.agentId);
   const risk = checkRisk(request.text);
@@ -244,7 +269,7 @@ export async function createRun(store: WorkspaceStore, sessionId: string, reques
     startedAt: now.toISOString(),
     completedAt: risk.allowed ? null : now.toISOString(),
     status: risk.allowed ? "queued" : "blocked",
-    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup) },
+    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}) },
     intent: request.job ?? null,
     plan: risk.allowed ? [] : [{ id: "step-1", label: "Проверили запрос на безопасность", tool: "riskCheck", status: "blocked", detail: risk.blockedReason, connectorIds: [] }],
     toolsUsed: [],

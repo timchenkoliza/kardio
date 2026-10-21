@@ -3,8 +3,13 @@ import type { SpecialtyId } from "@/lib/domain/types";
 import { askHref, isPortalJob, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
 import { lengthBucket } from "@/lib/portal/metrics";
 import { capabilityForJob } from "@/lib/mesh/capabilities";
-import { compileIntent } from "@/lib/mesh/intent";
+import { pinnedSession } from "@/lib/mesh/session-context";
+import { matchSkill } from "@/lib/mesh/skills/match";
+import type { ClarificationAnswer, ClarificationManifest, PlanPreview } from "@/lib/mesh/skills/types";
+import { decideStrategy, type Strategy } from "@/lib/mesh/strategy";
 import type { PortalRoute } from "@/lib/portal/router";
+import { recordMeshEvent } from "@/server/mesh/telemetry";
+import { refineRun, sessionContextFor, type RefineOutcome } from "./refine";
 import { workspaceStore } from "@/server/agents/store";
 import { createRun, RUN_EXECUTION_DEADLINE_MS } from "@/server/agents/supervisor";
 import type { RunOutcome } from "@/server/agents/supervisor";
@@ -31,6 +36,31 @@ export interface AskOutcome {
   route: Pick<PortalRoute, "job" | "confidence" | "reasons" | "vague">;
 }
 
+/** What the physician gets back for one submitted input. */
+export type AskResponse =
+  | ({ kind: "run" } & AskOutcome)
+  | { kind: "clarification"; clarification: ClarificationManifest }
+  | { kind: "plan"; plan: PlanPreview }
+  | { kind: "refined"; refinement: RefineOutcome; href: string };
+
+export interface AskOptions {
+  job?: PortalJob | null;
+  followup?: boolean;
+  schedule?: Scheduler;
+  /** The physician answered the one clarification (an option, or free text: optionId null). */
+  clarification?: ClarificationAnswer | null;
+  /** The physician confirmed the explicit plan. */
+  planConfirmed?: string | null;
+  /** The open result a follow-up was typed on (result as context). */
+  contextRunId?: string | null;
+}
+
+/** Decide how to execute one request: Skill fast path, one clarification, an explicit plan, or the dynamic path. */
+export async function decideAsk(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions = {}): Promise<Strategy> {
+  const session = await sessionContextFor(sessionId, specialty, options.contextRunId ?? null);
+  return decideStrategy({ text, specialty, job: options.job ?? null, session, answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null });
+}
+
 /** Runs the work of a durable run after the response; tests run it inline. */
 export type Scheduler = (task: () => Promise<void>) => void;
 
@@ -43,9 +73,10 @@ export type Scheduler = (task: () => Promise<void>) => void;
  * page can be opened (and refreshed, and reopened) from any server instance
  * while the work runs. Unsafe input becomes a terminal blocked run.
  */
-export async function createAskRun(sessionId: string, specialty: SpecialtyId, text: string, options: { job?: PortalJob | null; followup?: boolean } = {}): Promise<{ run: AgentRun; job: PortalJob; agentId: AgentId; route: AskOutcome["route"] }> {
-  const intent = compileIntent(text, specialty, { job: options.job ?? null });
-  const route = intent.route;
+export async function createAskRun(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions & { strategy?: Strategy } = {}): Promise<{ run: AgentRun; job: PortalJob; agentId: AgentId; route: AskOutcome["route"] }> {
+  const strategy = options.strategy ?? decideStrategy({ text, specialty, job: options.job ?? null, session: pinnedSession([], new Date()), answered: options.clarification ?? { id: "direct", optionId: null }, planConfirmed: options.planConfirmed ?? "direct" });
+  const intent = strategy.intent;
+  const route = { ...intent.route, job: intent.job.family };
   const capability = capabilityForJob(intent.job.primary);
   await recordPortalEvent(sessionId, "primary_intent_submitted", { specialty, lengthBucket: lengthBucket(text), explicitJob: Boolean(options.job) });
   await recordPortalEvent(sessionId, "intent_routed", { specialty, job: route.job, capability: capability.id, confidence: route.confidence, explicitJob: Boolean(options.job), jobType: intent.job.primary });
@@ -56,7 +87,7 @@ export async function createAskRun(sessionId: string, specialty: SpecialtyId, te
   if (previous.some(run => run.input.text && jobForRun(run) === route.job)) await recordPortalEvent(sessionId, "repeat_job", { specialty, job: route.job });
 
   const profile = await loadProfile(sessionId, specialty);
-  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup });
+  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup, context: { entities: strategy.resolution?.entities ?? [], answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null } });
   return { run, job: route.job, agentId: capability.host, route: { job: route.job, confidence: route.confidence, reasons: route.reasons, vague: route.vague } };
 }
 
@@ -70,8 +101,10 @@ export async function executeAskRun(sessionId: string, specialty: SpecialtyId, r
   const run = await store.getRun(sessionId, runId);
   if (!run || run.status !== "queued" || !run.input.text) return null;
   const job = isPortalJob(run.intent) ? run.intent : null;
-  const intent = compileIntent(run.input.text, specialty, { job: run.input.explicitJob ? job : null });
-  const outcome = await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.route.job, intent, run });
+  // The strategy is re-decided from the stored text and the context persisted at creation (never asks again).
+  const strategy = decideStrategy({ text: run.input.text, specialty, job: run.input.explicitJob ? job : null, session: pinnedSession(run.input.context?.entities ?? [], new Date()), answered: run.input.context?.answered ?? { id: "execution", optionId: null }, planConfirmed: run.input.context?.planConfirmed ?? "execution" });
+  const intent = strategy.intent;
+  const outcome = await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.job.family, intent, run });
   if (intent.route.job === "research" && outcome.run.status !== "blocked" && outcome.run.resultIds.length) {
     await recordPortalEvent(sessionId, "research_result_completed", { specialty, job: intent.route.job, runId: outcome.run.id, count: outcome.run.resultIds.length });
   }
@@ -83,8 +116,23 @@ export async function executeAskRun(sessionId: string, specialty: SpecialtyId, r
  * `after()`), the run id is returned immediately and the work continues after
  * the response; without one (tests, scripts) the work runs inline first.
  */
-export async function handleAsk(sessionId: string, specialty: SpecialtyId, text: string, options: { job?: PortalJob | null; followup?: boolean; schedule?: Scheduler } = {}): Promise<AskOutcome> {
-  const created = await createAskRun(sessionId, specialty, text, options);
+export async function handleAsk(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions = {}): Promise<AskOutcome> {
+  const strategy = await decideAsk(sessionId, specialty, text, { ...options, clarification: options.clarification ?? { id: "direct", optionId: null }, planConfirmed: options.planConfirmed ?? "direct" });
+  return startRun(sessionId, specialty, text, options, strategy);
+}
+
+async function recordStrategy(sessionId: string, specialty: SpecialtyId, strategy: Strategy, options: AskOptions): Promise<void> {
+  if (options.clarification?.id.startsWith("clarify-")) await recordMeshEvent(sessionId, "clarification_resolved", { specialty, clarificationId: options.clarification.id, optionId: options.clarification.optionId ?? "free_text" });
+  if (strategy.executionClass === "dynamic") {
+    // A Skill that was close but did not take the request (learning signal, never text).
+    const near = matchSkill(strategy.generic, strategy.effectiveText, specialty).evaluations.filter(item => item.signal >= 0.25 && !item.matched).sort((a, b) => b.signal - a.signal)[0];
+    if (near) await recordMeshEvent(sessionId, "intent_skill_missed", { specialty, skillId: near.skill.id, skillVersion: near.skill.version, reason: near.rejected ?? undefined, confidence: near.confidence, signature: strategy.signature });
+  }
+}
+
+async function startRun(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions, strategy: Strategy): Promise<AskOutcome> {
+  await recordStrategy(sessionId, specialty, strategy, options);
+  const created = await createAskRun(sessionId, specialty, text, { ...options, strategy });
   let actions: ActionRequest[] = [];
   if (created.run.status === "queued") {
     if (options.schedule) {
@@ -103,6 +151,32 @@ export async function handleAsk(sessionId: string, specialty: SpecialtyId, text:
     notices: created.run.riskNotices,
     route: created.route,
   };
+}
+
+/**
+ * One submitted input → what the physician sees next:
+ *
+ *   follow-up on an open result → refinement patch of THAT run (result as context)
+ *   ambiguity that changes execution → one clarification (never twice)
+ *   large comparison → the explicit plan, one click to run
+ *   otherwise → a durable run (Skill fast path or dynamic plan)
+ */
+export async function respondToAsk(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions = {}): Promise<AskResponse> {
+  if (options.contextRunId) {
+    const refinement = await refineRun(sessionId, specialty, options.contextRunId, text);
+    if (refinement) return { kind: "refined", refinement, href: askHref(specialty, { run: refinement.runId }) };
+  }
+  const strategy = await decideAsk(sessionId, specialty, text, options);
+  if (strategy.executionClass === "clarify" && strategy.clarification) {
+    await recordMeshEvent(sessionId, "clarification_shown", { specialty, clarificationId: strategy.clarification.id, reason: strategy.clarification.reason, count: strategy.clarification.options.length, signature: strategy.signature });
+    if (strategy.clarification.reason !== "facet_changes_execution") await recordMeshEvent(sessionId, "intent_skill_ambiguous", { specialty, reason: strategy.clarification.reason, signature: strategy.signature });
+    return { kind: "clarification", clarification: strategy.clarification };
+  }
+  if (strategy.planPreview) {
+    await recordMeshEvent(sessionId, "plan_preview_shown", { specialty, reason: strategy.planPreview.reason, signature: strategy.signature, count: strategy.planPreview.steps.length });
+    return { kind: "plan", plan: strategy.planPreview };
+  }
+  return { kind: "run", ...(await startRun(sessionId, specialty, text, options, strategy)) };
 }
 
 /**

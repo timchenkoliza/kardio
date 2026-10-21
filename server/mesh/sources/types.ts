@@ -22,6 +22,8 @@ export interface SourceRequest {
   ctx: SourceContext;
   /** Epoch ms after which the adapter must not start new network work (hard source deadline). */
   deadlineAt?: number;
+  /** Only evidence from this year on (a refinement «данные после 2025»); adapters that can filter by date honour it. */
+  since?: number;
 }
 
 export interface SourceAdapter extends SourceDescriptor {

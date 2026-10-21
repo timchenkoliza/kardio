@@ -200,3 +200,23 @@
 
 /* Retry after a failed or interrupted run: a full touch target on every pointer. */
 .pt-retry { min-height: var(--ws-touch-target); }
+
+/* One compact clarification or an explicit plan under the input — never a dialog, never onboarding */
+.pt-clarify,
+.pt-plan { display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.pt-clarify-question { margin: 0; font-size: var(--font-size-body-compact); font-weight: var(--font-weight-semibold); color: var(--ws-text); }
+.pt-clarify .ws-muted,
+.pt-plan .ws-muted { margin: 0; font-size: var(--font-size-caption); }
+.pt-plan-steps { margin: 0; padding-left: var(--ws-space-20); display: grid; gap: var(--ws-space-4); font-size: var(--font-size-body-compact); color: var(--ws-text); }
+
+/* What is being done, and the refinement applied to an open result */
+.pt-explanation { margin: 0; font-size: var(--font-size-caption); color: var(--ws-text-secondary); }
+.pt-view { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ws-space-8); margin: 0; font-size: var(--font-size-body-compact); color: var(--ws-text); }
+.pt-change-tag { display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--ws-space-8); border-radius: var(--ws-radius-tag); background: var(--ws-accent-wash); color: var(--ws-accent-ink); font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
+.pt-version-note { margin: 0; font-size: var(--font-size-body-compact); color: var(--ws-text-secondary); }
+.pt-expanded { display: grid; gap: var(--ws-space-8); padding-left: var(--ws-space-12); border-left: 2px solid var(--ws-accent-wash); }
+.pt-expanded h4 { margin: 0; font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); color: var(--ws-text-secondary); }
+.pt-expanded p { margin: 0; font-size: var(--font-size-body-compact); }
+@media (max-width: 760px) {
+  .pt-view .ws-button { min-height: var(--ws-touch-target); }
+}

@@ -12,7 +12,8 @@ import { recordAgentEvent } from "./telemetry";
 import { catchUp, executeRun, loadProfile } from "./workspace";
 import { PORTAL_JOBS, type PortalJob } from "@/lib/portal/jobs";
 import { CLIENT_PORTAL_EVENTS } from "@/lib/portal/metrics";
-import { handleAsk, recordPortalOpen, type Scheduler } from "@/server/portal/manager";
+import { recordPortalOpen, respondToAsk, type Scheduler } from "@/server/portal/manager";
+import { clarificationAnswerSchema, type ClarificationManifest, type PlanPreview } from "@/lib/mesh/skills/types";
 import { recordPortalEvent } from "@/server/portal/telemetry";
 
 const specialty = z.enum(SPECIALTY_IDS);
@@ -43,7 +44,13 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("runAgent"), specialty, agentId, text: freeText.optional() }).strict(),
   z.object({ action: z.literal("runTask"), specialty, text: freeText, agentId: z.union([agentId, z.literal("auto")]).optional(), materialId: materialId.optional() }).strict(),
   z.object({ action: z.literal("catchUp"), specialty }).strict(),
-  z.object({ action: z.literal("ask"), specialty, text: freeText, job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), followup: z.boolean().optional() }).strict(),
+  z.object({
+    action: z.literal("ask"), specialty, text: freeText, job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), followup: z.boolean().optional(),
+    // The one clarification answered (option or free text), a confirmed explicit plan, the open result a follow-up refines.
+    clarification: clarificationAnswerSchema.optional(),
+    planConfirmed: z.string().min(1).max(80).optional(),
+    contextRunId: z.string().regex(/^run-[a-f0-9-]{36}$/).optional(),
+  }).strict(),
   z.object({ action: z.literal("track"), specialty, event: z.enum(CLIENT_PORTAL_EVENTS), job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), resultId: resultId.optional(), resultKind: z.string().regex(/^[a-z_]{2,40}$/).optional() }).strict(),
   z.object({ action: z.literal("markSeen"), specialty, agentId }).strict(),
   z.object({ action: z.literal("resetSeen"), specialty }).strict(),
@@ -76,6 +83,12 @@ export interface CommandResult {
   material?: Material;
   notices?: string[];
   redirect?: string;
+  /** One compact question before running (never onboarding, never a source picker). */
+  clarification?: ClarificationManifest;
+  /** The explicit plan of a large request, run on «Продолжить». */
+  plan?: PlanPreview;
+  /** A follow-up applied to the open result in place. */
+  refined?: { applied: boolean; message: string | null; manifestVersion: number; retrieval: boolean };
 }
 
 async function saveProfile(sessionId: string, profile: UserProfile) {
@@ -164,8 +177,11 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: true, runId: outcome.run.id, agentId: routed.agentId, actions: outcome.actions, notices: outcome.run.riskNotices };
     }
     case "ask": {
-      const outcome = await handleAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, ...(options.schedule ? { schedule: options.schedule } : {}) });
-      return { ok: true, profileChanged: true, runId: outcome.runId, agentId: outcome.agentId, actions: outcome.actions, notices: outcome.notices, redirect: outcome.href };
+      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
+      if (response.kind === "clarification") return { ok: true, profileChanged: false, clarification: response.clarification };
+      if (response.kind === "plan") return { ok: true, profileChanged: false, plan: response.plan };
+      if (response.kind === "refined") return { ok: true, profileChanged: response.refinement.applied, runId: response.refinement.runId, redirect: response.href, refined: { applied: response.refinement.applied, message: response.refinement.message, manifestVersion: response.refinement.manifestVersion, retrieval: response.refinement.retrieval } };
+      return { ok: true, profileChanged: true, runId: response.runId, agentId: response.agentId, actions: response.actions, notices: response.notices, redirect: response.href };
     }
     case "track": {
       await recordPortalEvent(sessionId, command.event, { specialty: specialtyId, ...(command.job ? { job: command.job } : {}), ...(command.resultId ? { resultId: command.resultId } : {}), ...(command.resultKind ? { resultKind: command.resultKind } : {}) });

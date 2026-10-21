@@ -151,7 +151,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
     <section className="ws-section" aria-labelledby="pt-followup-title">
       <h2 id="pt-followup-title" className="pt-subtitle">Уточнить или спросить другое</h2>
-      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Следующий вопрос" placeholder="Уточните вопрос или задайте новый" />
+      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Следующий вопрос" placeholder="Уточните вопрос или задайте новый" contextRunId={finished && run.experience ? run.id : undefined} />
     </section>
   </div>;
 }

@@ -16,6 +16,9 @@ export interface CommandResponse {
   material?: Material;
   notices?: string[];
   redirect?: string;
+  clarification?: import("@/lib/mesh/skills/types").ClarificationManifest;
+  plan?: import("@/lib/mesh/skills/types").PlanPreview;
+  refined?: { applied: boolean; message: string | null; manifestVersion: number; retrieval: boolean };
 }
 
 interface WorkspaceContextValue {

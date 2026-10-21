@@ -275,3 +275,16 @@ export function viewDirectives(graph: EvidenceGraph, manifest: ExperienceManifes
   }
   return { moduleProps, priorityClaims };
 }
+
+/** Fixed physician-language description of an applied view (shown above the result). */
+export function viewLabel(view: ManifestView | null | undefined): string | null {
+  if (!view) return null;
+  const parts = [
+    view.jurisdiction === "RU" ? "только российские источники" : null,
+    view.since ? `документы с ${view.since} года` : null,
+    view.focus.length ? `разделы инструкции: ${view.focus.map(item => FOCUS_LABEL[item] ?? item).join(", ")}` : null,
+    view.comparison === "previous_version" ? "сравнение с предыдущей версией" : null,
+    view.expandedDocumentId ? "источник раскрыт полностью" : null,
+  ].filter((item): item is string => Boolean(item));
+  return parts.length ? `Показано: ${parts.join(" · ")}` : null;
+}

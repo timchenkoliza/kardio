@@ -4,13 +4,14 @@ import { formatDateRu, VERIFICATION_LABEL, weakestVerification } from "@/lib/age
 import type { AgentResultView, AgentRun, RunExperience } from "@/lib/agents/types";
 import type { EvidenceGraph, GraphDocument, NormalizedClaim, SourceOutcome } from "@/lib/mesh/evidence";
 import { graphIndex } from "@/lib/mesh/evidence-graph";
+import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { nbsp } from "@/lib/ui/typography";
 import { StateBadge } from "@/components/portal/for-you";
-import { FollowupJobButton, SaveResultButton } from "@/components/portal/result-actions";
+import { FollowupJobButton, ResetViewButton, SaveResultButton } from "@/components/portal/result-actions";
 import { TrackedLink } from "@/components/portal/tracked-link";
 
 /**
@@ -124,9 +125,26 @@ function DocumentActions({ document, result, label }: { document: GraphDocument;
   </div>;
 }
 
+/** A refinement «раскрой источник»: every claim and excerpt the graph keeps for that document. */
+function Expanded({ documentId, shown, ctx }: { documentId: string; shown: ReadonlySet<string>; ctx: Ctx }) {
+  const extra = ctx.graph.claims.filter(claim => claim.documentId === documentId && !shown.has(claim.id));
+  const chunks = ctx.graph.chunks.filter(chunk => chunk.documentId === documentId && chunk.text && !extra.some(claim => claim.chunkId === chunk.id) && !ctx.graph.claims.some(claim => shown.has(claim.id) && claim.chunkId === chunk.id));
+  if (!extra.length && !chunks.length) return <p className="ws-muted" data-expanded="true">{nbsp("Всё, что сохранено из этого источника, уже показано. Полный текст — по ссылке на источник.")}</p>;
+  return <div className="pt-expanded" data-expanded="true">
+    {extra.map(claim => <Claim key={claim.id} claim={claim} />)}
+    {chunks.slice(0, 6).map(chunk => <div key={chunk.id}><h4>{nbsp(chunk.heading)}</h4><p lang={ctx.index.document.get(documentId)?.language}>{chunk.text}</p></div>)}
+  </div>;
+}
+
 function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
   const claims = new Set(entry.claimIds);
+  const comparison = typeof entry.props.comparison === "string" ? entry.props.comparison : null;
+  const changed = new Set(Array.isArray(entry.props.changedClaimIds) ? entry.props.changedClaimIds : []);
+  const changedDocument = typeof entry.props.changedDocumentId === "string" ? entry.props.changedDocumentId : null;
+  const previous = typeof entry.props.previousVersion === "string" ? entry.props.previousVersion : null;
+  const expanded = typeof entry.props.expandedDocumentId === "string" ? entry.props.expandedDocumentId : null;
   return <Section module={entry}>
+    {comparison === "current_state" && <p className="pt-version-note" data-comparison="current_state">{nbsp("Предыдущая версия в найденных источниках не указана — показано текущее состояние документов и срок их пересмотра.")}</p>}
     <ol className="pt-versions">
       {entry.documentIds.map(documentId => {
         const document = ctx.index.document.get(documentId);
@@ -142,7 +160,9 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
           </div>
           <h3 className="pt-version-title">{nbsp(document.title)}</h3>
           <p className="ws-provenance"><span>{document.publisher ?? sourceName(document)}</span><StateBadge state={fresh.state} freshness={fresh.label} /></p>
-          {docClaims.map(claim => <Claim key={claim.id} claim={claim} />)}
+          {comparison === "previous_version" && previous && documentId === changedDocument && <p className="pt-version-note" data-comparison="previous_version">{nbsp(`Предыдущая версия: ${previous}. Ниже — что изменилось, по обзору публикации.`)}</p>}
+          {docClaims.map(claim => <div key={claim.id}>{changed.has(claim.id) && comparison === "previous_version" && <span className="pt-change-tag">Изменение</span>}<Claim claim={claim} /></div>)}
+          {expanded === documentId && <Expanded documentId={documentId} shown={claims} ctx={ctx} />}
           <DocumentActions document={document} result={ctx.resultFor(documentId, entry)} />
         </li>;
       })}
@@ -201,6 +221,7 @@ function DrugReference({ module: entry, ctx }: { module: ManifestModule; ctx: Ct
       <p className="pt-boundary"><ShieldAlert size={14} aria-hidden="true" />{us
         ? "Это инструкция, утверждённая в США. Показания, дозы и ограничения в России определяет инструкция из ГРЛС; openFDA предупреждает, что данные не валидированы. Решение о назначении — за врачом."
         : nbsp("Копия российской инструкции на сайте МЕДИ РУ (по данным сайта — по ГРЛС). Официальный текст и статус регистрации — в ГРЛС. Решение о назначении — за врачом.")}</p>
+      {typeof entry.props.focus === "string" && <p className="ws-muted" data-focus={entry.props.focus}>{nbsp(`Показаны только разделы инструкции, о которых вы спросили. Остальные — в полной инструкции по ссылке.`)}</p>}
       <dl className="pt-drug-sections">
         {claims.map(claim => {
           const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
@@ -210,6 +231,7 @@ function DrugReference({ module: entry, ctx }: { module: ManifestModule; ctx: Ct
           </div>;
         })}
       </dl>
+      {entry.props.expandedDocumentId === documentId && <Expanded documentId={documentId} shown={new Set(entry.claimIds)} ctx={ctx} />}
       {claims.some(claim => claim.chunkId && ctx.index.chunk.get(claim.chunkId)?.truncated) && <p className="ws-muted">{nbsp("Длинные разделы сокращены — полный текст по ссылке на источник.")}</p>}
       <p className="ws-provenance"><span>{us ? "Инструкция FDA (openFDA, DailyMed)" : "МЕДИ РУ"}</span><StateBadge state={fresh.state} freshness={fresh.label} /></p>
       <div className="pt-card-actions">
@@ -238,6 +260,7 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
             <span>{sourceName(document)}</span>
           </div>
           {docClaims.map(claim => <Claim key={claim.id} claim={claim} />)}
+          {entry.props.expandedDocumentId === documentId && <Expanded documentId={documentId} shown={claims} ctx={ctx} />}
           <p className="pt-answer-source">{typeof document.attributes.conclusionLabel === "string" ? `Раздел «${document.attributes.conclusionLabel}» реферата: ` : ""}<cite>{document.title}</cite></p>
           <DocumentActions document={document} result={result} label={document.sourceId === "pubmed" ? "Открыть в PubMed" : undefined} />
         </li>;
@@ -318,18 +341,24 @@ const RENDERERS: Partial<Record<ModuleFamily, (props: { module: ManifestModule; 
 };
 
 export function ExperienceView({ run, experience, results }: { run: AgentRun; experience: RunExperience; results: AgentResultView[] }) {
-  const index = graphIndex(experience.graph);
+  // A refinement view withholds documents outside it; nothing is rewritten.
+  const graph = applyView(experience.graph, experience.manifest.view);
+  const index = graphIndex(graph);
   const byKey = new Map(results.map(result => [result.key, result]));
+  const view = viewLabel(experience.manifest.view);
+  const explanation = experience.manifest.execution?.class === "skill" ? experience.manifest.execution.explanation : null;
   const ctx: Ctx = {
     run,
-    graph: experience.graph,
+    graph,
     index,
     resultFor: (documentId, entry) => {
       const key = entry.resultKeys.find(item => item.endsWith(`mesh:${documentId}`)) ?? `${run.agentId}:mesh:${documentId}`;
       return byKey.get(key) ?? null;
     },
   };
-  return <div className="pt-experience" data-mode={experience.manifest.representation.mode} data-density={experience.manifest.representation.density}>
+  return <div className="pt-experience" data-mode={experience.manifest.representation.mode} data-density={experience.manifest.representation.density} data-execution={experience.manifest.execution?.class ?? "dynamic"} data-manifest-version={run.progress?.manifestVersion ?? 0}>
+    {explanation && <p className="pt-explanation" data-explanation="skill">{nbsp(explanation)}</p>}
+    {view && <p className="pt-view" role="status" data-view="applied">{nbsp(view)}<ResetViewButton runId={run.id} /></p>}
     {run.riskNotices.length > 0 && <ul className="ws-notices">{run.riskNotices.map(notice => <li key={notice}>{notice}</li>)}</ul>}
     {experience.manifest.modules.map(entry => {
       const Renderer = RENDERERS[entry.family];

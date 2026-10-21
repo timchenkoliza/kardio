@@ -46,6 +46,26 @@ export function interactiveDeadlines(): SourceDeadlines {
   };
 }
 
+/**
+ * Failure injection for remote verification of the deadline path — Preview
+ * only, scoped to one branch, never in production and never by default:
+ *
+ *   KARDIO_FAULT_SOURCE_DELAY="pubmed:30000"   delay that source's answer
+ *   KARDIO_FAULT_BRANCH="feature/intent-skills-flows"
+ *
+ * Both must be set, the deployment must be a Preview of exactly that branch.
+ * The source itself is untouched: the delay is added before it is called.
+ */
+export function injectedDelayMs(sourceId: string, env: Record<string, string | undefined> = process.env): number | null {
+  const spec = env.KARDIO_FAULT_SOURCE_DELAY?.trim();
+  const branch = env.KARDIO_FAULT_BRANCH?.trim();
+  if (!spec || !branch) return null;
+  if (env.VERCEL_ENV !== "preview" || env.VERCEL_GIT_COMMIT_REF !== branch) return null;
+  const [id, ms] = spec.split(":");
+  const delay = Number(ms);
+  return id === sourceId && Number.isFinite(delay) && delay > 0 ? Math.min(delay, 120_000) : null;
+}
+
 export type StepEvent =
   | { kind: "done"; stepId: string; result: SourceResult }
   | { kind: "skipped"; stepId: string }
@@ -67,7 +87,7 @@ async function withDeadline(promise: Promise<SourceResult>, ms: number, fallback
   }
 }
 
-export async function executePlan(args: { plan: ExecutionPlan; intent: NormalizedIntent; registry: SourceRegistry; ctx: SourceContext; sessionId: string | null; runId?: string; deadlines?: SourceDeadlines; startedAt?: number; onStep?: (event: StepEvent) => void }): Promise<PlanExecution> {
+export async function executePlan(args: { plan: ExecutionPlan; intent: NormalizedIntent; registry: SourceRegistry; ctx: SourceContext; sessionId: string | null; runId?: string; deadlines?: SourceDeadlines; startedAt?: number; onStep?: (event: StepEvent) => void; since?: number }): Promise<PlanExecution> {
   const { plan, intent, registry, ctx } = args;
   const deadlines = args.deadlines ?? interactiveDeadlines();
   const budgetEnd = (args.startedAt ?? Date.now()) + deadlines.budgetMs;
@@ -88,14 +108,16 @@ export async function executePlan(args: { plan: ExecutionPlan; intent: Normalize
       const started = Date.now();
       const remaining = budgetEnd - started;
       const hardMs = Math.min(deadlines.hardMs, remaining);
-      const request = { stepId: step.id, operation: step.operation, requirement: step.requirement, intent, ctx, deadlineAt: started + Math.max(0, hardMs) };
+      const request = { stepId: step.id, operation: step.operation, requirement: step.requirement, intent, ctx, deadlineAt: started + Math.max(0, hardMs), ...(args.since ? { since: args.since } : {}) };
       let result: SourceResult;
       if (remaining < deadlines.minStartMs && step.role !== "handoff") {
         result = emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIMITED", execution: adapter.execution, started, errorCode: "deadline:budget", note: "Не хватило времени — ответ собран без этого источника" });
       } else {
         const soft = setTimeout(() => emit({ kind: "slow", stepId: step.id }), deadlines.softMs);
         try {
-          result = await withDeadline(adapter.execute(request), hardMs, () => emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIMITED", execution: adapter.execution, started, errorCode: "deadline:hard", note: `Источник не ответил за ${Math.max(1, Math.round(hardMs / 1000))} с — ответ собран без него` }));
+          const fault = injectedDelayMs(step.sourceId);
+          const execution = fault ? new Promise<void>(resolve => setTimeout(resolve, fault)).then(() => adapter.execute(request)) : adapter.execute(request);
+          result = await withDeadline(execution, hardMs, () => emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIMITED", execution: adapter.execution, started, errorCode: "deadline:hard", note: `Источник не ответил за ${Math.max(1, Math.round(hardMs / 1000))} с — ответ собран без него` }));
         } catch (error) {
           result = emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIVE", execution: adapter.execution, started, errorCode: "unexpected", note: error instanceof Error ? error.message.slice(0, 160) : "ошибка источника" });
         } finally {
