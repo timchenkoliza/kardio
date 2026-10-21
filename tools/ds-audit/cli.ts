@@ -27,6 +27,13 @@ function summary(report: Report): string {
   ].join("\n");
 }
 
+/** A baseline with pages that did not load would turn those failures into EXISTING debt: refuse it. */
+function assertBaselineUsable(report: Report) {
+  if (report.page_errors.length) {
+    throw new Error(`Базовый отчёт не сохранён: не загрузились ${report.page_errors.length} страниц (${report.page_errors.slice(0, 3).map(e => `${e.route} ${e.viewport}: ${e.error}`).join("; ")})`);
+  }
+}
+
 async function local(argv: string[]) {
   const { values } = parseArgs({
     args: argv,
@@ -55,7 +62,10 @@ async function local(argv: string[]) {
     store,
     noAi: values["no-ai"] as boolean,
   });
-  if ((values["save-baseline"] || mode === "baseline") && store) store.saveBaseline(result.report);
+  if ((values["save-baseline"] || mode === "baseline") && store) {
+    assertBaselineUsable(result.report);
+    store.saveBaseline(result.report);
+  }
   if (result.baselineNote) process.stderr.write(`baseline: ${result.baselineNote}\n`);
   process.stdout.write(`${summary(result.report)}\nreport: ${path.join(values.out as string, "report.md")}\n`);
   if (values["fail-on-gate"] && result.report.gate.state === "failure") process.exit(1);
@@ -78,6 +88,7 @@ async function ci() {
     const sha = trigger.sha as string;
     store.recordDeployment({ sha, url: trigger.url, environment: "production", project: trigger.kind === "production" ? trigger.project : null, observed_at: now });
     const { report } = await runPipeline({ url: trigger.url, routes: trigger.kind === "manual" && trigger.routes.length ? trigger.routes : undefined, outDir, mode: "baseline", commitSha: sha, baseSha: null, store, noAi: true, runUrl });
+    assertBaselineUsable(report);
     store.saveBaseline(report);
     store.prune();
     return note(`Базовый отчёт для ${sha.slice(0, 7)} сохранён\n${summary(report)}`);

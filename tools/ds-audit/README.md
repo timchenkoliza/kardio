@@ -48,7 +48,7 @@ npm run ds:audit:test
 
 | ID | Проверка | Блокирует |
 | --- | --- | --- |
-| R-00 | Страница загружается (HTTP < 400, без таймаута) | Да |
+| R-00 | Страница загружается: HTTP < 400, без таймаута, без редиректа на другой домен (например, на вход Vercel) | Да |
 | R-01 | Цвет текста и фона под текстом — из палитры `tokens.json` | Да |
 | R-02 | Контраст ≥ 4,5:1 (крупный текст ≥ 3:1). Белая подпись основной кнопки на `accent`, 14 px / 600 — предупреждение | Да |
 | R-03 | `line-height / font-size` ≥ 1,2 | Да |
@@ -105,7 +105,11 @@ Workflow: `.github/workflows/ds-audit.yml`.
 
 Записи адресуются по SHA или содержимому. Поэтому потерянная запись приводит только к повторному расчёту, а не к неверному сравнению. Записи без обращений 30 дней и сверх 50 МБ удаляются.
 
-**Права workflow:** `contents: read`, `pull-requests: write`, `statuses: write`. Секреты не нужны, кроме встроенного `GITHUB_TOKEN`.
+**Права workflow:** `contents: read`, `pull-requests: write`, `statuses: write`.
+
+**Защита деплоев Vercel.** Адреса деплоев kardio закрыты Vercel Authentication: без входа они отвечают 302 на `vercel.com/sso-api`. Чтобы аудитор их видел, нужен секрет репозитория `VERCEL_AUTOMATION_BYPASS_SECRET`. Это значение из Vercel: Settings → Deployment Protection → Protection Bypass for Automation. Заголовок `x-vercel-protection-bypass` уходит только на домен проверяемого деплоя. Без секрета защищённые страницы дают R-00, а базовый отчёт с такими ошибками не сохраняется. Других секретов, кроме встроенного `GITHUB_TOKEN`, не нужно.
+
+**События Vercel.** `repository_dispatch` приходит, только если в проекте Vercel не выключена отправка событий: `gitProviderOptions.disableRepositoryDispatchEvents` должен быть `false`.
 
 **Переменные репозитория** (необязательные):
 - `DS_AUDIT_VERCEL_PROJECT` (по умолчанию `kardio`);

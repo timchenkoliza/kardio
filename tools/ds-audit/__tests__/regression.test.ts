@@ -1,4 +1,6 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium, type Browser } from "@playwright/test";
@@ -141,5 +143,40 @@ describe("baseline resolution and state", () => {
     expect(md).toContain("| № | P | Страницы | Что не так | Правило DS | Что сделать | Где искать | Проверка |");
     expect(md).toContain("Новые — блокируют мерж");
     expect(renderMarkdown(r, { limit: 1 })).toContain("<!-- ds-audit -->");
+  });
+});
+
+describe("protected deployments", () => {
+  it("a redirect to another host (Vercel login) is a page-load failure, not a page to audit", async () => {
+    // A real HTTP server answers like a protected Vercel deployment: 302 to a login page on another host.
+    const login = createServer((_, res) => { res.writeHead(200, { "content-type": "text/html" }); res.end("<!doctype html><html lang=en><title>Login</title><h1>Log in</h1></html>"); });
+    await new Promise<void>(resolve => login.listen(0, "127.0.0.1", resolve));
+    const loginPort = (login.address() as AddressInfo).port;
+    const site = createServer((req, res) => { res.writeHead(302, { location: `http://localhost:${loginPort}/sso-api?url=${encodeURIComponent(req.url ?? "/")}` }); res.end(); });
+    await new Promise<void>(resolve => site.listen(0, "127.0.0.1", resolve));
+    try {
+      const audit = await auditSite({ url: `http://127.0.0.1:${(site.address() as AddressInfo).port}`, routes: ["/cardiology"], viewports: ["desktop"], year: YEAR, ds }, browser);
+      expect(audit.findings.map(f => f.id)).toEqual(["R-00"]);
+      expect(audit.findings[0].fact).toContain(`localhost:${loginPort}/sso-api`);
+    } finally {
+      site.close();
+      login.close();
+    }
+  });
+
+  it("the bypass secret reaches the deployment origin and never a third party", async () => {
+    const seen: Array<[string, string | undefined]> = [];
+    const page = fixture("r09-good").replace("</main>", `<img src="http://third.test/pixel.gif" alt="Пиксель" width="1" height="1"></main>`);
+    await auditSite({ url: ORIGIN, routes: ["/cardiology"], viewports: ["desktop"], year: YEAR, ds, bypassSecret: "test-secret", setupContext: async context => {
+      await context.route("**/*", async route => {
+        const url = new URL(route.request().url());
+        seen.push([url.origin, route.request().headers()["x-vercel-protection-bypass"]]);
+        if (url.origin === ORIGIN) return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: page });
+        return route.fulfill({ status: 200, contentType: "image/gif", body: Buffer.from("R0lGODlhAQABAAAAACw=", "base64") });
+      });
+    } }, browser);
+    expect(seen.filter(([origin]) => origin === ORIGIN).every(([, header]) => header === "test-secret")).toBe(true);
+    expect(seen.some(([origin]) => origin === ORIGIN)).toBe(true);
+    expect(seen.filter(([origin]) => origin === "http://third.test").every(([, header]) => header === undefined)).toBe(true);
   });
 });

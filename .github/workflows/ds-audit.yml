@@ -88,6 +88,9 @@ jobs:
       - name: Run DS audit
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Vercel "Protection Bypass for Automation": deployment URLs are behind Vercel Authentication.
+          # Sent only to the audited deployment's origin. Without it, protected pages fail as R-00.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: npx tsx tools/ds-audit/cli.ts ci
 
       - name: Upload report and screenshots

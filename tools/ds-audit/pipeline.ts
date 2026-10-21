@@ -41,7 +41,8 @@ export async function runPipeline(options: PipelineOptions, browser?: Browser): 
       baseUrl: options.baseUrl,
       auditBase: async url => {
         const base = await auditSite({ url, routes: audit.routes, crawl: false, viewports: audit.viewports, outDir: null, year: options.year, setupContext: options.setupContext }, browser);
-        if (options.store && options.baseSha) {
+        // Never store a baseline whose pages did not load: their failures would become EXISTING debt.
+        if (options.store && options.baseSha && !base.snapshots.some(snapshot => snapshot.error)) {
           options.store.saveBaseline(buildReport({ audit: base, mode: "baseline", commitSha: options.baseSha, baseSha: null, baseline: { status: "not_applicable", sha: null, url: null, findings: null } }));
         }
         return base;

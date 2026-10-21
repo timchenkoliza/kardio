@@ -6,7 +6,7 @@ import { RULESET_SEMVER } from "./rules";
 import type { DesignSystem } from "./tokens";
 
 /** Bump on behaviour changes of collection, identity, classification or publishing. */
-export const AUDITOR_SEMVER = "1.0.0";
+export const AUDITOR_SEMVER = "1.0.1";
 
 function hashFiles(files: string[]): string {
   const hash = createHash("sha256");
