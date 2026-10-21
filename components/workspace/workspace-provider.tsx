@@ -30,6 +30,26 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
+/**
+ * The anonymous session is created by the first API call of a page load. Later
+ * calls wait for it, so a physician who types before the background catch-up
+ * finishes never ends up with a result stored under a second session.
+ */
+let sessionGate: Promise<void> | null = null;
+async function withSessionGate<T>(run: () => Promise<T>): Promise<T> {
+  if (sessionGate) {
+    await sessionGate;
+    return run();
+  }
+  let release: () => void = () => undefined;
+  sessionGate = new Promise<void>(resolve => { release = resolve; });
+  try {
+    return await run();
+  } finally {
+    release();
+  }
+}
+
 async function errorMessage(response: Response): Promise<string> {
   try {
     const payload = await response.json() as { error?: unknown };
@@ -53,7 +73,7 @@ export function WorkspaceProvider({ specialty, children }: { specialty: Specialt
     inflight.current += 1;
     if (!options.quiet) setPending(true);
     try {
-      const response = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ specialty, ...body }) });
+      const response = await withSessionGate(() => fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ specialty, ...body }) }));
       if (!response.ok) {
         if (!options.quiet) setToast({ message: await errorMessage(response), tone: "error" });
         return null;

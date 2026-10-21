@@ -76,6 +76,11 @@ export async function ensureSession(candidate?: string): Promise<{ id: string; s
     if (candidate && sessionIdPattern.test(candidate)) {
       const existing = fallbackStates.get(candidate);
       if (existing) return { id: candidate, state: normalizeState(existing), created: false };
+      // Serverless instances do not share memory: adopt the well-formed anonymous id instead of
+      // rotating it, so the browser keeps one identity (and one retention cohort) across instances.
+      const adopted = emptyUserState();
+      fallbackStates.set(candidate, adopted);
+      return { id: candidate, state: adopted, created: false };
     }
     const id = randomBytes(32).toString("hex");
     const state = emptyUserState();

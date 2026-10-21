@@ -268,6 +268,15 @@ const FORMAT_WORDS: ReadonlyArray<{ id: EventFormatPref; match: RegExp }> = [
   { id: "international", match: /зарубеж|международн|за рубеж|esc|aha/u },
 ];
 
+const MONTHS = ["январ", "феврал", "март", "апрел", "ма[йяе]", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр"];
+
+/** Month the physician named («в ноябре»), 1–12, or null. */
+export function monthMentioned(text: string): number | null {
+  const value = text.toLocaleLowerCase("ru-RU");
+  const index = MONTHS.findIndex(stem => new RegExp(`(?<![\\p{L}])${stem}`, "u").test(value));
+  return index >= 0 ? index + 1 : null;
+}
+
 /** Formats the physician named in the request; none named means any format. */
 export function formatsMentioned(text: string): EventFormatPref[] {
   const value = text.toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
@@ -281,9 +290,19 @@ async function events(ctx: AgentContext): Promise<ExecutorResult> {
     ? { ...ctx, preference: { ...ctx.preference, formats: formatsMentioned(ctx.inputText), horizonDays: Math.max(ctx.preference.horizonDays, 120) } }
     : ctx;
   builder.note("Учли ваши условия", `${topicsDetail(scoped)} · ${scoped.preference.formats.length ? countLabel(scoped.preference.formats.length, ["формат", "формата", "форматов"]) : "любой формат"} · ${scoped.preference.horizonDays} дней`);
-  const found = builder.record("Нашли события и привели к единому виду", await tools.searchEvents(scoped), items => countLabel(items.length, ["подходящее событие", "подходящих события", "подходящих событий"]));
+  let found = builder.record("Нашли события и привели к единому виду", await tools.searchEvents(scoped), items => countLabel(items.length, ["подходящее событие", "подходящих события", "подходящих событий"]));
+  const month = ctx.job === "events" && ctx.inputText ? monthMentioned(ctx.inputText) : null;
+  if (month) {
+    const inMonth = found.filter(event => Number(event.record.startDate.slice(5, 7)) === month || Number(event.record.endDate.slice(5, 7)) === month);
+    builder.note("Оставили события выбранного месяца", inMonth.length ? countLabel(inMonth.length, ["событие", "события", "событий"]) : "В этом месяце подходящих нет — показаны ближайшие");
+    if (inMonth.length) found = inMonth;
+  }
+  // A finite event list reads in date order.
+  found = [...found].sort((a, b) => a.record.startDate.localeCompare(b.record.startDate));
   const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(scoped), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
-  const drafts = await finishWithChecks(builder, scoped, [...eventDrafts(scoped, found.slice(0, 12)), ...partner]);
+  const checked = await finishWithChecks(builder, scoped, [...eventDrafts(scoped, found.slice(0, 12)), ...partner]);
+  // Ranking decides what is kept; a finite event list is still read in date order.
+  const drafts = [...checked.filter(draft => !draft.partner).sort((a, b) => String(a.attributes.startDate ?? "").localeCompare(String(b.attributes.startDate ?? ""))), ...checked.filter(draft => draft.partner)];
   const rejected = rejectedListingCount(scoped);
   if (rejected) builder.notices.push(`Скрыто событий из источников, отклонённых врачами: ${rejected}`);
   const organic = drafts.filter(draft => !draft.partner).length;

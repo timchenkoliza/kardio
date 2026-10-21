@@ -149,7 +149,7 @@ export async function learning(ctx: AgentContext): Promise<ExecutorResult> {
   const checked = builder.record("Проверили версии и источники", await tools.factCheck(drafts), items => verificationSummary(items));
   const done = checked.filter(item => item.attributes.done === true).length;
   const synthesis = checked.length
-    ? `Следующий шаг: ${checked[0].title.replace(/^Прочитать /u, "прочитать ")}. Почему: ${signal.reason}.${done ? ` Пройдено ${done} из ${checked.length}.` : ""}`
+    ? `Следующий шаг: ${checked[0].title.replace(/^Прочитать /u, "прочитать ").replace(/[.\s]+$/u, "")}. Почему: ${signal.reason}.${done ? ` Пройдено ${done} из ${checked.length}.` : ""}`
     : `Подходящих материалов не нашлось. Почему искали так: ${signal.reason}. Попробуйте назвать тему, которую хотите освежить.`;
   const topicsLine = ctx.profile.interests.topics.length ? topicLabels(ctx.specialty, ctx.profile.interests.topics).join(", ") : null;
   if (signal.kind === "specialty" && !topicsLine) builder.notices.push("Добавьте одну тему — следующий шаг станет точнее");

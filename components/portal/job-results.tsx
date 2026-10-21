@@ -166,7 +166,7 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
       <Synthesis text={run.synthesis} />
       {results.length > 0 && <>
         <p className="ws-muted">Даты, город и формат — как указано на странице организатора (снимок афиш от {formatDateRu(results[0].source.retrievedAt, { day: "numeric", month: "long" }) ?? ""}). Регистрация и календарь — только после вашего подтверждения; зарегистрировать вас продукт не может.</p>
-        <Cards results={results} specialty={specialty} />
+        <Cards results={[...results].sort((a, b) => String(a.attributes.startDate ?? "").localeCompare(String(b.attributes.startDate ?? "")))} specialty={specialty} />
       </>}
       {partner.length > 0 && <Section id="pt-partner" title="Партнёрский материал"><Cards results={partner} specialty={specialty} /></Section>}
       <Handoffs adapter={adapter} title={covered && results.length ? "Где ещё смотреть события" : "Календари организаторов"} />
