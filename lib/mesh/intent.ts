@@ -78,11 +78,18 @@ function intentId(parts: readonly string[]): string {
   return `intent-${hash.toString(36)}`;
 }
 
-export function compileIntent(text: string, specialty: SpecialtyId, options: { job?: PortalJob | null } = {}): NormalizedIntent {
-  const route = routePortalIntent(text, specialty, { job: options.job ?? null });
+/**
+ * `jobType` executes the request as a known job (a matched Skill's `executesAs`):
+ * the family follows the job, everything else is compiled exactly as for any request.
+ */
+export function compileIntent(text: string, specialty: SpecialtyId, options: { job?: PortalJob | null; jobType?: JobType | null } = {}): NormalizedIntent {
+  const forced = options.jobType ? JOB_DEFINITIONS[options.jobType].family : null;
+  const natural = routePortalIntent(text, specialty, { job: options.job ?? null });
+  // A Skill's job keeps the router's own explanation of what was recognised (never «вы выбрали»).
+  const route = forced && forced !== natural.job ? { ...routePortalIntent(text, specialty, { job: forced }), reasons: natural.reasons, confidence: natural.confidence } : natural;
   const domain = detectDomain(text, specialty);
   const drugs = route.drugs;
-  const { job, reason } = chooseJobType(route.job, text, { drugs: drugs.length, nosology: Boolean(domain.nosology) });
+  const { job, reason } = options.jobType ? { job: options.jobType, reason: null } : chooseJobType(route.job, text, { drugs: drugs.length, nosology: Boolean(domain.nosology) });
   const definition = JOB_DEFINITIONS[job];
   const scenario = scenarioFor(job, specialty, domain.nosology?.id ?? null, domain.subtype?.id ?? null);
 
@@ -115,7 +122,7 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
   const nosologySpecialty = domain.nosology ? NOSOLOGIES.find(node => node.id === domain.nosology!.id)!.specialty : null;
   return {
     id: intentId([specialty, job, domain.nosology?.id ?? "", domain.subtype?.id ?? "", ...drugs.map(drug => drug.inn), ...populations]),
-    job: { primary: job, family: route.job, confidence: route.confidence, reasons, explicit: Boolean(options.job) },
+    job: { primary: job, family: route.job, confidence: route.confidence, reasons, explicit: Boolean(options.job) && !forced },
     context: {
       specialty,
       nosology: domain.nosology && nosologySpecialty ? { id: domain.nosology.id, label: domain.nosology.label, specialty: nosologySpecialty } : null,
