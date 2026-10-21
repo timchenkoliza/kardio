@@ -17,6 +17,8 @@ function immediateRollbackReasons(metrics: CohortMetrics): string[] {
   if (metrics.destructive_migration_failure) reasons.push("destructive migration failure");
   if (metrics.auth_or_access_control_regression) reasons.push("auth/access-control regression");
   if (metrics.sustained_5xx_spike) reasons.push("sustained 5xx spike");
+  if (metrics.stable_shell_regression) reasons.push("stable-shell regression");
+  if (metrics.personalization_privacy_breach) reasons.push("personalization privacy breach");
   return reasons;
 }
 
@@ -52,7 +54,34 @@ function cohortHoldReasons(metrics: CohortMetrics, target: CohortMetrics["stage"
     reasons.push("blocking product guardrail breached");
   }
   if (metrics.simulation_mismatch_seen_in_prod) reasons.push("production behavior contradicts pre-release simulation");
+  if (metrics.onboarding_regression) reasons.push("onboarding behavior regressed in production");
   return reasons;
+}
+
+function baseDecision(args: {
+  assessment: RiskAssessment;
+  metrics: CohortMetrics;
+  status: ReleaseDecision["status"];
+  eligibleRolloutPercent: number;
+  nextStage: CohortMetrics["stage"] | null;
+  reasons: string[];
+  badGates: string[];
+  now?: string;
+}): ReleaseDecision {
+  return {
+    change_id: args.assessment.change_id,
+    candidate_sha: args.assessment.candidate_sha,
+    baseline_sha: args.assessment.baseline_sha,
+    risk_class: args.assessment.risk_class,
+    experience_impact: args.assessment.experience_impact,
+    status: args.status,
+    eligible_rollout_percent: args.eligibleRolloutPercent,
+    current_stage: args.metrics.stage,
+    next_stage: args.nextStage,
+    reasons: args.reasons,
+    missing_or_failed_gates: args.badGates,
+    generated_at: args.now ?? new Date().toISOString(),
+  };
 }
 
 export function decideRelease(args: {
@@ -86,84 +115,71 @@ export function decideRelease(args: {
 
   const rollback = immediateRollbackReasons(metrics);
   if (rollback.length) {
-    return {
-      change_id: args.assessment.change_id,
-      candidate_sha: args.assessment.candidate_sha,
-      baseline_sha: args.assessment.baseline_sha,
-      risk_class: args.assessment.risk_class,
+    return baseDecision({
+      assessment: args.assessment,
+      metrics,
       status: "ROLLBACK_RECOMMENDED",
-      eligible_rollout_percent: 0,
-      current_stage: metrics.stage,
-      next_stage: null,
+      eligibleRolloutPercent: 0,
+      nextStage: null,
       reasons: rollback,
-      missing_or_failed_gates: badGates,
-      generated_at: args.now ?? new Date().toISOString(),
-    };
+      badGates,
+      now: args.now,
+    });
   }
 
   if (badGates.length) {
-    return {
-      change_id: args.assessment.change_id,
-      candidate_sha: args.assessment.candidate_sha,
-      baseline_sha: args.assessment.baseline_sha,
-      risk_class: args.assessment.risk_class,
+    return baseDecision({
+      assessment: args.assessment,
+      metrics,
       status: "BLOCK",
-      eligible_rollout_percent: 0,
-      current_stage: metrics.stage,
-      next_stage: null,
+      eligibleRolloutPercent: 0,
+      nextStage: null,
       reasons,
-      missing_or_failed_gates: badGates,
-      generated_at: args.now ?? new Date().toISOString(),
-    };
+      badGates,
+      now: args.now,
+    });
   }
 
   const next = nextStage(metrics.stage);
   if (!next) {
-    return {
-      change_id: args.assessment.change_id,
-      candidate_sha: args.assessment.candidate_sha,
-      baseline_sha: args.assessment.baseline_sha,
-      risk_class: args.assessment.risk_class,
+    return baseDecision({
+      assessment: args.assessment,
+      metrics,
       status: "ROLLOUT_ELIGIBLE",
-      eligible_rollout_percent: 100,
-      current_stage: metrics.stage,
-      next_stage: null,
-      reasons: ["all required gates green; already at stable stage"],
-      missing_or_failed_gates: [],
-      generated_at: args.now ?? new Date().toISOString(),
-    };
+      eligibleRolloutPercent: 100,
+      nextStage: null,
+      reasons: ["all required engineering and experience gates green; already at stable stage"],
+      badGates: [],
+      now: args.now,
+    });
   }
 
   const hold = cohortHoldReasons(metrics, next.name);
   if (hold.length) {
-    return {
-      change_id: args.assessment.change_id,
-      candidate_sha: args.assessment.candidate_sha,
-      baseline_sha: args.assessment.baseline_sha,
-      risk_class: args.assessment.risk_class,
+    return baseDecision({
+      assessment: args.assessment,
+      metrics,
       status: "HOLD",
-      eligible_rollout_percent: RELEASE_STAGES[stageIndex(metrics.stage)]!.exposurePercent,
-      current_stage: metrics.stage,
-      next_stage: next.name,
+      eligibleRolloutPercent: RELEASE_STAGES[stageIndex(metrics.stage)]!.exposurePercent,
+      nextStage: next.name,
       reasons: hold,
-      missing_or_failed_gates: [],
-      generated_at: args.now ?? new Date().toISOString(),
-    };
+      badGates: [],
+      now: args.now,
+    });
   }
 
   const eligible = Math.min(next.exposurePercent, args.assessment.max_recommended_rollout_percent);
   const status = metrics.stage === "preview" ? "CANARY_ELIGIBLE" : "ROLLOUT_ELIGIBLE";
-  return {
-    change_id: args.assessment.change_id,
-    candidate_sha: args.assessment.candidate_sha,
-    baseline_sha: args.assessment.baseline_sha,
-    risk_class: args.assessment.risk_class,
+  return baseDecision({
+    assessment: args.assessment,
+    metrics,
     status,
-    eligible_rollout_percent: eligible,
-    current_stage: metrics.stage,
-    next_stage: next.name,
-    reasons: [`all required gates green; policy permits up to ${eligible}% at next step`],
-    missing_or_failed_gates: [],
-    generated_at: args.now ?? new Date().toISOString(),
-  };
+    eligibleRolloutPercent: eligible,
+    nextStage: next.name,
+    reasons: [
+      `all required engineering and experience gates green; policy permits up to ${eligible}% at next step`,
+    ],
+    badGates: [],
+    now: args.now,
+  });
 }
