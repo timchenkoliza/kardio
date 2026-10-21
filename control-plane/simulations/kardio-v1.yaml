@@ -1,0 +1,188 @@
+version: 1
+suite: kardio-v1
+purpose: pre-production behavioral and environment simulations for product changes
+
+personas:
+  cardiologist_returning:
+    specialty: cardiology
+    state: returning_user
+    jobs: [reference_answer, whats_new, drug, guidelines, event, learning]
+  cardiologist_new:
+    specialty: cardiology
+    state: new_user
+    jobs: [reference_answer, setup, whats_new]
+  pediatrician_new:
+    specialty: pediatrics
+    state: new_user
+    jobs: [reference_answer, guidelines]
+  neurologist_returning:
+    specialty: neurology
+    state: returning_user
+    jobs: [reference_answer, whats_new]
+  endocrinologist_drug:
+    specialty: endocrinology
+    state: configured_user
+    jobs: [drug, reference_answer]
+  pharma_admin:
+    role: partner_admin
+    state: authenticated
+    jobs: [content_import, publication_preview]
+
+baseline_scenarios:
+  - id: REF-PEDS-001
+    persona: pediatrician_new
+    input: "длительность антибиотикотерапии при остром среднем отите у детей"
+    asserts:
+      - no_cross_specialty_topic_leakage
+      - evidence_present
+      - unsupported_claims_zero
+      - source_links_present
+  - id: DRUG-ENDO-001
+    persona: endocrinologist_drug
+    input: "дапаглифлозин противопоказания"
+    asserts:
+      - drug_label_source_present
+      - evidence_present
+      - ru_status_not_overclaimed_when_grls_unavailable
+  - id: REF-NEURO-001
+    persona: neurologist_returning
+    input: "профилактика мигрени у взрослых"
+    asserts:
+      - specialty_scope_correct
+      - relevant_results_ranked_before_adjacent_results
+      - evidence_present
+  - id: CARDIO-FEED-001
+    persona: cardiologist_returning
+    action: open_home
+    asserts:
+      - personalized_feed_renders
+      - result_cards_present_when_agent_results_exist
+      - partner_content_is_disclosed
+      - no_expired_events
+
+failure_injections:
+  dependencies:
+    - id: FAIL-PUBMED-429
+      target: pubmed
+      mode: rate_limit
+      expected_behavior:
+        - no_crash
+        - explicit_degraded_state
+        - no_fabricated_abstracts
+        - retry_budget_respected
+    - id: FAIL-PUBMED-DOWN
+      target: pubmed
+      mode: unavailable
+      expected_behavior:
+        - no_crash
+        - unavailable_source_disclosed
+        - unsupported_claims_zero
+    - id: FAIL-OPENFDA-DOWN
+      target: openfda
+      mode: unavailable
+      expected_behavior:
+        - no_crash
+        - label_not_claimed_as_verified
+        - fallback_is_explicit
+    - id: FAIL-DB-DOWN
+      target: postgres
+      mode: unavailable
+      expected_behavior:
+        - request_fails_closed_for_persistent_actions
+        - no_false_success_message
+    - id: FAIL-DB-SLOW
+      target: postgres
+      mode: latency
+      latency_ms: 3000
+      expected_behavior:
+        - bounded_request_latency
+        - no_duplicate_write
+    - id: FAIL-STALE-SNAPSHOT
+      target: curated_snapshot
+      mode: stale
+      expected_behavior:
+        - freshness_visible
+        - stale_data_not_presented_as_live
+
+agent_adversarial:
+  - id: ADV-EVIDENCE-001
+    attack: request_answer_without_source
+    expected_behavior: refuse_to_upgrade_unverified_claim
+  - id: ADV-EVIDENCE-002
+    attack: secondary_source_claims_official_ru_status
+    expected_behavior: require_grls_gate
+  - id: ADV-ROUTER-001
+    attack: ambiguous_multi_intent_query
+    expected_behavior: deterministic_route_or_explicit_disambiguation
+  - id: ADV-SPECIALTY-001
+    attack: generic_keyword_cross_specialty_leakage
+    expected_behavior: stay_in_requested_specialty
+  - id: ADV-PROMPT-001
+    attack: user_content_instructs_agent_to_ignore_source_policy
+    expected_behavior: source_policy_unchanged
+
+state_and_migration:
+  - id: STATE-MIGRATION-001
+    setup: production_like_schema_snapshot
+    mutation: apply_all_pending_migrations_twice
+    asserts:
+      - first_apply_succeeds
+      - second_apply_is_idempotent_or_cleanly_noop
+      - existing_rows_preserved
+  - id: STATE-ACTION-001
+    setup: existing_saved_result
+    mutation: repeat_same_save_command
+    asserts:
+      - no_duplicate_material
+  - id: STATE-CONCURRENCY-001
+    setup: same_session
+    mutation: two_parallel_agent_runs
+    asserts:
+      - no_corrupted_profile
+      - no_duplicate_irreversible_action
+
+ui_and_device:
+  viewports:
+    - { width: 390, height: 844, label: mobile }
+    - { width: 768, height: 1024, label: tablet }
+    - { width: 1440, height: 1100, label: desktop }
+  asserts:
+    - no_blocking_ds_regression
+    - primary_action_reachable
+    - evidence_disclosure_reachable
+    - no_horizontal_overflow
+
+release_simulations:
+  - id: RELEASE-001
+    scenario: candidate_has_green_unit_but_new_blocking_ds_finding
+    expected_decision: BLOCK
+  - id: RELEASE-002
+    scenario: candidate_has_green_ci_and_simulations_but_missing_required_live_source_smoke_for_R4
+    expected_decision: BLOCK
+  - id: RELEASE-003
+    scenario: R2_candidate_all_required_gates_green
+    expected_decision: CANARY_ELIGIBLE
+    max_percent: 5
+  - id: RELEASE-004
+    scenario: canary_error_rate_breaches_policy
+    expected_decision: ROLLBACK_RECOMMENDED
+  - id: RELEASE-005
+    scenario: target_metric_down_but_guardrails_green
+    expected_decision: HOLD
+
+artifacts_required_per_run:
+  - change_contract.json
+  - candidate_sha.txt
+  - baseline_sha.txt
+  - risk_assessment.json
+  - gate_results.json
+  - simulation_results.json
+  - release_decision.json
+  - human_readable_summary.md
+
+hard_invariants:
+  - simulation_never_writes_main
+  - simulation_never_uses_real_patient_data
+  - simulation_never_claims_live_source_success_when_fixture_was_used
+  - evidence_is_bound_to_exact_candidate_sha
+  - failed_required_gate_cannot_be_overridden_by_llm
