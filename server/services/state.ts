@@ -1,3 +1,4 @@
+import { isSpecialty } from "@/lib/specialty";
 import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -58,7 +59,7 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
       && typeof preference.label === "string"
       && (preference.mode === "hidden" || preference.mode === "less" || preference.mode === "pinned")
       && (preference.shell === "explore" || preference.shell === "practice" || preference.shell === "workspace")
-      && (preference.specialty === "cardiology" || preference.specialty === "oncology")
+      && isSpecialty(preference.specialty)
     )) : [],
   };
 }

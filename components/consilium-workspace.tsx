@@ -90,7 +90,8 @@ export function ConsiliumWorkspace({ specialty, drugId, indication }: { specialt
   const [sending, setSending] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
 
-  const council = expertTwinsCouncilForSpecialty(specialty);
+  // The legacy archive (and with it the consilium) is served for cardiology and oncology only.
+  const council = expertTwinsCouncilForSpecialty(specialty) ?? "cardiology";
   const expertParticipants = expertTwinsPanels[council];
   const participants: Participant[] = runtimeMode === "expert_twins" ? expertParticipants : consiliumPersonas;
   const participantIds = new Set(participants.map(persona => persona.id));

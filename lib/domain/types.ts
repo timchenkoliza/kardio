@@ -1,4 +1,8 @@
-export type SpecialtyId = "cardiology" | "oncology";
+/** Every specialty route the app serves. Oncology stays reachable but is not a launch specialty. */
+export const SPECIALTY_IDS = ["cardiology", "therapy", "pediatrics", "obgyn", "neurology", "endocrinology", "oncology"] as const;
+export type SpecialtyId = (typeof SPECIALTY_IDS)[number];
+/** The six launch specialties of the professional portal, in switcher order. */
+export const LAUNCH_SPECIALTY_IDS = ["therapy", "pediatrics", "obgyn", "cardiology", "neurology", "endocrinology"] as const satisfies readonly SpecialtyId[];
 export type Shell = "explore" | "practice" | "workspace";
 export type ContentKind = "guideline" | "article" | "video" | "event" | "clinical" | "service" | "tool" | "drug" | "referral";
 export type Currentness = "current" | "review" | "superseded" | "archived";

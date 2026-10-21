@@ -1,10 +1,11 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export const specialtySchema = z.enum(["cardiology", "oncology"]);
+export const specialtySchema = z.enum(SPECIALTY_IDS);
 export const idSchema = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_:.-]+$/);
 const windows = new Map<string, { count: number; expires: number }>();
 export function rateLimit(key: string, limit = 120) {
