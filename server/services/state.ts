@@ -90,6 +90,15 @@ export async function ensureSession(candidate?: string): Promise<{ id: string; s
   if (candidate && sessionIdPattern.test(candidate)) {
     const [record] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, candidate));
     if (record && Date.now() - record.updatedAt.getTime() < 180 * 86400_000) return { id: candidate, state: normalizeState(record.state), created: false };
+    // Adopt the browser's well-formed id (assigned once by proxy.ts) instead of rotating it: concurrent
+    // first requests then agree on one session, and runs created under it stay readable.
+    // An expired session is not revived: it rotates as before.
+    if (!record) {
+      const state = emptyUserState();
+      await db.insert(anonymousSessions).values({ id: candidate, state, updatedAt: new Date() }).onConflictDoNothing();
+      const [stored] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, candidate));
+      return { id: candidate, state: stored ? normalizeState(stored.state) : state, created: true };
+    }
   }
   const id = randomBytes(32).toString("hex");
   const state = emptyUserState();
