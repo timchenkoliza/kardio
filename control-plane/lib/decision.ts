@@ -34,25 +34,18 @@ function cohortHoldReasons(metrics: CohortMetrics, target: CohortMetrics["stage"
   if (
     metrics.error_rate_relative_increase !== undefined &&
     metrics.error_rate_relative_increase > rule.maxErrorRateRelativeIncrease
-  ) {
-    reasons.push(`error-rate guardrail breached: ${metrics.error_rate_relative_increase}`);
-  }
+  ) reasons.push(`error-rate guardrail breached: ${metrics.error_rate_relative_increase}`);
   if (
     metrics.p95_latency_relative_increase !== undefined &&
     metrics.p95_latency_relative_increase > rule.maxP95LatencyRelativeIncrease
-  ) {
-    reasons.push(`p95 latency guardrail breached: ${metrics.p95_latency_relative_increase}`);
-  }
+  ) reasons.push(`p95 latency guardrail breached: ${metrics.p95_latency_relative_increase}`);
   if ("requireTargetMetricNonNegative" in rule && rule.requireTargetMetricNonNegative && (metrics.target_metric_delta ?? 0) < 0) {
     reasons.push(`target metric degraded: ${metrics.target_metric_delta}`);
   }
   if (
-    "requireZeroBlockingGuardrailBreaches" in rule &&
-    rule.requireZeroBlockingGuardrailBreaches &&
+    "requireZeroBlockingGuardrailBreaches" in rule && rule.requireZeroBlockingGuardrailBreaches &&
     (metrics.blocking_guardrail_breaches ?? 0) > 0
-  ) {
-    reasons.push("blocking product guardrail breached");
-  }
+  ) reasons.push("blocking product guardrail breached");
   if (metrics.simulation_mismatch_seen_in_prod) reasons.push("production behavior contradicts pre-release simulation");
   if (metrics.onboarding_regression) reasons.push("onboarding behavior regressed in production");
   return reasons;
@@ -84,6 +77,26 @@ function baseDecision(args: {
   };
 }
 
+function assessRequiredGate(required: string, gates: GateResult[], candidateSha: string): { ok: boolean; reasons: string[] } {
+  const named = gates.filter(gate => gate.gate === required);
+  const exact = named.filter(gate => gate.candidate_sha === candidateSha);
+  if (!exact.length) {
+    return {
+      ok: false,
+      reasons: [named.length ? `gate ${required} has no evidence for candidate SHA` : `required gate missing: ${required}`],
+    };
+  }
+
+  const nonPass = exact.filter(gate => gate.status !== "PASS");
+  if (nonPass.length) {
+    return {
+      ok: false,
+      reasons: nonPass.map(gate => `gate ${required} from ${gate.source} is ${gate.status}${gate.summary ? `: ${gate.summary}` : ""}`),
+    };
+  }
+  return { ok: true, reasons: [] };
+}
+
 export function decideRelease(args: {
   assessment: RiskAssessment;
   gates: GateResult[];
@@ -94,78 +107,30 @@ export function decideRelease(args: {
   const reasons: string[] = [];
   const badGates: string[] = [];
 
-  const gateByName = new Map(args.gates.map(gate => [gate.gate, gate]));
   for (const required of args.assessment.required_gates) {
-    const gate = gateByName.get(required);
-    if (!gate) {
-      badGates.push(required);
-      reasons.push(`required gate missing: ${required}`);
-      continue;
-    }
-    if (gate.candidate_sha !== args.assessment.candidate_sha) {
-      badGates.push(required);
-      reasons.push(`gate ${required} belongs to different candidate SHA`);
-      continue;
-    }
-    if (gate.status !== "PASS") {
-      badGates.push(required);
-      reasons.push(`gate ${required} is ${gate.status}`);
-    }
+    const gateDecision = assessRequiredGate(required, args.gates, args.assessment.candidate_sha);
+    if (gateDecision.ok) continue;
+    badGates.push(required);
+    reasons.push(...gateDecision.reasons);
   }
 
   const rollback = immediateRollbackReasons(metrics);
   if (rollback.length) {
-    return baseDecision({
-      assessment: args.assessment,
-      metrics,
-      status: "ROLLBACK_RECOMMENDED",
-      eligibleRolloutPercent: 0,
-      nextStage: null,
-      reasons: rollback,
-      badGates,
-      now: args.now,
-    });
+    return baseDecision({ assessment: args.assessment, metrics, status: "ROLLBACK_RECOMMENDED", eligibleRolloutPercent: 0, nextStage: null, reasons: rollback, badGates, now: args.now });
   }
 
   if (badGates.length) {
-    return baseDecision({
-      assessment: args.assessment,
-      metrics,
-      status: "BLOCK",
-      eligibleRolloutPercent: 0,
-      nextStage: null,
-      reasons,
-      badGates,
-      now: args.now,
-    });
+    return baseDecision({ assessment: args.assessment, metrics, status: "BLOCK", eligibleRolloutPercent: 0, nextStage: null, reasons, badGates, now: args.now });
   }
 
   const next = nextStage(metrics.stage);
   if (!next) {
-    return baseDecision({
-      assessment: args.assessment,
-      metrics,
-      status: "ROLLOUT_ELIGIBLE",
-      eligibleRolloutPercent: 100,
-      nextStage: null,
-      reasons: ["all required engineering and experience gates green; already at stable stage"],
-      badGates: [],
-      now: args.now,
-    });
+    return baseDecision({ assessment: args.assessment, metrics, status: "ROLLOUT_ELIGIBLE", eligibleRolloutPercent: 100, nextStage: null, reasons: ["all required engineering and experience gates green; already at stable stage"], badGates: [], now: args.now });
   }
 
   const hold = cohortHoldReasons(metrics, next.name);
   if (hold.length) {
-    return baseDecision({
-      assessment: args.assessment,
-      metrics,
-      status: "HOLD",
-      eligibleRolloutPercent: RELEASE_STAGES[stageIndex(metrics.stage)]!.exposurePercent,
-      nextStage: next.name,
-      reasons: hold,
-      badGates: [],
-      now: args.now,
-    });
+    return baseDecision({ assessment: args.assessment, metrics, status: "HOLD", eligibleRolloutPercent: RELEASE_STAGES[stageIndex(metrics.stage)]!.exposurePercent, nextStage: next.name, reasons: hold, badGates: [], now: args.now });
   }
 
   const eligible = Math.min(next.exposurePercent, args.assessment.max_recommended_rollout_percent);
@@ -176,9 +141,7 @@ export function decideRelease(args: {
     status,
     eligibleRolloutPercent: eligible,
     nextStage: next.name,
-    reasons: [
-      `all required engineering and experience gates green; policy permits up to ${eligible}% at next step`,
-    ],
+    reasons: [`all required engineering and experience gates green; policy permits up to ${eligible}% at next step`],
     badGates: [],
     now: args.now,
   });
