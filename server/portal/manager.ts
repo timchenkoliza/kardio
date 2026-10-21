@@ -64,6 +64,11 @@ export async function recordResultRendered(sessionId: string, specialty: Special
   const useful = isUseful(results);
   if (job === "drug") await recordPortalEvent(sessionId, "drug_result_opened", { specialty, job, runId: run.id, state: useful ? "useful" : "empty" });
   if (job === "guidelines") await recordPortalEvent(sessionId, "guideline_result_opened", { specialty, job, runId: run.id, state: useful ? "useful" : "empty" });
+  if (job === "learning") {
+    const signal = results.find(result => typeof result.attributes.signal === "string")?.attributes.signal;
+    if (typeof signal === "string") await recordPortalEvent(sessionId, "recommendation_reason_shown", { specialty, job, runId: run.id, signal });
+    if (signal === "specialty") await recordPortalEvent(sessionId, "specialty_signal_used", { specialty, job, runId: run.id });
+  }
   if (!useful) return;
   await recordPortalEvent(sessionId, "useful_result_rendered", { specialty, job, runId: run.id, count: results.length });
   const profile = await loadProfile(sessionId, specialty);
@@ -99,6 +104,13 @@ export async function recordPortalOpen(sessionId: string, specialty: SpecialtyId
     await recordPortalEvent(sessionId, "return_session", { specialty, daysSinceFirst });
   }
   return { profile, returning };
+}
+
+/** «Для вас» rendered: every card carries a reason; a feed without topics runs on the specialty signal. */
+export async function recordForYouRendered(sessionId: string, specialty: SpecialtyId, view: { cards: unknown[]; personalised: boolean }): Promise<void> {
+  if (!view.cards.length) return;
+  await recordPortalEvent(sessionId, "recommendation_reason_shown", { specialty, job: "updates", count: view.cards.length });
+  if (!view.personalised) await recordPortalEvent(sessionId, "specialty_signal_used", { specialty, job: "updates" });
 }
 
 export function jobLabel(job: PortalJob): string {

@@ -104,9 +104,11 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
 
   function opened(evidence = false) {
     void command({ action: "openResult", resultId: result.id, evidence }, { quiet: true, refresh: false });
+    if (evidence && result.kind === "event") void command({ action: "track", event: "event_opened", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
   }
 
   async function prepare(kind: "calendar_write" | "registration", url?: string | null) {
+    if (kind === "registration") void command({ action: "track", event: "event_registration_clicked", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
     const response = await command({ action: "prepareAction", kind, resultIds: [result.id], ...(url ? { url } : {}) }, { refresh: false });
     if (response?.action) setPendingAction(response.action);
   }

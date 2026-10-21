@@ -17,6 +17,7 @@ import { pageSession } from "@/server/agents/page-session";
 import { workspaceStore } from "@/server/agents/store";
 import { catalogFor, loadProfile } from "@/server/agents/workspace";
 import { buildForYou } from "@/server/portal/for-you";
+import { recordForYouRendered } from "@/server/portal/manager";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     catalogFor(specialty),
   ]);
   const forYou = buildForYou({ specialty, profile, results, runs, materials, content: catalog.content });
+  if (sessionId) await recordForYouRendered(sessionId, specialty, forYou);
   const now = new Date();
   // First visit (no session yet) or any due background check: «Для вас» is (re)built without any setup.
   const catchUpDue = !sessionId || AGENT_ORDER.some(agentId => isRunDue(profile, agentId, now));
