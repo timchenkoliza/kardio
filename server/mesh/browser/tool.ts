@@ -102,8 +102,8 @@ export class BrowserSourceTool {
     if (!options.robots) shared.robots.set(site.origin, this.robots);
   }
 
-  /** open(): fetch one allowed page (cache → robots → politeness → driver). */
-  async open(url: string): Promise<OpenedPage> {
+  /** open(): fetch one allowed page (cache → robots → politeness → driver). `fresh` re-reads the source (re-verification). */
+  async open(url: string, options: { fresh?: boolean } = {}): Promise<OpenedPage> {
     const absolute = absoluteUrl(url, this.site.origin);
     const parsed = new URL(absolute);
     if (parsed.origin !== new URL(this.site.origin).origin) throw new SourceToolError("outside_allowed_paths", parsed.origin, absolute);
@@ -111,7 +111,7 @@ export class BrowserSourceTool {
     const robots = await this.robots.check(absolute);
     if (!robots.allowed) throw new SourceToolError("robots_disallow", robots.rule ?? parsed.pathname, absolute);
 
-    const cached = shared.cache.get(absolute);
+    const cached = options.fresh ? undefined : shared.cache.get(absolute);
     if (cached && cached.expires > Date.now()) {
       this.visits.push({ url: absolute, status: cached.snapshot.status, driver: cached.snapshot.driver, fetchedAt: cached.snapshot.fetchedAt, cached: true });
       return { snapshot: cached.snapshot, document: parseDocument(cached.snapshot.html), cached: true };

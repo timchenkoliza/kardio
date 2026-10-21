@@ -26,6 +26,10 @@ export interface SourceAdapter extends SourceDescriptor {
   status(): Promise<SourceStatusReport>;
   /** Run one operation for one requirement (search/lookup/discovery). */
   execute(request: SourceRequest): Promise<SourceResult>;
-  /** Re-fetch one known document for re-verification and delta detection. */
-  fetch?(url: string, ctx: Pick<SourceContext, "now" | "nowIso">): Promise<NormalizedDocument | null>;
+  /**
+   * Re-fetch one known document for re-verification and delta detection.
+   * Without an intent the document is normalized neutrally (fingerprints for
+   * every section); with an intent, claims are extracted for that scenario.
+   */
+  fetch?(url: string, ctx: Pick<SourceContext, "now" | "nowIso">, intent?: NormalizedIntent | null): Promise<NormalizedDocument | null>;
 }

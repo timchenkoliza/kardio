@@ -17,7 +17,7 @@ risk_classes:
     max_recommended_rollout_percent: 20
   R2:
     description: Agent behavior, routing, prompts, source ranking, content selection
-    path_patterns: ["server/agents/**", "lib/agents/**", "lib/portal/**"]
+    path_patterns: ["server/agents/**", "lib/agents/**", "lib/portal/**", "server/mesh/**", "lib/mesh/**"]
     required_gates: [static, unit, integration, eval, simulation, preview]
     max_recommended_rollout_percent: 5
   R3:
@@ -38,7 +38,7 @@ experience_impact_classes:
     max_recommended_rollout_percent: 100
   E1:
     description: Presentation change preserving job, module, meaning and mental model
-    triggers: [user_visible, copy_change, visual_morphology_change]
+    triggers: [user_visible, copy_change, visual_morphology_change, source_content_refresh]
     required_gates: [experience_contract, experience_smoke]
     max_recommended_rollout_percent: 20
   E2:

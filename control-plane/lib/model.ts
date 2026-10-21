@@ -127,8 +127,70 @@ export interface DecisionTrace {
   eval_scores: Record<string, number>;
 }
 
+/** What caused a Change. Code is only one of six causes; knowledge and policy move too. */
+export type ChangeCause = "code" | "source_delta" | "policy_delta" | "ranking_delta" | "experience_delta" | "taxonomy_delta";
+
+/** Knowledge that moved: documents, versions, chunks, claims, scenarios. */
+export interface KnowledgeDelta {
+  sources: string[];
+  documents: Array<{
+    id: string;
+    url: string;
+    from_version: string | null;
+    to_version: string;
+    chunks_changed: string[];
+    chunks_total: number;
+  }>;
+  claims_added: string[];
+  claims_removed: string[];
+  claim_kinds: string[];
+  entities: string[];
+  scenarios_stale: string[];
+  scenarios_untouched: number;
+}
+
+/** Capabilities or sources that were added, removed or re-routed. */
+export interface CapabilityDelta {
+  capabilities: string[];
+  sources_added: string[];
+  sources_removed: string[];
+  operations: string[];
+}
+
+/** How compiled experiences moved (before → after), per affected scenario. */
+export interface ExperienceDelta {
+  manifests_invalidated: string[];
+  manifests_regenerated: string[];
+  module_families_before: string[][];
+  module_families_after: string[][];
+  order_changed: boolean;
+  representation_changed: boolean;
+}
+
+export interface ImplementationDelta {
+  files: string[];
+  candidate_sha?: string;
+  baseline_sha?: string;
+}
+
+/** Explicit statements of what a Change does NOT change; each is checked by regression evaluation. */
+export interface NegativeObligations {
+  module_family?: boolean;
+  navigation?: boolean;
+  user_job?: boolean;
+  source_policy?: boolean;
+  onboarding?: boolean;
+  representation?: boolean;
+  ranking?: boolean;
+  safety_thresholds?: boolean;
+}
+export type ObligationKey = keyof NegativeObligations;
+
 export interface ChangeContract {
   change_id: string;
+  /** Defaults to "code" when absent (pre-existing contracts). */
+  cause?: ChangeCause;
+  status?: "PROPOSED" | "IDEA" | "IN_PROGRESS" | "EVALUATED" | "RELEASED" | "REJECTED";
   title: string;
   problem: string | {
     user_segment?: string;
@@ -158,6 +220,42 @@ export interface ChangeContract {
   requested_rollout_percent?: number;
   kill_criteria?: string[];
   experience_contract?: ExperienceContract;
+  knowledge_delta?: KnowledgeDelta;
+  capability_delta?: CapabilityDelta;
+  experience_delta?: ExperienceDelta;
+  implementation_delta?: ImplementationDelta;
+  /** What the Change intends to change (positive declarations). */
+  changes?: Partial<Record<ObligationKey | "source_content" | "claims", boolean>>;
+  /** What the Change must not change (negative obligations). */
+  does_not_change?: NegativeObligations;
+}
+
+/** One compiled experience reduced to the dimensions negative obligations protect. */
+export interface ExperienceSample {
+  scenario: string;
+  manifest_id: string;
+  primary_job: string;
+  module_families: string[];
+  representation: string;
+  stable_shell_version: string;
+  source_policy_version: string;
+  onboarding_shown: boolean;
+  /** Document ids in display order (ranking). */
+  ranking: string[];
+}
+
+export interface ObligationViolation {
+  obligation: ObligationKey;
+  scenario: string;
+  before: string;
+  after: string;
+}
+
+export interface ObligationEvaluation {
+  passed: boolean;
+  checked: ObligationKey[];
+  violations: ObligationViolation[];
+  contradictions: ObligationKey[];
 }
 
 export interface RiskAssessment {

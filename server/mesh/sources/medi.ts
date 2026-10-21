@@ -284,7 +284,7 @@ export const guidelineExtractor: Extractor<GuidelinePage> = {
       const label = textOf(heading);
       if (!label) continue;
       if (heading.tagName === "H2") currentH2 = label;
-      const text = sectionText(heading);
+      const text = sectionText(heading, { ownTextOnly: true });
       if (text) sections.push({ path: heading.tagName === "H2" ? [label] : [currentH2, label].filter(Boolean), text });
     }
     return {
@@ -550,16 +550,24 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     ...MEDI_DESCRIPTOR,
     status,
     execute,
-    async fetch(url, ctx) {
-      // Re-verification of a known guideline page (delta detection); drug pages are re-read through execute().
+    async fetch(url, ctx, intent) {
       const driver = await driverPromise();
-      if (!driver || !url.includes("/klinicheskie-rekomendatsii/")) return null;
+      if (!driver) return null;
       const tool = new BrowserSourceTool(site, driver);
-      const page = await tool.open(url);
-      const raw = tool.extract(page, guidelineExtractor);
-      const nosology = NOSOLOGIES.find(node => titleMatchesNosology(raw.title, node));
-      if (!nosology) return null;
-      return normalizeGuideline(raw, page.snapshot, { nosology, subtypeId: null, drugs: [], now: ctx.now, definition: false });
+      // A neutral fetch is a re-verification: it re-reads the source; scenario fetches reuse that fresh page.
+      const page = await tool.open(url, { fresh: !intent });
+      if (url.includes("/klinicheskie-rekomendatsii/")) {
+        const raw = tool.extract(page, guidelineExtractor);
+        const nosology = nosologyById(intent?.context.nosology?.id) ?? NOSOLOGIES.find(node => titleMatchesNosology(raw.title, node));
+        if (!nosology) return null;
+        return normalizeGuideline(raw, page.snapshot, { nosology, subtypeId: intent?.context.subtype?.id ?? null, drugs: intent?.entities.drugs ?? [], now: ctx.now, definition: intent?.job.primary === "disease_reference" });
+      }
+      if (url.includes("/instrukciya/")) {
+        const raw = tool.extract(page, instructionExtractor);
+        const drug = intent?.entities.drugs[0] ?? { inn: raw.inn || raw.title, ru: raw.inn || raw.title, stems: [raw.inn || raw.title] };
+        return normalizeInstruction(raw, page.snapshot, { drug, listingDate: null, nosology: nosologyById(intent?.context.nosology?.id), safety: intent?.safety ?? [], job: intent?.job.primary ?? "drug_reference" });
+      }
+      return null;
     },
   };
 }

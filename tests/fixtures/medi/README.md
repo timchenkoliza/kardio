@@ -13,4 +13,5 @@ Live behaviour is exercised separately by `LIVE_SOURCES=1 npx vitest run tests/l
 - `filter-kardiologiya.html` — `/filters/doc_type/manuals/kardiologiya/` catalogue.
 - `guideline-hsn-v1.html` / `guideline-hsn-v2.html` — one guideline in two
   versions; v2 changes only section 3.1.11 (used by the incremental test).
+- `guideline-hsn-v3.html` — v1 with only section 1.1 (definition) reworded: a change no HFpEF scenario depends on.
 - `instruction-layout-changed.html` — a redesigned page the extractor must reject.

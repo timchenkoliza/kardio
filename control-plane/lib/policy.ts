@@ -36,7 +36,7 @@ export const RISK_POLICIES: Record<RiskClass, RiskPolicy> = {
   },
   R2: {
     description: "Agent behavior, routing, prompts, source ranking, content selection",
-    pathPrefixes: ["server/agents/", "lib/agents/", "lib/portal/"],
+    pathPrefixes: ["server/agents/", "lib/agents/", "lib/portal/", "server/mesh/", "lib/mesh/"],
     requiredGates: ["static", "unit", "integration", "eval", "simulation", "preview"],
     maxRecommendedRolloutPercent: 5,
   },
@@ -96,7 +96,7 @@ export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpact
   },
   E1: {
     description: "Presentation-level change that preserves job, module, meaning and user mental model",
-    triggers: ["user_visible", "copy_change", "visual_morphology_change"],
+    triggers: ["user_visible", "copy_change", "visual_morphology_change", "source_content_refresh"],
     requiredGates: ["experience_contract", "experience_smoke"],
     maxRecommendedRolloutPercent: 20,
   },

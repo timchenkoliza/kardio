@@ -39,10 +39,12 @@ export function absoluteUrl(href: string, base: string): string {
 
 /**
  * Text of a section that starts at `heading` and runs until the next heading
- * of the same or higher level (h1–h3), in document order.
+ * of the same or higher level (h1–h3), in document order. With `ownTextOnly`
+ * it stops at any heading, so a parent section never repeats the text of its
+ * subsections (each subsection is its own chunk).
  */
-export function sectionText(heading: DomElement): string {
-  const level = Number(heading.tagName.slice(1)) || 3;
+export function sectionText(heading: DomElement, options: { ownTextOnly?: boolean } = {}): string {
+  const level = options.ownTextOnly ? 3 : Number(heading.tagName.slice(1)) || 3;
   const parts: string[] = [];
   let node = heading.nextSibling as unknown as (DomElement & { nodeType: number; nextSibling: unknown }) | null;
   while (node) {
