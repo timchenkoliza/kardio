@@ -19,6 +19,7 @@ import { settleExpiredRun } from "@/server/portal/manager";
 import { lookupRun, runStatusView } from "@/server/portal/run-state";
 import { listContent, listSources } from "@/server/repositories/catalog";
 import { HttpError } from "@/server/http";
+import { ensureSession } from "@/server/services/state";
 import { fakeAbstracts, fakeDrugLabel, fakePubmed, testContext } from "./agent-test-utils";
 import { ACCEPTANCE_QUESTION, FixtureDriver, HFPEF_ABSTRACT, HFPEF_REVIEW, registryStatuses } from "./mesh-test-utils";
 
@@ -164,13 +165,20 @@ describe("ExperiencePatch", () => {
 
 describe("persistence invariant and honest unavailability", () => {
   it("refuses to hand out a run id from an in-process store on a serverless deployment", async () => {
-    process.env.VERCEL = "1";
-    expect(workspaceStore().kind).toBe("memory");
-    await expect(executeAgentCommand(SESSION, { action: "ask", specialty: "cardiology", text: ACCEPTANCE_QUESTION })).rejects.toMatchObject({ status: 503, code: "storage_unavailable" });
-    await expect(executeAgentCommand(SESSION, { action: "ask", specialty: "cardiology", text: ACCEPTANCE_QUESTION })).rejects.toBeInstanceOf(HttpError);
+    const database = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      process.env.VERCEL = "1";
+      expect(workspaceStore().kind).toBe("memory");
+      await expect(executeAgentCommand(SESSION, { action: "ask", specialty: "cardiology", text: ACCEPTANCE_QUESTION })).rejects.toMatchObject({ status: 503, code: "storage_unavailable" });
+      await expect(executeAgentCommand(SESSION, { action: "ask", specialty: "cardiology", text: ACCEPTANCE_QUESTION })).rejects.toBeInstanceOf(HttpError);
+    } finally {
+      if (database) process.env.DATABASE_URL = database;
+    }
   });
 
   it("returns the durable run id at once and runs the work after the response", async () => {
+    await ensureSession(SESSION);
     const tasks: Array<() => Promise<void>> = [];
     const result = await executeAgentCommand(SESSION, { action: "ask", specialty: "cardiology", text: "Конгрессы по кардиологии", job: "events" }, { schedule: task => { tasks.push(task); } });
     expect(result.runId).toBeTruthy();
@@ -184,6 +192,7 @@ describe("persistence invariant and honest unavailability", () => {
   });
 
   it("names another session only when the run exists there; an open run past its deadline is expired, not spinning", async () => {
+    await ensureSession(SESSION);
     const store = workspaceStore();
     const profile = defaultProfile("cardiology");
     const run = await createRun(store, SESSION, { agentId: "reference", specialty: "cardiology", profile, trigger: "composer", text: ACCEPTANCE_QUESTION });
