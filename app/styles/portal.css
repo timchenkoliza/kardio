@@ -197,3 +197,6 @@
 @media (min-width: 1024px) {
   .pt-footer { padding: var(--ws-space-24) var(--ws-gutter-wide) var(--ws-space-32); }
 }
+
+/* Retry after a failed or interrupted run: a full touch target on every pointer. */
+.pt-retry { min-height: var(--ws-touch-target); }

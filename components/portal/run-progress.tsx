@@ -99,13 +99,14 @@ export function RetryRun({ text, job }: { text: string; job: PortalJob | null })
   async function retry() {
     setBusy(true);
     setFailed(false);
-    const result = await command({ action: "ask", text, ...(job ? { job } : {}) }, { refresh: false, timeoutMs: 20_000 });
+    // Quiet: the failure is said here, next to the button, not in a second toast.
+    const result = await command({ action: "ask", text, ...(job ? { job } : {}) }, { refresh: false, quiet: true, timeoutMs: 20_000 });
     setBusy(false);
     if (!result?.runId) { setFailed(true); return; }
     startNavigation(() => router.push(result.redirect ?? `?run=${encodeURIComponent(result.runId!)}`));
   }
   return <div className="pt-card-actions">
-    <button type="button" className="ws-button is-primary is-small" disabled={busy || navigating} onClick={() => void retry()}>
+    <button type="button" className="ws-button pt-retry" disabled={busy || navigating} onClick={() => void retry()}>
       {busy || navigating ? <Loader2 size={14} className="ws-spin" aria-hidden="true" /> : <RefreshCw size={14} aria-hidden="true" />}Повторить
     </button>
     {failed && <span className="ws-risk is-blocking" role="alert">Не удалось запустить поиск</span>}

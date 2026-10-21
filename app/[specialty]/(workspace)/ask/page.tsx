@@ -142,7 +142,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
     {finished && actions.length ? <PendingActions actions={actions} /> : null}
 
-    {finished
+    {finished && phase !== "expired" && run.plan.length
       ? <details className="ws-trace-disclosure">
         <summary>Как искали и что было доступно</summary>
         <RunTrace run={run} connectors={connectors} now={now} showSynthesis={false} showConnectors={!run.experience} />

@@ -60,7 +60,8 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
     setSubmitting(true);
     setFailed(false);
     // Creating the run is quick (it is only stored); the sources are checked on the result page.
-    const result = await command({ action: "ask", text: value, ...(lockedJob ? { job: lockedJob } : {}), ...(followup ? { followup: true } : {}) }, { refresh: false, timeoutMs: ASK_TIMEOUT_MS });
+    // Quiet: a failure to start is shown inline with «Повторить», not duplicated in a toast.
+    const result = await command({ action: "ask", text: value, ...(lockedJob ? { job: lockedJob } : {}), ...(followup ? { followup: true } : {}) }, { refresh: false, quiet: true, timeoutMs: ASK_TIMEOUT_MS });
     setSubmitting(false);
     if (!result?.runId) { setFailed(true); return; }
     const pending = result.actions?.find(action => action.status === "pending_confirmation");
@@ -89,7 +90,7 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
     </div>
     <div className="ws-composer-preview" aria-live="polite">
       {busy && target && <span className="ws-route" role="status"><Loader2 size={14} className="ws-spin" aria-hidden="true" />{WAITING[target]}</span>}
-      {failed && !busy && <span className="ws-risk is-blocking" role="alert">Не удалось запустить поиск<button type="button" className="ws-button is-small" onClick={() => void submit()}>Повторить</button></span>}
+      {failed && !busy && <span className="ws-risk is-blocking" role="alert">Не удалось запустить поиск<button type="button" className="ws-button pt-retry" onClick={() => void submit()}>Повторить</button></span>}
       {!busy && route && !blocked && <span className="ws-route"><JobIcon icon={JOBS[route.job].icon} size={14} />Покажем {JOBS[route.job].preview}{route.drugs.length && (route.job === "drug" || route.job === "answer") ? ` · ${route.drugs.map(drug => drug.ru).join(", ")}` : ""}{route.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
       {route?.risk.imageInterpretation && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.imageInterpretation}</span>}
       {route?.risk.emergency && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.emergency}</span>}
