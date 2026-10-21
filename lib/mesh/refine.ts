@@ -89,9 +89,11 @@ const FOCUS: ReadonlyArray<{ id: string; kinds: ClaimKind[]; pattern: RegExp }> 
   { id: "indications", kinds: ["indication"], pattern: new RegExp(`${L}показани`, "u") },
 ];
 const ONLY = new RegExp(`${L}(?:только|лишь|сравни\\s+только|оставь|покажи\\s+только)`, "u");
+/** Exact ordinal forms only: «пятнадцатый» is not «пятый». */
+const END = "(?![\\p{L}])";
 const ORDINALS: ReadonlyArray<[RegExp, number]> = [
-  [new RegExp(`${L}перв\\p{L}*`, "u"), 1], [new RegExp(`${L}втор\\p{L}*`, "u"), 2], [new RegExp(`${L}трет\\p{L}*`, "u"), 3],
-  [new RegExp(`${L}четв[её]рт\\p{L}*`, "u"), 4], [new RegExp(`${L}пят\\p{L}*`, "u"), 5],
+  [new RegExp(`${L}перв(?:ый|ая|ое|ого|ую|ой|ом)${END}`, "u"), 1], [new RegExp(`${L}втор(?:ой|ая|ое|ого|ую|ом)${END}`, "u"), 2], [new RegExp(`${L}трет(?:ий|ья|ье|ьего|ью|ьей|ьем)${END}`, "u"), 3],
+  [new RegExp(`${L}четверт(?:ый|ая|ое|ого|ую|ой|ом)${END}`, "u"), 4], [new RegExp(`${L}пят(?:ый|ая|ое|ого|ую|ой|ом)${END}`, "u"), 5],
 ];
 const EXPAND = new RegExp(`${L}(?:раскрой|разверни|покажи\\s+подробн|открой\\s+подробн|подробнее\\s+(?:про|о))\\p{L}*`, "u");
 const SOURCE_WORD = new RegExp(`${L}(?:источник|документ|рекомендац|публикац|стать)`, "u");
@@ -253,16 +255,29 @@ export function resolveDelta(delta: IntentDelta, context: ExperienceContext, gra
 type Scalar = string | number | boolean | null | string[];
 
 /** The view as bounded module props and takeaway priority (fixed copy and graph ids only). */
-export function viewDirectives(graph: EvidenceGraph, manifest: ExperienceManifest | null, view: ManifestView): { moduleProps: Partial<Record<ModuleFamily, Record<string, Scalar>>>; priorityClaims: string[] } {
+const statedPrevious = (graph: EvidenceGraph) => graph.documents
+  .filter(document => typeof document.attributes.previousVersion === "string" && document.attributes.previousVersion)
+  .sort((a, b) => (b.version.date ?? b.publishedAt ?? "").localeCompare(a.version.date ?? a.publishedAt ?? ""))[0];
+
+/**
+ * The view as bounded module props and takeaway priority (fixed copy and graph
+ * ids only). `full` is the unfiltered graph: when the view itself hides the
+ * only document that states a previous version, the result says so instead
+ * of claiming there is none.
+ */
+export function viewDirectives(graph: EvidenceGraph, manifest: ExperienceManifest | null, view: ManifestView, full: EvidenceGraph = graph): { moduleProps: Partial<Record<ModuleFamily, Record<string, Scalar>>>; priorityClaims: string[] } {
   const moduleProps: Partial<Record<ModuleFamily, Record<string, Scalar>>> = {};
   const priorityClaims: string[] = [];
   if (view.comparison === "previous_version") {
-    const previous = graph.documents.filter(document => typeof document.attributes.previousVersion === "string" && document.attributes.previousVersion).sort((a, b) => (b.version.date ?? b.publishedAt ?? "").localeCompare(a.version.date ?? a.publishedAt ?? ""))[0];
+    const previous = statedPrevious(graph);
     if (previous) {
       const changed = graph.claims.filter(claim => claim.documentId === previous.id && claim.kind === "society_assertion" && claim.verification !== "UNSUPPORTED").map(claim => claim.id);
       moduleProps.recommendation_delta = { comparison: "previous_version", previousVersion: String(previous.attributes.previousVersion), changedDocumentId: previous.id, changedClaimIds: changed };
       priorityClaims.push(...changed);
-    } else moduleProps.recommendation_delta = { comparison: "current_state" };
+    } else {
+      const hidden = statedPrevious(full);
+      moduleProps.recommendation_delta = { comparison: "current_state", ...(hidden ? { hiddenPreviousVersion: String(hidden.attributes.previousVersion), hiddenBy: view.jurisdiction ? "jurisdiction" : "since" } : {}) };
+    }
   }
   if (view.focus.length) {
     moduleProps.drug_reference = { focus: view.focus[0] };

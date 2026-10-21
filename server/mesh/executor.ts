@@ -22,6 +22,7 @@ import { executePlan, type StepEvent } from "./execute";
 import { fingerprint } from "./fingerprint";
 import { knowledgeStore } from "./knowledge";
 import { createSourceRegistry, descriptors, type SourceRegistry } from "./sources/registry";
+import { recordSkillCandidates } from "./skill-candidates";
 import { recordMeshEvent } from "./telemetry";
 
 /**
@@ -282,7 +283,11 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
 
   if (strategy?.skill && strategy.flow) await recordMeshEvent(sessionId, "intent_skill_matched", { specialty: ctx.specialty, job: intent.job.primary, skillId: strategy.skill.id, skillVersion: strategy.skill.version, confidence: strategy.matched?.confidence, mode: strategy.mode ?? undefined });
   if (primarySkill && strategy?.flow) await recordMeshEvent(sessionId, "intent_flow_started", { specialty: ctx.specialty, skillId: primarySkill.id, flowId: strategy.flow.id, skillVersion: strategy.flow.version });
-  if (strategy?.executionClass === "dynamic") await recordMeshEvent(sessionId, "dynamic_plan_used", { specialty: ctx.specialty, job: intent.job.primary, signature: strategy.signature });
+  if (strategy?.executionClass === "dynamic") {
+    await recordMeshEvent(sessionId, "dynamic_plan_used", { specialty: ctx.specialty, job: intent.job.primary, signature: strategy.signature });
+    // A repeated novel request shape becomes a Skill candidate — a proposed, blocked Change, never a library edit.
+    await recordSkillCandidates({ now: ctx.now, sessionId }).catch(() => []);
+  }
 
   const extras: Partial<CompileInput> = primarySkill ? { takeaway: primarySkill.experiencePolicy.takeaway?.[intent.job.family] ?? null, execution: manifestExecution(strategy, primarySkill, null) } : { execution: manifestExecution(strategy, null, null) };
   const gathered = await gather(ctx, env, intent, { progressive: true, extras, record: true, knowledge: true });

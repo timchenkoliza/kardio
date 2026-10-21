@@ -53,7 +53,8 @@ export const GUIDELINE_CHANGE: IntentSkill = {
     maxUnsupportedClaims: 0,
   },
   safety: ["currentness_must_be_shown", "no_prescribing"],
-  rollout: { mode: "shadow", change: null },
+  // Promoted after the differential evaluation passed (local live 14/14, remote shadow 14/14).
+  rollout: { mode: "primary", change: "CHG-2026-10-22-intent-skills-primary" },
 };
 
 /**
@@ -106,7 +107,8 @@ export const DRUG_EVIDENCE: IntentSkill = {
     maxUnsupportedClaims: 0,
   },
   safety: ["currentness_must_be_shown", "jurisdiction_boundary", "no_prescribing"],
-  rollout: { mode: "shadow", change: null },
+  // Promoted after the differential evaluation passed (local live 14/14, remote shadow 14/14).
+  rollout: { mode: "primary", change: "CHG-2026-10-22-intent-skills-primary" },
 };
 
 export const SKILLS: readonly IntentSkill[] = [GUIDELINE_CHANGE, DRUG_EVIDENCE];

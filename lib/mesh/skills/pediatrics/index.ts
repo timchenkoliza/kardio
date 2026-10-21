@@ -47,7 +47,8 @@ export const PEDIATRIC_DRUG_REFERENCE: IntentSkill = {
     maxUnsupportedClaims: 0,
   },
   safety: ["pediatric_sections", "jurisdiction_boundary", "no_prescribing"],
-  rollout: { mode: "shadow", change: null },
+  // Promoted after the differential evaluation passed (local live 14/14, remote shadow 14/14).
+  rollout: { mode: "primary", change: "CHG-2026-10-22-intent-skills-primary" },
 };
 
 export const SKILLS: readonly IntentSkill[] = [PEDIATRIC_DRUG_REFERENCE];

@@ -144,7 +144,9 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
   const previous = typeof entry.props.previousVersion === "string" ? entry.props.previousVersion : null;
   const expanded = typeof entry.props.expandedDocumentId === "string" ? entry.props.expandedDocumentId : null;
   return <Section module={entry}>
-    {comparison === "current_state" && <p className="pt-version-note" data-comparison="current_state">{nbsp("Предыдущая версия в найденных источниках не указана — показано текущее состояние документов и срок их пересмотра.")}</p>}
+    {comparison === "current_state" && <p className="pt-version-note" data-comparison="current_state">{typeof entry.props.hiddenPreviousVersion === "string"
+      ? nbsp(`В показанных источниках предыдущая версия не указана — показано текущее состояние и срок пересмотра. Предыдущую версию (${entry.props.hiddenPreviousVersion}) называет ${entry.props.hiddenBy === "jurisdiction" ? "международный источник, скрытый фильтром «только российские источники»" : "документ, скрытый фильтром по году"}.`)
+      : nbsp("Предыдущая версия в найденных источниках не указана — показано текущее состояние документов и срок их пересмотра.")}</p>}
     <ol className="pt-versions">
       {entry.documentIds.map(documentId => {
         const document = ctx.index.document.get(documentId);

@@ -119,7 +119,7 @@ export async function refineRun(sessionId: string, specialty: SpecialtyId, runId
 
   const view = resolution.view;
   const visible = applyView(graph, view);
-  const directives = viewDirectives(visible, experience.manifest, view);
+  const directives = viewDirectives(visible, experience.manifest, view, graph);
   const base: Omit<CompileInput, "graph"> = {
     user: { signals: experience.manifest.personalization.signals, topics: [] },
     modules: strategy.intent.modules,
