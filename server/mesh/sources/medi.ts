@@ -229,6 +229,11 @@ export const instructionExtractor: Extractor<InstructionPage> = {
     const h1 = requireOne(document, { css: "#content h1", text: /инструкция по применению/iu, describe: "h1 «… — инструкция по применению»" }, "medi.instruction", page.finalUrl);
     const inn = textOf(document.querySelector('[itemprop="nonProprietaryName"]'));
     const headings = [...document.querySelectorAll("#content h3")] as DomElement[];
+    // Some products (newer EAEU registrations) publish only the patient leaflet. It is a different
+    // document for a different reader, not a changed layout, and is never read as an instruction.
+    if (headings.some(item => /^Листок[-‐–\s]*вкладыш/iu.test(textOf(item)))) {
+      throw new SourceToolError("unsupported_document", "medi.instruction: patient_leaflet", page.finalUrl);
+    }
     const sections: InstructionSection[] = [];
     for (const definition of INSTRUCTION_SECTIONS) {
       const heading = headings.find(item => definition.match.test(textOf(item)));
@@ -444,11 +449,17 @@ export function chooseGuideline(items: readonly ListingItem[], nosology: Nosolog
   return [...candidates].sort((a, b) => year(b) - year(a) || a.title.length - b.title.length)[0] ?? null;
 }
 
-function chooseProduct(items: readonly ListingItem[], drug: DrugEntry): ListingItem | null {
+/** Mono-component products in preference order: exact INN in parentheses, INN mentioned, then the rest. */
+export function rankProducts(items: readonly ListingItem[], drug: DrugEntry): ListingItem[] {
   const ru = normalizeQuery(drug.ru);
   const mono = items.filter(item => !/\+/u.test(item.title) && !/\+/u.test(item.description));
-  return mono.find(item => normalizeQuery(item.description).includes(`(${ru})`)) ?? mono.find(item => normalizeQuery(item.description).includes(ru)) ?? mono[0] ?? items[0] ?? null;
+  const pool = mono.length ? mono : [...items];
+  const rank = (item: ListingItem) => (normalizeQuery(item.description).includes(`(${ru})`) ? 0 : normalizeQuery(item.description).includes(ru) ? 1 : 2);
+  return pool.map((item, index) => ({ item, index })).sort((a, b) => rank(a.item) - rank(b.item) || a.index - b.index).map(entry => entry.item);
 }
+
+/** Instruction pages tried per INN before giving up (patient leaflets are skipped, not read). */
+const MAX_INSTRUCTION_ATTEMPTS = 3;
 
 /* ---------------------------------------------------------------- */
 /* Adapter                                                           */
@@ -483,12 +494,22 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     const listing = tool.extract(listingPage, listingExtractor);
     const documents = [normalizeListing(listing, listingPage.snapshot, drug)];
     if (!withInstruction) return documents;
-    const product = chooseProduct(listing.items, drug);
-    if (!product) return documents;
-    const page = await tool.open(product.url);
-    const raw = tool.extract(page, instructionExtractor);
-    documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary }));
-    return documents;
+    const candidates = rankProducts(listing.items, drug).slice(0, MAX_INSTRUCTION_ATTEMPTS);
+    if (!candidates.length) return documents;
+    let skipped: SourceToolError | null = null;
+    for (const product of candidates) {
+      const page = await tool.open(product.url);
+      try {
+        const raw = tool.extract(page, instructionExtractor);
+        documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary }));
+        return documents;
+      } catch (error) {
+        // Only a patient leaflet moves on to the next product; a real layout change fails at once.
+        if (!(isSourceToolError(error) && error.code === "unsupported_document")) throw error;
+        skipped = error;
+      }
+    }
+    throw skipped ?? new SourceToolError("not_found", "no_instruction");
   }
 
   async function guideline(tool: BrowserSourceTool, request: SourceRequest, definition: boolean): Promise<NormalizedDocument[]> {
@@ -544,6 +565,9 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       const provenance = tool.provenance();
       if (isSourceToolError(error) && error.code === "not_found") {
         return emptyResult(request, { sourceId: "medi", outcome: "empty", status: report.status, execution: report.execution, started, errorCode: error.machineCode, note: "На МЕДИ РУ нет такой страницы", urls: provenance.visits.map(visit => visit.url) });
+      }
+      if (isSourceToolError(error) && error.code === "unsupported_document") {
+        return emptyResult(request, { sourceId: "medi", outcome: "empty", status: report.status, execution: report.execution, started, errorCode: error.machineCode, note: "На МЕДИ РУ для этого препарата опубликован только листок-вкладыш для пациента, а не инструкция для специалиста", urls: provenance.visits.map(visit => visit.url) });
       }
       const code = isSourceToolError(error) ? error.machineCode : "unexpected";
       const reason: Record<string, string> = { network: "соединение прервалось", timeout: "не ответил вовремя", http_error: "ответил ошибкой", robots_disallow: "страница закрыта для автоматического доступа", page_budget_exceeded: "превышен лимит страниц на запрос", driver_unavailable: "браузер недоступен" };

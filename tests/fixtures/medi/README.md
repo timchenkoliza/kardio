@@ -15,3 +15,4 @@ Live behaviour is exercised separately by `LIVE_SOURCES=1 npx vitest run tests/l
   versions; v2 changes only section 3.1.11 (used by the incremental test).
 - `guideline-hsn-v3.html` — v1 with only section 1.1 (definition) reworded: a change no HFpEF scenario depends on.
 - `instruction-layout-changed.html` — a redesigned page the extractor must reject.
+- `inn-empagliflozin-leaflet-first.html` + `instruction-patient-leaflet.html` — an INN listing whose first product publishes only the EAEU patient leaflet («Листок-вкладыш – информация для пациента»), as observed live for semaglutide on 2026-10-21.

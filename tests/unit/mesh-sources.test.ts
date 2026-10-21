@@ -117,6 +117,26 @@ describe("MEDI adapter — a source, not an agent", () => {
     expect(() => extractFromHtml(guidelineExtractor, fixtureHtml("instruction-layout-changed.html"), "https://medi.ru/klinicheskie-rekomendatsii/x/")).toThrow(/layout_changed/u);
   });
 
+  it("a patient leaflet is not an instruction: the next product is tried, and it is never reported as a layout change", async () => {
+    const LEAFLET = "https://medi.ru/instrukciya/empaliflo_90001/";
+    const routes = { ...MEDI_FIXTURE_ROUTES, "https://medi.ru/analogi-mnn/empagliflozin/": "inn-empagliflozin-leaflet-first.html", [LEAFLET]: "instruction-patient-leaflet.html" };
+    expect(() => extractFromHtml(instructionExtractor, fixtureHtml("instruction-patient-leaflet.html"), LEAFLET)).toThrow(/^unsupported_document: medi\.instruction: patient_leaflet/u);
+
+    const result = await createMediAdapter({ driver: new FixtureDriver(routes), site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
+    expect(result.invocation.outcome).toBe("ok");
+    expect(result.invocation.urls).toEqual(["https://medi.ru/analogi-mnn/empagliflozin/", LEAFLET, "https://medi.ru/instrukciya/dzhardins_6916/"]);
+    const instructions = result.documents.filter(document => document.kind === "drug_instruction");
+    expect(instructions.map(document => document.url)).toEqual(["https://medi.ru/instrukciya/dzhardins_6916/"]);
+
+    // Only leaflets: an honest empty result (so a stand-in may run), with its own code — not «layout changed».
+    resetBrowserToolState();
+    const onlyLeaflets = await createMediAdapter({ driver: new FixtureDriver({ ...routes, "https://medi.ru/instrukciya/dzhardins_6916/": "instruction-patient-leaflet.html" }), site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
+    expect(onlyLeaflets.invocation.outcome).toBe("empty");
+    expect(onlyLeaflets.invocation.errorCode).toBe("unsupported_document:medi.instruction: patient_leaflet");
+    expect(onlyLeaflets.invocation.note).toMatch(/листок-вкладыш для пациента/u);
+    expect(onlyLeaflets.documents).toHaveLength(0);
+  });
+
   it("network failures are failures; a missing INN page is an honest empty result", async () => {
     const failing = new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright", ["https://medi.ru/analogi-mnn/empagliflozin/"]);
     const failed = await createMediAdapter({ driver: failing, fallbackDriver: null, site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));

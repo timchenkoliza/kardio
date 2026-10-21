@@ -83,12 +83,12 @@ The tool enforces the following:
 
 Drivers are `playwright` (real Chromium) and `http`. Extraction always runs on the same DOM parser (linkedom 0.18.12), so a recipe behaves identically under both drivers and can be tested on fixtures. When the browser path hits a gateway error, the same recipe is retried over HTTP and the invocation is reported as `LIMITED`/`http`.
 
-Failure codes are explicit: `layout_changed:<extractor>:<target>`, `robots_disallow:<rule>`, `network`, `http_error:<status>`, `timeout`, `not_found`, `driver_unavailable`, `page_budget_exceeded`. A failed source never becomes a result.
+Failure codes are explicit: `layout_changed:<extractor>:<target>`, `robots_disallow:<rule>`, `network`, `http_error:<status>`, `timeout`, `not_found`, `unsupported_document:<kind>`, `driver_unavailable`, `page_budget_exceeded`. A failed source never becomes a result.
 
 ## MEDI adapter — state
 
 - **Execution path.** Robots-allowed entry pages only. MEDI's own `/search` and `/autoload/` are disallowed for all agents and are never automated.
-  - `drug_reference`: `/analogi-mnn/<inn>/` → choose the mono-component product → `/instrukciya/<slug>_<id>/`. Sections are read by heading text plus schema.org `itemprop`. Indications are split by their bold sub-headings, and coverage is detected: «независимо от фракции выброса» covers every HF subtype.
+  - `drug_reference`: `/analogi-mnn/<inn>/` → rank the mono-component products → `/instrukciya/<slug>_<id>/` (up to 3 products; a page that is only the EAEU patient leaflet «Листок-вкладыш – информация для пациента» is skipped as `unsupported_document:patient_leaflet`, never read as an instruction and never reported as a layout change). Sections are read by heading text plus schema.org `itemprop`. Indications are split by their bold sub-headings, and coverage is detected: «независимо от фракции выброса» covers every HF subtype.
   - `inn_lookup`: the same listing (products with this INN).
   - `guideline_discovery` and `disease_reference`: the specialty catalogue `/filters/doc_type/manuals/<slug>/` (up to 3 pages) → title match from the domain graph (adult, children and pregnancy wording respected) → the guideline page.
   - From the guideline page the adapter extracts:
@@ -103,7 +103,9 @@ Failure codes are explicit: `layout_changed:<extractor>:<target>`, `robots_disal
   - Джардинс (ЛП-002735) and the HF indication «независимо от фракции выброса»;
   - КР156 «Хроническая сердечная недостаточность» (2016, пересмотр каждые 3 года) with section 3.1.11 on ХСН-сФВ;
   - the absence of empagliflozin in that document.
-- **Observed failure modes, all handled explicitly:** connection resets, and intermittent 502s on the 590 KB guideline page. These are retried once, then degraded to HTTP, otherwise reported as a gap.
+- **Observed failure modes, all handled explicitly:**
+  - connection resets, and intermittent 502s on the 590 KB guideline page: retried once, then degraded to HTTP, otherwise reported as a gap;
+  - semaglutide: the first listed product (Велгия) publishes only a patient leaflet. The extractor first reported this as `layout_changed`, which is now fixed. The adapter skips the leaflet and reads the next product's professional instruction (Инсудайв); only-leaflet INNs yield an honest empty result, so the US label stands in.
 
 ## Domain Skill Graph
 

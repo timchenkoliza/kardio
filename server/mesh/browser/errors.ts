@@ -8,6 +8,8 @@ export type SourceToolErrorCode =
   | "outside_allowed_paths"
   | "layout_changed"
   | "not_found"
+  /** The page exists and parses, but is a document type the recipe must not read (e.g. a patient leaflet). */
+  | "unsupported_document"
   | "http_error"
   | "network"
   | "timeout"
