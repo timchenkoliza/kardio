@@ -21,20 +21,24 @@ function classify(changedFiles: string[], patch: Partial<ChangeContract> = {}) {
 }
 
 describe("control-plane risk classifier", () => {
-  it("uses the highest matching risk when UI and persistent state change together", () => {
+  it("uses highest risk label but unions UI and persistent-state gates", () => {
     const result = classify(["components/workspace/result-card.tsx", "server/agents/store/postgres.ts"]);
     expect(result.risk_class).toBe("R3");
     expect(result.required_gates).toContain("human_engineering_review");
+    expect(result.required_gates).toContain("ds_audit");
+    expect(result.required_gates).toContain("task_fit_eval");
     expect(result.max_recommended_rollout_percent).toBe(1);
   });
 
-  it("raises a code change to R4 when the product intent touches medical evidence", () => {
+  it("keeps agent eval/simulation gates when medical semantics raise the label to R4", () => {
     const result = classify(["server/agents/executor-reference.ts"], {
       semantic_triggers: ["medical_evidence", "source_verification"],
     });
     expect(result.risk_class).toBe("R4");
     expect(result.required_gates).toContain("live_source_smoke");
     expect(result.required_gates).toContain("human_domain_review");
+    expect(result.required_gates).toContain("eval");
+    expect(result.required_gates).toContain("simulation");
   });
 
   it("fails safe to R3 for an unknown path", () => {
@@ -46,5 +50,6 @@ describe("control-plane risk classifier", () => {
   it("treats control-plane changes as R3 release infrastructure", () => {
     const result = classify(["control-plane/lib/decision.ts"]);
     expect(result.risk_class).toBe("R3");
+    expect(result.experience_impact).toBe("E0");
   });
 });
