@@ -4,7 +4,7 @@ import type { EntityRef, NormalizedClaim, NormalizedDocument, SemanticChunk, Sou
 import type { SourceDescriptor, SourceStatusReport } from "@/lib/mesh/sources";
 import { normalizeQuery, type DrugEntry } from "@/lib/portal/lexicon";
 import { absoluteUrl, excerpt, findAll, parseDocument, requireOne, sectionText, sentences, textOf, type DomDocument, type DomElement } from "../browser/dom";
-import { selectDriver, type BrowserDriver, type PageSnapshot } from "../browser/drivers";
+import { HttpDriver, selectDriver, type BrowserDriver, type PageSnapshot } from "../browser/drivers";
 import { isSourceToolError, SourceToolError } from "../browser/errors";
 import { BrowserSourceTool, type Extractor, type OpenedPage, type SiteProfile } from "../browser/tool";
 import { combineFingerprints } from "../fingerprint";
@@ -456,6 +456,8 @@ function chooseProduct(items: readonly ListingItem[], drug: DrugEntry): ListingI
 
 export interface MediDeps {
   driver?: BrowserDriver | null;
+  /** Second execution mode when the browser path hits a gateway error (default: HTTP for a real browser). */
+  fallbackDriver?: BrowserDriver | null;
   /** Overrides for tests (politeness interval, budgets). */
   site?: Partial<SiteProfile>;
 }
@@ -518,7 +520,8 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     }
     if (report.status === "UNAVAILABLE") return emptyResult(request, { sourceId: "medi", outcome: "unavailable", status: "UNAVAILABLE", execution: report.execution, started, errorCode: "driver_unavailable", note: report.reason });
     const driver = (await driverPromise())!;
-    const tool = new BrowserSourceTool(site, driver);
+    const fallbackDriver = deps.fallbackDriver !== undefined ? deps.fallbackDriver : driver.kind === "playwright" ? new HttpDriver() : null;
+    const tool = new BrowserSourceTool(site, driver, { fallbackDriver });
     try {
       let documents: NormalizedDocument[] = [];
       if (request.operation === "inn_lookup" || request.operation === "drug_reference") {
@@ -531,8 +534,10 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
         return emptyResult(request, { sourceId: "medi", outcome: "blocked", status: report.status, execution: report.execution, started, errorCode: `unsupported_operation:${request.operation}` });
       }
       const provenance = tool.provenance();
+      // If any page had to be read without the browser, the execution was limited — and is reported so.
+      const degraded = report.execution === "browser" && provenance.visits.some(visit => !visit.cached && visit.driver === "http");
       return {
-        invocation: invocation(request, { sourceId: "medi", outcome: documents.length ? "ok" : "empty", status: report.status, execution: report.execution, started, note: documents.length ? null : "Подходящей страницы на МЕДИ РУ не нашлось", documentIds: documents.map(document => document.id), urls: provenance.visits.map(visit => visit.url) }),
+        invocation: invocation(request, { sourceId: "medi", outcome: documents.length ? "ok" : "empty", status: degraded ? "LIMITED" : report.status, execution: degraded ? "http" : report.execution, started, note: documents.length ? (degraded ? "часть страниц прочитана без браузера" : null) : "Подходящей страницы на МЕДИ РУ не нашлось", documentIds: documents.map(document => document.id), urls: provenance.visits.map(visit => visit.url) }),
         documents,
       };
     } catch (error) {

@@ -151,8 +151,8 @@ export function buildEvidenceGraph(args: {
       if (steps.length) coverage[requirement] = steps.some(step => invocations.some(item => item.stepId === step.id && item.documentIds.length)) ? "met" : "missing";
     }
     if (coverage[requirement] !== "missing") continue;
-    const notes = plan.steps.filter(step => step.requirement === requirement).map(step => invocations.find(item => item.stepId === step.id)?.note).filter(Boolean);
-    gaps.push(`${REQUIREMENT_LABEL[requirement]} — ${notes[0] ?? "источники ничего не нашли"}`);
+    const notes = [...new Set(plan.steps.filter(step => step.requirement === requirement).map(step => invocations.find(item => item.stepId === step.id)?.note).filter((note): note is string => Boolean(note)))];
+    gaps.push(`${REQUIREMENT_LABEL[requirement]} — ${notes.length ? notes.join("; ") : "источники ничего не нашли"}`);
   }
 
   const extraction = [...claims.values()].map(claim => claim.confidence);

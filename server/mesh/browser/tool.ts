@@ -87,11 +87,15 @@ export class BrowserSourceTool {
   private pages = 0;
   private readonly robots: RobotsGuard;
 
+  private readonly fallbackDriver: BrowserDriver | null;
+
   constructor(
     private readonly site: SiteProfile,
     private readonly driver: BrowserDriver,
-    options: { robots?: RobotsGuard } = {},
+    options: { robots?: RobotsGuard; fallbackDriver?: BrowserDriver | null } = {},
   ) {
+    // A second execution mode for the same recipe (e.g. HTTP when the browser path hits a gateway error).
+    this.fallbackDriver = options.fallbackDriver ?? null;
     const existing = options.robots ?? shared.robots.get(site.origin);
     this.robots = existing ?? new RobotsGuard(site.robots, async url => {
       try {
@@ -119,7 +123,16 @@ export class BrowserSourceTool {
     if (this.pages >= this.site.maxPagesPerInvocation) throw new SourceToolError("page_budget_exceeded", String(this.site.maxPagesPerInvocation), absolute);
     this.pages += 1;
     await politeSlot(this.site.origin, this.site.minIntervalMs);
-    const snapshot = await this.driver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
+    let snapshot: PageSnapshot;
+    try {
+      snapshot = await this.driver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
+      if (this.fallbackDriver && (snapshot.status >= 502 && snapshot.status <= 504)) throw new SourceToolError("http_error", String(snapshot.status), absolute);
+    } catch (error) {
+      const retryable = error instanceof SourceToolError && (error.code === "network" || error.code === "http_error" || error.code === "timeout");
+      if (!this.fallbackDriver || !retryable) throw error;
+      await politeSlot(this.site.origin, this.site.minIntervalMs);
+      snapshot = await this.fallbackDriver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
+    }
     this.visits.push({ url: absolute, status: snapshot.status, driver: snapshot.driver, fetchedAt: snapshot.fetchedAt, cached: false });
     if (snapshot.status === 404 || snapshot.status === 410) throw new SourceToolError("not_found", String(snapshot.status), absolute);
     if (snapshot.status === 0) throw new SourceToolError("network", "no response", absolute);

@@ -119,9 +119,14 @@ describe("MEDI adapter — a source, not an agent", () => {
 
   it("network failures are failures; a missing INN page is an honest empty result", async () => {
     const failing = new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright", ["https://medi.ru/analogi-mnn/empagliflozin/"]);
-    const failed = await createMediAdapter({ driver: failing, site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
+    const failed = await createMediAdapter({ driver: failing, fallbackDriver: null, site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
     expect(failed.invocation.outcome).toBe("failed");
     expect(failed.invocation.errorCode).toMatch(/^network/u);
+    // With a second execution mode the same recipe still works — and the invocation says it was limited.
+    resetBrowserToolState();
+    const degraded = await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright", ["https://medi.ru/analogi-mnn/empagliflozin/"]), fallbackDriver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "http"), site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
+    expect(degraded.invocation.outcome).toBe("ok");
+    expect(degraded.invocation).toMatchObject({ status: "LIMITED", execution: "http" });
     const missing = await createMediAdapter({ driver: new FixtureDriver(), site: FAST }).execute(await request("drug_reference", "russian_drug_reference", "Дапаглифлозин при ХСН"));
     expect(missing.invocation.outcome).toBe("empty");
     expect(missing.documents).toHaveLength(0);
@@ -151,5 +156,20 @@ describe("MEDI adapter — a source, not an agent", () => {
       expect(typeof adapter.execute).toBe("function");
       expect(["LIVE", "LIMITED", "SNAPSHOT", "HANDOFF", "UNAVAILABLE"]).toContain((await adapter.status()).status);
     }
+  });
+});
+
+describe("every source keeps its own excerpt policy", () => {
+  it("PubMed keeps a policy-sized quote even when the conclusion section is long", async () => {
+    const { createPubmedAdapter, PUBMED_DESCRIPTOR } = await import("@/server/mesh/sources/pubmed");
+    const { fakeAbstracts, fakeArticle, fakePubmed } = await import("./agent-test-utils");
+    const long = `${"In adults with heart failure with preserved ejection fraction, sodium-glucose cotransporter 2 inhibitors reduced hospitalisation. ".repeat(20)}`.trim();
+    const article = { ...fakeArticle("1", "SGLT2 inhibitors in heart failure with preserved ejection fraction: a meta-analysis"), journal: "Cochrane Database Syst Rev", publicationTypes: ["Meta-Analysis"] };
+    const ctx = await testContext({ agentId: "reference", topics: [], text: ACCEPTANCE, job: "guidelines", pubmed: fakePubmed([article]), abstracts: fakeAbstracts([{ pmid: "1", sections: [{ label: "CONCLUSIONS", text: long }], conclusion: long.slice(0, 500), conclusionLabel: "CONCLUSIONS" }]) });
+    const result = await createPubmedAdapter().execute({ stepId: "s", operation: "literature_search", requirement: "current_research", intent: compileIntent(ACCEPTANCE, "cardiology"), ctx });
+    const claim = result.documents[0].claims[0];
+    expect(long.length).toBeGreaterThan(PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars!);
+    expect(claim.quote!.length).toBeLessThanOrEqual(PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars!);
+    expect(result.documents[0].chunks[0].fingerprint).toMatch(/^sha256:/u);
   });
 });

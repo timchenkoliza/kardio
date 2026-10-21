@@ -7,6 +7,7 @@ import { pubmedBroadTermFor, pubmedCoreTermFor, pubmedTermFor, type QueryConcept
 import { entrezDate, type PubmedArticle } from "@/server/agents/adapters/pubmed";
 import type { PubmedAbstract } from "@/server/agents/adapters/pubmed-abstracts";
 import { approvedJournals } from "@/server/agents/services/source-policy";
+import { excerpt } from "../browser/dom";
 import { combineFingerprints, deterministicId, fingerprint } from "../fingerprint";
 import { coverageOf, drugEntity, emptyResult, invocation, makeChunk, makeClaim, nosologyEntity, polarityOf, subtypeEntity, verifyQuote } from "./common";
 import type { SourceAdapter, SourceRequest } from "./types";
@@ -116,7 +117,8 @@ function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstr
   const claims: NormalizedClaim[] = [];
   if (conclusion && chunk) {
     const check = verifyQuote({ connectorId: "pubmed", url: article.url, sourceName: `${article.journal || "PubMed"}${yearOf(article) ? ` · ${yearOf(article)}` : ""}`, statement: conclusion, quote: full, language: "en", level: type === "Клинические рекомендации" ? "guideline" : "peer_reviewed", secondary: false, verifyIn: null, retrievedAt: args.retrievedAt, publishedAt: article.sortDate, journal: article.journal });
-    claims.push(makeClaim({ documentId: id, chunkId: chunk.id, kind: "review_conclusion", statement: conclusion, quote: full, language: "en", polarity: polarityOf(conclusion), entityIds: entities.map(entity => entity.id), covers: nosology ? coverageOf(`${article.title} ${full}`, nosology.id) : [], method: "verbatim", confidence: 1, verification: check.verification, verificationNote: check.note }));
+    // The full section verifies the claim and fingerprints the version; only a policy-sized excerpt is kept as the quote.
+    claims.push(makeClaim({ documentId: id, chunkId: chunk.id, kind: "review_conclusion", statement: conclusion, quote: excerpt(full, args.maxExcerpt).text, language: "en", polarity: polarityOf(conclusion), entityIds: entities.map(entity => entity.id), covers: nosology ? coverageOf(`${article.title} ${full}`, nosology.id) : [], method: "verbatim", confidence: 1, verification: check.verification, verificationNote: check.note }));
   }
   return {
     id, sourceId: "pubmed", kind: type === "Клинические рекомендации" ? "guideline_publication" : "review", title: article.title, url: article.url, language: "en",

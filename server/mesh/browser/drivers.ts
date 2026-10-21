@@ -51,6 +51,9 @@ export interface BrowserDriver {
   interact(url: string, steps: readonly InteractionStep[], options: OpenOptions): Promise<PageSnapshot>;
 }
 
+/** Gateway errors worth exactly one retry; anything else is reported at once. */
+const TRANSIENT = new Set([502, 503, 504]);
+
 function isNetworkError(error: unknown): boolean {
   const code = (error as { cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code;
   return typeof code === "string" && /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|UND_ERR_SOCKET|EPIPE/u.test(code);
@@ -75,6 +78,7 @@ export class HttpDriver implements BrowserDriver {
           redirect: "follow",
           signal: AbortSignal.timeout(options.timeoutMs),
         });
+        if (attempt === 0 && TRANSIENT.has(response.status)) { await new Promise(resolve => setTimeout(resolve, 1500)); continue; }
         const html = await response.text();
         return { requestedUrl: url, finalUrl: response.url || url, status: response.status, html, fetchedAt: new Date().toISOString(), driver: "http", durationMs: Date.now() - started };
       } catch (error) {
@@ -172,7 +176,7 @@ export class PlaywrightDriver implements BrowserDriver {
       for (let attempt = 0; ; attempt += 1) {
         try {
           const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: options.timeoutMs });
-          if (!response && attempt === 0) continue;
+          if (attempt === 0 && (!response || TRANSIENT.has(response.status()))) { await new Promise(resolve => setTimeout(resolve, 1500)); continue; }
           return { requestedUrl: url, finalUrl: page.url(), status: response?.status() ?? 0, html: await page.content(), fetchedAt: new Date().toISOString(), driver: "playwright", durationMs: Date.now() - started };
         } catch (error) {
           const message = error instanceof Error ? error.message : "";
