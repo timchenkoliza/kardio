@@ -1,0 +1,94 @@
+name: Control Plane refresh
+
+on:
+  workflow_run:
+    workflows: ["Product quality"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  statuses: read
+
+jobs:
+  refresh-decision:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0] != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+      PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Self-test control plane
+        run: npx vitest run tests/unit/control-plane*.test.ts
+
+      - name: Collect exact diff
+        run: git diff --name-only "$BASE_SHA" "$HEAD_SHA" > control-plane-changed-files.txt
+
+      - name: Resolve Change contract
+        id: contract
+        shell: bash
+        run: |
+          CONTRACT=$(grep -E '^control-plane/changes/.*\.json$' control-plane-changed-files.txt | head -1 || true)
+          if [ -z "$CONTRACT" ]; then
+            CONTRACT="control-plane-uncontracted-change.json"
+            cat > "$CONTRACT" <<JSON
+          {
+            "change_id": "UNCONTRACTED-${HEAD_SHA}",
+            "title": "Uncontracted change",
+            "problem": "No machine-readable Change contract was supplied",
+            "hypothesis": "unknown",
+            "guardrails": []
+          }
+          JSON
+          fi
+          echo "path=$CONTRACT" >> "$GITHUB_OUTPUT"
+
+      - name: Recollect completed CI/deployment evidence
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx tsx control-plane/collect-github-evidence.ts \
+            --repo "$GITHUB_REPOSITORY" \
+            --candidate-sha "$HEAD_SHA" \
+            --out control-plane-evidence.json
+
+      - name: Recompute release decision
+        run: |
+          npx tsx control-plane/runner.ts \
+            --contract "${{ steps.contract.outputs.path }}" \
+            --changed-files control-plane-changed-files.txt \
+            --candidate-sha "$HEAD_SHA" \
+            --baseline-sha "$BASE_SHA" \
+            --evidence control-plane-evidence.json \
+            --out control-plane-output
+
+      - name: Preserve evidence snapshot
+        run: cp control-plane-evidence.json control-plane-output/github_evidence.json
+
+      - name: Publish decision summary
+        run: cat control-plane-output/human_readable_summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: control-plane-refresh-${{ env.PR_NUMBER }}-${{ env.HEAD_SHA }}
+          path: control-plane-output/
+          retention-days: 30
+
+# This workflow becomes active once present on the default branch. It does not grant
+# merge or rollout authority; it only recomputes the same deterministic shadow decision
+# when new CI evidence is available.
