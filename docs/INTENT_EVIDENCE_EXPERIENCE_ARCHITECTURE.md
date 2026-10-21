@@ -38,7 +38,7 @@ The visible product is unchanged: one input, followed by a result page. The page
    - official hand-offs, which are never executed.
 
    Sources are rejected with a stated reason: wrong specialty, unavailable, excluded by the physician, missing entities, redundant, or over budget (6 invocations). One invocation may cover several requirements (`alsoCovers`).
-3. **Execution** (`server/mesh/execute.ts`). Primaries run in parallel and fallbacks run only when needed. Each step has a 45 s timeout. Every step ends in a recorded invocation.
+3. **Execution** (`server/mesh/execute.ts`). Primaries run in parallel and fallbacks run only when needed. Interactive deadlines apply: soft 4 s (reported as slow), hard 18 s (cut, `LIMITED`), overall budget 24 s. A step that cannot start in time is not started. Every step ends in a recorded invocation. A source failure is never a request failure.
 4. **Source adapters** (`server/mesh/sources/*`). They return normalized `Document → Version → SemanticChunk → Entity → Claim` records and nothing else.
 5. **Evidence Graph v0.1** (`lib/mesh/evidence-graph.ts`):
    - every claim is traceable to a document, chunk and source;
@@ -49,11 +49,38 @@ The visible product is unchanged: one input, followed by a result page. The page
 
 Runs persist `{ manifest, graph, plan summary }` in the run payload (PostgreSQL JSONB, or memory). Compiled experiences of the same scenario are reused for 6 h from the knowledge store.
 
+## Run lifecycle (durable, progressive)
+
+Added by the P0 remote-runtime repair after the first Preview failed acceptance.
+
+```
+accept intent → compile route → CREATE durable run (queued) → return runId (< 1 s)
+  → after(): running → partial (validated modules, sources still checked) → completed | partial (limited)
+                         failed | blocked | expired (execution lost before its deadline)
+```
+
+**Durability**
+- The run id returned to the browser already exists in PostgreSQL. Any instance can read it.
+- Run commands refuse an in-process store when `VERCEL` or `KARDIO_REQUIRE_DURABLE_RUNS` is set. They return 503 `storage_unavailable`.
+- `proxy.ts` assigns one anonymous session per browser on the first page request. `ensureSession` adopts that id instead of rotating it. Concurrent first requests used to mint competing sessions; this fixes it.
+
+**Progressive experience**
+- After each source answer, the partial evidence graph is built. Pending sources are shown as «проверяется», never as gaps.
+- The partial graph is compiled and validated by the same gates as the final one. Only a passing manifest with a content module is published.
+- `ExperiencePatch` (`lib/mesh/patch.ts`) records added, updated, removed and preserved module ids per version.
+- The result page polls `GET /api/agents/runs/[id]` and refreshes the server-rendered interior in place. Module ids are stable within a run, and the page keeps every child in a fixed position. The shell, the input and module state therefore survive.
+
+**Honest unavailability**
+- `run_not_found` and `session_mismatch` are told apart, and «another session» is said only when storage shows the run exists in another session.
+- An open run past its deadline (90 s after creation) is settled as `expired`, with «Повторить».
+
+**Release gate:** `tests/e2e/run-durability.spec.ts`, which covers refresh, another tab, another instance and reopening later.
+
 ## SourceAdapter registry
 
 | Source | Authority | Execution | Provides | Specialties | Status today |
 | --- | --- | --- | --- | --- | --- |
-| `medi` (medi.ru) | professional | browser (HTTP fallback) | Russian instruction, INN listing, Russian guideline copy, articles (hand-off) | all | LIVE with Chromium, LIMITED over HTTP |
+| `medi` (medi.ru) | professional | browser or HTTPS fetch | Russian instruction, INN listing, Russian guideline copy, articles (hand-off) | all | LIVE (Chromium locally; HTTPS fetch on Vercel — every implemented recipe is server-rendered) |
 | `pubmed` | primary | api | current research, international guidelines | all | LIVE |
 | `openfda` | official (US) | api | drug label | all | LIVE (stand-in for the Russian instruction) |
 | `goldenset_catalog` | professional | snapshot | Russian guideline (RKO, with currentness) | cardiology | SNAPSHOT |
@@ -81,7 +108,7 @@ The tool enforces the following:
 - **Cache**: page cache (bypassed by re-verification).
 - **Provenance**: every visit is recorded with its driver.
 
-Drivers are `playwright` (real Chromium) and `http`. Extraction always runs on the same DOM parser (linkedom 0.18.12), so a recipe behaves identically under both drivers and can be tested on fixtures. When the browser path hits a gateway error, the same recipe is retried over HTTP and the invocation is reported as `LIMITED`/`http`.
+Drivers are `playwright` (real Chromium) and `http`. Extraction always runs on the same DOM parser (linkedom 0.18.12), so a recipe behaves identically under both drivers and can be tested on fixtures. When the browser path hits a gateway error, the same recipe is retried over HTTP and the invocation records `http` as its execution. HTTPS fetch is a full execution mode for the implemented recipes, so it stays `LIVE`; a recipe that needs JavaScript or interaction would be `LIMITED`. On Vercel the auto mode never launches a browser. Browser launch is bounded to 8 s everywhere.
 
 Failure codes are explicit: `layout_changed:<extractor>:<target>`, `robots_disallow:<rule>`, `network`, `http_error:<status>`, `timeout`, `not_found`, `unsupported_document:<kind>`, `driver_unavailable`, `page_budget_exceeded`. A failed source never becomes a result.
 

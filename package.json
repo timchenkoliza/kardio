@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components lib server db scripts tests control-plane && node scripts/check-design-tokens.mjs && node scripts/check-product-copy.mjs",
