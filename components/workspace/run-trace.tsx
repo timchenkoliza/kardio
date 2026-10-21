@@ -4,7 +4,7 @@ import type { AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import { ModeBadge } from "./mode-badge";
 
 const STEP_ICON = { done: CircleCheck, skipped: CircleDashed, failed: CircleX, blocked: CircleSlash } as const;
-const STATUS_LABEL: Record<AgentRun["status"], string> = { running: "Выполняется", completed: "Готово", partial: "Готово частично", failed: "Ошибка", blocked: "Остановлено проверкой безопасности" };
+const STATUS_LABEL: Record<AgentRun["status"], string> = { queued: "В очереди", running: "Выполняется", completed: "Готово", partial: "Готово частично", failed: "Ошибка", blocked: "Остановлено проверкой безопасности" };
 
 /** "Как получен результат": the plan in plain language plus which sources were reachable. */
 export function RunTrace({ run, connectors, now, showSynthesis = true, showConnectors = true }: { run: AgentRun; connectors: ConnectorDescriptor[]; now: string; showSynthesis?: boolean; showConnectors?: boolean }) {

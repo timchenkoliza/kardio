@@ -1,5 +1,5 @@
 import type { EffectivePreference } from "@/lib/agents/profile";
-import type { AgentId, AgentRun, Material, UserProfile } from "@/lib/agents/types";
+import type { AgentId, AgentRun, Material, RunExperience, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { PortalJob } from "@/lib/portal/jobs";
@@ -35,4 +35,11 @@ export interface AgentContext {
   browserDriver?: BrowserDriver | null;
   /** Session for internal observability (ids only). */
   sessionId?: string | null;
+  /** Durable progress of a run created before execution (progressive result page). */
+  progress?: RunProgressSink | null;
+}
+
+/** Progress of a running job: validated partial experiences and which sources are still being checked. */
+export interface RunProgressSink {
+  publish(update: { experience: RunExperience | null; pending: Array<{ name: string; slow: boolean }>; stepsDone: number; stepsTotal: number }): void;
 }

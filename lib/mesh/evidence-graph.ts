@@ -93,8 +93,11 @@ export function buildEvidenceGraph(args: {
   descriptors: readonly SourceDescriptor[];
   statuses: Partial<Record<SourceId, SourceStatusReport>>;
   now: string;
+  /** Plan steps still running (progressive runs). They are shown as being checked, never as gaps. */
+  pending?: readonly string[];
 }): EvidenceGraph {
   const { intent, plan } = args;
+  const pending = new Set(args.pending ?? []);
   const documents = new Map<string, NormalizedDocument>();
   for (const result of args.results) for (const document of result.documents) if (!documents.has(document.id)) documents.set(document.id, document);
 
@@ -129,7 +132,8 @@ export function buildEvidenceGraph(args: {
     const descriptor = descriptorById.get(step.sourceId)!;
     const invocation = invocations.find(item => item.stepId === step.id);
     const status = args.statuses[step.sourceId];
-    sources.push({ id: step.sourceId, name: descriptor.name, authority: descriptor.authority, status: invocation?.status ?? status?.status ?? "UNAVAILABLE", execution: invocation?.execution ?? status?.execution ?? descriptor.execution, invoked: Boolean(invocation) && invocation!.outcome !== "handoff", outcome: invocation?.outcome ?? "not_invoked", handoffUrl: descriptor.handoffUrl, requirement: step.requirement });
+    const outcome = invocation?.outcome ?? (pending.has(step.id) ? "pending" : "not_invoked");
+    sources.push({ id: step.sourceId, name: descriptor.name, authority: descriptor.authority, status: invocation?.status ?? status?.status ?? "UNAVAILABLE", execution: invocation?.execution ?? status?.execution ?? descriptor.execution, invoked: Boolean(invocation) && invocation!.outcome !== "handoff", outcome, handoffUrl: descriptor.handoffUrl, requirement: step.requirement });
   }
 
   const coverage: Partial<Record<EvidenceRequirement, CoverageState>> = {};
@@ -138,7 +142,7 @@ export function buildEvidenceGraph(args: {
     if (!steps.length) continue;
     const served = steps.flatMap(step => invocations.filter(item => item.stepId === step.id));
     const docs = served.flatMap(item => item.documentIds).map(id => documents.get(id)).filter((document): document is NormalizedDocument => Boolean(document));
-    coverage[requirement] = docs.some(document => document.claims.length) ? "met" : docs.length ? "partial" : steps.every(step => step.role === "handoff") ? "handoff" : "missing";
+    coverage[requirement] = docs.some(document => document.claims.length) ? "met" : docs.length ? "partial" : steps.every(step => step.role === "handoff") ? "handoff" : steps.some(step => pending.has(step.id)) ? "pending" : "missing";
   }
 
   const gaps: string[] = [];
@@ -148,7 +152,7 @@ export function buildEvidenceGraph(args: {
   for (const requirement of expected) {
     if (!coverage[requirement]) {
       const steps = plan.steps.filter(step => step.requirement === requirement);
-      if (steps.length) coverage[requirement] = steps.some(step => invocations.some(item => item.stepId === step.id && item.documentIds.length)) ? "met" : "missing";
+      if (steps.length) coverage[requirement] = steps.some(step => invocations.some(item => item.stepId === step.id && item.documentIds.length)) ? "met" : steps.some(step => pending.has(step.id)) ? "pending" : "missing";
     }
     if (coverage[requirement] !== "missing") continue;
     const notes = [...new Set(plan.steps.filter(step => step.requirement === requirement).map(step => invocations.find(item => item.stepId === step.id)?.note).filter((note): note is string => Boolean(note)))];
@@ -187,6 +191,7 @@ export function buildEvidenceGraph(args: {
       coverage,
     },
     gaps: [...new Set(gaps)],
+    complete: pending.size === 0,
   };
 }
 

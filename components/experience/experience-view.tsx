@@ -247,7 +247,7 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
 }
 
 const STATUS_LABEL: Record<SourceStatus, string> = { LIVE: "Онлайн", LIMITED: "Онлайн", SNAPSHOT: "Снимок редакции", HANDOFF: "Проверка по ссылке", UNAVAILABLE: "Недоступно" };
-const OUTCOME_LABEL: Record<SourceOutcome | "not_invoked", string> = { ok: "нашлось", empty: "ничего не нашлось", failed: "не ответил", unavailable: "недоступен", handoff: "не подключён — проверьте сами", blocked: "остановлено", not_invoked: "не понадобился" };
+const OUTCOME_LABEL: Record<SourceOutcome | "not_invoked" | "pending", string> = { ok: "нашлось", empty: "ничего не нашлось", failed: "не ответил", unavailable: "недоступен", handoff: "не подключён — проверьте сами", blocked: "остановлено", not_invoked: "не понадобился", pending: "проверяется" };
 
 function Sources({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
   const ids = new Set(Array.isArray(entry.props.sourceIds) ? entry.props.sourceIds : []);

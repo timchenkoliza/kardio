@@ -17,6 +17,8 @@ export interface WorkspaceStore {
 
   listRuns(sessionId: string, specialty: SpecialtyId, agentId?: AgentId, limit?: number): Promise<AgentRun[]>;
   getRun(sessionId: string, id: string): Promise<AgentRun | null>;
+  /** Which session owns a run (evidence for «another session»), or null when the run does not exist. */
+  findRunSession(id: string): Promise<string | null>;
   saveRun(sessionId: string, run: AgentRun): Promise<void>;
 
   listMaterials(sessionId: string, specialty: SpecialtyId): Promise<Material[]>;

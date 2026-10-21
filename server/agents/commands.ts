@@ -6,13 +6,13 @@ import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
 import { cancelAction, confirmAction, prepareAction } from "./services/action-confirmation";
 import { materialFromLink, materialFromNote, materialFromResult } from "./services/material";
-import { workspaceStore } from "./store";
+import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
 import { recordAgentEvent } from "./telemetry";
 import { catchUp, executeRun, loadProfile } from "./workspace";
 import { PORTAL_JOBS, type PortalJob } from "@/lib/portal/jobs";
 import { CLIENT_PORTAL_EVENTS } from "@/lib/portal/metrics";
-import { handleAsk, recordPortalOpen } from "@/server/portal/manager";
+import { handleAsk, recordPortalOpen, type Scheduler } from "@/server/portal/manager";
 import { recordPortalEvent } from "@/server/portal/telemetry";
 
 const specialty = z.enum(SPECIALTY_IDS);
@@ -94,10 +94,17 @@ async function resultFor(sessionId: string, specialtyId: SpecialtyId, id: string
   return result;
 }
 
-export async function executeAgentCommand(sessionId: string, command: AgentCommand): Promise<CommandResult> {
+/** Commands that hand a run id to the browser: that id must be durable before it is returned. */
+const RUN_COMMANDS = new Set<AgentCommand["action"]>(["ask", "runTask", "runAgent"]);
+
+export const STORAGE_UNAVAILABLE = "Не удалось запустить поиск: хранилище результатов не подключено. Это ошибка развёртывания, а не вашего запроса.";
+
+export async function executeAgentCommand(sessionId: string, command: AgentCommand, options: { schedule?: Scheduler } = {}): Promise<CommandResult> {
   const store = workspaceStore();
   const now = new Date().toISOString();
   const specialtyId = command.specialty as SpecialtyId;
+  // A run id from an in-process store would be unreadable from the next serverless instance.
+  if (RUN_COMMANDS.has(command.action) && durableRunStoreMissing()) throw new HttpError(503, STORAGE_UNAVAILABLE, "storage_unavailable");
 
   switch (command.action) {
     case "setInterests": {
@@ -157,7 +164,7 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: true, runId: outcome.run.id, agentId: routed.agentId, actions: outcome.actions, notices: outcome.run.riskNotices };
     }
     case "ask": {
-      const outcome = await handleAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup });
+      const outcome = await handleAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, ...(options.schedule ? { schedule: options.schedule } : {}) });
       return { ok: true, profileChanged: true, runId: outcome.runId, agentId: outcome.agentId, actions: outcome.actions, notices: outcome.notices, redirect: outcome.href };
     }
     case "track": {

@@ -481,9 +481,12 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     if (process.env.MEDI_DISABLED === "1") return { status: "UNAVAILABLE", reason: "MEDI отключён в окружении", execution: "browser" };
     const driver = await driverPromise();
     if (!driver) return { status: "UNAVAILABLE", reason: "Исполнение браузерных источников выключено (SOURCE_BROWSER=off)", execution: "browser" };
+    // Every implemented MEDI recipe reads server-rendered pages (no JavaScript, no interaction), so HTTPS
+    // fetch is a full execution mode for them, not a degraded one. A recipe that needs a real browser
+    // (interaction, client rendering) would be LIMITED here — none is implemented.
     return driver.kind === "playwright"
       ? { status: "LIVE", reason: "Браузер Chromium", execution: "browser" }
-      : { status: "LIMITED", reason: "Без браузера: читаются только страницы, которые сервер отдаёт готовыми", execution: "http" };
+      : { status: "LIVE", reason: "HTTPS-запросы к страницам, которые сервер отдаёт готовыми", execution: "http" };
   }
 
   async function drugReference(tool: BrowserSourceTool, request: SourceRequest, drug: DrugEntry, withInstruction: boolean): Promise<NormalizedDocument[]> {
@@ -542,7 +545,7 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     if (report.status === "UNAVAILABLE") return emptyResult(request, { sourceId: "medi", outcome: "unavailable", status: "UNAVAILABLE", execution: report.execution, started, errorCode: "driver_unavailable", note: report.reason });
     const driver = (await driverPromise())!;
     const fallbackDriver = deps.fallbackDriver !== undefined ? deps.fallbackDriver : driver.kind === "playwright" ? new HttpDriver() : null;
-    const tool = new BrowserSourceTool(site, driver, { fallbackDriver });
+    const tool = new BrowserSourceTool(site, driver, { fallbackDriver, deadlineAt: request.deadlineAt ?? null });
     try {
       let documents: NormalizedDocument[] = [];
       if (request.operation === "inn_lookup" || request.operation === "drug_reference") {
@@ -556,9 +559,10 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       }
       const provenance = tool.provenance();
       // If any page had to be read without the browser, the execution was limited — and is reported so.
+      // Pages read by the HTTP fallback are reported as an HTTP execution (provenance), still LIVE for these recipes.
       const degraded = report.execution === "browser" && provenance.visits.some(visit => !visit.cached && visit.driver === "http");
       return {
-        invocation: invocation(request, { sourceId: "medi", outcome: documents.length ? "ok" : "empty", status: degraded ? "LIMITED" : report.status, execution: degraded ? "http" : report.execution, started, note: documents.length ? (degraded ? "часть страниц прочитана без браузера" : null) : "Подходящей страницы на МЕДИ РУ не нашлось", documentIds: documents.map(document => document.id), urls: provenance.visits.map(visit => visit.url) }),
+        invocation: invocation(request, { sourceId: "medi", outcome: documents.length ? "ok" : "empty", status: report.status, execution: degraded ? "http" : report.execution, started, note: documents.length ? null : "Подходящей страницы на МЕДИ РУ не нашлось", documentIds: documents.map(document => document.id), urls: provenance.visits.map(visit => visit.url) }),
         documents,
       };
     } catch (error) {

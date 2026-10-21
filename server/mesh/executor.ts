@@ -12,7 +12,7 @@ import type { AgentContext } from "@/server/agents/context";
 import type { ResultDraft } from "@/server/agents/drafts";
 import type { ExecutorResult } from "@/server/agents/plan";
 import { changeFromPolicyFindings } from "./changes";
-import { executePlan } from "./execute";
+import { executePlan, type StepEvent } from "./execute";
 import { fingerprint } from "./fingerprint";
 import { knowledgeStore } from "./knowledge";
 import { createSourceRegistry, descriptors, type SourceRegistry } from "./sources/registry";
@@ -161,6 +161,48 @@ function synthesisOf(graph: EvidenceGraph, intent: NormalizedIntent, question: s
   return lines.join("\n\n");
 }
 
+const META_FAMILIES = new Set(["sources", "handoff", "next_actions", "notices"]);
+
+/**
+ * Progressive result: after every source answer, the partial evidence graph
+ * (pending sources marked as being checked, never as gaps) is compiled and
+ * validated by the same policy gates as the final one. Only a manifest that
+ * passes them and carries at least one content module is published; nothing
+ * speculative reaches the page. Progress (pending sources) is published
+ * either way.
+ */
+function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedIntent; plan: ExecutionPlan; registry: SourceRegistry; sources: ReturnType<typeof descriptors>; statuses: Record<SourceId, SourceStatusReport>; graphId: string }) {
+  const { ctx, intent, plan, registry } = args;
+  const done: SourceResult[] = [];
+  const open = new Set(plan.steps.map(step => step.id));
+  const slow = new Set<string>();
+  const total = plan.steps.filter(step => step.role !== "handoff").length;
+  const compileInput = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {} };
+  const publish = () => {
+    const pendingSteps = plan.steps.filter(step => open.has(step.id) && step.role !== "handoff");
+    const pending = [...new Map(pendingSteps.map(step => [registry[step.sourceId].name, { name: registry[step.sourceId].name, slow: slow.has(step.id) }])).values()];
+    let experience: RunExperience | null = null;
+    if (done.some(result => result.documents.length)) {
+      const graph = buildEvidenceGraph({ id: args.graphId, intent, plan, results: done, descriptors: args.sources, statuses: args.statuses, now: ctx.nowIso, pending: [...open] });
+      const output = compileExperience({ ...compileInput, graph });
+      const useful = output.manifest.modules.some(entry => !META_FAMILIES.has(entry.family));
+      if (!output.fallback && useful) experience = { intentId: intent.id, manifest: output.manifest, graph, plan: { id: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, reused: false } };
+    }
+    ctx.progress?.publish({ experience, pending, stepsDone: total - pendingSteps.length, stepsTotal: total });
+  };
+  return {
+    onStep(event: StepEvent) {
+      if (event.kind === "slow") slow.add(event.stepId);
+      else {
+        open.delete(event.stepId);
+        if (event.kind === "done") done.push(event.result);
+      }
+      // A fallback waiting for its primary is still pending; once nothing is open the final compile takes over.
+      if (open.size) publish();
+    },
+  };
+}
+
 export async function evidenceAnswer(ctx: AgentContext): Promise<ExecutorResult & { experience: RunExperience | null }> {
   const question = ctx.inputText?.trim() ?? "";
   if (!question) {
@@ -183,7 +225,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<ExecutorResult 
     results = reusable.results;
     skipped = plan.steps.filter(step => !results.some(result => result.invocation.stepId === step.id)).map(step => step.id);
   } else {
-    const execution = await executePlan({ plan, intent, registry, ctx, sessionId });
+    const progressive = ctx.progress ? progressivePublisher({ ctx, intent, plan, registry, sources, statuses, graphId: `graph-${ctx.nowIso}-${intent.id}` }) : null;
+    const execution = await executePlan({ plan, intent, registry, ctx, sessionId, ...(progressive ? { onStep: progressive.onStep } : {}) });
     results = execution.results;
     skipped = execution.skipped;
   }

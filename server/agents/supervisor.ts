@@ -2,15 +2,16 @@ import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
 import { routeIntent, type RoutedIntent } from "@/lib/agents/intent";
 import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
-import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunTrigger, UserProfile } from "@/lib/agents/types";
+import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunExperience, RunProgress, RunTrigger, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
+import { diffManifests, isEmptyPatch } from "@/lib/mesh/patch";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
 import { fetchPubmedAbstracts, type PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
-import type { AgentContext } from "./context";
+import type { AgentContext, RunProgressSink } from "./context";
 import type { ResultDraft } from "./drafts";
 import { EXECUTORS, type ExecutorResult } from "./executors";
 import { prepareAction } from "./services/action-confirmation";
@@ -180,41 +181,124 @@ function scopedPreference(preference: ReturnType<typeof effectivePreference>, ag
   return preference;
 }
 
-export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null }): Promise<RunOutcome> {
-  const now = deps.now?.() ?? new Date();
-  const nowIso = now.toISOString();
-  const started = Date.now();
-  const definition = AGENT_DEFINITIONS[request.agentId];
-  const preference = effectivePreference(request.profile, request.agentId);
-  const routed = request.routed ?? null;
-  const runId = `run-${crypto.randomUUID()}`;
-  const subscription = request.profile.subscriptions[request.agentId];
+/** A run that is not finished by this time after creation is reported as expired (its execution was lost). */
+export const RUN_EXECUTION_DEADLINE_MS = 90_000;
 
+/**
+ * Durable progress writer for a run created before execution. Writes are
+ * serialized (never out of order) and stop once the run is finalized; a
+ * manifest is published only when it changes what the physician sees.
+ */
+function progressWriter(deps: SupervisorDeps, run: AgentRun): { sink: RunProgressSink; close: () => Promise<{ version: number; previous: RunExperience | null; firstModuleMs: number | null }> } {
+  const created = Date.parse(run.startedAt);
+  let chain: Promise<void> = Promise.resolve();
+  let closed = false;
+  let version = run.progress?.manifestVersion ?? 0;
+  let previous: RunExperience | null = run.experience ?? null;
+  let firstModuleMs: number | null = run.progress?.firstModuleMs ?? null;
+  const sink: RunProgressSink = {
+    publish(update) {
+      if (closed) return;
+      chain = chain.then(async () => {
+        if (closed) return;
+        let patch = run.progress?.patch ?? null;
+        if (update.experience) {
+          const candidate = diffManifests(previous?.manifest ?? null, update.experience.manifest, { runId: run.id, manifestVersion: version + 1, status: "partial" });
+          if (!isEmptyPatch(candidate)) {
+            version += 1;
+            patch = candidate;
+            previous = update.experience;
+            run.experience = update.experience;
+            run.status = "partial";
+            firstModuleMs ??= Date.now() - created;
+          }
+        }
+        run.progress = { ...progressBase(run), manifestVersion: version, stepsTotal: update.stepsTotal, stepsDone: update.stepsDone, pending: update.pending, firstModuleMs, updatedAt: new Date().toISOString(), patch };
+        await deps.store.saveRun(deps.sessionId, run);
+      }).catch(() => undefined);
+    },
+  };
+  return { sink, close: async () => { closed = true; await chain; return { version, previous, firstModuleMs }; } };
+}
+
+function progressBase(run: AgentRun): RunProgress {
+  return run.progress ?? { manifestVersion: 0, stepsTotal: 0, stepsDone: 0, pending: [], firstModuleMs: null, deadlineAt: new Date(Date.parse(run.startedAt) + RUN_EXECUTION_DEADLINE_MS).toISOString(), updatedAt: run.startedAt, patch: null };
+}
+
+/**
+ * Creates the durable record of a run before anything executes: the id
+ * returned to the browser already exists in storage. Unsafe input is
+ * blocked here (a terminal run); everything else is queued.
+ */
+export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; now?: Date }): Promise<AgentRun> {
+  const now = request.now ?? new Date();
+  const preference = effectivePreference(request.profile, request.agentId);
+  const risk = checkRisk(request.text);
   const run: AgentRun = {
-    id: runId,
+    id: `run-${crypto.randomUUID()}`,
     agentId: request.agentId,
     specialty: request.specialty,
     trigger: request.trigger,
-    startedAt: nowIso,
-    completedAt: null,
-    status: "running",
-    input: { text: null, preferenceDigest: preferenceDigest(preference) },
-    intent: request.job ?? routed?.intent ?? null,
-    plan: [],
+    startedAt: now.toISOString(),
+    completedAt: risk.allowed ? null : now.toISOString(),
+    status: risk.allowed ? "queued" : "blocked",
+    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup) },
+    intent: request.job ?? null,
+    plan: risk.allowed ? [] : [{ id: "step-1", label: "Проверили запрос на безопасность", tool: "riskCheck", status: "blocked", detail: risk.blockedReason, connectorIds: [] }],
     toolsUsed: [],
     resultIds: [],
     newResultCount: 0,
     error: null,
-    durationMs: null,
-    riskNotices: [],
+    durationMs: risk.allowed ? null : 0,
+    riskNotices: risk.notices,
     synthesis: null,
+    progress: risk.allowed ? { manifestVersion: 0, stepsTotal: 0, stepsDone: 0, pending: [], firstModuleMs: null, deadlineAt: new Date(now.getTime() + RUN_EXECUTION_DEADLINE_MS).toISOString(), updatedAt: now.toISOString(), patch: null } : null,
   };
+  await store.saveRun(sessionId, run);
+  return run;
+}
+
+export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null }): Promise<RunOutcome> {
+  const now = deps.now?.() ?? new Date();
+  const nowIso = now.toISOString();
+  const definition = AGENT_DEFINITIONS[request.agentId];
+  const preference = effectivePreference(request.profile, request.agentId);
+  const routed = request.routed ?? null;
+  const created = request.run ?? null;
+  const runId = created?.id ?? `run-${crypto.randomUUID()}`;
+  // A pre-created run is timed from its creation (what the physician waited for).
+  const started = created ? Date.parse(created.startedAt) : Date.now();
+  const subscription = request.profile.subscriptions[request.agentId];
+
+  const run: AgentRun = created
+    ? { ...created, status: "running", completedAt: null, progress: progressBase(created) }
+    : {
+      id: runId,
+      agentId: request.agentId,
+      specialty: request.specialty,
+      trigger: request.trigger,
+      startedAt: nowIso,
+      completedAt: null,
+      status: "running",
+      input: { text: null, preferenceDigest: preferenceDigest(preference) },
+      intent: request.job ?? routed?.intent ?? null,
+      plan: [],
+      toolsUsed: [],
+      resultIds: [],
+      newResultCount: 0,
+      error: null,
+      durationMs: null,
+      riskNotices: [],
+      synthesis: null,
+    };
+  if (created) await deps.store.saveRun(deps.sessionId, run);
+  const writer = created ? progressWriter(deps, run) : null;
   await recordAgentEvent(deps.sessionId, "agent_run_started", { specialty: request.specialty, agentId: request.agentId, runId, trigger: request.trigger });
 
   let inputText: string | null = null;
   if (request.text?.trim()) {
     const risk = checkRisk(request.text);
-    run.riskNotices = risk.notices;
+    run.riskNotices = [...new Set([...run.riskNotices, ...risk.notices])];
     inputText = risk.sanitizedText.slice(0, 1200);
     run.input.text = inputText;
     if (!risk.allowed) {
@@ -253,12 +337,15 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     intent: request.intent && inputText ? compileIntent(inputText, request.specialty, { job: request.intent.job.explicit ? request.intent.job.family : null }) : null,
     ...(deps.browserDriver !== undefined ? { browserDriver: deps.browserDriver } : {}),
     sessionId: deps.sessionId,
+    progress: writer?.sink ?? null,
   };
 
   let executed: ExecutorResult;
   try {
     executed = await EXECUTORS[definition.id](ctx);
   } catch (error) {
+    const closed = await writer?.close();
+    if (closed && run.progress) run.progress = { ...run.progress, pending: [], updatedAt: new Date().toISOString(), patch: null, manifestVersion: closed.version };
     run.status = "failed";
     run.error = error instanceof Error ? error.message.slice(0, 300) : "Агент завершился с ошибкой";
     run.completedAt = new Date().toISOString();
@@ -268,6 +355,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     return { run, results: [], actions: [], routed };
   }
 
+  // Progress writes end before the final state is computed: nothing late can overwrite it.
+  const closed = await writer?.close();
   const validation = validateEvidence(executed.drafts);
   const merged = mergeResults({ drafts: validation.kept, existing, runId, now: nowIso, lastSeenAt: ctx.lastSeenAt, rehydrated: Boolean(deps.rehydrated), keyPrefix: request.agentId });
   await deps.store.upsertResults(deps.sessionId, merged.results);
@@ -292,6 +381,21 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   run.status = toolStatuses.some(status => status === "unavailable" || status === "failed") ? "partial" : "completed";
   run.completedAt = new Date().toISOString();
   run.durationMs = Date.now() - started;
+  if (closed) {
+    const final = run.experience;
+    const patch = final ? diffManifests(closed.previous?.manifest ?? null, final.manifest, { runId, manifestVersion: closed.version + 1, status: run.status === "partial" ? "partial" : "completed" }) : null;
+    const changed = Boolean(patch && !isEmptyPatch(patch));
+    const hasContent = Boolean(final?.manifest.modules.length);
+    run.progress = {
+      ...progressBase(run),
+      manifestVersion: changed ? closed.version + 1 : closed.version,
+      stepsDone: run.progress?.stepsTotal ?? 0,
+      pending: [],
+      firstModuleMs: closed.firstModuleMs ?? (hasContent ? run.durationMs : null),
+      updatedAt: run.completedAt,
+      patch: changed ? patch : run.progress?.patch ?? null,
+    };
+  }
   await deps.store.saveRun(deps.sessionId, run);
 
   const actions = requestApproval({ specialty: request.specialty, agentId: request.agentId, routed, results: merged.results, now: nowIso });

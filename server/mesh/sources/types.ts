@@ -20,6 +20,8 @@ export interface SourceRequest {
   requirement: EvidenceRequirement;
   intent: NormalizedIntent;
   ctx: SourceContext;
+  /** Epoch ms after which the adapter must not start new network work (hard source deadline). */
+  deadlineAt?: number;
 }
 
 export interface SourceAdapter extends SourceDescriptor {

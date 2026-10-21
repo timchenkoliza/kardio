@@ -142,11 +142,11 @@ describe("MEDI adapter — a source, not an agent", () => {
     const failed = await createMediAdapter({ driver: failing, fallbackDriver: null, site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
     expect(failed.invocation.outcome).toBe("failed");
     expect(failed.invocation.errorCode).toMatch(/^network/u);
-    // With a second execution mode the same recipe still works — and the invocation says it was limited.
+    // With a second execution mode the same recipe still works — and the invocation records it was read over HTTP.
     resetBrowserToolState();
     const degraded = await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright", ["https://medi.ru/analogi-mnn/empagliflozin/"]), fallbackDriver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "http"), site: FAST }).execute(await request("drug_reference", "russian_drug_reference"));
     expect(degraded.invocation.outcome).toBe("ok");
-    expect(degraded.invocation).toMatchObject({ status: "LIMITED", execution: "http" });
+    expect(degraded.invocation).toMatchObject({ status: "LIVE", execution: "http" });
     const missing = await createMediAdapter({ driver: new FixtureDriver(), site: FAST }).execute(await request("drug_reference", "russian_drug_reference", "Дапаглифлозин при ХСН"));
     expect(missing.invocation.outcome).toBe("empty");
     expect(missing.documents).toHaveLength(0);
@@ -160,9 +160,10 @@ describe("MEDI adapter — a source, not an agent", () => {
     expect(driver.calls).toHaveLength(0);
   });
 
-  it("reports its execution honestly: browser LIVE, HTTP LIMITED, disabled UNAVAILABLE", async () => {
-    expect((await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright") }).status()).status).toBe("LIVE");
-    expect((await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "http") }).status())).toMatchObject({ status: "LIMITED", execution: "http" });
+  it("reports its execution honestly: browser and HTTPS fetch are both LIVE for server-rendered recipes, disabled UNAVAILABLE", async () => {
+    expect((await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "playwright") }).status())).toMatchObject({ status: "LIVE", execution: "browser" });
+    // Every implemented MEDI recipe reads server-rendered pages: HTTP is a full mode for them (and is reported as http).
+    expect((await createMediAdapter({ driver: new FixtureDriver(MEDI_FIXTURE_ROUTES, "http") }).status())).toMatchObject({ status: "LIVE", execution: "http" });
     expect((await createMediAdapter({ driver: null }).status()).status).toBe("UNAVAILABLE");
     process.env.MEDI_DISABLED = "1";
     expect((await createMediAdapter({ driver: new FixtureDriver() }).status()).status).toBe("UNAVAILABLE");

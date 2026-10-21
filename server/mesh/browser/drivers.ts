@@ -51,6 +51,9 @@ export interface BrowserDriver {
   interact(url: string, steps: readonly InteractionStep[], options: OpenOptions): Promise<PageSnapshot>;
 }
 
+/** A browser that cannot start within this time is reported unavailable (never awaited forever). */
+const LAUNCH_TIMEOUT_MS = 8_000;
+
 /** Gateway errors worth exactly one retry; anything else is reported at once. */
 const TRANSIENT = new Set([502, 503, 504]);
 
@@ -136,7 +139,9 @@ export class PlaywrightDriver implements BrowserDriver {
   async available() {
     if (this.availability) return this.availability;
     try {
-      await this.launch();
+      // Never hang on a browser that cannot start: launching is bounded.
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      await Promise.race([this.launch(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("launch timeout")), LAUNCH_TIMEOUT_MS); })]).finally(() => { if (timer) clearTimeout(timer); });
       this.availability = { ok: true, reason: "Chromium (Playwright)" };
     } catch (error) {
       this.availability = { ok: false, reason: `браузер недоступен: ${error instanceof Error ? error.message.split("\n")[0].slice(0, 120) : "ошибка запуска"}` };
@@ -214,13 +219,16 @@ const globals = globalThis as unknown as { kardioBrowserDriver?: Promise<Browser
 
 /**
  * Driver selection: SOURCE_BROWSER=playwright|http|off (default auto: a real
- * browser when one can start, otherwise HTTP). The choice is reported in
- * every invocation so a LIMITED execution is never presented as LIVE.
+ * browser when one can start, otherwise HTTP; on Vercel always HTTP). The
+ * execution mode is reported in every invocation. `http` fetches the HTTPS
+ * source URLs as they are — it never downgrades the transport.
  */
 export function selectDriver(): Promise<BrowserDriver | null> {
   const mode = (process.env.SOURCE_BROWSER ?? "auto").toLowerCase();
   if (mode === "off") return Promise.resolve(null);
   if (mode === "http") return Promise.resolve(new HttpDriver());
+  // Serverless functions (Vercel) ship no Chromium: never try to launch one there — HTTPS fetch only.
+  if (mode === "auto" && process.env.VERCEL) return Promise.resolve(new HttpDriver());
   if (!globals.kardioBrowserDriver) {
     globals.kardioBrowserDriver = (async () => {
       const browser = new PlaywrightDriver();

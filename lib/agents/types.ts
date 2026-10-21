@@ -171,7 +171,13 @@ export interface AgentResultView extends AgentResult {
   newSinceLastSeen: boolean;
 }
 
-export type RunStatus = "running" | "completed" | "partial" | "failed" | "blocked";
+/**
+ * Run lifecycle. A run is durable from the moment its id is returned:
+ *   queued → running → partial (validated modules shown, evidence still arriving or limited) → completed
+ * failed / blocked are terminal. A run is finished when `completedAt` is set; `partial` with
+ * `completedAt` means it finished with limited evidence.
+ */
+export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed" | "blocked";
 export type RunTrigger = "manual" | "composer" | "schedule_catchup" | "configuration";
 
 export interface PlanStep {
@@ -201,7 +207,7 @@ export interface AgentRun {
   startedAt: string;
   completedAt: string | null;
   status: RunStatus;
-  input: { text: string | null; preferenceDigest: string };
+  input: { text: string | null; preferenceDigest: string; explicitJob?: boolean; followup?: boolean };
   intent: string | null;
   plan: PlanStep[];
   toolsUsed: ToolUse[];
@@ -213,6 +219,24 @@ export interface AgentRun {
   synthesis: string | null;
   /** Compiled experience of mesh-executed jobs: the manifest and the evidence graph it points at. */
   experience?: RunExperience | null;
+  /** Durable progress of a run that has not finished (and the record of how it got there). */
+  progress?: RunProgress | null;
+}
+
+/** Physician-facing progress of a run; no implementation detail beyond source names. */
+export interface RunProgress {
+  /** 0 until the first validated module is published; +1 for every published ExperiencePatch. */
+  manifestVersion: number;
+  stepsTotal: number;
+  stepsDone: number;
+  /** Sources still being checked; `slow` once a source passed its soft deadline. */
+  pending: Array<{ name: string; slow: boolean }>;
+  /** Milliseconds from run creation to the first validated useful module. */
+  firstModuleMs: number | null;
+  /** Execution must finish by this time; a run still open after it is reported as expired. */
+  deadlineAt: string;
+  updatedAt: string;
+  patch: import("@/lib/mesh/patch").ExperiencePatch | null;
 }
 
 /**

@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  /** `code` is a stable machine-readable reason the client can branch on (e.g. storage_unavailable). */
+  constructor(public status: number, message: string, public code?: string) { super(message); }
 }
 export const specialtySchema = z.enum(SPECIALTY_IDS);
 export const idSchema = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_:.-]+$/);
@@ -48,7 +49,8 @@ export async function parseBody(request: NextRequest) {
 export function failure(error: unknown) {
   const status = error instanceof HttpError ? error.status : error instanceof z.ZodError ? 400 : 503;
   const message = error instanceof HttpError ? error.message : error instanceof z.ZodError ? "Проверьте параметры запроса." : "Сервис временно недоступен. Попробуйте ещё раз.";
-  return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store", ...(status === 429 ? { "Retry-After": "60" } : {}) } });
+  const code = error instanceof HttpError ? error.code : undefined;
+  return NextResponse.json({ error: message, ...(code ? { code } : {}) }, { status, headers: { "Cache-Control": "no-store", ...(status === 429 ? { "Retry-After": "60" } : {}) } });
 }
 export function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });

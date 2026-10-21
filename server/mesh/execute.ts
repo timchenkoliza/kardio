@@ -12,9 +12,44 @@ import { recordMeshEvent } from "./telemetry";
  * their primary came back empty or failed, hand-offs without any network
  * call. Every step ends in a recorded invocation — a step that times out or
  * throws is a failure, never a silent success.
+ *
+ * Interactive deadlines (no single source may block the physician's result):
+ *   soft    a step that passes it is reported as slow; the result page keeps
+ *           showing what is already validated
+ *   hard    the step is cut: outcome failed, status LIMITED, the rest continues
+ *   budget  the whole plan; a fallback that cannot start with enough time left
+ *           is not started (LIMITED) instead of overrunning the request
+ * source failure != request failure.
  */
 
-const STEP_TIMEOUT_MS = 45_000;
+export interface SourceDeadlines {
+  softMs: number;
+  hardMs: number;
+  budgetMs: number;
+  /** A step needs at least this much of the budget left to start. */
+  minStartMs: number;
+}
+
+export const INTERACTIVE_DEADLINES: SourceDeadlines = { softMs: 4_000, hardMs: 18_000, budgetMs: 24_000, minStartMs: 1_500 };
+
+function envMs(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export function interactiveDeadlines(): SourceDeadlines {
+  return {
+    softMs: envMs("MESH_SOURCE_SOFT_MS", INTERACTIVE_DEADLINES.softMs),
+    hardMs: envMs("MESH_SOURCE_HARD_MS", INTERACTIVE_DEADLINES.hardMs),
+    budgetMs: envMs("MESH_BUDGET_MS", INTERACTIVE_DEADLINES.budgetMs),
+    minStartMs: INTERACTIVE_DEADLINES.minStartMs,
+  };
+}
+
+export type StepEvent =
+  | { kind: "done"; stepId: string; result: SourceResult }
+  | { kind: "skipped"; stepId: string }
+  | { kind: "slow"; stepId: string };
 
 export interface PlanExecution {
   results: SourceResult[];
@@ -22,9 +57,9 @@ export interface PlanExecution {
   skipped: string[];
 }
 
-async function withTimeout(promise: Promise<SourceResult>, step: ExecutionStep, fallback: () => SourceResult): Promise<SourceResult> {
+async function withDeadline(promise: Promise<SourceResult>, ms: number, fallback: () => SourceResult): Promise<SourceResult> {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const timeout = new Promise<SourceResult>(resolve => { timer = setTimeout(() => resolve(fallback()), STEP_TIMEOUT_MS); });
+  const timeout = new Promise<SourceResult>(resolve => { timer = setTimeout(() => resolve(fallback()), Math.max(0, ms)); });
   try {
     return await Promise.race([promise, timeout]);
   } finally {
@@ -32,10 +67,13 @@ async function withTimeout(promise: Promise<SourceResult>, step: ExecutionStep, 
   }
 }
 
-export async function executePlan(args: { plan: ExecutionPlan; intent: NormalizedIntent; registry: SourceRegistry; ctx: SourceContext; sessionId: string | null; runId?: string }): Promise<PlanExecution> {
+export async function executePlan(args: { plan: ExecutionPlan; intent: NormalizedIntent; registry: SourceRegistry; ctx: SourceContext; sessionId: string | null; runId?: string; deadlines?: SourceDeadlines; startedAt?: number; onStep?: (event: StepEvent) => void }): Promise<PlanExecution> {
   const { plan, intent, registry, ctx } = args;
+  const deadlines = args.deadlines ?? interactiveDeadlines();
+  const budgetEnd = (args.startedAt ?? Date.now()) + deadlines.budgetMs;
   const outcomes = new Map<string, Promise<SourceResult | null>>();
   const skipped: string[] = [];
+  const emit = (event: StepEvent) => { try { args.onStep?.(event); } catch { /* progress must never break execution */ } };
 
   const run = (step: ExecutionStep): Promise<SourceResult | null> => {
     const existing = outcomes.get(step.id);
@@ -44,18 +82,30 @@ export async function executePlan(args: { plan: ExecutionPlan; intent: Normalize
       if (step.runIf) {
         const previous = plan.steps.find(item => item.id === step.runIf!.previousEmpty);
         const prior = previous ? await run(previous) : null;
-        if (prior && prior.documents.length > 0) { skipped.push(step.id); return null; }
+        if (prior && prior.documents.length > 0) { skipped.push(step.id); emit({ kind: "skipped", stepId: step.id }); return null; }
       }
       const adapter = registry[step.sourceId as SourceId];
-      const request = { stepId: step.id, operation: step.operation, requirement: step.requirement, intent, ctx };
       const started = Date.now();
+      const remaining = budgetEnd - started;
+      const hardMs = Math.min(deadlines.hardMs, remaining);
+      const request = { stepId: step.id, operation: step.operation, requirement: step.requirement, intent, ctx, deadlineAt: started + Math.max(0, hardMs) };
       let result: SourceResult;
-      try {
-        result = await withTimeout(adapter.execute(request), step, () => emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIVE", execution: adapter.execution, started, errorCode: "timeout:step", note: "Источник не ответил вовремя" }));
-      } catch (error) {
-        result = emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIVE", execution: adapter.execution, started, errorCode: "unexpected", note: error instanceof Error ? error.message.slice(0, 160) : "ошибка источника" });
+      if (remaining < deadlines.minStartMs && step.role !== "handoff") {
+        result = emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIMITED", execution: adapter.execution, started, errorCode: "deadline:budget", note: "Не хватило времени — ответ собран без этого источника" });
+      } else {
+        const soft = setTimeout(() => emit({ kind: "slow", stepId: step.id }), deadlines.softMs);
+        try {
+          result = await withDeadline(adapter.execute(request), hardMs, () => emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIMITED", execution: adapter.execution, started, errorCode: "deadline:hard", note: `Источник не ответил за ${Math.max(1, Math.round(hardMs / 1000))} с — ответ собран без него` }));
+        } catch (error) {
+          result = emptyResult(request, { sourceId: step.sourceId, outcome: "failed", status: "LIVE", execution: adapter.execution, started, errorCode: "unexpected", note: error instanceof Error ? error.message.slice(0, 160) : "ошибка источника" });
+        } finally {
+          clearTimeout(soft);
+        }
       }
+      // A source cut by time — by this deadline or by its own — is LIMITED, whichever fired first.
+      if (result.invocation.outcome === "failed" && /^(?:deadline|timeout):/u.test(result.invocation.errorCode ?? "")) result = { ...result, invocation: { ...result.invocation, status: "LIMITED" } };
       const invocation = result.invocation;
+      emit({ kind: "done", stepId: step.id, result });
       await recordMeshEvent(args.sessionId, "source_invoked", { specialty: intent.context.specialty, job: intent.job.primary, runId: args.runId, planId: plan.id, sourceId: step.sourceId, operation: step.operation, requirement: step.requirement, role: step.role, outcome: invocation.outcome, status: invocation.status, execution: invocation.execution, durationMs: invocation.durationMs, documents: result.documents.length, claims: result.documents.reduce((sum, document) => sum + document.claims.length, 0) });
       if (invocation.outcome === "failed" || invocation.outcome === "unavailable") {
         await recordMeshEvent(args.sessionId, "source_failed", { specialty: intent.context.specialty, job: intent.job.primary, runId: args.runId, planId: plan.id, sourceId: step.sourceId, operation: step.operation, outcome: invocation.outcome, errorCode: invocation.errorCode ?? invocation.outcome });

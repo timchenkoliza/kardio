@@ -88,22 +88,33 @@ export class BrowserSourceTool {
   private readonly robots: RobotsGuard;
 
   private readonly fallbackDriver: BrowserDriver | null;
+  /** Epoch ms after which no new page is opened (the step's hard deadline). */
+  private readonly deadlineAt: number | null;
 
   constructor(
     private readonly site: SiteProfile,
     private readonly driver: BrowserDriver,
-    options: { robots?: RobotsGuard; fallbackDriver?: BrowserDriver | null } = {},
+    options: { robots?: RobotsGuard; fallbackDriver?: BrowserDriver | null; deadlineAt?: number | null } = {},
   ) {
     // A second execution mode for the same recipe (e.g. HTTP when the browser path hits a gateway error).
     this.fallbackDriver = options.fallbackDriver ?? null;
+    this.deadlineAt = options.deadlineAt ?? null;
     const existing = options.robots ?? shared.robots.get(site.origin);
     this.robots = existing ?? new RobotsGuard(site.robots, async url => {
       try {
-        const page = await driver.open(url, { userAgent: site.userAgent, timeoutMs: site.timeoutMs });
+        const page = await driver.open(url, { userAgent: site.userAgent, timeoutMs: Math.min(site.timeoutMs, 5_000) });
         return page.status === 200 ? page.html.replace(/<[^>]+>/gu, "") : null;
       } catch { return null; }
     });
     if (!options.robots) shared.robots.set(site.origin, this.robots);
+  }
+
+  /** Per-page timeout: the site's own limit, never past the step's hard deadline. */
+  private pageTimeout(url: string): number {
+    if (this.deadlineAt === null) return this.site.timeoutMs;
+    const remaining = this.deadlineAt - Date.now();
+    if (remaining < 200) throw new SourceToolError("timeout", "step_deadline", url);
+    return Math.min(this.site.timeoutMs, remaining);
   }
 
   /** open(): fetch one allowed page (cache → robots → politeness → driver). `fresh` re-reads the source (re-verification). */
@@ -125,13 +136,13 @@ export class BrowserSourceTool {
     await politeSlot(this.site.origin, this.site.minIntervalMs);
     let snapshot: PageSnapshot;
     try {
-      snapshot = await this.driver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
+      snapshot = await this.driver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.pageTimeout(absolute) });
       if (this.fallbackDriver && (snapshot.status >= 502 && snapshot.status <= 504)) throw new SourceToolError("http_error", String(snapshot.status), absolute);
     } catch (error) {
       const retryable = error instanceof SourceToolError && (error.code === "network" || error.code === "http_error" || error.code === "timeout");
       if (!this.fallbackDriver || !retryable) throw error;
       await politeSlot(this.site.origin, this.site.minIntervalMs);
-      snapshot = await this.fallbackDriver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.site.timeoutMs });
+      snapshot = await this.fallbackDriver.open(absolute, { userAgent: this.site.userAgent, timeoutMs: this.pageTimeout(absolute) });
     }
     this.visits.push({ url: absolute, status: snapshot.status, driver: snapshot.driver, fetchedAt: snapshot.fetchedAt, cached: false });
     if (snapshot.status === 404 || snapshot.status === 410) throw new SourceToolError("not_found", String(snapshot.status), absolute);

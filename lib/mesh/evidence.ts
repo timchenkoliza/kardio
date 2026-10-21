@@ -183,7 +183,8 @@ export interface GraphFreshness {
   checkedAt: string;
 }
 
-export type CoverageState = "met" | "partial" | "missing" | "handoff";
+/** `pending`: the planned source has not answered yet (progressive runs only) — neither met nor a gap. */
+export type CoverageState = "met" | "partial" | "missing" | "handoff" | "pending";
 
 export interface GraphSource {
   id: SourceId;
@@ -192,7 +193,8 @@ export interface GraphSource {
   status: SourceStatus;
   execution: SourceExecution;
   invoked: boolean;
-  outcome: SourceOutcome | "not_invoked";
+  /** `pending`: still being checked in a progressive run. */
+  outcome: SourceOutcome | "not_invoked" | "pending";
   handoffUrl: string | null;
   requirement: EvidenceRequirement | null;
 }
@@ -222,4 +224,6 @@ export interface EvidenceGraph {
   confidence: { extractionMin: number; extractionMean: number; coverage: Partial<Record<EvidenceRequirement, CoverageState>> };
   /** Requirement-level gaps, in physician language. */
   gaps: string[];
+  /** False while planned sources are still being checked (a validated partial graph). Absent on older graphs = complete. */
+  complete?: boolean;
 }

@@ -277,12 +277,12 @@ export async function catalogFor(specialty: SpecialtyId) {
   return { content, sources };
 }
 
-export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration"; text?: string | null; routed?: ReturnType<typeof routeTask> | null; job?: PortalJob | null; intent?: NormalizedIntent | null }): Promise<RunOutcome> {
+export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration"; text?: string | null; routed?: ReturnType<typeof routeTask> | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null }): Promise<RunOutcome> {
   const store = workspaceStore();
   const profile = await loadProfile(sessionId, specialty);
   const catalog = await catalogFor(specialty);
   const rehydrated = isRehydrated(sessionId, specialty);
-  const outcome = await runAgent({ store, sessionId, catalog, rehydrated }, { agentId, specialty, profile, trigger: options.trigger, text: options.text, routed: options.routed, job: options.job ?? null, intent: options.intent ?? null });
+  const outcome = await runAgent({ store, sessionId, catalog, rehydrated }, { agentId, specialty, profile, trigger: options.trigger, text: options.text, routed: options.routed, job: options.job ?? null, intent: options.intent ?? null, run: options.run ?? null });
   if (rehydrated) markRehydrationConsumed(sessionId, specialty);
   const fresh = await loadProfile(sessionId, specialty);
   fresh.subscriptions[agentId] = { ...fresh.subscriptions[agentId], lastRunAt: outcome.run.completedAt ?? outcome.run.startedAt, lastRunId: outcome.run.id };
