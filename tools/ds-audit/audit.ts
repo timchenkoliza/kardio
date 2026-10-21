@@ -19,6 +19,8 @@ export interface SiteAuditOptions {
   year?: number;
   setupContext?: CollectOptions["setupContext"];
   ds?: DesignSystem;
+  /** Defaults to VERCEL_AUTOMATION_BYPASS_SECRET from the environment. */
+  bypassSecret?: string | null;
 }
 
 export interface SiteAudit {
@@ -45,7 +47,7 @@ export async function auditSite(options: SiteAuditOptions, browser?: Browser): P
   const instance = browser ?? await chromium.launch();
   try {
     let routes = (options.routes?.length ? options.routes : [...DEFAULT_ROUTES]).map(normalizeRoute);
-    const collect = (list: string[], vps: Viewport[]) => collectSnapshots({ baseUrl: url, routes: list, viewports: vps, screenshotDir, setupContext: options.setupContext }, instance);
+    const collect = (list: string[], vps: Viewport[]) => collectSnapshots({ baseUrl: url, routes: list, viewports: vps, screenshotDir, setupContext: options.setupContext, bypassSecret: options.bypassSecret ?? process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? null }, instance);
     let snapshots = await collect(routes, viewports);
     if (options.crawl ?? !options.routes?.length) {
       const extra = discoverRoutes(snapshots, routes, url);

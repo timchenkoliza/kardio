@@ -15,6 +15,16 @@ export interface CollectOptions {
   screenshotDir?: string | null;
   /** Tests install request routing here to serve fixtures. */
   setupContext?: (context: BrowserContext) => Promise<void>;
+  /** Vercel "Protection Bypass for Automation" secret; sent only to the audited origin. */
+  bypassSecret?: string | null;
+}
+
+/** Bypass headers for a request: only to the deployment's own origin, never to third parties. */
+export function bypassHeaders(requestUrl: string, origin: string, secret: string | null | undefined): Record<string, string> {
+  if (!secret) return {};
+  let target: string;
+  try { target = new URL(requestUrl).origin; } catch { return {}; }
+  return target === new URL(origin).origin ? { "x-vercel-protection-bypass": secret, "x-vercel-set-bypass-cookie": "true" } : {};
 }
 
 const emptySnapshot = (route: string, viewport: Viewport, url: string, error: string, status: number | null = null): PageSnapshot => ({
@@ -54,6 +64,9 @@ async function snapshotPage(context: BrowserContext, baseUrl: string, route: str
   try {
     const response = await page.goto(url, { waitUntil: NAVIGATION.waitUntil, timeout: NAVIGATION.timeoutMs });
     const status = response?.status() ?? null;
+    const landed = new URL(page.url());
+    // A redirect to another host (e.g. Vercel login on a protected deployment) is not the page under audit.
+    if (landed.origin !== new URL(baseUrl).origin) return emptySnapshot(route, viewport, url, `Редирект на ${landed.host}${landed.pathname}: страница закрыта или недоступна (Vercel Deployment Protection?)`, status);
     if (status !== null && status >= 400) return emptySnapshot(route, viewport, url, `HTTP ${status}`, status);
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
     await page.waitForTimeout(NAVIGATION.settleMs);
@@ -75,12 +88,17 @@ async function snapshotPage(context: BrowserContext, baseUrl: string, route: str
   }
 }
 
-export async function openContext(browser: Browser, viewport: Viewport, setup?: CollectOptions["setupContext"]): Promise<BrowserContext> {
+export async function openContext(browser: Browser, viewport: Viewport, setup?: CollectOptions["setupContext"], bypass?: { origin: string; secret: string | null | undefined }): Promise<BrowserContext> {
   const v = VIEWPORTS.find(item => item.name === viewport);
   if (!v) throw new Error(`Unknown viewport ${viewport}`);
   const context = await browser.newContext({ viewport: { width: v.width, height: v.height }, isMobile: v.isMobile, hasTouch: v.hasTouch, deviceScaleFactor: 1, locale: "ru-RU", timezoneId: "Europe/Moscow", reducedMotion: "reduce", colorScheme: "light" });
   await context.addInitScript({ path: IN_PAGE });
   if (setup) await setup(context);
+  // Registered last so it runs first, then falls back to fixtures or the network with the header added.
+  if (bypass?.secret) {
+    const origin = new URL(bypass.origin).origin;
+    await context.route(`${origin}/**`, route => route.fallback({ headers: { ...route.request().headers(), ...bypassHeaders(route.request().url(), origin, bypass.secret) } }));
+  }
   return context;
 }
 
@@ -91,7 +109,7 @@ export async function collectSnapshots(options: CollectOptions, browser?: Browse
   const snapshots: PageSnapshot[] = [];
   try {
     for (const viewport of options.viewports ?? (["desktop", "mobile"] as Viewport[])) {
-      const context = await openContext(instance, viewport, options.setupContext);
+      const context = await openContext(instance, viewport, options.setupContext, { origin: options.baseUrl, secret: options.bypassSecret });
       try {
         for (const route of options.routes) snapshots.push(await snapshotPage(context, options.baseUrl, route, viewport, options.screenshotDir ?? null));
       } finally {

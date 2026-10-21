@@ -101,3 +101,12 @@ describe("semantic layer (prepared, off in v1)", () => {
     expect(semanticCacheKey({ ...input, snapshots: [snapshot({ texts: [] })] })).not.toBe(semanticCacheKey(input));
   });
 });
+
+describe("vercel protection bypass", () => {
+  it("adds the header only for the audited origin and only when a secret is set", async () => {
+    const { bypassHeaders } = await import("../collect/browser");
+    expect(bypassHeaders("https://kardio-x.vercel.app/cardiology", "https://kardio-x.vercel.app", "s")).toEqual({ "x-vercel-protection-bypass": "s", "x-vercel-set-bypass-cookie": "true" });
+    expect(bypassHeaders("https://fonts.example.com/a.woff2", "https://kardio-x.vercel.app", "s")).toEqual({});
+    expect(bypassHeaders("https://kardio-x.vercel.app/", "https://kardio-x.vercel.app", null)).toEqual({});
+  });
+});
