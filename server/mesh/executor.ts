@@ -1,13 +1,19 @@
 import { countLabel } from "@/lib/agents/format";
 import { truncate } from "@/lib/agents/text";
 import type { Evidence, EvidenceLevel, IntegrationMode, PlanStep, ResultActionKind, ResultKind, RunExperience, ToolUse } from "@/lib/agents/types";
-import { compileExperience } from "@/lib/mesh/compiler";
+import { compileExperience, type CompileInput, type CompileOutput } from "@/lib/mesh/compiler";
 import type { EvidenceGraph, NormalizedClaim, NormalizedDocument, SourceInvocation, SourceResult } from "@/lib/mesh/evidence";
 import { buildEvidenceGraph } from "@/lib/mesh/evidence-graph";
+import { compareShadow, shadowSide, type RunExecution, type ShadowComparison } from "@/lib/mesh/execution";
+import type { FlowRun } from "@/lib/mesh/flow-runtime";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { REQUIREMENT_LABEL } from "@/lib/mesh/jobs";
+import type { ManifestExecution } from "@/lib/mesh/manifest";
 import { planSources, type ExecutionPlan } from "@/lib/mesh/planner";
+import { compileWithSkill, executionRecord } from "@/lib/mesh/skill-compile";
+import type { IntentSkill } from "@/lib/mesh/skills/types";
 import type { SourceId, SourceStatusReport } from "@/lib/mesh/sources";
+import type { Strategy } from "@/lib/mesh/strategy";
 import type { AgentContext } from "@/server/agents/context";
 import type { ResultDraft } from "@/server/agents/drafts";
 import type { ExecutorResult } from "@/server/agents/plan";
@@ -171,13 +177,14 @@ const META_FAMILIES = new Set(["sources", "handoff", "next_actions", "notices"])
  * speculative reaches the page. Progress (pending sources) is published
  * either way.
  */
-function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedIntent; plan: ExecutionPlan; registry: SourceRegistry; sources: ReturnType<typeof descriptors>; statuses: Record<SourceId, SourceStatusReport>; graphId: string }) {
+function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedIntent; plan: ExecutionPlan; registry: SourceRegistry; sources: ReturnType<typeof descriptors>; statuses: Record<SourceId, SourceStatusReport>; graphId: string; extras?: Partial<CompileInput> }) {
   const { ctx, intent, plan, registry } = args;
   const done: SourceResult[] = [];
   const open = new Set(plan.steps.map(step => step.id));
   const slow = new Set<string>();
   const total = plan.steps.filter(step => step.role !== "handoff").length;
-  const compileInput = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {} };
+  // A Skill's takeaway priority and explanation apply from the first module; flow branches need the complete graph.
+  const compileInput: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {}, ...args.extras };
   const publish = () => {
     const pendingSteps = plan.steps.filter(step => open.has(step.id) && step.role !== "handoff");
     const pending = [...new Map(pendingSteps.map(step => [registry[step.sourceId].name, { name: registry[step.sourceId].name, slow: slow.has(step.id) }])).values()];
@@ -203,54 +210,150 @@ function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedInten
   };
 }
 
-export async function evidenceAnswer(ctx: AgentContext): Promise<ExecutorResult & { experience: RunExperience | null }> {
-  const question = ctx.inputText?.trim() ?? "";
-  if (!question) {
-    return { intent: ctx.job ?? "answer", plan: [{ id: "step-1", label: "Нужен вопрос", tool: null, status: "skipped", detail: "Напишите вопрос, препарат или тему", connectorIds: [] }], toolsUsed: [], drafts: [], synthesis: null, notices: [], experience: null };
-  }
-  const intent = ctx.intent ?? compileIntent(question, ctx.specialty, { job: ctx.job });
-  const registry = createSourceRegistry(ctx.browserDriver !== undefined ? { browserDriver: ctx.browserDriver } : {});
-  const sources = descriptors(registry);
-  const statuses = Object.fromEntries(await Promise.all(Object.values(registry).map(async adapter => [adapter.id, await adapter.status()] as const))) as Record<SourceId, SourceStatusReport>;
-  const plan = planSources({ intent, sources, statuses, excludedConnectors: ctx.preference.excludedSources });
-  const sessionId = ctx.sessionId ?? null;
-  await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
+interface PlannedRun {
+  intent: NormalizedIntent;
+  plan: ExecutionPlan;
+  results: SourceResult[];
+  skipped: string[];
+  reused: boolean;
+  graph: EvidenceGraph;
+  /** Knowledge-store key of this intent's evidence. */
+  key: string;
+  durationMs: number;
+}
 
+interface SourceEnv {
+  registry: SourceRegistry;
+  sources: ReturnType<typeof descriptors>;
+  statuses: Record<SourceId, SourceStatusReport>;
+}
+
+/** intent → plan → sources (progressive when a sink is given) → evidence graph. */
+async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedIntent, args: { progressive: boolean; extras?: Partial<CompileInput>; record: boolean; knowledge: boolean }): Promise<PlannedRun> {
+  const started = Date.now();
+  const plan = planSources({ intent, sources: env.sources, statuses: env.statuses, excludedConnectors: ctx.preference.excludedSources });
+  const sessionId = ctx.sessionId ?? null;
+  if (args.record) await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
   const store = knowledgeStore();
   const key = `${intent.id}|${fingerprint(ctx.preference.excludedSources.join(","))}`;
-  const reusable = store.fresh(key, ctx.now, REUSE_MS);
+  const reusable = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
   let results: SourceResult[];
   let skipped: string[] = [];
   if (reusable && reusable.plan.steps.map(step => step.sourceId).join() === plan.steps.map(step => step.sourceId).join()) {
     results = reusable.results;
     skipped = plan.steps.filter(step => !results.some(result => result.invocation.stepId === step.id)).map(step => step.id);
   } else {
-    const progressive = ctx.progress ? progressivePublisher({ ctx, intent, plan, registry, sources, statuses, graphId: `graph-${ctx.nowIso}-${intent.id}` }) : null;
-    const execution = await executePlan({ plan, intent, registry, ctx, sessionId, ...(progressive ? { onStep: progressive.onStep } : {}) });
+    const progressive = args.progressive && ctx.progress ? progressivePublisher({ ctx, intent, plan, registry: env.registry, sources: env.sources, statuses: env.statuses, graphId: `graph-${ctx.nowIso}-${intent.id}`, extras: args.extras }) : null;
+    const execution = await executePlan({ plan, intent, registry: env.registry, ctx, sessionId: args.record ? sessionId : null, ...(progressive ? { onStep: progressive.onStep } : {}) });
     results = execution.results;
     skipped = execution.skipped;
   }
   const reused = results === reusable?.results;
+  const graph = buildEvidenceGraph({ id: `graph-${ctx.nowIso}-${intent.id}`, intent, plan, results, descriptors: env.sources, statuses: env.statuses, now: ctx.nowIso });
+  if (args.record) await recordMeshEvent(sessionId, "evidence_graph_built", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, documents: graph.documents.length, claims: graph.claims.length, conflicts: graph.conflicts.length, reason: reused ? "knowledge_reuse" : undefined });
+  return { intent, plan, results, skipped, reused, graph, key, durationMs: Date.now() - started };
+}
 
-  const graph = buildEvidenceGraph({ id: `graph-${ctx.nowIso}-${intent.id}`, intent, plan, results, descriptors: sources, statuses, now: ctx.nowIso });
-  await recordMeshEvent(sessionId, "evidence_graph_built", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, documents: graph.documents.length, claims: graph.claims.length, conflicts: graph.conflicts.length, reason: reused ? "knowledge_reuse" : undefined });
+function manifestExecution(strategy: Strategy | null, skill: IntentSkill | null, flow: FlowRun | null): ManifestExecution | null {
+  return strategy ? executionRecord(skill, flow) : null;
+}
+
+export interface EvidenceAnswerResult extends ExecutorResult {
+  experience: RunExperience | null;
+  execution: RunExecution | null;
+  /** Shadow comparison to run after the primary result is saved (never delays the physician). */
+  shadow: (() => Promise<ShadowComparison | null>) | null;
+}
+
+export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerResult> {
+  const question = ctx.inputText?.trim() ?? "";
+  if (!question) {
+    return { intent: ctx.job ?? "answer", plan: [{ id: "step-1", label: "Нужен вопрос", tool: null, status: "skipped", detail: "Напишите вопрос, препарат или тему", connectorIds: [] }], toolsUsed: [], drafts: [], synthesis: null, notices: [], experience: null, execution: null, shadow: null };
+  }
+  const strategy = ctx.strategy ?? null;
+  const intent = strategy?.intent ?? ctx.intent ?? compileIntent(question, ctx.specialty, { job: ctx.job });
+  const primarySkill = strategy?.executionClass === "skill" && strategy.mode === "primary" ? strategy.skill : null;
+  const registry = createSourceRegistry(ctx.browserDriver !== undefined ? { browserDriver: ctx.browserDriver } : {});
+  const sources = descriptors(registry);
+  const statuses = Object.fromEntries(await Promise.all(Object.values(registry).map(async adapter => [adapter.id, await adapter.status()] as const))) as Record<SourceId, SourceStatusReport>;
+  const env: SourceEnv = { registry, sources, statuses };
+  const sessionId = ctx.sessionId ?? null;
+  const started = Date.now();
+
+  if (strategy?.skill && strategy.flow) await recordMeshEvent(sessionId, "intent_skill_matched", { specialty: ctx.specialty, job: intent.job.primary, skillId: strategy.skill.id, skillVersion: strategy.skill.version, confidence: strategy.matched?.confidence, mode: strategy.mode ?? undefined });
+  if (primarySkill && strategy?.flow) await recordMeshEvent(sessionId, "intent_flow_started", { specialty: ctx.specialty, skillId: primarySkill.id, flowId: strategy.flow.id, skillVersion: strategy.flow.version });
+  if (strategy?.executionClass === "dynamic") await recordMeshEvent(sessionId, "dynamic_plan_used", { specialty: ctx.specialty, job: intent.job.primary, signature: strategy.signature });
+
+  const extras: Partial<CompileInput> = primarySkill ? { takeaway: primarySkill.experiencePolicy.takeaway?.[intent.job.family] ?? null, execution: manifestExecution(strategy, primarySkill, null) } : { execution: manifestExecution(strategy, null, null) };
+  const gathered = await gather(ctx, env, intent, { progressive: true, extras, record: true, knowledge: true });
+  const { plan, results, skipped, reused } = gathered;
+  let graph = gathered.graph;
 
   const documents = results.flatMap(result => result.documents).filter((document, index, all) => all.findIndex(item => item.id === document.id) === index);
   const connectorOf = (sourceId: SourceId) => registry[sourceId].connectorId;
   const drafts = draftsFromDocuments(ctx, documents, connectorOf);
   const resultKeys = Object.fromEntries(drafts.map(draft => [String(draft.attributes.documentId), `${ctx.agentId}:${draft.key}`]));
-  const compileInput = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys };
-  const output = compileExperience({ ...compileInput, graph });
+  const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys };
+  let output: CompileOutput;
+  let flow: FlowRun | null = null;
+  let skillFallback: string | null = null;
+  if (primarySkill && strategy) {
+    const shaped = compileWithSkill(base, graph, primarySkill, strategy.flow);
+    output = shaped.output;
+    flow = shaped.flow;
+    graph = shaped.graph;
+    skillFallback = shaped.fallback;
+    if (flow) {
+      await Promise.all([
+        ...flow.trace.steps.filter(step => step.status !== "not_taken").map(step => recordMeshEvent(sessionId, "intent_flow_step_completed", { specialty: ctx.specialty, flowId: flow!.trace.flowId, stepId: step.id, status: step.status })),
+        ...flow.trace.branches.map(branch => recordMeshEvent(sessionId, "intent_flow_branch_taken", { specialty: ctx.specialty, flowId: flow!.trace.flowId, stepId: branch.split(":")[0], branch: branch.split(":")[1] })),
+      ]);
+    }
+    if (skillFallback) await recordMeshEvent(sessionId, "experience_fallback_used", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, reason: skillFallback.slice(0, 80), skillId: primarySkill.id });
+  } else {
+    output = compileExperience({ ...base, graph, ...extras });
+  }
   await recordMeshEvent(sessionId, "experience_manifest_compiled", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, modules: output.manifest.modules.length, findings: output.report.findings.length, blocking: output.rejected?.blocking ?? 0 });
   if (output.fallback) {
     await recordMeshEvent(sessionId, "experience_fallback_used", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, reason: output.manifest.compiler.warnings[0]?.split(":")[0] ?? "unknown", blocking: output.rejected?.blocking ?? 0 });
     if (output.rejected) await changeFromPolicyFindings({ findings: output.rejected.findings, manifest: output.manifest, now: ctx.nowIso, sessionId });
   }
-  if (!reused) store.registerExperience({ key, scenario: intent.context.scenario, intent, plan, results, statuses, descriptors: sources, compile: compileInput, graph, manifest: output.manifest });
+  if (!reused) knowledgeStore().registerExperience({ key: gathered.key, scenario: intent.context.scenario, intent, plan, results, statuses, descriptors: sources, compile: base, graph: gathered.graph, manifest: output.manifest });
 
   const trace = traceFor(plan, results, registry, skipped, reused);
-  trace.plan.unshift({ id: "step-0", label: "Разобрали запрос", tool: null, status: "done", detail: intent.job.reasons.join(" · "), connectorIds: [] });
+  trace.plan.unshift({ id: "step-0", label: "Разобрали запрос", tool: null, status: "done", detail: [...intent.job.reasons, ...(primarySkill ? [primarySkill.experiencePolicy.explanation] : [])].join(" · "), connectorIds: [] });
   trace.plan.push({ id: `step-${trace.plan.length + 1}`, label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] });
+  const experience: RunExperience = { intentId: intent.id, manifest: output.manifest, graph, plan: { id: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, reused } };
+  const totalMs = Date.now() - started;
+  const execution: RunExecution | null = strategy ? {
+    class: strategy.executionClass === "skill" ? "skill" : "dynamic",
+    explanation: primarySkill ? primarySkill.experiencePolicy.explanation : null,
+    skill: strategy.skill && strategy.matched ? { id: strategy.skill.id, version: strategy.skill.version, mode: strategy.skill.rollout.mode, confidence: strategy.matched.confidence, reasons: strategy.matched.reasons.slice(0, 6) } : null,
+    alternatives: strategy.alternatives.map(item => ({ id: item.skillId, confidence: item.confidence })),
+    flow: flow?.trace ?? null,
+    signature: strategy.signature,
+    resolution: strategy.resolution,
+    fallback: skillFallback ? { reason: skillFallback } : null,
+    shadow: null,
+    timings: { totalMs, firstModuleMs: null },
+  } : null;
+
+  // Shadow: the Skill runs alongside the generic answer — after it is saved — and is compared, never shown.
+  const shadowSkill = strategy?.executionClass === "skill" && strategy.mode === "shadow" && strategy.skill && strategy.skillIntent ? strategy.skill : null;
+  const shadow = shadowSkill && strategy ? async (): Promise<ShadowComparison | null> => {
+    const skillIntent = strategy.skillIntent!;
+    const run = await gather(ctx, env, skillIntent, { progressive: false, record: false, knowledge: false });
+    const skillBase: Omit<CompileInput, "graph"> = { ...base, modules: skillIntent.modules, scenario: skillIntent.context.scenario, resultKeys: {} };
+    const shaped = compileWithSkill(skillBase, run.graph, shadowSkill, strategy.flow);
+    const comparison = compareShadow({
+      skillId: shadowSkill.id, version: shadowSkill.version, flowId: shadowSkill.flowId, at: new Date().toISOString(),
+      generic: shadowSide(output.manifest, graph, { durationMs: gathered.durationMs }),
+      skill: shadowSide(shaped.output.manifest, shaped.graph, { durationMs: run.durationMs, branches: shaped.flow?.trace.branches ?? [] }),
+    });
+    await recordMeshEvent(sessionId, "intent_skill_shadow_compared", { specialty: ctx.specialty, skillId: shadowSkill.id, skillVersion: shadowSkill.version, verdict: comparison.verdict, reason: comparison.reasons.join(";").slice(0, 120) || undefined, durationMs: run.durationMs });
+    return comparison;
+  } : null;
+
   return {
     intent: ctx.job ?? intent.job.family,
     plan: trace.plan,
@@ -258,6 +361,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<ExecutorResult 
     drafts,
     synthesis: synthesisOf(graph, intent, question),
     notices: [],
-    experience: { intentId: intent.id, manifest: output.manifest, graph, plan: { id: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, reused } },
+    experience,
+    execution,
+    shadow,
   };
 }

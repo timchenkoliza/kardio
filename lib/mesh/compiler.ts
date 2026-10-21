@@ -1,7 +1,7 @@
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { ClaimKind, EvidenceGraph, GraphDocument, NormalizedClaim } from "./evidence";
 import type { JobType } from "./jobs";
-import { experienceManifestSchema, MANIFEST_SCHEMA, MODULE_POLICY, STABLE_SHELL_VERSION, type ExperienceManifest, type ManifestAction, type ManifestModule, type ModuleFamily, type RepresentationMode } from "./manifest";
+import { experienceManifestSchema, MANIFEST_SCHEMA, MODULE_POLICY, STABLE_SHELL_VERSION, type ExperienceManifest, type ManifestAction, type ManifestExecution, type ManifestModule, type ManifestView, type ModuleFamily, type RepresentationMode } from "./manifest";
 import { validateManifest, type PolicyContext, type PolicyReport } from "./policies";
 
 /**
@@ -34,6 +34,16 @@ export interface CompileInput {
   resultKeys?: Readonly<Record<string, string>>;
   policy: PolicyContext;
   scenario: string | null;
+  /** A Skill's key-takeaway priority for this family (kind, cap); the compiler default otherwise. */
+  takeaway?: ReadonlyArray<readonly [ClaimKind, number]> | null;
+  /** Claims a Flow puts first in the key takeaway (e.g. the instruction's section on children). */
+  priorityClaims?: readonly string[];
+  /** Flow directives: scalar props merged into approved modules. */
+  moduleProps?: Partial<Record<ModuleFamily, Record<string, string | number | boolean | null | string[]>>>;
+  /** How the result is executed (recorded in the manifest; ids are never rendered). */
+  execution?: ManifestExecution | null;
+  /** A refinement view already applied to the graph (recorded in the manifest). */
+  view?: ManifestView | null;
 }
 
 export interface CompileOutput {
@@ -75,7 +85,7 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
 };
 const TAKEAWAY_MAX = 6;
 
-function takeawayClaims(graph: EvidenceGraph): string[] {
+function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeaway" | "priorityClaims"> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
@@ -87,7 +97,11 @@ function takeawayClaims(graph: EvidenceGraph): string[] {
   const terms = graph.context.terms ?? [];
   const onTopic = (claim: NormalizedClaim) => { const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase(); return terms.filter(term => text.includes(term)).length; };
   const picked: string[] = [];
-  for (const [kind, cap] of TAKEAWAY_ORDER[family]) {
+  for (const claimId of input.priorityClaims ?? []) {
+    const claim = graph.claims.find(item => item.id === claimId);
+    if (claim && relevant(claim) && !picked.includes(claimId) && picked.length < TAKEAWAY_MAX) picked.push(claimId);
+  }
+  for (const [kind, cap] of input.takeaway ?? TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
       // On the asked subtype first, Russian sources before international, newer first, then source relevance.
       .sort((a, b) => onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
@@ -96,7 +110,7 @@ function takeawayClaims(graph: EvidenceGraph): string[] {
         || Number(docs.get(a.documentId)?.attributes.relevance ?? 0) - Number(docs.get(b.documentId)?.attributes.relevance ?? 0));
     // Document metadata is already in each item's source line; it is shown only for a document with nothing else picked.
     const pool = kind === "guideline_metadata" ? candidates.filter(claim => !picked.some(id => graph.claims.find(item => item.id === id)?.documentId === claim.documentId)) : candidates;
-    for (const claim of pool.slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
+    for (const claim of pool.filter(item => !picked.includes(item.id)).slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
   }
   return picked;
 }
@@ -117,7 +131,7 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
   const byDate = (a: GraphDocument, b: GraphDocument) => DATE(b).localeCompare(DATE(a));
   switch (family) {
     case "key_takeaway": {
-      const claimIds = takeawayClaims(graph);
+      const claimIds = takeawayClaims(graph, input);
       if (!claimIds.length) return null;
       return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps } };
     }
@@ -208,6 +222,8 @@ function assemble(graph: EvidenceGraph, input: CompileInput, modules: ManifestMo
     stableShell: STABLE_SHELL_VERSION,
     provenance: { sourceIds: [...new Set(graph.sources.filter(source => source.outcome !== "not_invoked").map(source => source.id))], documentCount: graph.documents.length, claimCount: graph.claims.length },
     compiler: { version: COMPILER_VERSION, fallback: args.fallback, warnings: args.warnings, decisions: args.decisions, policy: { passed: args.report?.passed ?? true, blocking: args.report?.blocking ?? 0, findings: args.report?.findings.length ?? 0 } },
+    ...(input.execution ? { execution: input.execution } : {}),
+    ...(input.view ? { view: input.view } : {}),
   };
 }
 
@@ -249,8 +265,10 @@ export function compileExperience(input: CompileInput): CompileOutput {
   const modules: ManifestModule[] = [];
   for (const family of [...new Set(ordered)]) {
     if (!MODULE_POLICY[family].implemented) { decisions.push(`skip:${family}:not_implemented`); continue; }
-    const entry = moduleFor(family, graph, input);
-    if (!entry) { decisions.push(`skip:${family}:no_content`); continue; }
+    const found = moduleFor(family, graph, input);
+    if (!found) { decisions.push(`skip:${family}:no_content`); continue; }
+    const extra = input.moduleProps?.[family];
+    const entry = extra ? { ...found, props: { ...found.props, ...extra } } : found;
     // Gaps are part of the takeaway when there is one.
     if (family === "notices" && modules.some(item => item.family === "key_takeaway")) { decisions.push("merge:notices→key_takeaway"); continue; }
     modules.push(entry);

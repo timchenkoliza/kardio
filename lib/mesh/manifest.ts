@@ -130,8 +130,30 @@ export const experienceManifestSchema = z.object({
     decisions: z.array(z.string()),
     policy: z.object({ passed: z.boolean(), blocking: z.number().int().min(0), findings: z.number().int().min(0) }),
   }),
+  /**
+   * How the result was executed. Internal ids (Skill, Flow) are kept for
+   * traces and evaluation and are never rendered; `explanation` is the
+   * physician-language line («Сравниваем текущую и предыдущую версии рекомендаций»).
+   * Absent on manifests compiled before Skills existed.
+   */
+  execution: z.object({
+    class: z.enum(["skill", "dynamic"]),
+    explanation: z.string().max(140).nullable(),
+    skill: z.object({ id: z.string(), version: z.string(), mode: z.enum(["shadow", "primary"]) }).nullable(),
+    flow: z.object({ id: z.string(), version: z.string(), branches: z.array(z.string()).max(12) }).nullable(),
+  }).optional(),
+  /** The view a refinement applied («только российские источники»); absent = everything. */
+  view: z.object({
+    jurisdiction: z.enum(["RU"]).nullable(),
+    since: z.number().int().min(1900).max(2100).nullable(),
+    focus: z.array(z.string()).max(4),
+    expandedDocumentId: z.string().nullable(),
+    comparison: z.enum(["previous_version"]).nullable(),
+  }).optional(),
 });
 
 export type ExperienceManifest = z.infer<typeof experienceManifestSchema>;
+export type ManifestExecution = NonNullable<ExperienceManifest["execution"]>;
+export type ManifestView = NonNullable<ExperienceManifest["view"]>;
 export type ManifestModule = z.infer<typeof manifestModuleSchema>;
 export type ManifestAction = z.infer<typeof manifestActionSchema>;

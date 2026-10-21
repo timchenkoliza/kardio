@@ -207,7 +207,18 @@ export interface AgentRun {
   startedAt: string;
   completedAt: string | null;
   status: RunStatus;
-  input: { text: string | null; preferenceDigest: string; explicitJob?: boolean; followup?: boolean };
+  input: {
+    text: string | null;
+    preferenceDigest: string;
+    explicitJob?: boolean;
+    followup?: boolean;
+    /**
+     * Execution context decided when the run was created (ids only, never text):
+     * entities resolved from the session, the clarification answered, a confirmed plan.
+     * Execution re-decides the strategy from these, deterministically.
+     */
+    context?: { entities: string[]; answered: { id: string; optionId: string | null } | null; planConfirmed: string | null } | null;
+  };
   intent: string | null;
   plan: PlanStep[];
   toolsUsed: ToolUse[];
@@ -221,6 +232,10 @@ export interface AgentRun {
   experience?: RunExperience | null;
   /** Durable progress of a run that has not finished (and the record of how it got there). */
   progress?: RunProgress | null;
+  /** How the run was executed: Skill fast path or dynamic plan, flow branches, shadow comparison. */
+  execution?: import("@/lib/mesh/execution").RunExecution | null;
+  /** Refinements applied to this result in place (result as context), oldest first, bounded. */
+  patches?: Array<import("@/lib/mesh/patch").ExperiencePatch>;
 }
 
 /** Physician-facing progress of a run; no implementation detail beyond source names. */

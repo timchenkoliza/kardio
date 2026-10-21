@@ -2,6 +2,7 @@ import type { EffectivePreference } from "@/lib/agents/profile";
 import type { AgentId, AgentRun, Material, RunExperience, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import type { NormalizedIntent } from "@/lib/mesh/intent";
+import type { Strategy } from "@/lib/mesh/strategy";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import type { DrugLabelResult } from "./adapters/openfda";
@@ -31,6 +32,8 @@ export interface AgentContext {
   history: AgentRun[];
   /** Compiled intent when the run came from the portal input (mesh-executed jobs). */
   intent?: NormalizedIntent | null;
+  /** Execution strategy (Skill fast path, dynamic plan) decided for this run. */
+  strategy?: Strategy | null;
   /** Browser driver for browser-capable sources; undefined = select automatically, null = none. */
   browserDriver?: BrowserDriver | null;
   /** Session for internal observability (ids only). */

@@ -6,6 +6,8 @@ import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep,
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { diffManifests, isEmptyPatch } from "@/lib/mesh/patch";
+import { pinnedSession } from "@/lib/mesh/session-context";
+import { decideStrategy } from "@/lib/mesh/strategy";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
@@ -317,6 +319,15 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     deps.store.listResults(deps.sessionId, request.specialty, request.agentId),
     request.agentId === "learning" ? deps.store.listRuns(deps.sessionId, request.specialty, undefined, 60) : Promise.resolve([] as AgentRun[]),
   ]);
+  const decided = run.input.context ?? null;
+  const strategy = request.intent && inputText ? decideStrategy({
+    text: inputText,
+    specialty: request.specialty,
+    job: request.intent.job.explicit ? request.intent.job.family : null,
+    session: pinnedSession(decided?.entities ?? [], now),
+    answered: decided?.answered ?? { id: "execution", optionId: null },
+    planConfirmed: decided?.planConfirmed ?? "execution",
+  }) : null;
   const ctx: AgentContext = {
     agentId: request.agentId,
     specialty: request.specialty,
@@ -334,7 +345,9 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     job: request.job ?? null,
     history: history.filter(item => item.id !== runId),
     // The intent is recompiled from the sanitized text: nothing redacted by the risk gate reaches the sources.
-    intent: request.intent && inputText ? compileIntent(inputText, request.specialty, { job: request.intent.job.explicit ? request.intent.job.family : null }) : null,
+    // The strategy is re-decided from the same text and the context persisted at creation (never asks again).
+    intent: strategy?.intent ?? (request.intent && inputText ? compileIntent(inputText, request.specialty, { job: request.intent.job.explicit ? request.intent.job.family : null }) : null),
+    strategy,
     ...(deps.browserDriver !== undefined ? { browserDriver: deps.browserDriver } : {}),
     sessionId: deps.sessionId,
     progress: writer?.sink ?? null,
@@ -375,6 +388,7 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   run.toolsUsed = executed.toolsUsed;
   run.synthesis = executed.synthesis;
   run.experience = executed.experience ?? null;
+  run.execution = executed.execution ?? null;
   run.riskNotices = [...new Set([...run.riskNotices, ...executed.notices, ...validation.notes])];
   run.resultIds = merged.results.map(result => result.id);
   run.newResultCount = merged.newCount;
@@ -396,7 +410,21 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
       patch: changed ? patch : run.progress?.patch ?? null,
     };
   }
+  if (run.execution) run.execution = { ...run.execution, timings: { totalMs: run.durationMs ?? run.execution.timings.totalMs, firstModuleMs: run.progress?.firstModuleMs ?? null } };
   await deps.store.saveRun(deps.sessionId, run);
+
+  // Shadow execution of a Skill that is not primary yet: after the answer is saved, compared, never shown.
+  if (executed.shadow && run.execution) {
+    try {
+      const comparison = await executed.shadow();
+      if (comparison) {
+        run.execution = { ...run.execution, shadow: comparison };
+        await deps.store.saveRun(deps.sessionId, run);
+      }
+    } catch {
+      // A failed shadow never affects the physician's result.
+    }
+  }
 
   const actions = requestApproval({ specialty: request.specialty, agentId: request.agentId, routed, results: merged.results, now: nowIso });
   for (const action of actions) await deps.store.saveAction(deps.sessionId, action);

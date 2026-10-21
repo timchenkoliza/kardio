@@ -15,6 +15,10 @@ export interface ExecutorResult {
   notices: string[];
   /** Compiled experience (mesh-executed jobs only). */
   experience?: RunExperience | null;
+  /** How the run was executed (mesh-executed jobs only). */
+  execution?: import("@/lib/mesh/execution").RunExecution | null;
+  /** Shadow comparison to run after the result is saved (a Skill not yet primary). */
+  shadow?: (() => Promise<import("@/lib/mesh/execution").ShadowComparison | null>) | null;
 }
 
 export class PlanBuilder {
