@@ -106,6 +106,18 @@ function entitiesFor(intent: NormalizedIntent, text: string): EntityRef[] {
   return refs;
 }
 
+/**
+ * PubMed's sort date fills a missing month or day with 01 («2024» → 2024-01-01).
+ * Keep only the precision the record actually has: YYYY, YYYY-MM or YYYY-MM-DD.
+ */
+export function pubmedVersionDate(pubDate: string | null, sortDate: string | null): string | null {
+  if (!sortDate) return null;
+  const value = (pubDate ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}/u.test(value) || /^\d{4}\s+[A-Za-z]{3}\s+\d{1,2}(?!\d)/u.test(value)) return sortDate.slice(0, 10);
+  if (/^\d{4}\s+[A-Za-z]{3}(?![A-Za-z-])/u.test(value)) return sortDate.slice(0, 7);
+  return sortDate.slice(0, 4);
+}
+
 function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstract: PubmedAbstract | undefined, args: { approved: boolean; relevance: number; retrievedAt: string; maxExcerpt: number }): NormalizedDocument {
   const id = `pubmed:${article.pmid}`;
   const type = studyType(article);
@@ -123,7 +135,7 @@ function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstr
   return {
     id, sourceId: "pubmed", kind: type === "Клинические рекомендации" ? "guideline_publication" : "review", title: article.title, url: article.url, language: "en",
     publisher: article.journalFull ?? article.journal, publishedAt: article.sortDate ?? article.pubDate, retrievedAt: args.retrievedAt,
-    version: { fingerprint: chunk ? combineFingerprints([chunk.fingerprint]) : fingerprint(article.title), label: null, date: article.sortDate },
+    version: { fingerprint: chunk ? combineFingerprints([chunk.fingerprint]) : fingerprint(article.title), label: null, date: pubmedVersionDate(article.pubDate, article.sortDate) },
     jurisdiction: "INT", authority: "primary", state: "LIVE",
     attributes: { pmid: article.pmid, journal: article.journal, year: yearOf(article), studyType: type, approvedJournal: args.approved, conclusionLabel: abstract?.conclusionLabel ?? null, relevance: args.relevance },
     chunks: chunk ? [chunk] : [], claims, entities,

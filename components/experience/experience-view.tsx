@@ -29,10 +29,20 @@ interface Ctx {
   resultFor: (documentId: string, module: ManifestModule) => AgentResultView | null;
 }
 
+/** Dates are shown at the precision the source has: a year, a month or a day. */
 function date(value: string | null | undefined): string | null {
   if (!value) return null;
   if (/^\d{4}$/u.test(value)) return value;
+  if (/^\d{4}-\d{2}$/u.test(value)) return formatDateRu(`${value}-15`, { month: "long", year: "numeric" }) ?? value;
   return formatDateRu(value, { day: "numeric", month: "long", year: "numeric" }) ?? value;
+}
+
+/** The version date, unless the label or the source line already says it. */
+function versionDate(document: GraphDocument, shown: string): string | null {
+  const value = document.version.date;
+  if (!value || document.version.label?.includes(value.slice(0, 4))) return null;
+  if (/^\d{4}$/u.test(value) && shown.includes(value)) return null;
+  return date(value);
 }
 
 function freshnessState(graph: EvidenceGraph, document: GraphDocument): { state: CapabilityState; label: string } {
@@ -95,7 +105,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         const document = claim ? ctx.index.document.get(claim.documentId) : undefined;
         if (!claim || !document) return null;
         return <li key={claimId}>
-          <p className="pt-takeaway-source">{nbsp(`${sourceName(document)}${document.version.label ? ` · ${document.version.label}` : ""}${document.version.date && !document.version.label?.includes(document.version.date.slice(0, 4)) ? ` · ${date(document.version.date)}` : ""}`)} <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[claim.verification].tone}`}>{VERIFICATION_LABEL[claim.verification].label}</span></p>
+          <p className="pt-takeaway-source">{nbsp(`${sourceName(document)}${document.version.label ? ` · ${document.version.label}` : ""}${versionDate(document, sourceName(document)) ? ` · ${versionDate(document, sourceName(document))}` : ""}`)} <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[claim.verification].tone}`}>{VERIFICATION_LABEL[claim.verification].label}</span></p>
           <Claim claim={claim} compact />
         </li>;
       })}
@@ -128,7 +138,7 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
           <div className="ws-result-meta">
             <span className="ws-kind" data-art="guideline">{kind}</span>
             {document.version.label && <span>{document.version.label}</span>}
-            {document.version.date && !document.version.label?.includes(document.version.date.slice(0, 4)) && <span>{date(document.version.date)}</span>}
+            {versionDate(document, "") && <span>{versionDate(document, "")}</span>}
           </div>
           <h3 className="pt-version-title">{nbsp(document.title)}</h3>
           <p className="ws-provenance"><span>{document.publisher ?? sourceName(document)}</span><StateBadge state={fresh.state} freshness={fresh.label} /></p>

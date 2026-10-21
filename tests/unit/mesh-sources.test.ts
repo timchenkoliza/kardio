@@ -192,4 +192,16 @@ describe("every source keeps its own excerpt policy", () => {
     expect(claim.quote!.length).toBeLessThanOrEqual(PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars!);
     expect(result.documents[0].chunks[0].fingerprint).toMatch(/^sha256:/u);
   });
+
+  it("PubMed dates keep the precision of the record — a year is never shown as 1 January", async () => {
+    const { pubmedVersionDate } = await import("@/server/mesh/sources/pubmed");
+    expect(pubmedVersionDate("2024", "2024-01-01")).toBe("2024");
+    expect(pubmedVersionDate("2024 Jan-Dec", "2024-01-01")).toBe("2024");
+    expect(pubmedVersionDate("2024 Spring", "2024-03-01")).toBe("2024");
+    expect(pubmedVersionDate("2024 Mar", "2024-03-01")).toBe("2024-03");
+    expect(pubmedVersionDate("2024 Mar-Apr", "2024-03-01")).toBe("2024");
+    expect(pubmedVersionDate("2024 Mar 5", "2024-03-05")).toBe("2024-03-05");
+    expect(pubmedVersionDate("2026-09-30 (онлайн)", "2026-09-30")).toBe("2026-09-30");
+    expect(pubmedVersionDate(null, null)).toBeNull();
+  });
 });

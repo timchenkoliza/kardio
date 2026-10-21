@@ -105,7 +105,8 @@ export function draftsFromDocuments(ctx: AgentContext, documents: readonly Norma
       title: truncate(document.title, 220),
       summary: [document.publisher, document.version.label, document.version.date ?? document.publishedAt].filter(Boolean).join(" · "),
       reasonShown: [document.authority === "official" ? "Официальный источник" : document.authority === "professional" ? "Профессиональный источник, вторичная публикация" : document.authority === "primary" ? "Первичная публикация" : "Обзор публикации"],
-      observedAt: document.version.date ?? document.publishedAt,
+      // A sortable timestamp: a year- or month-precision version date falls back to the source's full date.
+      observedAt: document.version.date && document.version.date.length >= 10 ? document.version.date : document.publishedAt ?? document.version.date,
       evidence,
       source: { ...evidence[0]?.provenance ?? { connectorId, source: document.publisher ?? document.title, sourceUrl: document.url, publisher: document.publisher, retrievedAt: document.retrievedAt, publishedAt: document.publishedAt, version: document.version.label, ownership: "PUBLIC_SOURCE" as const, dataOrigin: "runtime_api" as const } },
       actions,
