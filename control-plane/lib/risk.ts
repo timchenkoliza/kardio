@@ -41,6 +41,7 @@ function isPotentiallyUserVisible(file: string): boolean {
 
 function classifyExperienceImpact(contract: ChangeContract, changedFiles: string[]): {
   impact: ExperienceImpactClass;
+  matched: ExperienceImpactClass[];
   reasons: string[];
 } {
   const experience = contract.experience_contract;
@@ -50,9 +51,13 @@ function classifyExperienceImpact(contract: ChangeContract, changedFiles: string
   if (!experience) {
     if (changedFiles.some(isPotentiallyUserVisible)) {
       reasons.push(`${UNKNOWN_USER_VISIBLE_EXPERIENCE_DEFAULT}: user-visible paths changed without experience_contract`);
-      return { impact: UNKNOWN_USER_VISIBLE_EXPERIENCE_DEFAULT, reasons };
+      return {
+        impact: UNKNOWN_USER_VISIBLE_EXPERIENCE_DEFAULT,
+        matched: [UNKNOWN_USER_VISIBLE_EXPERIENCE_DEFAULT],
+        reasons,
+      };
     }
-    return { impact: "E0", reasons: ["E0: no user-visible experience contract required"] };
+    return { impact: "E0", matched: ["E0"], reasons: ["E0: no user-visible experience contract required"] };
   }
 
   const declaredTriggers = new Set(experience.impact_triggers ?? []);
@@ -82,12 +87,13 @@ function classifyExperienceImpact(contract: ChangeContract, changedFiles: string
   }
 
   if (!matched.size) {
-    matched.add(experience.user_visible ? "E1" : "E0");
-    reasons.push(`${experience.user_visible ? "E1" : "E0"}: explicit experience contract without higher-impact trigger`);
+    const fallback = experience.user_visible ? "E1" : "E0";
+    matched.add(fallback);
+    reasons.push(`${fallback}: explicit experience contract without higher-impact trigger`);
   }
 
   const impact = [...matched].sort((a, b) => EXPERIENCE_ORDER.indexOf(b) - EXPERIENCE_ORDER.indexOf(a))[0]!;
-  return { impact, reasons };
+  return { impact, matched: [...matched], reasons };
 }
 
 export function classifyRisk(args: {
@@ -120,10 +126,18 @@ export function classifyRisk(args: {
   }
 
   const riskClass = [...matched].sort((a, b) => RISK_ORDER.indexOf(b) - RISK_ORDER.indexOf(a))[0]!;
-  const riskPolicy = RISK_POLICIES[riskClass];
   const experience = classifyExperienceImpact(args.contract, args.changedFiles);
-  const experiencePolicy = EXPERIENCE_POLICIES[experience.impact];
-  const requiredGates = [...new Set([...riskPolicy.requiredGates, ...experiencePolicy.requiredGates])];
+
+  const engineeringPolicies = [...matched].map(risk => RISK_POLICIES[risk]);
+  const experiencePolicies = experience.matched.map(impact => EXPERIENCE_POLICIES[impact]);
+  const requiredGates = [...new Set([
+    ...engineeringPolicies.flatMap(policy => policy.requiredGates),
+    ...experiencePolicies.flatMap(policy => policy.requiredGates),
+  ])];
+  const ceilings = [
+    ...engineeringPolicies.map(policy => policy.maxRecommendedRolloutPercent),
+    ...experiencePolicies.map(policy => policy.maxRecommendedRolloutPercent),
+  ];
 
   return {
     change_id: args.contract.change_id,
@@ -135,9 +149,6 @@ export function classifyRisk(args: {
     experience_reasons: experience.reasons,
     changed_files: [...args.changedFiles].sort(),
     required_gates: requiredGates,
-    max_recommended_rollout_percent: Math.min(
-      riskPolicy.maxRecommendedRolloutPercent,
-      experiencePolicy.maxRecommendedRolloutPercent,
-    ),
+    max_recommended_rollout_percent: Math.min(...ceilings),
   };
 }
