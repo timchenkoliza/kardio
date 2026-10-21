@@ -1,4 +1,4 @@
-import type { RiskClass } from "./model";
+import type { ExperienceImpactClass, RiskClass } from "./model";
 
 export interface RiskPolicy {
   description: string;
@@ -9,7 +9,15 @@ export interface RiskPolicy {
   maxRecommendedRolloutPercent: number;
 }
 
+export interface ExperienceImpactPolicy {
+  description: string;
+  triggers: string[];
+  requiredGates: string[];
+  maxRecommendedRolloutPercent: number;
+}
+
 export const RISK_ORDER: RiskClass[] = ["R0", "R1", "R2", "R3", "R4"];
+export const EXPERIENCE_ORDER: ExperienceImpactClass[] = ["E0", "E1", "E2", "E3", "E4"];
 
 export const RISK_POLICIES: Record<RiskClass, RiskPolicy> = {
   R0: {
@@ -79,7 +87,71 @@ export const RISK_POLICIES: Record<RiskClass, RiskPolicy> = {
   },
 };
 
+export const EXPERIENCE_POLICIES: Record<ExperienceImpactClass, ExperienceImpactPolicy> = {
+  E0: {
+    description: "No user-visible experience semantics change",
+    triggers: [],
+    requiredGates: [],
+    maxRecommendedRolloutPercent: 100,
+  },
+  E1: {
+    description: "Presentation-level change that preserves job, module, meaning and user mental model",
+    triggers: ["user_visible", "copy_change", "visual_morphology_change"],
+    requiredGates: ["experience_smoke"],
+    maxRecommendedRolloutPercent: 20,
+  },
+  E2: {
+    description: "Task-fit, result ranking, module selection or information representation changes",
+    triggers: [
+      "result_ranking_change",
+      "module_selection_change",
+      "representation_change",
+      "information_density_change",
+      "visual_text_balance_change",
+    ],
+    requiredGates: ["task_fit_eval", "representation_eval", "accessibility_eval"],
+    maxRecommendedRolloutPercent: 5,
+  },
+  E3: {
+    description: "Meaningful capability transition, personalization, onboarding or structural blueprint adaptation",
+    triggers: [
+      "meaningful_capability",
+      "personalization_change",
+      "onboarding_change",
+      "structural_layout_change",
+      "blueprint_change",
+    ],
+    requiredGates: [
+      "task_fit_eval",
+      "representation_eval",
+      "personalization_privacy",
+      "onboarding_eval",
+      "blueprint_stability",
+    ],
+    maxRecommendedRolloutPercent: 5,
+  },
+  E4: {
+    description: "Mental-model, core-navigation, action-semantics or factual-meaning change",
+    triggers: [
+      "mental_model_change",
+      "core_navigation_change",
+      "action_semantics_change",
+      "factual_meaning_change",
+      "safety_threshold_change",
+    ],
+    requiredGates: [
+      "task_fit_eval",
+      "representation_eval",
+      "stable_shell_eval",
+      "accessibility_eval",
+      "human_product_review",
+    ],
+    maxRecommendedRolloutPercent: 1,
+  },
+};
+
 export const UNKNOWN_CHANGE_DEFAULT: RiskClass = "R3";
+export const UNKNOWN_USER_VISIBLE_EXPERIENCE_DEFAULT: ExperienceImpactClass = "E2";
 
 export const RELEASE_STAGES = [
   { name: "preview", exposurePercent: 0 },
