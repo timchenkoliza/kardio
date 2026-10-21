@@ -21,7 +21,7 @@ import { isRehydrated, markRehydrationConsumed } from "./store/mirror";
 export const MONITORING_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "events"];
 
 export const AGENT_CONNECTORS: Record<AgentId, string[]> = {
-  reference: ["pubmed", "openfda-labels", "regulatory-news", "grls", "catalog"],
+  reference: ["medi", "pubmed", "openfda-labels", "esc-guidelines", "regulatory-news", "catalog", "cr-rubricator", "grls"],
   whats_new: ["catalog", "pubmed", "esc-guidelines", "regulatory-news", "partner-channel"],
   guidelines: ["catalog", "esc-guidelines"],
   drugs: ["regulatory-news", "grls", "pubmed", "journals", "partner-channel"],

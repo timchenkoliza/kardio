@@ -314,7 +314,7 @@ export interface ActionRequest {
 export interface ConnectorDescriptor {
   id: string;
   name: string;
-  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "drug_labels" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
+  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "drug_labels" | "professional_reference" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
   mode: IntegrationMode;
   dataOrigin: DataOrigin;
   snapshotAt: string | null;
