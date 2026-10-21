@@ -18,8 +18,12 @@ function assessment(overrides: Partial<RiskAssessment> = {}): RiskAssessment {
   };
 }
 
-function pass(gate: string, sha = "candidate"): GateResult {
-  return { gate, status: "PASS", candidate_sha: sha, source: "test" };
+function pass(gate: string, sha = "candidate", source = "test"): GateResult {
+  return { gate, status: "PASS", candidate_sha: sha, source };
+}
+
+function fail(gate: string, source = "test-failure"): GateResult {
+  return { gate, status: "FAIL", candidate_sha: "candidate", source };
 }
 
 describe("control-plane release decision", () => {
@@ -34,7 +38,7 @@ describe("control-plane release decision", () => {
     expect(result.experience_impact).toBe("E2");
   });
 
-  it("does not accept evidence produced for a different candidate SHA", () => {
+  it("does not accept evidence produced only for a different candidate SHA", () => {
     const result = decideRelease({
       assessment: assessment(),
       gates: [
@@ -45,7 +49,38 @@ describe("control-plane release decision", () => {
       ],
     });
     expect(result.status).toBe("BLOCK");
-    expect(result.reasons.join(" ")).toContain("different candidate SHA");
+    expect(result.reasons.join(" ")).toContain("no evidence for candidate SHA");
+  });
+
+  it("fails closed when PASS and FAIL exist for the same required gate and SHA", () => {
+    const result = decideRelease({
+      assessment: assessment(),
+      gates: [
+        pass("static"),
+        pass("task_fit_eval"),
+        pass("representation_eval", "candidate", "older-pass"),
+        fail("representation_eval", "new-regression"),
+        pass("experience_contract"),
+      ],
+    });
+    expect(result.status).toBe("BLOCK");
+    expect(result.missing_or_failed_gates).toContain("representation_eval");
+    expect(result.reasons.join(" ")).toContain("new-regression is FAIL");
+  });
+
+  it("ignores wrong-SHA noise when exact-SHA evidence is green", () => {
+    const result = decideRelease({
+      assessment: assessment(),
+      gates: [
+        pass("static"),
+        pass("task_fit_eval"),
+        pass("representation_eval", "old-candidate", "stale"),
+        pass("representation_eval", "candidate", "current"),
+        pass("experience_contract"),
+      ],
+      metrics: { stage: "preview", observation_events: 0 },
+    });
+    expect(result.status).toBe("CANARY_ELIGIBLE");
   });
 
   it("permits only the conservative next cohort when engineering and experience gates pass", () => {
