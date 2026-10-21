@@ -3,6 +3,7 @@ import { detectRiskSignals, type RiskSignals } from "@/lib/agents/risk-rules";
 import type { AgentId } from "@/lib/agents/types";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { hostForFamily } from "@/lib/mesh/capabilities";
 import { JOBS, type PortalJob } from "./jobs";
 import { conceptsIn, drugsIn, hasDrugCue, normalizeQuery, type DrugEntry, type QueryConcept } from "./lexicon";
 
@@ -14,6 +15,7 @@ import { conceptsIn, drugsIn, hasDrugCue, normalizeQuery, type DrugEntry, type Q
 
 export interface PortalRoute {
   job: PortalJob;
+  /** Persistence host of the capability that serves the job (implementation detail). */
   agentId: AgentId;
   /** Router matching confidence, never a statement about medicine. */
   confidence: number;
@@ -110,7 +112,7 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
     reasons = [`Распознали: ${[...new Set(entry.hits)].slice(0, 3).join(", ")}`];
   }
 
-  const agentId = JOBS[job].agentId;
+  const agentId = hostForFamily(job);
   return {
     job,
     agentId,
