@@ -2,6 +2,7 @@ import { ArrowRight, ExternalLink, Handshake } from "lucide-react";
 import { formatDateRu } from "@/lib/agents/format";
 import { STATE_LABEL, type ForYouCard } from "@/lib/portal/cards";
 import type { ClientPortalEvent } from "@/lib/portal/metrics";
+import { nbsp } from "@/lib/ui/typography";
 import { TrackedLink } from "./tracked-link";
 
 const ART: Record<ForYouCard["kind"], string> = { publication: "article", guideline: "guideline", drug_signal: "clinical", event: "event", learning: "video", saved_topic: "article", catalog: "guideline", partner: "article" };
@@ -30,8 +31,8 @@ function Card({ card }: { card: ForYouCard }) {
   if (card.partner) {
     return <aside className="pt-card is-partner" aria-label="Партнёрский материал">
       <p className="ws-format-disclosure"><Handshake size={13} aria-hidden="true" />{card.partner.disclosure} · {card.partner.sponsor}</p>
-      <h3 className="pt-card-title">{card.title}</h3>
-      {card.summary && <p className="pt-card-summary">{card.summary}</p>}
+      <h3 className="pt-card-title">{nbsp(card.title)}</h3>
+      {card.summary && <p className="pt-card-summary">{nbsp(card.summary)}</p>}
       <p className="pt-shown">Почему вы это видите: {card.whyShown}</p>
       <div className="pt-card-actions"><TrackedLink className="ws-text-link" href={card.primary.href} events={[]}>{card.primary.label}<ArrowRight size={14} aria-hidden="true" /></TrackedLink></div>
     </aside>;
@@ -44,9 +45,9 @@ function Card({ card }: { card: ForYouCard }) {
       {date && <span>{date}</span>}
     </div>
     <h3 className="pt-card-title" id={`fy-${card.id}`}>
-      <TrackedLink href={card.primary.href} external={card.primary.external} events={eventsFor(card, true)} resultId={card.resultId} resultKind={card.kind}>{card.title}</TrackedLink>
+      <TrackedLink href={card.primary.href} external={card.primary.external} events={eventsFor(card, true)} resultId={card.resultId} resultKind={card.kind}>{nbsp(card.title)}</TrackedLink>
     </h3>
-    {card.summary && <p className="pt-card-summary">{card.summary}</p>}
+    {card.summary && <p className="pt-card-summary">{nbsp(card.summary)}</p>}
     {card.whyItMatters && <p className="pt-why"><strong>Почему важно:</strong> {card.whyItMatters}</p>}
     <p className="pt-shown">Почему вы это видите: {card.whyShown}</p>
     <p className="ws-provenance"><span>{card.source.name}</span><StateBadge state={card.source.state} freshness={card.source.freshness} /></p>

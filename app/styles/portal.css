@@ -151,6 +151,12 @@
 /* ---------- Touch ---------- */
 
 @media (pointer: coarse) {
+  .pt-card-title a { display: inline-block; padding: var(--ws-space-12) 0; margin: calc(var(--ws-space-12) * -1) 0; }
+  .pt-input .ws-examples button,
+  .pt-nudge .ws-chip { min-height: var(--ws-touch-target); }
+  .ws-topbar .ws-specialty select { min-height: var(--ws-touch-target); }
+  .ws-topbar .ws-brand { display: inline-flex; align-items: center; min-height: var(--ws-touch-target); }
+  .ws-switch input { min-width: var(--ws-touch-target); min-height: var(--ws-touch-target); }
   .pt-job-chip { min-height: var(--ws-touch-target); }
   .pt-job-chip button { width: var(--ws-touch-target); height: var(--ws-touch-target); }
   .ws-section-head .ws-text-link,

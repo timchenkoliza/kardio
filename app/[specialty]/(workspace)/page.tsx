@@ -17,6 +17,7 @@ import { pageSession } from "@/server/agents/page-session";
 import { workspaceStore } from "@/server/agents/store";
 import { catalogFor, loadProfile } from "@/server/agents/workspace";
 import { buildForYou } from "@/server/portal/for-you";
+import { nbsp } from "@/lib/ui/typography";
 import { recordForYouRendered } from "@/server/portal/manager";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   return <div className="ws-page pt-home">
     <CatchUpRunner enabled={catchUpDue} />
     <section className="pt-hero" aria-labelledby="pt-title">
-      <h1 id="pt-title">Ответы и обновления — {adapter.audienceDative}</h1>
+      <h1 id="pt-title">{nbsp(`Ответы и обновления — ${adapter.audienceDative}`)}</h1>
       <p className="pt-lead">Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из систематических обзоров, клинических рекомендаций и официальных инструкций, у каждого утверждения есть источник и дата.</p>
       <PortalInput specialty={specialty} examples={EXAMPLES[specialty]} />
       <nav className="pt-shortcuts" aria-label="Частые задачи">
@@ -105,7 +106,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     <section className="ws-section pt-foryou" aria-labelledby="pt-foryou-title">
       <div className="ws-section-head">
         <div>
-          <h2 id="pt-foryou-title" className="ws-section-title">Для вас</h2>
+          <h2 id="pt-foryou-title" className="ws-section-title">{nbsp("Для вас")}</h2>
           <p className="ws-muted">{status}{forYou.topics.length ? ` · темы: ${forYou.topics.slice(0, 3).join(", ")}` : ""}</p>
         </div>
         {forYou.topics.length > 0 && <Link className="ws-text-link" href={`/${specialty}/settings`}>Изменить темы<ArrowRight size={15} aria-hidden="true" /></Link>}

@@ -17,8 +17,10 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
     sessionId ? workspaceStore().listActions(sessionId, specialty) : Promise.resolve([]),
   ]);
   const now = new Date().toISOString();
-  const enabled = workspace.cards.filter(card => card.enabled);
-  const disabled = workspace.cards.filter(card => !card.enabled);
+  // Background checks only: on-demand answers live behind the portal input, not on this page.
+  const cards = workspace.cards.filter(card => card.agentId !== "reference");
+  const enabled = cards.filter(card => card.enabled);
+  const disabled = cards.filter(card => !card.enabled);
 
   return <div className="ws-page">
     <header className="ws-page-head">

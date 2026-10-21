@@ -26,14 +26,14 @@ async function ask(page: Page, text: string) {
 
 test("primary home is one professional input, three jobs and «Для вас» — no agent catalogue", async ({ page }) => {
   await page.goto("/pediatrics");
-  await expect(page.getByRole("heading", { level: 1, name: "Ответы и обновления — педиатрам" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Ответы и\s+обновления\s+— педиатрам/ })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Что хотите узнать или сделать?" })).toBeVisible();
   const shortcuts = page.getByRole("navigation", { name: "Частые задачи" }).getByRole("link");
   await expect(shortcuts).toHaveCount(3);
   await expect(shortcuts.nth(0)).toContainText("Справка по препарату");
   await expect(shortcuts.nth(1)).toContainText("Клинические рекомендации");
   await expect(shortcuts.nth(2)).toContainText("Разбор по исследованиям");
-  await expect(page.getByRole("heading", { level: 2, name: "Для вас" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /Для\s+вас/ })).toBeVisible();
   // Physicians do not need the agent concept: no catalogue, no agent vocabulary on the main surface.
   await expect(page.locator(".ws-agent-card")).toHaveCount(0);
   const main = await page.locator("main").innerText();
@@ -47,7 +47,7 @@ test("primary home is one professional input, three jobs and «Для вас» �
 for (const specialty of LAUNCH) {
   test(`${specialty.name}: shell renders honestly with no cardiology clinical leakage`, async ({ page }) => {
     await page.goto(`/${specialty.id}`);
-    await expect(page.getByRole("heading", { level: 1, name: `Ответы и обновления — ${specialty.dative}` })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: new RegExp(`Ответы и\\s+обновления\\s+— ${specialty.dative}`) })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Специальность" }).first()).toHaveValue(specialty.id);
     if (specialty.id !== "cardiology") {
       // Wait for the first-visit catch-up, then check «Для вас» never borrows cardiology data.

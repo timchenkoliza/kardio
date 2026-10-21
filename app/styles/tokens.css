@@ -327,14 +327,7 @@
   --ws-brand-height-compact: 20px;
 }
 
-/* Oncology keeps its own accent family on the same neutral system. */
-.ws-app[data-specialty="oncology"] {
-  --ws-accent: #5c58b8;
-  --ws-accent-ink: #46429e;
-  --ws-accent-soft: #e8e7f7;
-  --ws-accent-wash: #f2f1fa;
-  --ws-shadow-focus: 0 0 0 2px rgb(92 88 184 / 28%);
-}
+/* One portal, one accent: specialties share the design-system palette (DS: «One accent, one meaning»). */
 
 /* Extension: hover/pressed shade for neutral controls on `surface`. */
 :root { --ws-surface-pressed: #e8e8eb; }
