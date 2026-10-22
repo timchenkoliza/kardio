@@ -18,6 +18,7 @@ import { executeRun, loadProfile } from "@/server/agents/workspace";
 import { executeResearchRun } from "@/server/agents/research-run";
 import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { recordPortalEvent } from "./telemetry";
+import { continuedQuestion, isDependentFollowup } from "@/lib/portal/continuation";
 
 /**
  * Portal Manager: owns the physician's request and its final result.
@@ -58,6 +59,10 @@ export interface AskOptions {
   contextRunId?: string | null;
   /** Depth asked for with this request; the profile default when absent. */
   answerMode?: AnswerMode | null;
+  /** Set when a follow-up continues the question of the result it was typed under. */
+  continuation?: NonNullable<AgentRun["input"]["continuation"]> | null;
+  /** The material a new search on its topic was started from. */
+  origin?: NonNullable<AgentRun["input"]["origin"]> | null;
 }
 
 /** Decide how to execute one request: Skill fast path, one clarification, an explicit plan, or the dynamic path. */
@@ -92,7 +97,7 @@ export async function createAskRun(sessionId: string, specialty: SpecialtyId, te
   if (previous.some(run => run.input.text && jobForRun(run) === route.job)) await recordPortalEvent(sessionId, "repeat_job", { specialty, job: route.job });
 
   const profile = await loadProfile(sessionId, specialty);
-  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup, context: { entities: strategy.resolution?.entities ?? [], answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null }, answerMode: options.answerMode ?? null });
+  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup, context: { entities: strategy.resolution?.entities ?? [], answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null }, answerMode: options.answerMode ?? null, continuation: options.continuation ?? null, origin: options.origin ?? null });
   return { run, job: route.job, agentId: capability.host, route: { job: route.job, confidence: route.confidence, reasons: route.reasons, vague: route.vague } };
 }
 
@@ -169,10 +174,30 @@ async function startRun(sessionId: string, specialty: SpecialtyId, text: string,
  *   large comparison → the explicit plan, one click to run
  *   otherwise → a durable run (Skill fast path or dynamic plan)
  */
-export async function respondToAsk(sessionId: string, specialty: SpecialtyId, text: string, options: AskOptions = {}): Promise<AskResponse> {
-  if (options.contextRunId) {
-    const refinement = await refineRun(sessionId, specialty, options.contextRunId, text);
+/**
+ * A follow-up that names nothing of its own continues the question it was typed
+ * under: the previous question with the follow-up added, the same task. Null
+ * when it is a new question or the previous question is not stored.
+ */
+export async function continuationFor(sessionId: string, specialty: SpecialtyId, contextRunId: string, text: string): Promise<{ text: string; options: Pick<AskOptions, "job" | "continuation"> } | null> {
+  const previous = await workspaceStore().getRun(sessionId, contextRunId);
+  if (!previous || previous.specialty !== specialty || !previous.input.text || previous.status === "blocked") return null;
+  if (!isDependentFollowup(text, specialty)) return null;
+  const job = previous.input.explicitJob && isPortalJob(previous.intent) ? previous.intent : null;
+  return { text: continuedQuestion(previous.input.text, text), options: { job, continuation: { runId: previous.id, followup: text.trim(), question: previous.input.text } } };
+}
+
+export async function respondToAsk(sessionId: string, specialty: SpecialtyId, typed: string, requested: AskOptions = {}): Promise<AskResponse> {
+  let text = typed;
+  let options = requested;
+  if (requested.contextRunId) {
+    const refinement = await refineRun(sessionId, specialty, requested.contextRunId, typed);
     if (refinement) return { kind: "refined", refinement, href: askHref(specialty, { run: refinement.runId }) };
+    const continued = await continuationFor(sessionId, specialty, requested.contextRunId, typed);
+    if (continued) {
+      text = continued.text;
+      options = { ...requested, job: requested.job ?? continued.options.job ?? null, continuation: continued.options.continuation };
+    }
   }
   const strategy = await decideAsk(sessionId, specialty, text, options);
   if (strategy.executionClass === "clarify" && strategy.clarification) {

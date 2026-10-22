@@ -152,7 +152,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
   }
 
   return <>
-    <section className="pt-profile-card" aria-labelledby="pt-topics-title">
+    <section className="pt-profile-card" id="topics" aria-labelledby="pt-topics-title">
       <h2 id="pt-topics-title">{nbsp("Интересующие темы")}</h2>
       <p>Темы поднимают материалы в ленте «Для вас», добавляют подсказки на главной и учитываются в ответах.</p>
       <ul className="pt-topic-chips" aria-label="Выбранные темы">
@@ -210,7 +210,7 @@ export function AnswerModeCard({ answerMode }: { answerMode: AnswerMode }) {
   }
   return <section className="pt-profile-card" aria-labelledby="pt-answer-title">
     <h2 id="pt-answer-title">{nbsp("Предпочтения ответов")}</h2>
-    <p>Режим по умолчанию для новых вопросов. На главной его можно поменять для одного запроса.</p>
+    <p>Как подробно показывать новые ответы. Перед вопросом ничего выбирать не нужно: подробности раскрываются на самом ответе.</p>
     <AnswerModeControl value={mode} onChange={next => void choose(next)} legend="Режим ответа по умолчанию" name="default-answer-mode" disabled={pending} />
     <p className="ws-muted">{ANSWER_MODE_COPY[mode].detail}</p>
     {saved && <span className="pt-profile-saved" role="status">Сохранено</span>}

@@ -239,7 +239,7 @@ describe("one compact answer", () => {
   it("renders the main answer first, quotes in the original language, no pictures", () => {
     const html = renderToStaticMarkup(<ResearchAnswerView run={run()} results={[view(readAttributes(document("abstract")))]} />);
     expect(html.indexOf("ws-ra-headline")).toBeLessThan(html.indexOf("ws-ra-studies"));
-    expect(html.indexOf("ws-ra-studies")).toBeLessThan(html.indexOf("Почему этому можно доверять"));
+    expect(html.indexOf("ws-ra-studies")).toBeLessThan(html.indexOf("Что проверили"));
     expect(html).toContain('lang="en"');
     expect(html).not.toContain("<img");
     expect(html).toContain('href="https://pubmed.ncbi.nlm.nih.gov/31535829/"');

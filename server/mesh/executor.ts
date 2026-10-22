@@ -10,6 +10,8 @@ import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { REQUIREMENT_LABEL } from "@/lib/mesh/jobs";
 import type { ManifestExecution } from "@/lib/mesh/manifest";
 import { planSources, type ExecutionPlan } from "@/lib/mesh/planner";
+import { askedSections, openingView, viewDirectives } from "@/lib/mesh/refine";
+import { drugSectionGroup } from "@/lib/presentation/physician";
 import { compileWithSkill, executionRecord } from "@/lib/mesh/skill-compile";
 import type { IntentSkill } from "@/lib/mesh/skills/types";
 import type { SourceId, SourceStatusReport } from "@/lib/mesh/sources";
@@ -299,11 +301,20 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   const drafts = draftsFromDocuments(ctx, documents, connectorOf);
   const resultKeys = Object.fromEntries(drafts.map(draft => [String(draft.attributes.documentId), `${ctx.agentId}:${draft.key}`]));
   const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
+  // The question opens with what it asked for: the named instruction sections first, «что изменилось» as a comparison.
+  const opening = openingView(question, intent.job.family);
+  const asked = intent.job.family === "drug" ? askedSections(question) : [];
+  const directives = opening ? viewDirectives(graph, null, opening, graph) : { moduleProps: {}, priorityClaims: [] as string[] };
+  const askedClaims = asked.length ? graph.claims.filter(claim => {
+    const chunk = claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId) : undefined;
+    return (asked as readonly string[]).includes(drugSectionGroup(chunk?.heading));
+  }).map(claim => claim.id) : [];
+  const shaping = { moduleProps: { ...directives.moduleProps, ...(asked.length ? { drug_reference: { ...(directives.moduleProps.drug_reference ?? {}), asked } } : {}) }, priorityClaims: [...askedClaims, ...directives.priorityClaims], view: opening };
   let output: CompileOutput;
   let flow: FlowRun | null = null;
   let skillFallback: string | null = null;
   if (primarySkill && strategy) {
-    const shaped = compileWithSkill(base, graph, primarySkill, strategy.flow);
+    const shaped = compileWithSkill(base, graph, primarySkill, strategy.flow, shaping);
     output = shaped.output;
     flow = shaped.flow;
     graph = shaped.graph;
@@ -316,7 +327,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
     }
     if (skillFallback) await recordMeshEvent(sessionId, "experience_fallback_used", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, reason: skillFallback.slice(0, 80), skillId: primarySkill.id });
   } else {
-    output = compileExperience({ ...base, graph, ...extras });
+    // A named section is the whole takeaway: the rest of the instruction stays one click away.
+    output = compileExperience({ ...base, graph, ...extras, ...shaping, ...(askedClaims.length ? { takeaway: [] } : {}) });
   }
   await recordMeshEvent(sessionId, "experience_manifest_compiled", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, modules: output.manifest.modules.length, findings: output.report.findings.length, blocking: output.rejected?.blocking ?? 0 });
   if (output.fallback) {
@@ -327,7 +339,17 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
 
   const trace = traceFor(plan, results, registry, skipped, reused);
   trace.plan.unshift({ id: "step-0", label: "Разобрали запрос", tool: null, status: "done", detail: [...intent.job.reasons, ...(primarySkill ? [primarySkill.experiencePolicy.explanation] : [])].join(" · "), connectorIds: [] });
-  trace.plan.push({ id: `step-${trace.plan.length + 1}`, label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] });
+  // The last step says what actually happened: an answer, nothing found, sources that did not answer, or no search at all.
+  const searched = graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
+  const broken = graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"));
+  const final: PlanStep = graph.documents.length
+    ? { id: "", label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] }
+    : intent.vague || !searched && !broken
+      ? { id: "", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "В вопросе не распознаны заболевание, препарат или тема — искать было нечего", connectorIds: [] }
+      : broken && !searched
+        ? { id: "", label: "Ответ не собран", tool: null, status: "failed", detail: "Источники не ответили — результат не установлен", connectorIds: [] }
+        : { id: "", label: "Ответ не собран", tool: null, status: "done", detail: "Поиск выполнен, подходящих материалов не нашлось", connectorIds: [] };
+  trace.plan.push({ ...final, id: `step-${trace.plan.length + 1}` });
   const experience: RunExperience = { intentId: intent.id, manifest: output.manifest, graph, plan: { id: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, reused } };
   const totalMs = Date.now() - started;
   const execution: RunExecution | null = strategy ? {

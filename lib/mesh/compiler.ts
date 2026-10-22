@@ -88,17 +88,32 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
 };
 const TAKEAWAY_MAX = 6;
 
+/** Publications a widened search found with only part of the question's conditions: never the answer itself. */
+export function widenedDocuments(graph: EvidenceGraph): GraphDocument[] {
+  return graph.documents.filter(document => document.attributes.questionMatch === "partial");
+}
+
 function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeaway" | "priorityClaims"> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
+  const widened = new Set(widenedDocuments(graph).map(document => document.id));
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
   const subtype = graph.context.subtype;
   const relevant = (claim: NormalizedClaim) => claim.verification !== "UNSUPPORTED"
+    && !widened.has(claim.documentId)
+    // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
+    && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
     && (claim.kind !== "indication" || !nosology || family === "drug" || claim.entityIds.includes(nosology))
     && (claim.kind !== "product_listing" || graph.job === "inn_lookup");
   const onSubtype = (claim: NormalizedClaim) => Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
   const terms = graph.context.terms ?? [];
   const onTopic = (claim: NormalizedClaim) => { const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase(); return terms.filter(term => text.includes(term)).length; };
+  // A conclusion that speaks about what was asked («duration») comes before newer ones that do not.
+  // A word group every conclusion mentions («antibiotic») does not tell them apart; a rare one («duration») does.
+  const asked = graph.context.asked ?? [];
+  const claimText = (claim: NormalizedClaim) => `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+  const weights = asked.map(group => 1 / Math.max(1, graph.claims.filter(claim => group.some(word => claimText(claim).includes(word))).length));
+  const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
   const picked: string[] = [];
   for (const claimId of input.priorityClaims ?? []) {
     const claim = graph.claims.find(item => item.id === claimId);
@@ -107,7 +122,7 @@ function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeawa
   for (const [kind, cap] of input.takeaway ?? TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
       // On the asked subtype first, Russian sources before international, newer first, then source relevance.
-      .sort((a, b) => onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
+      .sort((a, b) => onAsked(b) - onAsked(a) || onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
         || Number(docs.get(a.documentId)?.jurisdiction !== "RU") - Number(docs.get(b.documentId)?.jurisdiction !== "RU")
         || DATE(docs.get(b.documentId)).localeCompare(DATE(docs.get(a.documentId)))
         || Number(docs.get(a.documentId)?.attributes.relevance ?? 0) - Number(docs.get(b.documentId)?.attributes.relevance ?? 0));
@@ -135,8 +150,12 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
   switch (family) {
     case "key_takeaway": {
       const claimIds = takeawayClaims(graph, input);
-      if (!claimIds.length) return null;
-      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps } };
+      const widened = widenedDocuments(graph);
+      const unmatched = [...new Set(widened.flatMap(document => String(document.attributes.unmatchedConditions ?? "").split(", ").filter(Boolean)))].join(", ");
+      // Nothing answers the question as asked: the first thing the physician reads says so, not a neighbour's conclusion.
+      const reviews = graph.documents.filter(document => document.kind === "review" || document.kind === "guideline_publication");
+      if (!claimIds.length) return widened.length || (graph.family === "answer" && reviews.length) ? { ...base, emphasis: "primary", documentIds: (widened.length ? widened : reviews).map(document => document.id), props: { gaps: graph.gaps, noDirectAnswer: true, unmatched: unmatched || null } } : null;
+      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null } };
     }
     case "recommendation_delta": {
       const docs = graph.documents.filter(document => document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication").sort(byDate);
@@ -163,7 +182,7 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
     }
     case "evidence": {
-      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
+      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       return { ...base, documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "review_conclusion").map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { language: "en" } };

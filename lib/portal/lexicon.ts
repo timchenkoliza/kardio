@@ -100,18 +100,33 @@ export function hasDrugCue(text: string): boolean {
 }
 
 /** Populations and settings that narrow a literature search. */
-const POPULATIONS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string }> = [
+const POPULATIONS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string; exclude?: string }> = [
   { id: "children", label: "дети", match: /(?<![\p{L}])(?:дет(?:и|ей|ям|ск)|ребен|ребён|младен|подрост|новорожд)/u, term: "child*[tiab] OR infant*[tiab] OR pediatric*[tiab] OR adolescen*[tiab]" },
   { id: "pregnancy", label: "беременность", match: /(?<![\p{L}])беременн/u, term: "pregnan*[tiab]" },
   { id: "lactation", label: "лактация", match: /(?<![\p{L}])(?:лактац|кормящ|грудн\p{L}* вскармлив)/u, term: "lactation[tiab] OR breastfeeding[tiab]" },
   { id: "elderly", label: "пожилые", match: /(?<![\p{L}])(?:пожил|старше\s*(?:65|70|75|80)|гериатр)/u, term: "elderly[tiab] OR older[tiab] OR aged[tiab]" },
+  // «У взрослых» does not require the word in the abstract: it excludes publications about children by title.
+  { id: "adults", label: "взрослые", match: /(?<![\p{L}])взросл/u, term: "", exclude: "child*[ti] OR pediatric*[ti] OR paediatric*[ti] OR infant*[ti] OR neonat*[ti] OR adolescen*[ti]" },
+];
+
+/**
+ * Qualifiers of a named condition that change which publications answer the
+ * question («внебольничная» пневмония is not hospital-acquired). They are
+ * subjects: kept when the search is relaxed.
+ */
+const QUALIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string }> = [
+  { id: "community_acquired", label: "внебольничная", match: /(?<![\p{L}])внебольничн/u, term: "\"community-acquired\"[tiab] OR \"community acquired\"[tiab]" },
+  { id: "hospital_acquired", label: "нозокомиальная", match: /(?<![\p{L}])(?:нозокомиальн|госпитальн\p{L}* пневмон)/u, term: "\"hospital-acquired\"[tiab] OR nosocomial[tiab] OR \"ventilator-associated\"[tiab]" },
 ];
 
 export interface QueryConcept {
   id: string;
   label: string;
+  /** OR of synonyms, AND-ed with the other concepts; empty for a concept that only excludes. */
   term: string;
   kind: "topic" | "concept" | "drug" | "population" | "modifier";
+  /** Title terms the concept rules out (NOT), e.g. children for a question about adults. */
+  exclude?: string;
 }
 
 /**
@@ -130,6 +145,8 @@ const MODIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term:
   { id: "safety", label: "безопасность", match: /(?<![\p{L}])(?:безопасност|побочн|нежелательн|осложнени)/u, term: "safety[tiab] OR adverse[tiab]" },
   { id: "interactions", label: "взаимодействия", match: /(?<![\p{L}])взаимодейств/u, term: "interaction*[tiab]" },
   { id: "dose", label: "дозирование", match: /(?<![\p{L}])(?:дозир|доз[аыуеой]?(?![\p{L}]))/u, term: "dose[tiab] OR dosing[tiab] OR dosage[tiab]" },
+  { id: "non_severe", label: "нетяжёлое течение", match: /(?<![\p{L}])(?:нетяж[её]л|не\s+тяж[её]л|л[её]гк\p{L}*\s+(?:течени|степен|форм))/u, term: "mild[tiab] OR \"non-severe\"[tiab] OR nonsevere[tiab] OR \"low-risk\"[tiab] OR outpatient*[tiab]" },
+  { id: "severe", label: "тяжёлое течение", match: /(?<![\p{L}])(?<!не\s)тяж[её]л/u, term: "severe[tiab] OR \"intensive care\"[tiab] OR ICU[tiab]" },
 ];
 
 /**
@@ -144,8 +161,8 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
   const seenLabels = new Set<string>();
   const push = (concept: QueryConcept) => {
     const labelKey = concept.label.toLocaleLowerCase("ru-RU");
-    if (seenTerms.has(concept.term) || seenLabels.has(labelKey)) return;
-    seenTerms.add(concept.term);
+    if ((concept.term && seenTerms.has(concept.term)) || seenLabels.has(labelKey)) return;
+    if (concept.term) seenTerms.add(concept.term);
     seenLabels.add(labelKey);
     concepts.push(concept);
   };
@@ -169,7 +186,8 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
   }
   for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value)) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });
   for (const drug of drugsIn(text)) push({ id: `drug:${drug.inn}`, label: drug.ru, term: `"${drug.inn}"[tiab]`, kind: "drug" });
-  for (const population of POPULATIONS) if (population.match.test(value)) push({ id: `population:${population.id}`, label: population.label, term: population.term, kind: "population" });
+  for (const qualifier of QUALIFIERS) if (qualifier.match.test(value) && concepts.length) push({ id: `concept:${qualifier.id}`, label: qualifier.label, term: qualifier.term, kind: "concept" });
+  for (const population of POPULATIONS) if (population.match.test(value)) push({ id: `population:${population.id}`, label: population.label, term: population.term, kind: "population", ...(population.exclude ? { exclude: population.exclude } : {}) });
   const subjects = concepts.filter(concept => concept.kind !== "population");
   for (const modifier of MODIFIERS) {
     if (!modifier.match.test(value)) continue;
@@ -188,17 +206,24 @@ export function latinTermsIn(text: string): string[] {
     .slice(0, 4);
 }
 
+/** ` NOT (…)` for the concepts that rule publications out by title, or an empty string. */
+function exclusionFor(concepts: readonly QueryConcept[]): string {
+  const excluded = concepts.map(concept => concept.exclude).filter((value): value is string => Boolean(value));
+  return excluded.length ? ` NOT (${excluded.join(" OR ")})` : "";
+}
+
 /**
  * PubMed term for a question: clinical concepts are AND-ed (each concept is an
- * OR of synonyms). Returns null when nothing searchable was recognised — the
- * caller must say so instead of searching for an empty term.
+ * OR of synonyms); a population that excludes («взрослые») becomes NOT. Returns
+ * null when nothing searchable was recognised — the caller must say so instead
+ * of searching for an empty term.
  */
 export function pubmedTermFor(concepts: readonly QueryConcept[], latin: readonly string[] = []): string | null {
   const parts = [
-    ...concepts.map(concept => `(${concept.term})`),
+    ...concepts.filter(concept => concept.term).map(concept => `(${concept.term})`),
     ...latin.map(word => `${word}[tiab]`),
   ];
-  return parts.length ? parts.join(" AND ") : null;
+  return parts.length ? `${parts.join(" AND ")}${exclusionFor(concepts)}` : null;
 }
 
 /** Relaxed search: the question's subjects and populations without its modifiers. */
@@ -212,6 +237,6 @@ export function pubmedCoreTermFor(concepts: readonly QueryConcept[], latin: read
 export function pubmedBroadTermFor(concepts: readonly QueryConcept[], latin: readonly string[] = []): string | null {
   const core = [...concepts.filter(item => item.kind !== "population" && item.kind !== "modifier").map(item => `(${item.term})`), ...latin.map(word => `${word}[tiab]`)];
   if (core.length < 2) return null;
-  const populations = concepts.filter(item => item.kind === "population").map(item => `(${item.term})`);
-  return [`(${core.join(" OR ")})`, ...populations].join(" AND ");
+  const populations = concepts.filter(item => item.kind === "population" && item.term).map(item => `(${item.term})`);
+  return `${[`(${core.join(" OR ")})`, ...populations].join(" AND ")}${exclusionFor(concepts)}`;
 }

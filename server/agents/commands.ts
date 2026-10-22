@@ -55,6 +55,8 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
     contextRunId: z.string().regex(/^run-[a-f0-9-]{36}$/).optional(),
     /** Depth for this request; the profile default when absent. */
     answerMode: z.enum(ANSWER_MODES).optional(),
+    /** The material a new search was started from: the result page links back to it (internal path and its title only). */
+    origin: z.object({ href: z.string().regex(/^\/[a-z]+\/(?:item|content)\/[A-Za-z0-9%._~-]{1,200}$/u), label: z.string().trim().min(1).max(160) }).strict().optional(),
   }).strict(),
   z.object({ action: z.literal("setAnswerMode"), specialty, answerMode: z.enum(ANSWER_MODES) }).strict(),
   z.object({ action: z.literal("setProfileIdentity"), specialty, name: z.string().trim().max(80).nullable(), workplace: z.string().trim().max(120).nullable(), experienceYears: z.number().int().min(0).max(70).nullable() }).strict(),
@@ -184,7 +186,7 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: true, runId: outcome.run.id, agentId: routed.agentId, actions: outcome.actions, notices: outcome.run.riskNotices };
     }
     case "ask": {
-      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, answerMode: command.answerMode ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
+      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, answerMode: command.answerMode ?? null, origin: command.origin ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
       if (response.kind === "clarification") return { ok: true, profileChanged: false, clarification: response.clarification };
       if (response.kind === "plan") return { ok: true, profileChanged: false, plan: response.plan };
       if (response.kind === "refined") return { ok: true, profileChanged: response.refinement.applied, runId: response.refinement.runId, redirect: response.href, refined: { applied: response.refinement.applied, message: response.refinement.message, manifestVersion: response.refinement.manifestVersion, retrieval: response.refinement.retrieval } };
@@ -238,6 +240,9 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: false };
     }
     case "addLink": {
+      // Saving the same document twice (from the feed, then from its page) keeps one material.
+      const existing = (await store.listMaterials(sessionId, specialtyId)).find(material => material.url === command.url);
+      if (existing) return { ok: true, profileChanged: false, material: existing };
       // Identifiers in the link (PMID, PMCID, DOI) are looked up at fixed public endpoints; the URL itself is never fetched.
       const enrichment = await enrichLink(command.url);
       const material = materialFromLink({ specialty: specialtyId, url: command.url, title: command.title, note: command.note, now, enrichment });

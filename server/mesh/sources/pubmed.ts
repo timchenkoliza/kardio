@@ -70,18 +70,30 @@ export function termWords(term: string): string[] {
  * passing. Articles whose title names the question's subjects come first;
  * when at least two do, the rest are dropped as tangential.
  */
-export function rerankByTitle<T extends { title: string }>(articles: readonly T[], subjectTerms: readonly string[]): T[] {
+export function rerankByTitle<T extends { title: string }>(articles: readonly T[], subjectTerms: readonly string[], modifierTerms: readonly string[] = []): T[] {
   if (!subjectTerms.length) return [...articles];
-  const groups = subjectTerms.map(termWords).filter(words => words.length);
-  const hits = (title: string) => {
-    const value = title.toLowerCase();
-    return groups.filter(words => words.some(word => value.includes(word.replace(/s$/u, "")))).length;
+  const count = (terms: readonly string[]) => {
+    const groups = terms.map(termWords).filter(words => words.length);
+    return (title: string) => {
+      const value = title.toLowerCase();
+      return groups.filter(words => words.some(word => value.includes(word.replace(/s$/u, "")))).length;
+    };
   };
-  const scored = articles.map((article, index) => ({ article, index, hits: hits(article.title) }));
+  const hits = count(subjectTerms);
+  // What was asked about the condition («длительность», «нетяжёлое течение») breaks ties among on-topic titles.
+  const asked = count(modifierTerms);
+  const scored = articles.map((article, index) => ({ article, index, hits: hits(article.title), asked: asked(article.title) }));
   const onTopic = scored.filter(item => item.hits > 0);
   const pool = onTopic.length >= 2 ? onTopic : scored;
-  return pool.sort((a, b) => b.hits - a.hits || a.index - b.index).map(item => item.article);
+  return pool.sort((a, b) => b.hits - a.hits || b.asked - a.asked || a.index - b.index).map(item => item.article);
 }
+
+/**
+ * Whether a publication was found with every condition of the question
+ * (topic, qualifiers, population, what was asked) or only with part of them
+ * after the search was widened. A partial match is never the answer itself.
+ */
+export type QuestionMatch = "all_conditions" | "partial";
 
 /** Search concepts for an intent: the lexicon's concepts plus the domain graph's nosology and subtype. */
 export function conceptsForIntent(intent: NormalizedIntent): QueryConcept[] {
@@ -118,7 +130,7 @@ export function pubmedVersionDate(pubDate: string | null, sortDate: string | nul
   return sortDate.slice(0, 4);
 }
 
-function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstract: PubmedAbstract | undefined, args: { approved: boolean; relevance: number; retrievedAt: string; maxExcerpt: number }): NormalizedDocument {
+function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstract: PubmedAbstract | undefined, args: { approved: boolean; relevance: number; retrievedAt: string; maxExcerpt: number; match: QuestionMatch; unmatched: readonly string[] }): NormalizedDocument {
   const id = `pubmed:${article.pmid}`;
   const type = studyType(article);
   const conclusion = abstract?.conclusion ?? null;
@@ -137,7 +149,7 @@ function articleDocument(intent: NormalizedIntent, article: PubmedArticle, abstr
     publisher: article.journalFull ?? article.journal, publishedAt: article.sortDate ?? article.pubDate, retrievedAt: args.retrievedAt,
     version: { fingerprint: chunk ? combineFingerprints([chunk.fingerprint]) : fingerprint(article.title), label: null, date: pubmedVersionDate(article.pubDate, article.sortDate) },
     jurisdiction: "INT", authority: "primary", state: "LIVE",
-    attributes: { pmid: article.pmid, journal: article.journal, year: yearOf(article), studyType: type, approvedJournal: args.approved, conclusionLabel: abstract?.conclusionLabel ?? null, relevance: args.relevance },
+    attributes: { pmid: article.pmid, journal: article.journal, year: yearOf(article), studyType: type, approvedJournal: args.approved, conclusionLabel: abstract?.conclusionLabel ?? null, relevance: args.relevance, questionMatch: args.match, unmatchedConditions: args.unmatched.join(", ") || null },
     chunks: chunk ? [chunk] : [], claims, entities,
   };
 }
@@ -172,8 +184,17 @@ export function createPubmedAdapter(): SourceAdapter {
       if (result.status !== "ok") failure = result.error ?? result.status;
       return result.status === "ok" ? result.articles : [];
     };
-    const add = (items: readonly PubmedArticle[]) => { for (const article of items) if (!articles.some(item => item.pmid === article.pmid)) articles.push(article); };
+    // Which search found an article: the strict one (every condition) or a widened one (and what it dropped).
+    const matches = new Map<string, { match: QuestionMatch; unmatched: string[] }>();
+    const add = (items: readonly PubmedArticle[], match: QuestionMatch = "all_conditions", unmatched: string[] = []) => {
+      for (const article of items) {
+        if (articles.some(item => item.pmid === article.pmid)) continue;
+        articles.push(article);
+        matches.set(article.pmid, { match, unmatched });
+      }
+    };
     const subjects = concepts.filter(concept => concept.kind === "topic" || concept.kind === "concept" || concept.kind === "drug").map(concept => concept.term);
+    const modifiers = concepts.filter(concept => concept.kind === "modifier");
     const onTopic = () => rerankByTitle(articles, subjects).length;
 
     const first = await search(term, approved, 4);
@@ -183,20 +204,22 @@ export function createPubmedAdapter(): SourceAdapter {
     const core = pubmedCoreTermFor(concepts, latin);
     if (!failure && onTopic() < 2 && core) {
       const relaxed = await search(core);
-      if (relaxed.length) notes.push("точного совпадения с уточнениями вопроса нет — часть обзоров отвечает на вопрос шире");
-      add(relaxed);
+      if (relaxed.length) notes.push(`по всем условиям вопроса нашлось мало обзоров — поиск расширен без условий: ${modifiers.map(concept => concept.label).join(", ")}`);
+      add(relaxed, "partial", modifiers.map(concept => concept.label));
     }
     const broad = pubmedBroadTermFor(concepts, latin);
     if (!failure && !articles.length && broad) {
       const broader = await search(broad);
       if (broader.length) notes.push("совпадения всех терминов нет — показаны обзоры по части вопроса");
-      add(broader);
+      add(broader, "partial", [...modifiers.map(concept => concept.label), "часть темы вопроса"]);
     }
     if (failure && !articles.length) {
       return emptyResult(request, { sourceId: "pubmed", outcome: /недоступ|unavailable/iu.test(failure) ? "unavailable" : "failed", status: report.status, execution: "api", started, errorCode: "pubmed_error", note: `PubMed: ${failure}` });
     }
 
-    const ranked = rerankByTitle(articles, subjects);
+    const level = (article: PubmedArticle) => Number(matches.get(article.pmid)?.match !== "all_conditions");
+    // Every-condition matches first: a widened match never displaces one that answers the question.
+    const ranked = rerankByTitle(articles, subjects, modifiers.map(concept => concept.term)).map((article, index) => ({ article, index })).sort((a, b) => level(a.article) - level(b.article) || a.index - b.index).map(item => item.article);
     const top = ranked.slice(0, MAX_WITH_CONCLUSION + 1);
     const read = top.length ? await ctx.abstracts(top.map(article => article.pmid)) : { status: "ok" as const, abstracts: [], error: null, durationMs: 0 };
     if (read.status !== "ok") notes.push(`выводы рефератов не прочитаны: ${read.error ?? "PubMed недоступен"}`);
@@ -209,7 +232,8 @@ export function createPubmedAdapter(): SourceAdapter {
         if (withConclusion >= MAX_WITH_CONCLUSION) continue;
         withConclusion += 1;
       } else if (documents.length - withConclusion >= 2) continue;
-      documents.push(articleDocument(intent, article, abstract, { approved: approvedPmids.has(article.pmid), relevance: index, retrievedAt: ctx.nowIso, maxExcerpt: PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars! }));
+      const found = matches.get(article.pmid) ?? { match: "all_conditions" as const, unmatched: [] };
+      documents.push(articleDocument(intent, article, abstract, { approved: approvedPmids.has(article.pmid), relevance: index, retrievedAt: ctx.nowIso, maxExcerpt: PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars!, match: found.match, unmatched: found.unmatched }));
     }
     if (ranked.length < articles.length) notes.push(`${countLabel(articles.length - ranked.length, ["публикация упоминает", "публикации упоминают", "публикаций упоминают"])} тему вопроса только вскользь — скрыты`);
     return {

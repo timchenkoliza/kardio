@@ -256,9 +256,12 @@ export function trustLabel(state: CapabilityState, options: { showcase?: boolean
   }
 }
 
-/** Claim verification in editorial language (no «частично», no internal notes). */
+/**
+ * Claim verification in editorial language (no «частично», no internal notes).
+ * It says the shown text was found in the source — never that the source answers the question.
+ */
 export function editorialVerification(status: VerificationStatus): { label: string; tone: "supported" | "check" } {
-  return status === "SUPPORTED" ? { label: "Подтверждено источником", tone: "supported" } : { label: "Требует сверки", tone: "check" };
+  return status === "SUPPORTED" ? { label: "Совпадает с текстом источника", tone: "supported" } : { label: "Требует сверки", tone: "check" };
 }
 
 export type Certainty = "high" | "moderate" | "low" | "very_low";

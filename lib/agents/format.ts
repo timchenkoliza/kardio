@@ -24,10 +24,11 @@ export const DRUG_CHANGE_LABEL: Record<DrugChangeType, { title: string; forms: r
 };
 
 export const VERIFICATION_LABEL: Record<VerificationStatus, { label: string; tone: "supported" | "partial" | "unsupported" | "unknown" }> = {
-  SUPPORTED: { label: "Подтверждено источником", tone: "supported" },
-  PARTIALLY_SUPPORTED: { label: "Частично подтверждено", tone: "partial" },
-  UNSUPPORTED: { label: "Не подтверждено", tone: "unsupported" },
-  UNKNOWN: { label: "Проверить не удалось", tone: "unknown" },
+  // What was checked is the statement against the source text — not whether the source answers the question.
+  SUPPORTED: { label: "Совпадает с текстом источника", tone: "supported" },
+  PARTIALLY_SUPPORTED: { label: "Совпадает с источником частично", tone: "partial" },
+  UNSUPPORTED: { label: "Нет в тексте источника", tone: "unsupported" },
+  UNKNOWN: { label: "Сверить с источником не удалось", tone: "unknown" },
 };
 
 const VERIFICATION_ORDER: Record<VerificationStatus, number> = { SUPPORTED: 3, PARTIALLY_SUPPORTED: 2, UNKNOWN: 1, UNSUPPORTED: 0 };

@@ -71,7 +71,7 @@ describe("editorial labels instead of internal states", () => {
     expect(trustLabel("SNAPSHOT", { showcase: true })).toEqual({ label: "Подборка редакции", tone: "curated" });
     expect(trustLabel("MOCK")).toEqual({ label: "Пример формата", tone: "example" });
     expect(trustLabel("UNVERIFIED").label).toBe("Требует сверки");
-    expect(editorialVerification("SUPPORTED").label).toBe("Подтверждено источником");
+    expect(editorialVerification("SUPPORTED").label).toBe("Совпадает с текстом источника");
     expect(editorialVerification("PARTIALLY_SUPPORTED").label).toBe("Требует сверки");
   });
 

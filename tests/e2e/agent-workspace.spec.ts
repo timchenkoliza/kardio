@@ -40,7 +40,7 @@ test("configuring topics runs the background checks behind «Для вас»", a
   await page.locator(".pt-cards > article.pt-card .pt-card-link").first().click();
   await expect(page).toHaveURL(/\/cardiology\/(?:item|content)\//u);
   if (page.url().includes("/item/")) await expect(page.locator(".pt-item-facts")).toContainText("Почему вы это видите");
-  else await expect(page.locator("main")).toContainText("Проверяемость");
+  else await expect(page.locator("main")).toContainText("Сверка с источниками");
 });
 
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {

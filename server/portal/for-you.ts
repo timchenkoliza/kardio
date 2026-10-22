@@ -111,18 +111,22 @@ function sourceName(result: AgentResult): string {
   return result.source.source;
 }
 
-/** Topic-scoped scenarios: the card topic, never an empty request. */
+/**
+ * New tasks on the card's topic, offered on the material page. Each starts a
+ * NEW search on the topic and says so; none of them acts on the material
+ * itself (there is no «Кратко»: the material page is the short form, and
+ * nothing here can honestly shorten a source further).
+ */
 export function scenariosFor(kind: ForYouKind, topic: string): ForYouCard["scenarios"] {
   if (!topic) return [];
   if (kind === "event" || kind === "partner" || kind === "saved_topic") return [];
   if (kind === "drug_signal") return [
     { label: "Справка по препарату", job: "drug" as PortalJob, text: topic },
-    { label: "Разбор исследований", job: "research" as PortalJob, text: topic },
+    { label: "Исследования по теме", job: "research" as PortalJob, text: topic },
   ];
   return [
-    { label: "Кратко", job: "answer" as PortalJob, text: topic },
-    { label: "Разбор исследований", job: "research" as PortalJob, text: topic },
-    { label: "Практические рекомендации", job: "guidelines" as PortalJob, text: topic },
+    { label: "Исследования по теме", job: "research" as PortalJob, text: topic },
+    { label: "Рекомендации по теме", job: "guidelines" as PortalJob, text: topic },
   ];
 }
 

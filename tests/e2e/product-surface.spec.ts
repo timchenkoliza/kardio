@@ -209,7 +209,7 @@ test("session: a result survives going to materials and back, and a saved result
   const saving = await save.count() > 0;
   if (saving) {
     await save.click();
-    await expect(page.locator(".pt-experience").getByRole("button", { name: "В материалах" }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".pt-experience").getByRole("link", { name: "В материалах" }).first()).toBeVisible({ timeout: 15_000 });
   }
   await page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link", { name: "Мои материалы" }).click();
   await expect(page).toHaveURL(/\/neurology\/materials$/u);

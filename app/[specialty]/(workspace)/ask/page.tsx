@@ -6,8 +6,8 @@ import { withNewFlags } from "@/lib/agents/profile";
 import type { ActionRequest, AgentResult, AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { researchModeLabel, researchOptionsForAnswerMode } from "@/lib/agents/research-options";
-import { ANSWER_MODE_COPY } from "@/lib/portal/answer-mode";
-import { isPortalJob, JOBS, jobForRun, researchScenarioHref, type PortalJob } from "@/lib/portal/jobs";
+import { askHref, isPortalJob, JOBS, jobForRun, researchScenarioHref, type PortalJob } from "@/lib/portal/jobs";
+import { runOutcome } from "@/lib/portal/run-outcome";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { JobIcon } from "@/components/portal/job-icon";
 import { ExperienceView } from "@/components/experience/experience-view";
@@ -92,7 +92,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         </div>
       </header>
       {lookup && lookup.availability !== "available" && <p className="ws-empty" role="status" data-run-unavailable={lookup.availability}>{UNAVAILABLE_COPY[lookup.availability]}</p>}
-      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} showModes />
+      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} />
       {quick && <div className="pt-card-actions"><FollowupJobButton text={quick.text} job={job as PortalJob} label={quick.label} primary /></div>}
     </div>;
   }
@@ -116,19 +116,35 @@ export default async function AskPage({ params, searchParams }: { params: Promis
   const now = new Date().toISOString();
   const showExperience = Boolean(run.experience) && run.status !== "blocked" && run.status !== "failed";
   const retryJob = run.input.explicitJob ? job : null;
+  const outcome = finished ? runOutcome(run) : null;
 
   // Every child keeps its position across lifecycle states (conditional slots, never reordering),
   // so refreshing the interior never remounts the shell or the follow-up input.
   return <div className="ws-page pt-ask" data-job={job} data-run-state={finished ? "done" : phase}>
-    <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
+    {/* Back to where the search was started: the material it came from, else the home page. */}
+    {run.input.origin
+      ? <Link className="ws-back" href={run.input.origin.href} data-origin="material"><ArrowLeft size={15} aria-hidden="true" />{`К материалу «${run.input.origin.label.length > 60 ? `${run.input.origin.label.slice(0, 57)}…` : run.input.origin.label}»`}</Link>
+      : <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>}
     <header className="pt-ask-head">
       <span className="pt-shortcut-icon"><JobIcon icon={JOBS[job].icon} size={20} /></span>
       <div>
         <h1>{JOBS[job].label}</h1>
-        {run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
-        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{job === "research" ? `Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}` : ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
+        {run.input.continuation
+          ? <>
+            <p className="pt-question">Уточнение: «{run.input.continuation.followup}»</p>
+            <p className="ws-muted pt-continues" data-continues={run.input.continuation.runId}>Продолжение вопроса <Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.runId })}>«{run.input.continuation.question}»</Link> — его условия сохранены.</p>
+          </>
+          : run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
+        {/* The depth was not chosen before the question, so it is not shown as a choice; the research scenario names what it gets. */}
+        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && job === "research" && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{`Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}`}</span></>}</p>
       </div>
     </header>
+
+    {/* Nothing found, nothing searched or a silent source: said first, in words, never as «Готово». */}
+    {outcome && outcome.kind !== "found" && outcome.kind !== "blocked" && phase !== "expired" && <div className="pt-outcome" role="status" data-outcome={outcome.kind}>
+      <span className="ws-run-status" data-tone={outcome.tone}>{outcome.label}</span>
+      {outcome.note && <p>{outcome.note}</p>}
+    </div>}
 
     {!finished
       ? <RunProgress runId={run.id} specialty={specialty} version={run.progress?.manifestVersion ?? 0} phase={phase} pending={run.progress?.pending ?? []} startedAt={run.startedAt} />
@@ -156,7 +172,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
     <section className="ws-section" aria-labelledby="pt-followup-title">
       <h2 id="pt-followup-title" className="pt-subtitle">Уточнить или спросить другое</h2>
-      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Следующий вопрос" placeholder="Уточните вопрос или задайте новый" contextRunId={finished && run.experience ? run.id : undefined} />
+      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Уточнение или новый вопрос" placeholder="Уточните условие (например: а у пожилых?) или задайте новый вопрос" contextRunId={finished && run.status !== "blocked" ? run.id : undefined} />
     </section>
   </div>;
 }

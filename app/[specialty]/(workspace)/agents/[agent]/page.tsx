@@ -16,6 +16,7 @@ import { agentIdFromSlug } from "@/lib/agents/definitions";
 import { countLabel, DRUG_CHANGE_LABEL, formatRelativeRu } from "@/lib/agents/format";
 import { isConfigured } from "@/lib/agents/profile";
 import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
+import { runOutcome } from "@/lib/portal/run-outcome";
 import { isSpecialty } from "@/lib/specialty";
 import { filterPhysicianResearchResults, researchViewFromSearchParams, researchViewQuery } from "@/lib/ui/physician-research-view";
 import { pageSession } from "@/server/agents/page-session";
@@ -65,6 +66,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
   const researchQuery = researchViewQuery(researchView);
   const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
+  const monitoringOutcome = !onDemand && selectedRun ? runOutcome(selectedRun, { monitoring: tracksNew }) : null;
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
     {sessionId && <SeenMarker agentId={agentId} />}
@@ -92,7 +94,12 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     {!onDemand && <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile)} />}
     <PendingActions actions={pendingForAgent} />
 
-    {agentId === "drugs" && selectedRun && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} />}
+    {/* Counts by change type mean «checked, nothing new» only when the check ran; otherwise the state is said in words. */}
+    {!onDemand && selectedRun && monitoringOutcome && monitoringOutcome.kind !== "found" && monitoringOutcome.kind !== "not_found" && <div className="pt-outcome" role="status" data-outcome={monitoringOutcome.kind}>
+      <span className="ws-run-status" data-tone={monitoringOutcome.tone}>{monitoringOutcome.label}</span>
+      {monitoringOutcome.note && <p>{monitoringOutcome.note}</p>}
+    </div>}
+    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} />}
 
     <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
@@ -115,7 +122,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <h2 id="ws-earlier-title" className="ws-section-title">Ранее найдено · {earlier.length}</h2>
             <ResultList results={earlier} specialty={specialty} emptyText="" />
           </section>}
-          {!onDemand && !results.length && <p className="ws-empty">{selectedRun.status === "blocked" ? "Запрос остановлен проверкой безопасности — подробности справа." : "По текущим настройкам ничего не найдено. Попробуйте расширить темы или период."}</p>}
+          {!onDemand && !results.length && monitoringOutcome?.kind === "not_found" && <p className="ws-empty">{tracksNew ? "Проверка выполнена: по выбранным темам за выбранный период изменений не найдено." : "Проверка выполнена: по текущим настройкам ничего не найдено. Попробуйте расширить темы или период."}</p>}
+          {!onDemand && !results.length && selectedRun.status === "blocked" && <p className="ws-empty">Запрос остановлен проверкой безопасности — подробности справа.</p>}
           {partner.length > 0 && <section className="ws-section ws-partner-slot" aria-labelledby="ws-partner-title">
             <h2 id="ws-partner-title" className="ws-section-title">Партнёрский материал</h2>
             {partner.map(result => <ResultCard key={result.id} result={result} specialty={specialty} />)}
@@ -123,7 +131,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </>}
       </div>
       <aside className="ws-agent-aside">
-        {selectedRun && (onDemand ? <details className="ws-trace-disclosure"><summary>Как искали и что было доступно</summary><RunTrace run={selectedRun} connectors={detail.connectors} now={now} /></details> : <RunTrace run={selectedRun} connectors={detail.connectors} now={now} />)}
+        {selectedRun && (onDemand ? <details className="ws-trace-disclosure"><summary>Как искали и что было доступно</summary><RunTrace run={selectedRun} connectors={detail.connectors} now={now} /></details> : <RunTrace run={selectedRun} connectors={detail.connectors} now={now} monitoring={tracksNew} />)}
         {onDemand && runs.length > 1 && <section className="ws-history" aria-labelledby="ws-history-title">
           <h3 id="ws-history-title">Предыдущие вопросы</h3>
           <ul>{runs.filter(run => run.input.text).slice(0, 8).map(run => <li key={run.id}><Link href={`/${specialty}/agents/${agent}?run=${encodeURIComponent(run.id)}&${researchQuery}`} aria-current={run.id === selectedRun?.id ? "true" : undefined}>{run.input.text}</Link><span>{countLabel(run.resultIds.length, ["источник", "источника", "источников"])} · {formatRelativeRu(run.startedAt)}</span></li>)}</ul>

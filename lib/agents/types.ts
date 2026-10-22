@@ -221,6 +221,14 @@ export interface AgentRun {
     context?: { entities: string[]; answered: { id: string; optionId: string | null } | null; planConfirmed: string | null } | null;
     /** How deep the physician asked to go (request override or profile default); shapes execution. */
     answerMode?: AnswerMode;
+    /**
+     * A follow-up typed on a result that continues its question («А если течение нетяжёлое?»):
+     * `text` above is the question with the follow-up added; this keeps what the physician typed
+     * and the question it continues, for the result header and the way back.
+     */
+    continuation?: { runId: string; followup: string; question: string } | null;
+    /** The material a new search on its topic was started from (internal path and title): the way back. */
+    origin?: { href: string; label: string } | null;
   };
   intent: string | null;
   plan: PlanStep[];

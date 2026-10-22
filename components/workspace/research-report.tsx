@@ -47,15 +47,15 @@ export function ResearchOverview({
     <div className="ws-research-overview-head">
       <div>
         <p className="ws-intro-meta">{modeTitle(options.mode)}</p>
-        <h2 id="research-overview-title" className="ws-section-title">Насколько можно доверять выдаче</h2>
+        <h2 id="research-overview-title" className="ws-section-title">Как сверены ссылки</h2>
       </div>
-      <span className={`ws-research-trust is-${coverage.tone}`}><ShieldCheck size={14} aria-hidden="true" />Проверяемость: {coverage.label}</span>
+      <span className={`ws-research-trust is-${coverage.tone}`}><ShieldCheck size={14} aria-hidden="true" />Сверка с источниками: {coverage.label}</span>
     </div>
-    <p className="ws-research-trust-note">{coverage.note} Это оценка проверяемости ссылок, а не качества дизайна исследования или силы клинической рекомендации.</p>
+    <p className="ws-research-trust-note">{coverage.note} Это доля утверждений, найденных в тексте источника. Она не говорит, отвечает ли работа на ваш вопрос, и не оценивает дизайн исследования или силу рекомендации.</p>
     <dl className="ws-research-metrics">
       <div><dt>Найдено</dt><dd>{results.length}</dd></div>
       <div><dt>Источников в выводах</dt><dd>{uniqueSources}</dd></div>
-      <div><dt>Подтверждено</dt><dd>{counts.supported}</dd></div>
+      <div><dt>Совпадает с источником</dt><dd>{counts.supported}</dd></div>
       <div><dt>Частично</dt><dd>{counts.partial}</dd></div>
     </dl>
     {options.mode !== "articles" && run.synthesis && <div className="ws-research-synthesis">

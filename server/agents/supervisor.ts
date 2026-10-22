@@ -263,7 +263,7 @@ function progressBase(run: AgentRun): RunProgress {
  * returned to the browser already exists in storage. Unsafe input is
  * blocked here (a terminal run); everything else is queued.
  */
-export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; answerMode?: AnswerMode | null; now?: Date }): Promise<AgentRun> {
+export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; answerMode?: AnswerMode | null; continuation?: AgentRun["input"]["continuation"]; origin?: AgentRun["input"]["origin"]; now?: Date }): Promise<AgentRun> {
   const now = request.now ?? new Date();
   const preference = effectivePreference(request.profile, request.agentId);
   const risk = checkRisk(request.text);
@@ -275,7 +275,7 @@ export async function createRun(store: WorkspaceStore, sessionId: string, reques
     startedAt: now.toISOString(),
     completedAt: risk.allowed ? null : now.toISOString(),
     status: risk.allowed ? "queued" : "blocked",
-    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}), answerMode: resolveAnswerMode(request.profile, request.answerMode) },
+    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}), answerMode: resolveAnswerMode(request.profile, request.answerMode), ...(request.continuation ? { continuation: { ...request.continuation, followup: checkRisk(request.continuation.followup).sanitizedText.slice(0, 300) } } : {}), ...(request.origin ? { origin: request.origin } : {}) },
     intent: request.job ?? null,
     plan: risk.allowed ? [] : [{ id: "step-1", label: "Проверили запрос на безопасность", tool: "riskCheck", status: "blocked", detail: risk.blockedReason, connectorIds: [] }],
     toolsUsed: [],

@@ -45,7 +45,7 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
   const hasOriginal = Boolean(card.original || originalQuotes.length);
 
   return <div className="ws-page pt-item" data-item-kind={card.kind}>
-    <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />К ленте</Link>
+    <Link className="ws-back" href={`/${specialty}#fy-${card.id}`}><ArrowLeft size={15} aria-hidden="true" />К ленте</Link>
     <article className="pt-item-card" aria-labelledby="pt-item-title">
       <header className="pt-item-head">
         <div className="pt-card-meta">
@@ -84,9 +84,9 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
             {russianQuotes.map(quote => <blockquote key={quote.text.slice(0, 40)} className="pt-quote"><p>{nbsp(quote.text)}</p></blockquote>)}
           </section>}
           {card.scenarios.length > 0 && <section className="pt-item-section" aria-labelledby="pt-item-next">
-            <h2 id="pt-item-next" className="pt-subtitle">Что сделать с этим материалом</h2>
-            <p className="ws-muted">{nbsp(`Агенты разберут тему «${card.scenarios[0].text}» по источникам — ответ откроется здесь же.`)}</p>
-            <div className="pt-card-actions"><ScenarioButtons scenarios={card.scenarios} primaryFirst /></div>
+            <h2 id="pt-item-next" className="pt-subtitle">Новый поиск по теме</h2>
+            <p className="ws-muted">{nbsp(`Запустит новый поиск по теме «${card.scenarios[0].text}» — не по этому материалу. Результат откроется на отдельной странице, этот материал останется в ленте.`)}</p>
+            <div className="pt-card-actions"><ScenarioButtons scenarios={card.scenarios} origin={{ href: `/${specialty}/item/${encodeURIComponent(id)}`, label: card.title }} /></div>
           </section>}
           {hasOriginal && <details className="pt-original">
             <summary>Оригинал</summary>

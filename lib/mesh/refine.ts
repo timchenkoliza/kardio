@@ -133,6 +133,36 @@ export function classifyDelta(text: string, context: ExperienceContext, named: {
   return null;
 }
 
+/** «Что изменилось в рекомендациях», «что нового», «обновления»: the question itself asks for a comparison. */
+const CHANGE_QUESTION = new RegExp(`${L}(?:что\\s+(?:\\p{L}+\\s+)?(?:изменил|нового|поменял)|изменени\\p{L}*\\s+(?:в\\s+)?(?:рекомендац|клиническ)|обновлени\\p{L}*\\s+(?:в\\s+)?(?:рекомендац|клиническ)|нов\\p{L}*\\s+(?:редакц|верси))`, "u");
+
+/**
+ * The view a question opens with: «что изменилось в рекомендациях» is answered
+ * as a comparison with the previous version (or says that none is stated) —
+ * the same view the refinement «сравни с прошлой версией» applies, so «Показать
+ * всё» resets it the same way.
+ */
+export function openingView(text: string, family: string): ManifestView | null {
+  if (family === "guidelines" && CHANGE_QUESTION.test(normalizeQuery(text))) return { ...EMPTY_VIEW, comparison: "previous_version" };
+  return null;
+}
+
+export type AskedSection = "contraindications" | "indications" | "dosing" | "interactions" | "safety" | "populations";
+const ASKED_SECTIONS: ReadonlyArray<{ id: AskedSection; pattern: RegExp }> = [
+  { id: "contraindications", pattern: new RegExp(`${L}противопоказ`, "u") },
+  { id: "indications", pattern: new RegExp(`${L}показани`, "u") },
+  { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* приём)`, "u") },
+  { id: "interactions", pattern: new RegExp(`${L}взаимодейств`, "u") },
+  { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|предупрежден|особ\\p{L}* указани|передозир)`, "u") },
+  { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|печёночн|печеночн|пожил|дет(?:и|ей|ям|ск))`, "u") },
+];
+
+/** Sections of the instruction a drug question names («Аторвастатин: противопоказания»), in the order asked. */
+export function askedSections(text: string): AskedSection[] {
+  const value = normalizeQuery(text);
+  return ASKED_SECTIONS.filter(item => item.pattern.test(value)).map(item => item.id);
+}
+
 export function focusKinds(focus: string): ClaimKind[] {
   return FOCUS.find(item => item.id === focus)?.kinds ?? [];
 }

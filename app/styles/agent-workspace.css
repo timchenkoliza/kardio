@@ -241,7 +241,14 @@
 .ws-verify-unsupported { background: var(--ws-danger-soft); color: var(--ws-danger); }
 .ws-mode-mock { background: var(--ws-warning-soft); color: var(--ws-warning); }
 .ws-run-status { background: var(--ws-success-soft); color: var(--ws-success); }
-.ws-run-status.is-partial { background: var(--ws-warning-soft); color: var(--ws-warning); }
+.ws-run-status.is-partial,
+.ws-run-status[data-tone="warning"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
+.ws-run-status[data-tone="neutral"] { background: var(--ws-surface); color: var(--ws-text-secondary); }
+.ws-run-status[data-tone="danger"] { background: var(--ws-danger-soft); color: var(--ws-danger); }
+/* What a finished run established, above the answer, when it is not simply «found» */
+.pt-outcome { display: flex; flex-direction: column; gap: var(--ws-space-4); margin: 0; padding: var(--ws-space-12) var(--ws-space-16); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
+.pt-outcome p { margin: 0; }
+.pt-outcome .ws-run-status { align-self: flex-start; }
 .ws-run-status.is-failed,
 .ws-run-status.is-blocked { background: var(--ws-danger-soft); color: var(--ws-danger); }
 .ws-owner-user_uploaded { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }

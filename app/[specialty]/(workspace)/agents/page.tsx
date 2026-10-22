@@ -48,14 +48,14 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
 
   return <div className="ws-page pt-agents">
     <header className="ws-page-head">
-      <h1>{nbsp(`Агенты для специальности «${specialties[specialty].name}»`)}</h1>
-      <p>{nbsp("Каждый агент делает одну работу на проверенных источниках и показывает, откуда взят каждый вывод. Спрашивать можно и прямо с главной — поле само выберет нужного агента.")}</p>
+      <h1>{nbsp(`Все задачи · ${specialties[specialty].name}`)}</h1>
+      <p>{nbsp("Что можно сделать в Яндекс Мед: каждая задача работает на проверенных источниках и показывает, откуда взят каждый вывод. Выбирать задачу не обязательно — вопрос на главной сам попадёт в нужную.")}</p>
     </header>
 
     {pending.length > 0 && <PendingActions actions={pending} />}
 
     <section className="ws-section" aria-labelledby="pt-gallery-title">
-      <h2 id="pt-gallery-title" className="sr-only">Галерея агентов</h2>
+      <h2 id="pt-gallery-title" className="sr-only">Задачи</h2>
       <ul className="pt-gallery">
         {GALLERY.map(agent => {
           const available = galleryAvailable(agent, specialty);
@@ -84,7 +84,7 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
 
     <details className="ws-section ws-card-block pt-background">
       <summary>{nbsp("Фоновые проверки для подборки «Для вас»")}</summary>
-      <p className="ws-muted">{nbsp("Эти проверки работают сами: следят за новыми публикациями, рекомендациями, препаратами и событиями по вашим темам. Ничего настраивать не нужно.")}</p>
+      <p className="ws-muted">{nbsp("Эти проверки работают сами и наполняют «Для вас»: новые публикации, рекомендации и события — по специальности или вашим темам. Изменения по препаратам проверяются только по выбранным темам.")}</p>
       <div className="ws-agent-grid is-wide">{background.map(card => <AgentCard key={card.agentId} card={card} specialty={specialty} now={now} />)}</div>
     </details>
   </div>;

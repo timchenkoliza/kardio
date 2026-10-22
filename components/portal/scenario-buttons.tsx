@@ -7,12 +7,12 @@ import type { ForYouCard } from "@/lib/portal/cards";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 
 /**
- * Agent scenarios on a card or item page («Кратко», «Разбор исследований»,
- * «Практические рекомендации»): one click starts the routed job for the card
- * topic and opens the result in the same tab. The topic travels in the
- * request body, never in a URL; the session context carries what was opened.
+ * New searches on a material's topic («Исследования по теме», «Рекомендации
+ * по теме»): one click starts the routed job for the topic and opens the
+ * result in the same tab, with a way back to the material. The topic travels
+ * in the request body, never in a URL.
  */
-export function ScenarioButtons({ scenarios, primaryFirst = false }: { scenarios: ForYouCard["scenarios"]; primaryFirst?: boolean }) {
+export function ScenarioButtons({ scenarios, primaryFirst = false, origin }: { scenarios: ForYouCard["scenarios"]; primaryFirst?: boolean; origin?: { href: string; label: string } }) {
   const router = useRouter();
   const { command } = useWorkspace();
   const [busy, setBusy] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function ScenarioButtons({ scenarios, primaryFirst = false }: { scenarios
     onClick={async () => {
       setBusy(scenario.label);
       // A scenario is one click: it never stops for a clarification.
-      const response = await command({ action: "ask", text: scenario.text, job: scenario.job, followup: true, clarification: { id: "next_action", optionId: null } }, { refresh: false });
+      const response = await command({ action: "ask", text: scenario.text, job: scenario.job, followup: true, clarification: { id: "next_action", optionId: null }, ...(origin ? { origin: { href: origin.href, label: origin.label.slice(0, 160) } } : {}) }, { refresh: false });
       if (response?.redirect) router.push(response.redirect);
       else setBusy(null);
     }}

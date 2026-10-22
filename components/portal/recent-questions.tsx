@@ -1,0 +1,54 @@
+import Link from "next/link";
+import { formatRelativeRu } from "@/lib/agents/format";
+import type { AgentRun } from "@/lib/agents/types";
+import type { SpecialtyId } from "@/lib/domain/types";
+import { askHref, JOBS, jobForRun } from "@/lib/portal/jobs";
+import { runOutcome } from "@/lib/portal/run-outcome";
+
+const MAX_RECENT = 5;
+
+/** The physician's own questions (never background checks or blocked input), newest first, one per wording. */
+export function recentQuestions(runs: readonly AgentRun[], limit = MAX_RECENT): AgentRun[] {
+  const seen = new Set<string>();
+  const picked: AgentRun[] = [];
+  for (const run of [...runs].sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
+    if (run.trigger !== "composer" || !run.input.text || run.status === "blocked") continue;
+    const key = (run.input.continuation?.followup ?? run.input.text).trim().toLocaleLowerCase("ru-RU");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    picked.push(run);
+    if (picked.length === limit) break;
+  }
+  return picked;
+}
+
+/** Where a past question opens: the research scenario keeps its own page; everything else the result page. */
+export function recentHref(specialty: SpecialtyId, run: AgentRun): string {
+  return run.agentId === "research" ? `/${specialty}/agents/research?run=${encodeURIComponent(run.id)}` : askHref(specialty, { run: run.id });
+}
+
+/**
+ * «Последние вопросы»: the way back to earlier work from the home page. Each
+ * line is the question as typed, what kind of result it is, when, and what the
+ * search established — the result itself opens with its context.
+ */
+export function RecentQuestions({ specialty, runs, limit = MAX_RECENT, title = "Последние вопросы", more = false }: { specialty: SpecialtyId; runs: readonly AgentRun[]; limit?: number; title?: string; more?: boolean }) {
+  const recent = recentQuestions(runs, limit);
+  if (!recent.length) return null;
+  return <section className="ws-history pt-recent" aria-labelledby="pt-recent-title">
+    <div className="ws-section-head">
+      <h2 id="pt-recent-title" className="ws-section-title">{title}</h2>
+      {more && <Link className="ws-text-link" href={`/${specialty}/history`}>Вся история</Link>}
+    </div>
+    <ul>
+      {recent.map(run => {
+        const outcome = runOutcome(run);
+        const question = run.input.continuation ? `${run.input.continuation.followup} (уточнение)` : run.input.text!;
+        return <li key={run.id}>
+          <Link href={recentHref(specialty, run)}>{question}</Link>
+          <span>{JOBS[jobForRun(run)].label} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{outcome.kind !== "found" ? ` · ${outcome.label.toLocaleLowerCase("ru-RU")}` : ""}</span>
+        </li>;
+      })}
+    </ul>
+  </section>;
+}

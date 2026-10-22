@@ -85,6 +85,14 @@ export function topicTerms(intent: NormalizedIntent): string[] {
   return [...words];
 }
 
+/**
+ * What the question asks about its topic («длительность», «нетяжёлое течение»), one word group per
+ * modifier: a conclusion that speaks about it answers the question more directly than one that does not.
+ */
+export function askedTerms(intent: NormalizedIntent): string[][] {
+  return intent.entities.concepts.filter(item => item.kind === "modifier").map(concept => [...new Set(concept.term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").replace(/[()"*]/gu, " ").split(/\s+/u).map(word => word.toLowerCase()).filter(word => word.length >= 4))]).filter(group => group.length);
+}
+
 export function buildEvidenceGraph(args: {
   id: string;
   intent: NormalizedIntent;
@@ -174,7 +182,7 @@ export function buildEvidenceGraph(args: {
     job: intent.job.primary,
     family: intent.job.family,
     specialty: intent.context.specialty,
-    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent) },
+    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent) },
     sources,
     documents: graphDocuments,
     versions: [...documents.values()].map(document => ({ documentId: document.id, ...document.version })),

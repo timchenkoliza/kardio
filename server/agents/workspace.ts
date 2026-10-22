@@ -3,7 +3,7 @@ import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { AGENT_DEFINITIONS, AGENT_ORDER, agentHref } from "@/lib/agents/definitions";
 import { countLabel, DRUG_CHANGE_LABEL, plural } from "@/lib/agents/format";
-import { defaultProfile, effectivePreference, isConfigured, isNewSinceLastSeen, isRunDue, normalizeProfile, withNewFlags, type EffectivePreference } from "@/lib/agents/profile";
+import { defaultProfile, effectivePreference, isConfigured, isNewSinceLastSeen, isRunDue, normalizeProfile, withNewFlags, ZERO_SETUP_AGENTS, type EffectivePreference } from "@/lib/agents/profile";
 import type { ActionRequest, AgentCardState, AgentDefinition, AgentId, AgentResult, AgentResultView, AgentRun, ConnectorDescriptor, DrugChangeType, Material, MaterialCollection, UserProfile, WorkspaceView } from "@/lib/agents/types";
 import { DRUG_CHANGE_TYPES } from "@/lib/agents/types";
 import { sourceLabels, topicLabels } from "@/lib/agents/vocabulary";
@@ -62,11 +62,12 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
   const fresh = tracksNew ? organic.filter(result => isNewSinceLastSeen(result, subscription.lastSeenAt)) : [];
   const href = agentHref(specialty, definition.id);
   const topics = topicLabels(specialty, preference.topics);
-  const reasons = [topics.length ? `Темы: ${topics.slice(0, 3).join(", ")}${topics.length > 3 ? ` и ещё ${topics.length - 3}` : ""}` : null, preference.trustedSources.length ? `Источники: ${sourceLabels(preference.trustedSources).slice(0, 3).join(", ")}` : null].filter((value): value is string => Boolean(value));
+  const reasons = [topics.length ? `Темы: ${topics.slice(0, 3).join(", ")}${topics.length > 3 ? ` и ещё ${topics.length - 3}` : ""}` : null, preference.trustedSources.length ? `Ваш приоритет: ${sourceLabels(preference.trustedSources).slice(0, 3).join(", ")}` : null].filter((value): value is string => Boolean(value));
 
   let state: AgentCardState["state"];
   if (!subscription.enabled) state = "disabled";
-  else if (!isConfigured(profile) && definition.id !== "materials" && definition.id !== "research" && definition.id !== "reference") state = "needs_setup";
+  // Checks that run on the specialty without topics never ask for setup.
+  else if (!isConfigured(profile) && !ZERO_SETUP_AGENTS.includes(definition.id) && definition.id !== "materials" && definition.id !== "research" && definition.id !== "reference") state = "needs_setup";
   else if (latestRun?.status === "failed" || latestRun?.status === "blocked") state = "failed";
   else if (!latestRun) state = "ready";
   else if (fresh.length) state = "fresh";

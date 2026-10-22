@@ -59,8 +59,8 @@ export function ResearchAnswerView({ run, results, mode = "brief" }: { run: Agen
     <p className="ws-ra-headline">{nbsp(answer.headline)}</p>
     {studies.length > 0 && <ol className="ws-ra-studies">{studies.map((study, index) => <Study key={study.id} study={study} first={index === 0} />)}</ol>}
     <div className="ws-ra-notes">
-      {answer.trust.length > 0 && <section aria-labelledby="ws-ra-trust"><h3 id="ws-ra-trust">Почему этому можно доверять</h3><ul>{answer.trust.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
-      {answer.kind !== "blocked" && <section aria-labelledby="ws-ra-practice"><h3 id="ws-ra-practice">Что это значит на практике</h3><p>{nbsp(answer.practice)}</p></section>}
+      {answer.trust.length > 0 && <section aria-labelledby="ws-ra-trust"><h3 id="ws-ra-trust">Что проверили</h3><ul>{answer.trust.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
+      {answer.kind !== "blocked" && <section aria-labelledby="ws-ra-practice"><h3 id="ws-ra-practice">Как читать результат</h3><p>{nbsp(answer.practice)}</p></section>}
       {answer.limitations.length > 0 && <section aria-labelledby="ws-ra-limits"><h3 id="ws-ra-limits">Ограничения</h3><ul>{answer.limitations.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
     </div>
   </section>;

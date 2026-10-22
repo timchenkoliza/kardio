@@ -111,6 +111,7 @@
 .pt-ask-head { display: flex; align-items: flex-start; gap: var(--ws-space-12); }
 .pt-ask-head > div { min-width: 0; display: flex; flex-direction: column; gap: var(--ws-space-8); }
 .pt-question { margin: 0; color: var(--ws-text); font-size: var(--font-size-body); line-height: var(--ws-leading-body); overflow-wrap: anywhere; }
+.pt-continues { margin: 0; overflow-wrap: anywhere; }
 .pt-result { display: flex; flex-direction: column; gap: var(--ws-space-24); min-width: 0; }
 .pt-subtitle { margin: 0; font-size: var(--font-size-heading-3); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-heading-3); }
 .pt-synthesis { display: flex; flex-direction: column; gap: var(--ws-space-8); }
