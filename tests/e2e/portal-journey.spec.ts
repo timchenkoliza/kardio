@@ -43,7 +43,7 @@ test("primary home is one professional input, three jobs and «Для вас» �
   await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveCount(1);
   await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveAttribute("href", "/pediatrics/agents");
   const nav = page.getByRole("navigation", { name: "Основная навигация" });
-  await expect(nav.getByRole("link")).toHaveText(["Главное", "Агенты", "Мои материалы"]);
+  await expect(nav.getByRole("link")).toHaveText(["Главное", "Агенты", "Мои материалы", "Обезличивание"]);
   await expect(nav.getByRole("link", { name: "Агенты" })).toHaveAttribute("href", "/pediatrics/agents");
   await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("footer")).toContainText(/© \d{4} ООО «Яндекс»/);
