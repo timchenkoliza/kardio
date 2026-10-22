@@ -1,0 +1,3299 @@
+{
+  "version": 1,
+  "pipeline": {
+    "name": "ds-tonal-redraw",
+    "version": "ds-tonal-redraw@1.0.0"
+  },
+  "designSystem": {
+    "version": "yandex-med-ds@1+recraft-lock@41",
+    "palette": [
+      "#F2F2F2",
+      "#898BFF",
+      "#AFA2FF",
+      "#D9D8FF",
+      "#FFFFFF",
+      "#5759EF",
+      "#F367D0",
+      "#FDABC1"
+    ]
+  },
+  "derivatives": [
+    {
+      "id": "drv-therapy-pneumonia-9c96edb059",
+      "status": "approved",
+      "specialty": "therapy",
+      "subject": "pneumonia",
+      "source": {
+        "id": "src-therapy-pneumonia",
+        "file": "/media/source/therapy/blausen-0994-pneumonia.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0994_Pneumonia.png",
+        "sha256": "27f949401f51f6863031249729dba3b267021bba22e6bb1f607b46a108a939a2",
+        "width": 1200,
+        "height": 1040,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          70,
+          584,
+          498,
+          360
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-therapy-cap-2019",
+        "title": "Диагностика и лечение внебольничной пневмонии у взрослых: рекомендации ATS и IDSA"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Альвеолы с экссудатом — морфологический субстрат пневмонии, предмет рекомендаций"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.9111,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.2874,
+          "toneBands": "0.480/0.687/0.998",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/therapy/drv-therapy-pneumonia-9c96edb059.webp",
+      "attemptSrc": null,
+      "sha256": "a7c745f1ed32d3ff4b8b7476564b9b46af0aa30771c0e5d4fabf4d9feacb453b",
+      "width": 1600,
+      "height": 800,
+      "alt": "Альвеолы, заполненные воспалительным экссудатом при пневмонии",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "pneumonia",
+            "threshold": "pneumonia"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.5086,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4929,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.137,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.111,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9589,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9997,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9589 vs 0.8674 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "lungs"
+      },
+      "createdAt": "2026-10-22T09:15:45.778Z"
+    },
+    {
+      "id": "drv-therapy-asthma-f8edb2cd8b",
+      "status": "approved",
+      "specialty": "therapy",
+      "subject": "asthma",
+      "source": {
+        "id": "src-therapy-asthma",
+        "file": "/media/source/therapy/blausen-0620-inflamed-airway.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0620_Lungs_NormalvsInflamedAirway.png",
+        "sha256": "d1d77835fb6fe27ca494fca94e930a28d932c2ce111d66a69737d2d12759637e",
+        "width": 1024,
+        "height": 768,
+        "credit": "BruceBlaus · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          20,
+          172,
+          990,
+          372
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-therapy-gina-2024",
+        "title": "GINA: глобальная стратегия лечения и профилактики бронхиальной астмы"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Воспаление и сужение дыхательных путей — механизм бронхиальной астмы"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.1313,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 47245,
+          "lineThreshold": 0.1522,
+          "toneBands": "0.425/0.559/0.716",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/therapy/drv-therapy-asthma-f8edb2cd8b.webp",
+      "attemptSrc": null,
+      "sha256": "8ce8c84b3912e94cafb30dbb72ca8414ac0dc3eb11f9eeb233ecca5ba840a68f",
+      "width": 1600,
+      "height": 800,
+      "alt": "Нормальный и воспалённый бронх: утолщение стенки, сужение просвета и слизь при бронхиальной астме",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "asthma",
+            "threshold": "asthma"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7809,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.3605,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0631,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1145,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9997,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9911,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9997 vs 0.8502 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "lungs"
+      },
+      "createdAt": "2026-10-22T09:20:17.259Z"
+    },
+    {
+      "id": "drv-pediatrics-otitis-media-4f67a05e28",
+      "status": "approved",
+      "specialty": "pediatrics",
+      "subject": "otitis_media",
+      "source": {
+        "id": "src-pediatrics-otitis-media",
+        "file": "/media/source/pediatrics/otitis-media.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Otitis_Media.png",
+        "sha256": "ca2196c984feffb9f8db62be899fbebc31b88cdcef621377c7952498b48a9e4a",
+        "width": 1200,
+        "height": 1200,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          80,
+          440,
+          1100,
+          580
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-pediatrics-aom-2013",
+        "title": "Диагностика и лечение острого среднего отита: рекомендации AAP"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Воспаление и жидкость в среднем ухе — предмет рекомендаций по острому среднему отиту"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.0182,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 24763,
+          "lineThreshold": 0.0981,
+          "toneBands": "0.625/0.726/0.815",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/pediatrics/drv-pediatrics-otitis-media-4f67a05e28.webp",
+      "attemptSrc": null,
+      "sha256": "b231a056733a897013d9d6fff583bbd12fe77397a3f776db872d767aec4b03df",
+      "width": 1600,
+      "height": 800,
+      "alt": "Острый средний отит: воспаление и жидкость в полости среднего уха, суженная слуховая труба",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "otitis_media",
+            "threshold": "otitis_media"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.6669,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.5097,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0917,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1057,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9989,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9645,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9989 vs 0.7554 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "ear"
+      },
+      "createdAt": "2026-10-22T09:20:17.823Z"
+    },
+    {
+      "id": "drv-pediatrics-gastroenteritis-a5f1e45d8e",
+      "status": "approved",
+      "specialty": "pediatrics",
+      "subject": "gastroenteritis",
+      "source": {
+        "id": "src-pediatrics-gastroenteritis",
+        "file": "/media/source/pediatrics/child-digestive-system.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Child_Digestive_System.png",
+        "sha256": "48c254ce9e68c85332f5ff334a00ee104051850ab8f35878a7810a315a263603",
+        "width": 768,
+        "height": 1024,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          150,
+          515,
+          460,
+          445
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-pediatrics-gastroenteritis-2014",
+        "title": "Острый гастроэнтерит у детей: рекомендации ESPGHAN и ESPID"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Анатомия пищеварительного тракта ребёнка — контекст гастроэнтерита, не изображение самого заболевания"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.5461,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 15834,
+          "lineThreshold": 0.05,
+          "toneBands": "0.520/0.676/0.924",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/pediatrics/drv-pediatrics-gastroenteritis-a5f1e45d8e.webp",
+      "attemptSrc": null,
+      "sha256": "c0bde17345ff5afc93c5bbb9120d92f6f0c5fe8c7f9da487ac5b1e291e8a1b7a",
+      "width": 1600,
+      "height": 800,
+      "alt": "Органы пищеварения ребёнка: желудок, тонкая и толстая кишка",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.804,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "gastroenteritis",
+            "threshold": "gastroenteritis"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7131,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.3822,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0824,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.0662,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9957,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9958,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9957 vs 0.8538 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "gut"
+      },
+      "createdAt": "2026-10-22T09:20:18.299Z"
+    },
+    {
+      "id": "drv-obgyn-preeclampsia-06403bf150",
+      "status": "approved",
+      "specialty": "obgyn",
+      "subject": "preeclampsia",
+      "source": {
+        "id": "src-obgyn-placenta",
+        "file": "/media/source/obgyn/placenta.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Placenta.png",
+        "sha256": "944895f71189442c914de5383d1a66f852ba70c15219d5a88af7cd37c1f1787b",
+        "width": 1200,
+        "height": 1111,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          0,
+          50,
+          1200,
+          950
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-obgyn-uspstf-aspirin-2021",
+        "title": "Аспирин для профилактики преэклампсии: рекомендация USPSTF"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Плацента — орган, с нарушением формирования которого связана преэклампсия; самой преэклампсии изображение не показывает"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.7242,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.078,
+          "toneBands": "0.551/0.670/0.757",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/obgyn/drv-obgyn-preeclampsia-06403bf150.webp",
+      "attemptSrc": null,
+      "sha256": "ffb70193493a2c883cfe890293e95641b7e7fee55a6fcc9da46901158850ddd2",
+      "width": 1600,
+      "height": 800,
+      "alt": "Сагиттальный разрез: плацента на стенке матки, пуповина и плод",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "preeclampsia",
+            "threshold": "preeclampsia"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.6491,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4264,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0987,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1113,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9996,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9197,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9996 vs 0.8243 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "pregnancy"
+      },
+      "createdAt": "2026-10-22T09:15:46.550Z"
+    },
+    {
+      "id": "drv-obgyn-preterm-birth-d68a2f4a52",
+      "status": "approved",
+      "specialty": "obgyn",
+      "subject": "preterm_birth",
+      "source": {
+        "id": "src-obgyn-pregnancy",
+        "file": "/media/source/obgyn/blausen-0747-pregnancy.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0747_Pregnancy.png",
+        "sha256": "791bb22898f6148f154076fc5fb1edcb919aee51cb87916277aa174873e03559",
+        "width": 1200,
+        "height": 1200,
+        "credit": "BruceBlaus · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          300,
+          150,
+          700,
+          700
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-obgyn-nice-preterm",
+        "title": "Преждевременные роды: рекомендации NICE (NG25)"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Анатомия беременной матки и шейки — контекст преждевременных родов, не изображение самих родов"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.9829,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 26454,
+          "lineThreshold": 0.0668,
+          "toneBands": "0.492/0.588/0.706",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/obgyn/drv-obgyn-preterm-birth-d68a2f4a52.webp",
+      "attemptSrc": null,
+      "sha256": "be0e31532036dcb9770dc573035835d83d9c40505f25d2996f150456c203eb2e",
+      "width": 1600,
+      "height": 800,
+      "alt": "Беременная матка: плод, плацента, околоплодные воды и шейка матки",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.769,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "preterm_birth",
+            "threshold": "preterm_birth"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7824,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.3483,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0587,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.09,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9986,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.97,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9986 vs 0.7323 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "pregnancy"
+      },
+      "createdAt": "2026-10-22T09:20:19.167Z"
+    },
+    {
+      "id": "drv-cardiology-atrial-fibrillation-48c177a206",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "atrial_fibrillation",
+      "source": {
+        "id": "src-cardiology-ecg-af",
+        "file": "/media/cardiology/ecg-atrial-fibrillation.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:ECG_Atrial_Fibrillation_98_bpm.jpg",
+        "sha256": "433e46eedcd3d9e9b8197943c1423a9adb1226664377ad400a8a6431a8cf588f",
+        "width": 1190,
+        "height": 595,
+        "credit": "Ewingdo · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": null,
+        "remove": [
+          [
+            294,
+            120,
+            42,
+            22
+          ],
+          [
+            294,
+            263,
+            42,
+            22
+          ],
+          [
+            294,
+            412,
+            42,
+            22
+          ],
+          [
+            608,
+            120,
+            30,
+            22
+          ],
+          [
+            608,
+            263,
+            30,
+            22
+          ],
+          [
+            608,
+            412,
+            30,
+            22
+          ],
+          [
+            918,
+            120,
+            30,
+            22
+          ],
+          [
+            918,
+            263,
+            30,
+            22
+          ],
+          [
+            918,
+            412,
+            30,
+            22
+          ]
+        ],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-af-export",
+        "title": "Фибрилляция и трепетание предсердий"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "ЭКГ при фибрилляции предсердий — диагностический признак предмета рекомендаций"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "trace",
+          "scale": 0.9412,
+          "backgroundTolerance": 80,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0,
+          "toneBands": "0.552/0.622/0.666",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-atrial-fibrillation-48c177a206.webp",
+      "attemptSrc": null,
+      "sha256": "9aef9e2818a6f75c13ead626e9d126602fa5506eda31faf050876187dad5b9a7",
+      "width": 1600,
+      "height": 800,
+      "alt": "ЭКГ в 12 отведениях при фибрилляции предсердий: нерегулярные комплексы QRS без зубцов P",
+      "label": "Перерисовано по оригиналу: Ewingdo · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.947,
+            "threshold": "≥ 0.6 (diagnostic)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "atrial_fibrillation",
+            "threshold": "atrial_fibrillation"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.9657,
+            "threshold": "0.8–0.995"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4489,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0343,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.2055,
+            "threshold": "n/a (trace)"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "1 vs 1 mirrored",
+            "threshold": "source ≥ mirrored"
+          },
+          {
+            "id": "removed_regions",
+            "pass": true,
+            "value": 0.9995,
+            "threshold": "≥ 0.98"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "ecg_af"
+      },
+      "createdAt": "2026-10-22T09:20:14.610Z"
+    },
+    {
+      "id": "drv-cardiology-pulmonary-hypertension-3f6e70ad6c",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "pulmonary_hypertension",
+      "source": {
+        "id": "src-cardiology-pulmonary-hypertension",
+        "file": "/media/cardiology/pulmonary-hypertension.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Pulmonary_Hypertension.png",
+        "sha256": "ef3ef728454b3fc256b0c6e32e22c8cf4011e7719dc2c4c6a8c105494e2fc43a",
+        "width": 820,
+        "height": 410,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          0,
+          0,
+          820,
+          318
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-ph-2024",
+        "title": "Легочная гипертензия, включая хроническую тромбоэмболическую легочную гипертензию"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Правые отделы сердца и лёгочные артерии при лёгочной гипертензии — предмет рекомендаций"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.3659,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.0504,
+          "toneBands": "0.585/0.721/0.827",
+          "hueSplit": true,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-pulmonary-hypertension-3f6e70ad6c.webp",
+      "attemptSrc": null,
+      "sha256": "a30471b2d6bd5f6db8d2fdec149af57c008484696b1d79ba5e746f705ae6af13",
+      "width": 1600,
+      "height": 800,
+      "alt": "Лёгочная гипертензия: расширенные правые отделы сердца и лёгочные артерии",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.992,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "pulmonary_hypertension",
+            "threshold": "pulmonary_hypertension"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7547,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.3018,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0792,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.0709,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9769,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.8955,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9769 vs 0.8037 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "pulmonary"
+      },
+      "createdAt": "2026-10-22T09:15:44.764Z"
+    },
+    {
+      "id": "drv-cardiology-coronary-artery-disease-1afef1ec15",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "source": {
+        "id": "src-cardiology-coronary-angiography",
+        "file": "/media/cardiology/coronary-angiography.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Coronary_Angiography.png",
+        "sha256": "7f9c7497318963a89a5b765850de20df53337315489c83997c4d3440bd9365e6",
+        "width": 870,
+        "height": 435,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": null,
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Стеноз коронарной артерии на ангиограмме — морфологический субстрат стабильной ИБС"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.2874,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1103,
+          "toneBands": "0.682/0.759/0.827",
+          "hueSplit": true,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-1afef1ec15.webp",
+      "attemptSrc": null,
+      "sha256": "fa346dea68a7268def696d7e1bd3b87aa65f32bd31e1fa6a4301d03dee7daa71",
+      "width": 1600,
+      "height": 800,
+      "alt": "Схема коронарографии: катетер в устье левой коронарной артерии и стеноз на ангиограмме",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "coronary_artery_disease",
+            "threshold": "coronary_artery_disease"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7226,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4465,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0813,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1281,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9772,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.953,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9772 vs 0.6484 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "derivative",
+        "ref": "drv-cardiology-coronary-artery-disease-006a9092f3"
+      },
+      "createdAt": "2026-10-22T09:15:44.969Z"
+    },
+    {
+      "id": "drv-cardiology-coronary-artery-disease-006a9092f3",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "source": {
+        "id": "src-cardiology-atherosclerotic-stenosis",
+        "file": "/media/cardiology/atherosclerotic-stenosis.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Plaque_at_different_degrees_of_atherosclerotic_stenosis.jpg",
+        "sha256": "1e63b9d1e50152d422a907f9098af12ace26a67044157a371c00b30c973fdace",
+        "width": 1200,
+        "height": 600,
+        "credit": "K. Michaud, C. Basso, G. d’Amati и соавт. · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          10,
+          0,
+          1180,
+          540
+        ],
+        "remove": [],
+        "keepText": [
+          [
+            150,
+            470,
+            100,
+            52
+          ],
+          [
+            550,
+            470,
+            100,
+            52
+          ],
+          [
+            945,
+            470,
+            100,
+            52
+          ]
+        ]
+      },
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Степень атеросклеротического сужения коронарной артерии — ключевая характеристика стабильной ИБС"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.9492,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1658,
+          "toneBands": "0.490/0.564/0.727",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-006a9092f3.webp",
+      "attemptSrc": null,
+      "sha256": "e34d6c895ab9f620dd2464a6c373b299ff1170f2a139ebcfc6e4e16a0a6455db",
+      "width": 1600,
+      "height": 800,
+      "alt": "Атеросклеротическая бляшка при стенозе коронарной артерии на 50, 75 и 90 %",
+      "label": "Перерисовано по оригиналу: K. Michaud, C. Basso, G. d’Amati и соавт. · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "coronary_artery_disease",
+            "threshold": "coronary_artery_disease"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7239,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.3845,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0792,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.0957,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9328,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9954,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9328 vs 0.7477 mirrored",
+            "threshold": "source ≥ mirrored"
+          },
+          {
+            "id": "kept_text",
+            "pass": true,
+            "value": 0.9968,
+            "threshold": "IoU ≥ 0.6"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "derivative",
+        "ref": "drv-cardiology-coronary-artery-disease-1afef1ec15"
+      },
+      "createdAt": "2026-10-22T09:20:15.593Z"
+    },
+    {
+      "id": "drv-cardiology-heart-chambers-valves-bd1569d419",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "heart_chambers_valves",
+      "source": {
+        "id": "src-cardiology-heart-four-chamber",
+        "file": "/media/cardiology/heart-four-chamber.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Heart_tee_four_chamber_view.jpg",
+        "sha256": "e04378dc9fa42ac9bc8214fd0394cdad0bcb0ea51b42a44db5c4470d66890acd",
+        "width": 1200,
+        "height": 600,
+        "credit": "Patrick J. Lynch, C. Carl Jaffe · CC BY 2.5",
+        "license": "CC BY 2.5",
+        "crop": null,
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-hcm-2020",
+        "title": "Гипертрофическая кардиомиопатия"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Нормальная четырёхкамерная анатомия — контекст кардиомиопатии; признаков гипертрофии на изображении нет"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.9333,
+          "backgroundTolerance": 40,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1087,
+          "toneBands": "0.334/0.530/0.593",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-heart-chambers-valves-bd1569d419.webp",
+      "attemptSrc": null,
+      "sha256": "1f3b0536953572042fb6ffaafc98f4696bdf09be9f2ef73c169dfe59faf8c36c",
+      "width": 1600,
+      "height": 800,
+      "alt": "Сердце в четырёхкамерной проекции: предсердия, желудочки, клапаны и миокард",
+      "label": "Перерисовано по оригиналу: Patrick J. Lynch, C. Carl Jaffe · CC BY 2.5",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "heart_chambers_valves",
+            "threshold": "heart_chambers_valves"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.6437,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4427,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.1003,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1056,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9969,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9153,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9969 vs 0.8469 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "echo"
+      },
+      "createdAt": "2026-10-22T09:15:45.373Z"
+    },
+    {
+      "id": "drv-cardiology-heart-anatomy-3cac03fe3d",
+      "status": "approved",
+      "specialty": "cardiology",
+      "subject": "heart_anatomy",
+      "source": {
+        "id": "src-cardiology-heart-anatomy",
+        "file": "/media/cardiology/heart-anatomy.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Red_heart_illustration.png",
+        "sha256": "f5941e64088895dbd7f7e42ade31ce31e8e3c8cb6ef92b1c1d56eb1e8547ae5b",
+        "width": 1200,
+        "height": 600,
+        "credit": "RawPixel / Wikimedia Commons · CC0",
+        "license": "CC0",
+        "crop": [
+          380,
+          20,
+          440,
+          560
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-vt-2025",
+        "title": "Желудочковые нарушения ритма сердца. Внезапная сердечная смерть"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Общая анатомия сердца — контекст рекомендаций по желудочковым аритмиям, не изображение аритмии"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.2286,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1699,
+          "toneBands": "0.186/0.288/0.485",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/cardiology/drv-cardiology-heart-anatomy-3cac03fe3d.webp",
+      "attemptSrc": null,
+      "sha256": "24b434c70dc69ef794094fdbe0085bdc61e26553e6f4a3f2d5a4ef302616373e",
+      "width": 1600,
+      "height": 800,
+      "alt": "Анатомическая иллюстрация сердца с коронарными сосудами",
+      "label": "Перерисовано по оригиналу: RawPixel / Wikimedia Commons · CC0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.965,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "heart_anatomy",
+            "threshold": "heart_anatomy"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.8519,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.2066,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0423,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1609,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "1 vs 0.9246 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "conduction"
+      },
+      "createdAt": "2026-10-22T09:15:45.520Z"
+    },
+    {
+      "id": "drv-cardiology-arterial-hypertension-2f2ee82ba2",
+      "status": "rejected",
+      "specialty": "cardiology",
+      "subject": "arterial_hypertension",
+      "source": {
+        "id": "src-cardiology-blood-pressure",
+        "file": "/media/cardiology/blood-pressure-monitor.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Sphygmomanometer,_automatic_blood_pressure_monitor._Oscillometric_measurements,_millimeter_of_mercury_(mmHg)_unit.jpg",
+        "sha256": "959910191d456ab951ca978829d2650453e09b33db15fae9c710110b1c904103",
+        "width": 1200,
+        "height": 600,
+        "credit": "Albarubescens · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": null,
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-ah-2024",
+        "title": "Артериальная гипертензия у взрослых"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Измерение артериального давления — основа диагностики артериальной гипертензии"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {}
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": null,
+      "attemptSrc": null,
+      "sha256": null,
+      "width": 1600,
+      "height": 800,
+      "alt": "Автоматический тонометр с манжетой",
+      "label": "Перерисовано по оригиналу: Albarubescens · CC BY-SA 4.0",
+      "validation": {
+        "status": "failed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": false,
+            "value": true,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.708,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "arterial_hypertension",
+            "threshold": "arterial_hypertension"
+          }
+        ],
+        "failureReason": "В кадре марка производителя или издателя"
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "artery_pressure"
+      },
+      "createdAt": "2026-10-22T09:15:45.532Z"
+    },
+    {
+      "id": "drv-cardiology-coronary-artery-disease-0fddb2f2c5",
+      "status": "rejected",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "source": {
+        "id": "src-cardiology-coronary-ct",
+        "file": "/media/cardiology/coronary-ct.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Coronary_CT_Angiography_Scan.jpg",
+        "sha256": "63b26d21b9393235740305c3392079d612e32045b98b7de13c7b2dba6c1d9d61",
+        "width": 1200,
+        "height": 600,
+        "credit": "Goleisureintl · CC BY 4.0",
+        "license": "CC BY 4.0",
+        "crop": null,
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "КТ-коронарография — метод визуализации коронарных артерий при ИБС"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {}
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": null,
+      "attemptSrc": null,
+      "sha256": null,
+      "width": 1600,
+      "height": 800,
+      "alt": "Объёмная реконструкция КТ-коронарографии",
+      "label": "Перерисовано по оригиналу: Goleisureintl · CC BY 4.0",
+      "validation": {
+        "status": "failed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": false,
+            "value": 0,
+            "threshold": "≥ 0.6 (diagnostic)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "coronary_artery_disease",
+            "threshold": "coronary_artery_disease"
+          }
+        ],
+        "failureReason": "Диагностическое изображение на тёмном фоне: перенос на светлый фон изменил бы диагностическое чтение"
+      },
+      "fallback": {
+        "kind": "derivative",
+        "ref": "drv-cardiology-coronary-artery-disease-1afef1ec15"
+      },
+      "createdAt": "2026-10-22T09:15:45.541Z"
+    },
+    {
+      "id": "drv-cardiology-myocardial-infarction-dffba16033",
+      "status": "rejected",
+      "specialty": "cardiology",
+      "subject": "myocardial_infarction",
+      "source": {
+        "id": "src-cardiology-cardiac-mri",
+        "file": "/media/cardiology/cardiac-mri-cine.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:4CH_cine_infarct.gif",
+        "sha256": "3e48f81d6eec390cf61718dfbc7a7ed35b5328903595fd796aa6e1772eb92907",
+        "width": 916,
+        "height": 458,
+        "credit": "Doregan · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": null,
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "video-stemi-2020",
+        "title": "Острый инфаркт миокарда с подъемом сегмента ST ЭКГ (2020)"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "МРТ сердца после перенесённого инфаркта — визуализация предмета лекции"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {}
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": null,
+      "attemptSrc": null,
+      "sha256": null,
+      "width": 1600,
+      "height": 800,
+      "alt": "МРТ сердца в четырёхкамерной проекции после нижнего инфаркта",
+      "label": "Перерисовано по оригиналу: Doregan · CC BY-SA 4.0",
+      "validation": {
+        "status": "failed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": false,
+            "value": 0.141,
+            "threshold": "≥ 0.6 (diagnostic)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "myocardial_infarction",
+            "threshold": "myocardial_infarction"
+          }
+        ],
+        "failureReason": "Диагностическое изображение на тёмном фоне: перенос на светлый фон изменил бы диагностическое чтение"
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "ventricle"
+      },
+      "createdAt": "2026-10-22T09:15:45.546Z"
+    },
+    {
+      "id": "drv-neurology-ischemic-stroke-258ef5d0fb",
+      "status": "approved",
+      "specialty": "neurology",
+      "subject": "ischemic_stroke",
+      "source": {
+        "id": "src-neurology-ischemic-stroke",
+        "file": "/media/source/neurology/blausen-0836-stroke.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0836_Stroke.png",
+        "sha256": "3fed8c4358c2cc6a673fe161dd648e727de1828183a23b8886a3e4b677c68184",
+        "width": 550,
+        "height": 800,
+        "credit": "Blausen Medical Communications · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          0,
+          0,
+          550,
+          640
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-neurology-eso-ivt-2021",
+        "title": "Внутривенный тромболизис при остром ишемическом инсульте: рекомендации ESO"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Окклюзия мозговой артерии тромбом — мишень внутривенного тромболизиса"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.075,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1512,
+          "toneBands": "0.539/0.720/0.840",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/neurology/drv-neurology-ischemic-stroke-258ef5d0fb.webp",
+      "attemptSrc": null,
+      "sha256": "a0cdc81a5975231238c4f6bb91c5f32bfb7d98750c61cf42c10c803bf9da92cf",
+      "width": 1600,
+      "height": 800,
+      "alt": "Тромб, закупоривающий мозговую артерию, и полушарие мозга с артериями",
+      "label": "Перерисовано по оригиналу: Blausen Medical Communications · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "ischemic_stroke",
+            "threshold": "ischemic_stroke"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.8161,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.2812,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0523,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.079,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9972,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9277,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9972 vs 0.5505 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "stroke"
+      },
+      "createdAt": "2026-10-22T09:15:46.843Z"
+    },
+    {
+      "id": "drv-neurology-multiple-sclerosis-90e5082a79",
+      "status": "approved",
+      "specialty": "neurology",
+      "subject": "multiple_sclerosis",
+      "source": {
+        "id": "src-neurology-multiple-sclerosis",
+        "file": "/media/source/neurology/multiple-sclerosis.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Multiple_Sclerosis.png",
+        "sha256": "7c4a21265951a33956098cecaad947fe955d4d145bc055026c76313443ffe054",
+        "width": 1200,
+        "height": 1000,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          722,
+          462,
+          442,
+          330
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-neurology-ectrims-ms-2018",
+        "title": "Медикаментозное лечение рассеянного склероза: рекомендации ECTRIMS и EAN"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Разрушение миелина иммунными клетками — механизм рассеянного склероза"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 2.0848,
+          "backgroundTolerance": 100,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1987,
+          "toneBands": "0.345/0.447/0.592",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/neurology/drv-neurology-multiple-sclerosis-90e5082a79.webp",
+      "attemptSrc": null,
+      "sha256": "6d1e40eb748eefcd5060b6b6bdddccfd71be342f4433d4a89b960b56540c7939",
+      "width": 1600,
+      "height": 800,
+      "alt": "Демиелинизация: иммунные клетки у аксона с разрушенной миелиновой оболочкой",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 0.111,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "multiple_sclerosis",
+            "threshold": "multiple_sclerosis"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.8185,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4956,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0478,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.158,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9759,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "1 vs 0.8154 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "neuron"
+      },
+      "createdAt": "2026-10-22T09:22:10.210Z"
+    },
+    {
+      "id": "drv-neurology-multiple-sclerosis-424b7d4925",
+      "status": "rejected",
+      "specialty": "neurology",
+      "subject": "multiple_sclerosis",
+      "source": {
+        "id": "src-neurology-multiple-sclerosis-cns",
+        "file": "/media/source/neurology/multiple-sclerosis.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Multiple_Sclerosis.png",
+        "sha256": "7c4a21265951a33956098cecaad947fe955d4d145bc055026c76313443ffe054",
+        "width": 1200,
+        "height": 1000,
+        "credit": "BruceBlaus · CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0",
+        "crop": [
+          0,
+          330,
+          560,
+          670
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-neurology-ectrims-ms-2018",
+        "title": "Медикаментозное лечение рассеянного склероза: рекомендации ECTRIMS и EAN"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Головной и спинной мозг — органы, поражаемые при рассеянном склерозе; саму демиелинизацию этот фрагмент не показывает"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 1.0269,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.1268,
+          "toneBands": "0.742/0.842/0.940",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": null,
+      "attemptSrc": "/media/derived/neurology/attempt-drv-neurology-multiple-sclerosis-424b7d4925.webp",
+      "sha256": "ac9f9986cb20481ba6a423730d4fdd9e21284e42b30295fb1af0512abdd6d52a",
+      "width": 1600,
+      "height": 800,
+      "alt": "Центральная нервная система: головной и спинной мозг, периферические нервы",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY-SA 4.0",
+      "validation": {
+        "status": "failed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "MEDIUM",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "multiple_sclerosis",
+            "threshold": "multiple_sclerosis"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": false,
+            "value": 0.9296,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.2855,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0225,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1545,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9421,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "1 vs 0.6952 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": "Композиция выходит за норму пустого пространства"
+      },
+      "fallback": {
+        "kind": "derivative",
+        "ref": "drv-neurology-multiple-sclerosis-90e5082a79"
+      },
+      "createdAt": "2026-10-22T09:21:40.740Z"
+    },
+    {
+      "id": "drv-endocrinology-type2-diabetes-ca8ef9a82c",
+      "status": "approved",
+      "specialty": "endocrinology",
+      "subject": "type2_diabetes",
+      "source": {
+        "id": "src-endocrinology-type2-diabetes",
+        "file": "/media/source/endocrinology/blausen-0309-diabetes-type2.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0309_Diabetes_Type2.png",
+        "sha256": "7d8e531a5d49093543d3c930788f394906b4646d19c17a9fbd5c1a6ae3a9ad2c",
+        "width": 1024,
+        "height": 768,
+        "credit": "BruceBlaus · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          20,
+          20,
+          984,
+          700
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-endocrinology-ada-easd-2022",
+        "title": "Управление гипергликемией при сахарном диабете 2 типа: консенсус ADA и EASD 2022"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Поджелудочная железа и взаимодействие инсулина с рецепторами клетки — предмет сахароснижающей терапии при СД 2 типа"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.9829,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.105,
+          "toneBands": "0.220/0.573/0.727",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/endocrinology/drv-endocrinology-type2-diabetes-ca8ef9a82c.webp",
+      "attemptSrc": null,
+      "sha256": "502f3c88cd14bc3936705c9d830d2ac9fda026d229741d38460ae648658e4f18",
+      "width": 1600,
+      "height": 800,
+      "alt": "Сахарный диабет 2 типа: поджелудочная железа и клеточная мембрана с инсулиновыми рецепторами и молекулами глюкозы",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "type2_diabetes",
+            "threshold": "type2_diabetes"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.7138,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.4841,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0845,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.0794,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 0.9957,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9472,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "0.9957 vs 0.5964 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "glucose"
+      },
+      "createdAt": "2026-10-22T09:15:47.234Z"
+    },
+    {
+      "id": "drv-endocrinology-osteoporosis-104fcaf3e0",
+      "status": "approved",
+      "specialty": "endocrinology",
+      "subject": "osteoporosis",
+      "source": {
+        "id": "src-endocrinology-osteoporosis",
+        "file": "/media/source/endocrinology/blausen-0686-osteoporosis.webp",
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0686_Osteoporosis_01.png",
+        "sha256": "a9314080dc13e5e6c7c80efb49172454dd1d70e50803e17721e30d9dd53ae8f6",
+        "width": 768,
+        "height": 1024,
+        "credit": "BruceBlaus · CC BY 3.0",
+        "license": "CC BY 3.0",
+        "crop": [
+          30,
+          0,
+          720,
+          1010
+        ],
+        "remove": [],
+        "keepText": []
+      },
+      "document": {
+        "id": "sc-endocrinology-es-osteoporosis-2019",
+        "title": "Медикаментозное лечение постменопаузального остеопороза: рекомендации Эндокринологического общества"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Истончение кости и деформация позвоночника — проявления остеопороза"
+      },
+      "transformation": {
+        "pipeline": "ds-tonal-redraw",
+        "version": "ds-tonal-redraw@1.0.0",
+        "engine": "deterministic",
+        "params": {
+          "render": "tones",
+          "scale": 0.6812,
+          "backgroundTolerance": 48,
+          "thinLinesRemovedPx": 0,
+          "lineThreshold": 0.2122,
+          "toneBands": "0.320/0.569/0.730",
+          "hueSplit": false,
+          "median": 3,
+          "blur": 1.2,
+          "majority": 5,
+          "minContour": 40,
+          "lineDilation": 1
+        }
+      },
+      "designSystem": {
+        "version": "yandex-med-ds@1+recraft-lock@41",
+        "palette": [
+          "#F2F2F2",
+          "#898BFF",
+          "#AFA2FF",
+          "#D9D8FF",
+          "#FFFFFF",
+          "#5759EF",
+          "#F367D0",
+          "#FDABC1"
+        ]
+      },
+      "src": "/media/derived/endocrinology/drv-endocrinology-osteoporosis-104fcaf3e0.webp",
+      "attemptSrc": null,
+      "sha256": "838832927d4dfd2c1fe651c768a5b11318ab1b04c666c930eea4fcb60bdbf0d7",
+      "width": 1600,
+      "height": 800,
+      "alt": "Остеопороз: нормальная осанка и кифоз, истончение кортикального слоя и разрежение трабекулярной кости",
+      "label": "Перерисовано по оригиналу: BruceBlaus · CC BY 3.0",
+      "validation": {
+        "status": "passed",
+        "checks": [
+          {
+            "id": "match_gate",
+            "pass": true,
+            "value": "STRONG",
+            "threshold": "EXACT | STRONG | MEDIUM"
+          },
+          {
+            "id": "patient_identifiers",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "brand_marks",
+            "pass": true,
+            "value": false,
+            "threshold": "false"
+          },
+          {
+            "id": "diagnostic_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "n/a (editorial)"
+          },
+          {
+            "id": "anchor_subject",
+            "pass": true,
+            "value": "osteoporosis",
+            "threshold": "osteoporosis"
+          },
+          {
+            "id": "frame_2x1",
+            "pass": true,
+            "value": "1600×800",
+            "threshold": "1600×800"
+          },
+          {
+            "id": "palette",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.999"
+          },
+          {
+            "id": "frame_background",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.995"
+          },
+          {
+            "id": "negative_space",
+            "pass": true,
+            "value": 0.8775,
+            "threshold": "0.45–0.9"
+          },
+          {
+            "id": "anchor_share",
+            "pass": true,
+            "value": 0.2541,
+            "threshold": "0.2–0.62"
+          },
+          {
+            "id": "brand_attention",
+            "pass": true,
+            "value": 0.0366,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "detail_level",
+            "pass": true,
+            "value": 0.1504,
+            "threshold": "≤ 0.2"
+          },
+          {
+            "id": "structure_precision",
+            "pass": true,
+            "value": 1,
+            "threshold": "≥ 0.9"
+          },
+          {
+            "id": "structure_recall",
+            "pass": true,
+            "value": 0.9985,
+            "threshold": "≥ 0.75"
+          },
+          {
+            "id": "orientation",
+            "pass": true,
+            "value": "1 vs 0.4323 mirrored",
+            "threshold": "source ≥ mirrored"
+          }
+        ],
+        "failureReason": null
+      },
+      "fallback": {
+        "kind": "art",
+        "ref": "bone"
+      },
+      "createdAt": "2026-10-22T09:15:47.353Z"
+    }
+  ]
+}
