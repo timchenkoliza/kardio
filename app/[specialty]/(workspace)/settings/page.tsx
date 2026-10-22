@@ -66,7 +66,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
 
       <div className="pt-profile-column is-secondary">
         <section className="pt-profile-card" aria-labelledby="pt-usage-title">
-          <h2 id="pt-usage-title">Как это работает для вас</h2>
+          <h2 id="pt-usage-title">{nbsp("Как это работает для вас")}</h2>
           <dl className="ws-metrics">
             <div><dt>Мои материалы</dt><dd><Link className="ws-text-link" href={`/${specialty}/materials`}>{countLabel(materials.length, ["материал", "материала", "материалов"])}</Link></dd></div>
             <div><dt>Вопросов задано</dt><dd>{questions}</dd></div>
@@ -77,12 +77,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         </section>
 
         <section className="pt-profile-card" id="partner" aria-labelledby="ws-partner-settings">
-          <h2 id="ws-partner-settings">Партнёрские материалы</h2>
+          <h2 id="ws-partner-settings">{nbsp("Партнёрские материалы")}</h2>
           <PartnerToggle enabled={profile.partnerContent} />
         </section>
 
         <section className="pt-profile-card" id="sources" aria-labelledby="ws-connectors-title">
-          <h2 id="ws-connectors-title">Источники и подключения</h2>
+          <h2 id="ws-connectors-title">{nbsp("Источники и подключения")}</h2>
           <p>Что продукт действительно умеет читать и делать сейчас. «Онлайн» — запрос к источнику в момент вопроса; «Снимок» — реальные данные, собранные из источника на указанную дату; «Не подключено» — продукт прямо говорит, что не может это сделать, и даёт ссылку для самостоятельной проверки.</p>
           <ul className="ws-connectors">{connectors.map(connector => <li key={connector.id}>
             <div><strong>{connector.name}</strong><span>{connector.description}</span><small>{connector.limitations}</small></div>
@@ -91,8 +91,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         </section>
 
         <section className="pt-profile-card ws-validation" aria-labelledby="ws-validation-title">
-          <h2 id="ws-validation-title">Источники, проверенные врачами</h2>
-          <p>{SOURCE_VALIDATION.title} · обновлено {formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».</p>
+          <h2 id="ws-validation-title">{nbsp("Источники, проверенные врачами")}</h2>
+          <p>{nbsp(`Список обновлён ${formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».`)}</p>
           {(["approved", "conditional", "reviewed_not_whitelisted", "rejected"] as const).map(standing => <details key={standing} open={standing === "approved"}>
             <summary>{STANDING_GROUP_TITLE[standing]} · {validation[standing].length}</summary>
             <ul>{validation[standing].map(row => <li key={`${row.host}-${row.brand}`}><strong>{row.brand}</strong><span>{row.host}{row.condition ? ` · ${row.condition}` : ""}</span>{row.note && <span>{row.note}</span>}</li>)}</ul>
@@ -100,7 +100,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         </section>
 
         <section className="pt-profile-card" aria-labelledby="ws-privacy-title">
-          <h2 id="ws-privacy-title">Данные и приватность</h2>
+          <h2 id="ws-privacy-title">{nbsp("Данные и приватность")}</h2>
           <ul className="ws-plain-list">
             <li>Вход не нужен: рабочее пространство привязано к этому браузеру.</li>
             <li>Ваши материалы видите только вы. Другим пользователям они недоступны.</li>

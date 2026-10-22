@@ -50,7 +50,7 @@
   gap: var(--ws-composer-gap);
   min-height: var(--ws-composer-min-height);
   padding: var(--ws-composer-padding-y) var(--ws-composer-padding-x);
-  border: 1px solid transparent;
+  border: 1px solid var(--ws-surface);
   border-radius: var(--ws-radius-composer);
   background: var(--ws-surface);
   box-shadow: none;
@@ -108,7 +108,8 @@
 .pt-composer[data-state="submitting"] .pt-composer-surface { border-color: var(--ws-accent-soft); }
 .pt-composer[data-state="disabled"] .pt-composer-surface { opacity: 0.72; }
 .pt-composer[data-state="error"] .pt-composer-surface { border-color: var(--ws-danger); }
-.pt-composer .pt-composer-surface:focus-within { outline: none; }
+/* DS: a solid focus outline on the surface the input lives on (the textarea itself stays frameless). */
+.pt-composer .pt-composer-surface:focus-within { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; }
 .pt-composer .ws-composer-preview { gap: var(--ws-space-8); }
 
 /* ---------- Answer modes: three soft cards, one moving selection ---------- */
@@ -147,9 +148,9 @@
   transition: transform var(--ws-mode-transition) ease, border-color var(--ws-mode-transition) ease, background var(--ws-mode-transition) ease, box-shadow var(--ws-mode-transition) ease;
 }
 .pt-mode:hover { transform: translateY(var(--ws-mode-lift)); border-color: var(--ws-border); box-shadow: var(--ws-shadow-subtle); }
-.pt-mode:focus-visible { outline: none; box-shadow: var(--ws-shadow-focus); }
+.pt-mode:focus-visible { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; }
 .pt-mode[aria-checked="true"] { border-color: var(--ws-accent-soft); background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
-.pt-modes-track.is-measured .pt-mode[aria-checked="true"] { background: transparent; border-color: transparent; }
+.pt-modes-track.is-measured .pt-mode[aria-checked="true"] { background: transparent; border-color: var(--ws-accent-soft); }
 .pt-mode-icon {
   flex: 0 0 auto;
   display: inline-grid;
@@ -219,7 +220,7 @@
   transition: background var(--ws-mode-transition) ease, border-color var(--ws-mode-transition) ease;
 }
 .pt-suggestion:hover { background: var(--ws-surface); border-color: var(--ws-border); }
-.pt-suggestion:focus-visible { outline: none; box-shadow: var(--ws-shadow-focus); }
+.pt-suggestion:focus-visible { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; }
 
 /* ---------- Quick agents: three job cards with the mascot on the right ---------- */
 
@@ -345,7 +346,7 @@
   font: inherit;
   font-size: var(--font-size-body-compact);
 }
-.pt-identity-form input:focus-visible { outline: none; border-color: var(--ws-accent-soft); box-shadow: var(--ws-shadow-focus); }
+.pt-identity-form input:focus-visible { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; border-color: var(--ws-accent-soft); }
 .pt-identity-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ws-space-12); }
 .pt-specialty-select { position: relative; display: flex; align-items: center; }
 .pt-specialty-select select {
@@ -370,7 +371,7 @@
   gap: var(--ws-space-4);
   min-height: var(--ws-chip-height);
   padding: 0 var(--ws-space-4) 0 var(--ws-space-12);
-  border: 1px solid transparent;
+  border: 1px solid var(--ws-surface);
   border-radius: var(--ws-radius-chip);
   background: var(--ws-surface);
   color: var(--ws-text);
@@ -427,6 +428,9 @@
 .pt-source.is-off .pt-source-copy { opacity: 0.6; }
 .pt-profile .pt-modes-track { gap: var(--ws-space-8); }
 .pt-profile-saved { color: var(--ws-success); font-size: var(--font-size-caption); }
+.pt-profile-card summary { display: flex; align-items: center; min-height: var(--ws-touch-target); cursor: pointer; }
+.pt-profile-card .ws-metrics a,
+.pt-profile-card .ws-legacy-link a { display: inline-flex; align-items: center; min-height: var(--ws-touch-target); }
 
 /* ---------- Materials: toolbar and a table-like library ---------- */
 
@@ -464,6 +468,7 @@
 .pt-anon-tab[aria-selected="true"] { background: var(--ws-canvas); color: var(--ws-text); box-shadow: var(--ws-shadow-subtle); }
 .pt-anon-panel { display: flex; flex-direction: column; gap: var(--ws-space-16); }
 .pt-anon-drop {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -480,11 +485,13 @@
 }
 .pt-anon-drop:hover,
 .pt-anon-drop.is-over { border-color: var(--ws-accent); background: var(--ws-accent-wash); }
-.pt-anon-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+/* The file input covers the whole zone: the drop area is its real hit target. */
+.pt-anon-drop input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.pt-anon-drop:focus-within { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; }
 .pt-anon-drop-icon { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: var(--ws-radius-round); background: var(--ws-surface); color: var(--ws-text-secondary); }
 .pt-anon-drop strong { font-size: var(--font-size-body-compact); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-body-compact); }
 .pt-anon-drop span { color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
-.pt-anon-drop small { color: var(--ws-text-tertiary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
+.pt-anon-drop small { color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
 .pt-anon-job { display: flex; flex-direction: column; gap: var(--ws-space-12); padding: var(--ws-space-16) var(--ws-space-20); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); background: var(--ws-canvas); }
 .pt-anon-job-head { display: flex; align-items: center; gap: var(--ws-space-12); }
 .pt-anon-job-head strong { flex: 1 1 auto; min-width: 0; font-size: var(--font-size-body-compact); font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }

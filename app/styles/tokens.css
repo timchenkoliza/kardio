@@ -346,7 +346,7 @@
   --ws-mode-icon: 20px;
   --ws-mode-icon-box: 32px;
   --ws-mode-lift: -1px;
-  --ws-mode-transition: 180ms;
+  --ws-mode-transition: 0.18s;
   --ws-sparkle-size: 14px;
   --ws-sparkle-cycle: 7s;
   --ws-suggestion-height: 40px;
@@ -361,7 +361,7 @@
   --ws-quick-mobile-width: 296px;
   --ws-mascot-tilt: 1.5deg;
   --ws-mascot-lift: 2px;
-  --ws-mascot-breath: 3600ms;
+  --ws-mascot-breath: 3.6s;
   --ws-profile-avatar: 64px;
   --ws-profile-column: 360px;
   --ws-profile-gap: 24px;

@@ -8,6 +8,7 @@ import { SOURCE_OPTIONS, topicsFor } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { ANSWER_MODE_COPY, type AnswerMode } from "@/lib/portal/answer-mode";
 import { launchSpecialtyList, specialties } from "@/lib/specialty";
+import { nbsp } from "@/lib/ui/typography";
 import { AnswerModeControl } from "@/components/portal/answer-mode-control";
 import { useWorkspace } from "./workspace-provider";
 
@@ -152,7 +153,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
 
   return <>
     <section className="pt-profile-card" aria-labelledby="pt-topics-title">
-      <h2 id="pt-topics-title">Интересующие темы</h2>
+      <h2 id="pt-topics-title">{nbsp("Интересующие темы")}</h2>
       <p>Темы поднимают материалы в ленте «Для вас», добавляют подсказки на главной и учитываются в ответах.</p>
       <ul className="pt-topic-chips" aria-label="Выбранные темы">
         {chosen.map(topic => <li key={topic.id} className="pt-topic-chip">{topic.label}<button type="button" aria-label={`Убрать тему ${topic.label}`} disabled={pending} onClick={() => removeTopic(topic.id)}><X size={14} aria-hidden="true" /></button></li>)}
@@ -166,7 +167,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
     </section>
 
     <section className="pt-profile-card" aria-labelledby="pt-sources-title">
-      <h2 id="pt-sources-title">Источники и базы знаний</h2>
+      <h2 id="pt-sources-title">{nbsp("Источники и базы знаний")}</h2>
       <p>«Приоритет» поднимает находки источника выше, «Не использовать» убирает их из ответов. Остальные источники работают как обычно.</p>
       <ul className="pt-sources">
         {SOURCE_OPTIONS.map(option => {
@@ -208,7 +209,7 @@ export function AnswerModeCard({ answerMode }: { answerMode: AnswerMode }) {
     if (result) setSaved(true);
   }
   return <section className="pt-profile-card" aria-labelledby="pt-answer-title">
-    <h2 id="pt-answer-title">Предпочтения ответов</h2>
+    <h2 id="pt-answer-title">{nbsp("Предпочтения ответов")}</h2>
     <p>Режим по умолчанию для новых вопросов. На главной его можно поменять для одного запроса.</p>
     <AnswerModeControl value={mode} onChange={next => void choose(next)} legend="Режим ответа по умолчанию" name="default-answer-mode" disabled={pending} />
     <p className="ws-muted">{ANSWER_MODE_COPY[mode].detail}</p>

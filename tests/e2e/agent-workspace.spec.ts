@@ -126,7 +126,7 @@ test("settings expose honest connector states", async ({ page }) => {
   await expect(connectors.locator("li").filter({ hasText: "ГРЛС Минздрава" })).toContainText("Не подключено");
   await expect(connectors.locator("li").filter({ hasText: "Рубрикатор клинических рекомендаций" })).toContainText("Не подключено");
   await expect(connectors.locator("li").filter({ hasText: "Инструкции FDA" })).toContainText(/Онлайн|Не подключено/);
-  await expect(connectors.locator("li").filter({ hasText: "Telegram-каналы" })).toContainText("Не подключено");
+  await expect(connectors.locator("li").filter({ hasText: "Телеграм-каналы" })).toContainText("Не подключено");
   await expect(connectors.locator("li").filter({ hasText: "Партнёрские материалы" })).toContainText("Демо-данные");
   await expect(connectors.locator("li").filter({ hasText: "PubMed" }).first()).toContainText(/Онлайн|Не подключено/);
 });
