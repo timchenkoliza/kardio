@@ -168,7 +168,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
 
     <section className="pt-profile-card" aria-labelledby="pt-sources-title">
       <h2 id="pt-sources-title">{nbsp("Источники и базы знаний")}</h2>
-      <p>«Приоритет» поднимает находки источника выше, «Не использовать» убирает их из ответов. Остальные источники работают как обычно.</p>
+      <p>«Приоритет» ставит находки источника выше в ответах и подборках, ничего не скрывая; версии клинических рекомендаций всегда идут от новой к старой. «Не использовать» убирает источник из ответов и подборок, ссылки для официальной проверки в ГРЛС и рубрикаторе Минздрава остаются.</p>
       <ul className="pt-sources">
         {SOURCE_OPTIONS.map(option => {
           const Icon = SOURCE_ICON[option.id] ?? Globe;
