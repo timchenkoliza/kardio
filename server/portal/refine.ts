@@ -9,6 +9,7 @@ import { applyView, buildExperienceContext, classifyDelta, resolveDelta, viewDir
 import { buildSessionContext, pinnedSession, type SessionContext } from "@/lib/mesh/session-context";
 import { compileWithSkill } from "@/lib/mesh/skill-compile";
 import { skillById } from "@/lib/mesh/skills/registry";
+import { meshSourcePreference } from "@/lib/mesh/source-preferences";
 import { decideStrategy } from "@/lib/mesh/strategy";
 import { isPortalJob } from "@/lib/portal/jobs";
 import type { SourceId, SourceStatusReport } from "@/lib/mesh/sources";
@@ -111,7 +112,7 @@ export async function refineRun(sessionId: string, specialty: SpecialtyId, runId
     const statuses = Object.fromEntries(await Promise.all(Object.values(registry).map(async adapter => [adapter.id, await adapter.status()] as const))) as Record<SourceId, SourceStatusReport>;
     for (const need of resolution.retrieval) {
       const intent = retrievalIntent(strategy.intent, run.input.text, specialty, need.requirement, need.focus);
-      const plan = planSources({ intent, sources, statuses, excludedConnectors: ctx.preference.excludedSources, planId: `plan-refine-${delta.kind}-${need.requirement}` });
+      const plan = planSources({ intent, sources, statuses, excludedSources: meshSourcePreference(ctx.preference.excludedSources).sources, planId: `plan-refine-${delta.kind}-${need.requirement}` });
       const executed = await executePlan({ plan, intent, registry, ctx, sessionId, runId, ...(need.since ? { since: need.since } : {}) });
       graph = mergeEvidence(graph, { intent, plan, results: executed.results, descriptors: sources, statuses, now: new Date().toISOString() });
     }

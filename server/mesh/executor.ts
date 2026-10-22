@@ -9,9 +9,10 @@ import type { FlowRun } from "@/lib/mesh/flow-runtime";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { REQUIREMENT_LABEL } from "@/lib/mesh/jobs";
 import type { ManifestExecution } from "@/lib/mesh/manifest";
-import { planSources, type ExecutionPlan } from "@/lib/mesh/planner";
+import { excludedByPhysician, planSources, type ExecutionPlan } from "@/lib/mesh/planner";
 import { compileWithSkill, executionRecord } from "@/lib/mesh/skill-compile";
 import type { IntentSkill } from "@/lib/mesh/skills/types";
+import { meshSourcePreference } from "@/lib/mesh/source-preferences";
 import type { SourceId, SourceStatusReport } from "@/lib/mesh/sources";
 import type { Strategy } from "@/lib/mesh/strategy";
 import type { AgentContext } from "@/server/agents/context";
@@ -146,6 +147,11 @@ function traceFor(plan: ExecutionPlan, results: readonly SourceResult[], registr
     steps.push({ id: step.id, label, tool: "readSource", status: invocation.outcome === "failed" ? "failed" : invocation.outcome === "ok" ? "done" : "skipped", detail, connectorIds: [adapter.connectorId] });
     if (invocation.outcome !== "handoff") tools.push({ tool: "readSource", connectorIds: [adapter.connectorId], modes: [MODE[invocation.status] ?? "LIVE"], status: TOOL_STATUS[invocation.outcome], itemCount: found, durationMs: invocation.durationMs, note: invocation.errorCode ?? invocation.note });
   }
+  // A source the physician turned off is named in the trace, not silently missing.
+  for (const sourceId of excludedByPhysician(plan)) {
+    const adapter = registry[sourceId];
+    steps.push({ id: `excluded-${sourceId}`, label: adapter.name, tool: "readSource", status: "skipped", detail: "Не запрашивали: исключён в ваших источниках", connectorIds: [adapter.connectorId] });
+  }
   return { plan: steps, toolsUsed: tools };
 }
 
@@ -232,7 +238,7 @@ interface SourceEnv {
 /** intent → plan → sources (progressive when a sink is given) → evidence graph. */
 async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedIntent, args: { progressive: boolean; extras?: Partial<CompileInput>; record: boolean; knowledge: boolean }): Promise<PlannedRun> {
   const started = Date.now();
-  const plan = planSources({ intent, sources: env.sources, statuses: env.statuses, excludedConnectors: ctx.preference.excludedSources });
+  const plan = planSources({ intent, sources: env.sources, statuses: env.statuses, excludedSources: meshSourcePreference(ctx.preference.excludedSources).sources });
   const sessionId = ctx.sessionId ?? null;
   if (args.record) await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
   const store = knowledgeStore();
