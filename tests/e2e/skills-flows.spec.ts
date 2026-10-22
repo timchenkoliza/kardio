@@ -60,7 +60,7 @@ test("C: refinements patch the open result in place", async ({ page }) => {
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=run-/u, { timeout: 15_000 });
   const runUrl = page.url();
   await done(page);
-  const followup = page.getByRole("textbox", { name: "Следующий вопрос" });
+  const followup = page.getByRole("textbox", { name: "Уточнение или новый вопрос" });
   const before = Number(await page.locator(".pt-experience").getAttribute("data-manifest-version"));
   const takeawayId = await page.locator('[data-module="key_takeaway"] h2').getAttribute("id");
 

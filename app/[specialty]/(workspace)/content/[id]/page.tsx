@@ -105,7 +105,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
           {related.length > 0 && (
             <section className="related-section" aria-labelledby="related-title">
               <div className="section-heading"><span className="eyebrow">Следующий шаг</span><h2 id="related-title">Связанные материалы</h2><p>По общей теме, источнику или типу материала.</p></div>
-              <div className="related-grid">{related.map(item => <EditorialContentCard key={item.id} content={item} specialty={specialty} />)}</div>
+              <div className="related-grid">{related.map(item => <EditorialContentCard key={item.id} content={item} specialty={specialty} save={false} />)}</div>
             </section>
           )}
       </div>

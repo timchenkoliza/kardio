@@ -175,6 +175,7 @@
 .pt-curated { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
 .pt-trust[data-tone="check"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
 /* Relevance to the question is its own label, next to (never instead of) the text-match check. */
+.pt-verify-why { color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
 .pt-relevance[data-relevance="all"] { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
 .pt-relevance[data-relevance="partial"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
 .pt-certainty[data-certainty="high"] { background: var(--ws-success-soft); color: var(--ws-success); }

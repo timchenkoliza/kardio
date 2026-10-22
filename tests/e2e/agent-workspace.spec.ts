@@ -28,8 +28,8 @@ async function expectNoHorizontalOverflow(page: Page) {
 test("configuring topics runs the background checks behind «Для вас»", async ({ page }) => {
   await setupInterests(page, ["ХСН", "Артериальная гипертензия"]);
   await page.goto("/cardiology/agents");
-  // The agents page is the gallery; the background checks behind «Для вас» sit in a disclosure under it.
-  await expect(page.getByRole("heading", { level: 1, name: /Агенты для специальности/ })).toBeVisible();
+  // The task catalogue («Все задачи»); the background checks behind «Для вас» sit in a disclosure under it.
+  await expect(page.getByRole("heading", { level: 1, name: /Все задачи/ })).toBeVisible();
   await page.locator(".pt-background > summary").filter({ hasText: "Фоновые проверки" }).click();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toBeVisible();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toContainText(/регистрац/);

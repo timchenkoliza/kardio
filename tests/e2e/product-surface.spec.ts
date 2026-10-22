@@ -44,6 +44,8 @@ async function primaryText(scope: Locator): Promise<string[]> {
   return scope.evaluate(root => {
     const clone = root.cloneNode(true) as HTMLElement;
     clone.querySelectorAll(".pt-original, .pt-original-body").forEach(node => node.remove());
+    // The authors' own words in «Коротко» are shown verbatim and marked as English (UXR-07): they are not product prose.
+    clone.querySelectorAll('.pt-claim[data-open="true"] blockquote[lang="en"]').forEach(node => node.remove());
     return [...clone.querySelectorAll(".pt-derived, .pt-quote p, .pt-version-title, .pt-drug-title, .pt-drug-entry > p, h2, h3")].map(node => (node.textContent ?? "").trim()).filter(Boolean);
   });
 }
@@ -52,7 +54,9 @@ async function expectRussianFirst(page: Page) {
   const experience = page.locator(".pt-experience");
   await expect(experience).toBeVisible();
   for (const text of await primaryText(experience)) expect(text, text).not.toMatch(ENGLISH_PROSE);
-  // Every original-language passage starts collapsed.
+  // An English passage shown in the main answer says so before it.
+  for (const lead of await experience.locator('.pt-claim[data-open="true"] > .pt-derived').allInnerTexts()) expect(lead).toMatch(/на\s+английском,\s+дословно/u);
+  // Every other original-language passage starts collapsed.
   await expect(experience.locator("details.pt-original[open]")).toHaveCount(0);
   await expect(page.locator("main")).not.toContainText(JARGON);
 }
@@ -93,7 +97,8 @@ test("home: the whole card opens its page in the same tab; only the first source
   }
   await expect(page.locator("main")).not.toContainText(JARGON);
   await page.getByRole("link", { name: "К ленте" }).click();
-  await expect(page).toHaveURL(/\/neurology$/u);
+  // Back to the same card in the feed, not to the top of the page.
+  await expect(page).toHaveURL(/\/neurology#fy-[\w-]+$/u);
 });
 
 test("six launch specialties: a non-empty Russian feed without another specialty's content", async ({ page }) => {
@@ -152,12 +157,13 @@ test("research result: Russian document titles, authors' conclusions collapsed",
   await expectRussianFirst(page);
 });
 
-test("agents gallery: nine agents with mascots launch their job in the same tab", async ({ page }) => {
+test("task catalogue: eight tasks with mascots launch their job in the same tab", async ({ page }) => {
   await page.goto("/neurology/agents");
-  await expect(page.getByRole("heading", { level: 1, name: /Агенты для специальности/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Все задачи/ })).toBeVisible();
   const agents = page.locator(".pt-gallery > li");
-  await expect(agents).toHaveCount(9);
-  await expect(page.locator(".pt-gallery svg.mascot[aria-hidden='true']")).toHaveCount(9);
+  // «Консилиум» was the main answer under another name (UXR-03).
+  await expect(agents).toHaveCount(8);
+  await expect(page.locator(".pt-gallery svg.mascot[aria-hidden='true']")).toHaveCount(8);
   // Risk scores are cardiology tools: elsewhere the card says so and has no link.
   const calculators = page.locator('.pt-agent[data-agent="calculators"]');
   await expect(calculators).toHaveClass(/is-soon/u);
@@ -168,7 +174,7 @@ test("agents gallery: nine agents with mascots launch their job in the same tab"
   expect(await drug.locator(".sm-figure").evaluate(node => getComputedStyle(node).animationName)).toBe("none");
   await drug.getByRole("link", { name: "Справка по препарату" }).click();
   await expect(page).toHaveURL(/\/neurology\/ask\?job=drug$/u);
-  await expect(page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link", { name: "Агенты" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link", { name: "История" })).toBeVisible();
 });
 
 test("materials: onboarding and an example when empty; a PubMed link gets a real title, never the URL", async ({ page }) => {
@@ -233,7 +239,7 @@ test("shell: the footer stays at the bottom of a short page; profile is one clic
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/neurology");
-  await expect(page.getByRole("navigation", { name: "Разделы" }).getByRole("link")).toHaveText(["Главное", "Агенты", "Материалы", "Обезличить", /Профиль/u]);
+  await expect(page.getByRole("navigation", { name: "Разделы" }).getByRole("link")).toHaveText(["Главное", "История", "Материалы", "Обезличить", /Профиль/u]);
 });
 
 test("media audit (Preview/dev): every source shows SOURCE → TRANSFORMED → CARD", async ({ page }) => {

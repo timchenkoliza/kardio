@@ -120,7 +120,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
   // Every child keeps its position across lifecycle states (conditional slots, never reordering),
   // so refreshing the interior never remounts the shell or the follow-up input.
-  return <div className="ws-page pt-ask" data-job={job} data-run-state={finished ? "done" : phase}>
+  return <div className="ws-page pt-ask" data-job={job} data-run-state={finished ? "done" : phase} data-answer-mode={run.input.answerMode ?? undefined}>
     {/* Back to where the search was started: the material it came from, else the home page. */}
     {run.input.origin
       ? <Link className="ws-back" href={run.input.origin.href} data-origin="material"><ArrowLeft size={15} aria-hidden="true" />{`К материалу «${run.input.origin.label.length > 60 ? `${run.input.origin.label.slice(0, 57)}…` : run.input.origin.label}»`}</Link>

@@ -100,9 +100,14 @@ function documentTitle(document: GraphDocument): { title: string; original: stri
   return { title: localized.basis === "template" ? `${studyType(document)} · ${sourceName(document)}` : localized.title, original: document.title };
 }
 
-function VerificationTag({ status }: { status: NormalizedClaim["verification"] }) {
+function VerificationTag({ status, note = null }: { status: NormalizedClaim["verification"]; note?: string | null }) {
   const label = editorialVerification(status);
-  return <span className={`ws-verify ws-verify-${label.tone === "supported" ? "supported" : "partial"}`}>{label.label}</span>;
+  // «Требует сверки» says what exactly was not checked (first reason, physician wording only).
+  const reason = label.tone === "supported" ? null : physicianSafe(note?.split(/\.\s+/u).find(part => part.trim() && !/совпадает с источником не полностью/iu.test(part))?.trim() ?? null);
+  return <>
+    <span className={`ws-verify ws-verify-${label.tone === "supported" ? "supported" : "partial"}`}>{label.label}</span>
+    {reason && <span className="pt-verify-why">{nbsp(reason.replace(/\.$/u, "").replace(/^Не в белом списке врачей/u, "не в списке, проверенном врачами"))}</span>}
+  </>;
 }
 
 function CertaintyTag({ certainty }: { certainty: Certainty }) {
@@ -225,7 +230,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         const source = sourceName(document);
         const version = versionDate(document, source);
         return <li key={claimId}>
-          <p className="pt-takeaway-source">{nbsp(`${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} /> <VerificationTag status={claim.verification} /></p>
+          <p className="pt-takeaway-source">{nbsp(`${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
           <Claim claim={claim} ctx={ctx} named open={claim.kind === "review_conclusion"} />
           {document.sourceId === "pubmed" && <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
         </li>;

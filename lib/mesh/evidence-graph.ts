@@ -90,7 +90,10 @@ export function topicTerms(intent: NormalizedIntent): string[] {
  * modifier: a conclusion that speaks about it answers the question more directly than one that does not.
  */
 export function askedTerms(intent: NormalizedIntent): string[][] {
-  return intent.entities.concepts.filter(item => item.kind === "modifier").map(concept => [...new Set(concept.term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").replace(/[()"*]/gu, " ").split(/\s+/u).map(word => word.toLowerCase()).filter(word => word.length >= 4))]).filter(group => group.length);
+  // Quoted phrases stay whole («short course»), so a generic word («course») never stands for the modifier.
+  const words = (term: string) => [...term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z-]*)/gu)].map(match => (match[1] ?? match[2]).toLowerCase()).filter(word => word.length >= 4);
+  // Only what is asked («длительность»), not the context it is asked in («антибиотики»): the context is already in the search.
+  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set(words(concept.term))]).filter(group => group.length);
 }
 
 export function buildEvidenceGraph(args: {

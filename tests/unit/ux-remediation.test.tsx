@@ -13,6 +13,7 @@ import { VERIFICATION_LABEL } from "@/lib/agents/format";
 import { defaultProfile } from "@/lib/agents/profile";
 import type { AgentRun } from "@/lib/agents/types";
 import { compileExperience } from "@/lib/mesh/compiler";
+import { askedTerms } from "@/lib/mesh/evidence-graph";
 import { compileIntent } from "@/lib/mesh/intent";
 import { askedSections, openingView, viewDirectives } from "@/lib/mesh/refine";
 import { GALLERY, galleryHref } from "@/lib/portal/agents-gallery";
@@ -30,7 +31,11 @@ import { scenariosFor } from "@/server/portal/for-you";
 import { respondToAsk } from "@/server/portal/manager";
 import { ensureSession } from "@/server/services/state";
 import { fakeAbstracts, fakeArticle, testContext } from "./agent-test-utils";
-import { acceptanceGraph } from "./mesh-test-utils";
+import { acceptanceGraph, registryStatuses } from "./mesh-test-utils";
+import { buildEvidenceGraph } from "@/lib/mesh/evidence-graph";
+import { planSources } from "@/lib/mesh/planner";
+import { executePlan } from "@/server/mesh/execute";
+import { createSourceRegistry, descriptors } from "@/server/mesh/sources/registry";
 
 /**
  * UX remediation matrix (docs/ux-remediation/ISSUE_LEDGER.md, UX-01…UX-10):
@@ -72,6 +77,11 @@ describe("UX-03 the question's conditions reach the search", () => {
     expect(term).toMatch(/duration/u);
     expect(term).toMatch(/ NOT \(child\*\[ti\]/u);
   });
+  it("what was asked is kept as whole phrases, so a generic word never stands for it", () => {
+    const groups = askedTerms(compileIntent(CAP, "therapy"));
+    expect(groups).toContainEqual(["duration", "short-course", "short course"]);
+    expect(groups.flat()).not.toContain("course");
+  });
   it("a widened search drops what was asked, never the population", () => {
     const concepts = conceptsIn(CAP, "therapy");
     const core = pubmedCoreTermFor(concepts)!;
@@ -93,6 +103,28 @@ describe("UX-03 the question's conditions reach the search", () => {
     expect(byPmid["40000001"]).toBe("all_conditions");
     expect(byPmid["40000002"]).toBe("partial");
     expect(result.documents[0].attributes.pmid).toBe("40000001");
+  });
+});
+
+describe("UX-03 «Коротко» leads with what was asked", () => {
+  it("a conclusion about duration comes before a newer one that only mentions antibiotics", async () => {
+    const regimens = { ...fakeArticle("41000001", "Empiric antibiotic regimens for community-acquired pneumonia in adults: network meta-analysis"), journal: "Clin Microbiol Infect", publicationTypes: ["Meta-Analysis"], sortDate: "2025-11-01", pubDate: "2025 Nov" };
+    const duration = { ...fakeArticle("41000002", "Antibiotic treatment duration for community-acquired pneumonia in adults: a meta-analysis"), journal: "BMJ Open", publicationTypes: ["Meta-Analysis"], sortDate: "2023-03-22", pubDate: "2023 Mar 22" };
+    const conclusions = [
+      { pmid: "41000001", text: "For empiric treatment of community-acquired pneumonia in adults, no antibiotic regimen showed important differences." },
+      { pmid: "41000002", text: "Shorter treatment duration (3-5 days) probably offers the optimal balance for community-acquired pneumonia in adults." },
+    ].map(item => ({ pmid: item.pmid, sections: [{ label: "CONCLUSIONS", text: item.text }], conclusion: item.text, conclusionLabel: "CONCLUSIONS" }));
+    const pubmed = Object.assign(async (query: { term: string }) => ({ status: "ok" as const, query: query.term, total: 2, articles: [regimens, duration], error: null, durationMs: 1 }), { calls: [] });
+    const ctx = await testContext({ agentId: "reference", topics: [], specialty: "therapy", text: CAP, pubmed: pubmed as never, abstracts: fakeAbstracts(conclusions) });
+    const registry = createSourceRegistry({ browserDriver: null });
+    const intent = { ...compileIntent(CAP, "therapy"), requirements: ["current_research" as const], optional: [] };
+    const statuses = await registryStatuses(registry);
+    const plan = planSources({ intent, sources: descriptors(registry), statuses });
+    const execution = await executePlan({ plan, intent, registry, ctx, sessionId: "ux-takeaway" });
+    const graph = buildEvidenceGraph({ id: "g", intent, plan, results: execution.results, descriptors: descriptors(registry), statuses, now: ctx.nowIso });
+    const { manifest } = compileExperience({ graph, user: { signals: [], topics: [] }, modules: ["key_takeaway", "evidence"], policy: { descriptors: [] }, scenario: null, resultKeys: {} });
+    const first = manifest.modules.find(entry => entry.family === "key_takeaway")!.claimIds[0];
+    expect(graph.claims.find(claim => claim.id === first)?.documentId).toBe("pubmed:41000002");
   });
 });
 

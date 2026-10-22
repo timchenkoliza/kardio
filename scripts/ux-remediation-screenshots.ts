@@ -44,6 +44,24 @@ async function openFirstFeedCard(page: Page) {
   await page.waitForTimeout(800);
 }
 
+async function followup(page: Page, first: string, next: string) {
+  await submit(page, first);
+  const box = page.locator("textarea").last();
+  await box.fill(next);
+  const before = page.url();
+  await page.locator("form button[type=submit]").last().click();
+  await page.waitForURL(url => url.toString() !== before, { timeout: 60000 }).catch(() => {});
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    const state = await page.locator("[data-run-state]").first().getAttribute("data-run-state").catch(() => null);
+    if (!state || state === "done" || state === "failed") break;
+    await page.waitForTimeout(1500);
+  }
+  await page.waitForTimeout(800);
+}
+
+const CAP = "Какая длительность антибиотикотерапии при внебольничной пневмонии у взрослых?";
+
 const PAGES: Array<{ name: string; path: string; run?: (page: Page) => Promise<void> }> = [
   { name: "home", path: "/cardiology" },
   { name: "home-typed-hsn", path: "/cardiology", run: page => typeOnly(page, "ХСН") },
@@ -58,6 +76,11 @@ const PAGES: Array<{ name: string; path: string; run?: (page: Page) => Promise<v
   { name: "materials", path: "/cardiology/materials" },
   { name: "settings", path: "/cardiology/settings" },
   { name: "anonymizer", path: "/cardiology/anonymizer" },
+  { name: "history", path: "/cardiology/history" },
+  { name: "ux03-therapy", path: "/therapy", run: page => submit(page, CAP) },
+  { name: "ux04-followup", path: "/therapy", run: page => followup(page, CAP, "А если течение нетяжёлое?") },
+  { name: "ux05-atorvastatin", path: "/cardiology", run: page => submit(page, "Аторвастатин: противопоказания") },
+  { name: "ux08-hsn-changes", path: "/cardiology", run: page => submit(page, "Что изменилось в рекомендациях по ХСН?") },
 ];
 
 await mkdir(outDir, { recursive: true });

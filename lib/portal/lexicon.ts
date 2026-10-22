@@ -127,6 +127,8 @@ export interface QueryConcept {
   kind: "topic" | "concept" | "drug" | "population" | "modifier";
   /** Title terms the concept rules out (NOT), e.g. children for a question about adults. */
   exclude?: string;
+  /** A modifier that names the information asked for («длительность», «дозирование»), not the context («антибиотики»). */
+  asked?: boolean;
 }
 
 /**
@@ -148,6 +150,9 @@ const MODIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term:
   { id: "non_severe", label: "нетяжёлое течение", match: /(?<![\p{L}])(?:нетяж[её]л|не\s+тяж[её]л|л[её]гк\p{L}*\s+(?:течени|степен|форм))/u, term: "mild[tiab] OR \"non-severe\"[tiab] OR nonsevere[tiab] OR \"low-risk\"[tiab] OR outpatient*[tiab]" },
   { id: "severe", label: "тяжёлое течение", match: /(?<![\p{L}])(?<!не\s)тяж[её]л/u, term: "severe[tiab] OR \"intensive care\"[tiab] OR ICU[tiab]" },
 ];
+
+/** Modifiers that name what is asked about the condition, as opposed to its context. */
+const ASKED_MODIFIERS: ReadonlySet<string> = new Set(["duration", "dose", "safety", "interactions", "diagnosis", "screening", "prevention"]);
 
 /**
  * Concepts named in a question, across all specialties' topic vocabularies:
@@ -194,7 +199,7 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
     // «профилактика» is a modifier only when the question names what to prevent.
     if (modifier.id === "prevention" && concepts.some(concept => concept.id === "cardiology:prevention")) continue;
     if (!subjects.length) continue;
-    push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier" });
+    push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier", ...(ASKED_MODIFIERS.has(modifier.id) ? { asked: true } : {}) });
   }
   return concepts.slice(0, 7);
 }
