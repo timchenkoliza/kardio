@@ -64,9 +64,18 @@ function normalizedField(value: string, sourceField: ResearchEvidenceFieldId, so
   };
 }
 
+/**
+ * The Lancet prints decimals with a middle dot («0·72», «p=0·003»). Read as is,
+ * «0·72» parses as «0»: a false number. Values are read from a copy where the
+ * dot between digits is a decimal point; the quote keeps the original text.
+ */
+export function decimalText(value: string): string {
+  return value.replace(/(\d)\s?[·•]\s?(?=\d)/gu, "$1.");
+}
+
 function sentenceMatch(source: ResearchEvidenceField | undefined, sourceField: ResearchEvidenceFieldId, pattern: RegExp, formatter: (match: RegExpMatchArray) => string, multiplier = 1): ResearchStudyField | null {
   if (!source) return null;
-  const match = source.supportText.match(pattern);
+  const match = decimalText(source.supportText).match(pattern);
   if (!match) return null;
   return normalizedField(formatter(match), sourceField, source, multiplier);
 }
@@ -110,7 +119,10 @@ function normalizedComparator(source: ResearchEvidenceField | undefined): Resear
 function normalizedEndpoint(source: ResearchEvidenceField | undefined): ResearchStudyField | null {
   if (!source) return null;
   const match = source.supportText.match(/\bprimary\s+(?:endpoint|outcome)(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*([^.;]{8,180})/iu);
-  return normalizedField(match?.[1] ?? source.value, "endpoint", source, match?.[1] ? 0.96 : 0.88);
+  if (match?.[1]) return normalizedField(match[1], "endpoint", source, 0.96);
+  // The endpoint field is matched on «follow-up» too: a sentence that never names an endpoint or outcome is not one.
+  if (!/\b(?:end\s?points?|outcomes?)\b/iu.test(source.value)) return null;
+  return normalizedField(source.value, "endpoint", source, 0.88);
 }
 
 function firstFollowUp(structured: ResearchStructuredEvidence): ResearchStudyField | null {
@@ -204,15 +216,32 @@ export function normalizeResearchStudy(structured: ResearchStructuredEvidence | 
   if (followUp) fields.followUp = followUp;
 
   if (effect) {
-    const effectMatch = effect.supportText.match(/\b(hazard ratio|risk ratio|relative risk|odds ratio|rate ratio|mean difference|HR|RR|OR)\b\s*(?:was|of|=|:)?\s*([−-]?\d+(?:\.\d+)?)/iu);
-    if (effectMatch?.[1]) fields.effectMeasure = normalizedField(normalizeEffectMeasure(effectMatch[1]), "effect", effect, 0.99);
-    if (effectMatch?.[2]) fields.effectEstimate = normalizedField(effectMatch[2].replace("−", "-"), "effect", effect, 0.99);
+    // NEJM / Lancet style: «hazard ratio, 0.74» and «hazard ratio (HR) 0.74» state the same value as «HR = 0.74».
+    const effectText = decimalText(effect.supportText);
+    const effectMatch = effectText.match(/\b(hazard ratio|risk ratio|relative risk|odds ratio|rate ratio|mean difference|HR|RR|OR)\b(?:\s*\((?:HR|RR|OR)\))?\s*(?:was|of|=|:|,)?\s*([−-]?\d+(?:\.\d+)?)/iu);
+    const measure = effectMatch?.[1] ? normalizeEffectMeasure(effectMatch[1]) : null;
+    const estimate = effectMatch?.[2] ? effectMatch[2].replace("−", "-") : null;
+    // A ratio is never zero or negative: such a reading is a parsing error, not a result.
+    const ratio = measure === "HR" || measure === "RR" || measure === "OR" || measure === "Rate ratio";
+    const plausible = estimate !== null && (!ratio || Number(estimate) > 0);
+    if (measure && plausible) fields.effectMeasure = normalizedField(measure, "effect", effect, 0.99);
+    if (estimate && plausible) fields.effectEstimate = normalizedField(estimate, "effect", effect, 0.99);
 
-    const ci = effect.supportText.match(/\b95%\s*(?:confidence\s+interval|CI)\s*[,;:=]?\s*([−-]?\d+(?:\.\d+)?)\s*(?:to|[-–])\s*([−-]?\d+(?:\.\d+)?)/iu);
-    if (ci?.[1] && ci?.[2]) fields.confidenceInterval = normalizedField(`${ci[1].replace("−", "-")}–${ci[2].replace("−", "-")}`, "effect", effect, 0.99);
+    // The interval and p belong to the estimate only when they follow it in the same sentence: values from another
+    // sentence (a secondary endpoint, a mean difference) must never be glued to this ratio.
+    const after = effectMatch?.index !== undefined ? effectText.slice(effectMatch.index + effectMatch[0].length) : "";
+    const clause = after.split(/(?<=\.)\s+(?=[A-Z])/u)[0].slice(0, 220);
+    const ci = clause.match(/\b95%\s*(?:confidence\s+interval|CI)(?:\s*\[CI\])?\s*[,;:=]?\s*([−-]?\d+(?:\.\d+)?)\s*(?:to|[-–])\s*([−-]?\d+(?:\.\d+)?)/iu);
+    if (plausible && ci?.[1] && ci?.[2]) {
+      const lower = Number(ci[1].replace("−", "-"));
+      const upper = Number(ci[2].replace("−", "-"));
+      const value = Number(estimate);
+      const consistent = lower <= value && value <= upper && (!ratio || lower > 0);
+      if (consistent) fields.confidenceInterval = normalizedField(`${ci[1].replace("−", "-")}–${ci[2].replace("−", "-")}`, "effect", effect, 0.99);
+    }
 
-    const pValue = effect.supportText.match(/\bp\s*(<=|>=|=|<|>|≤|≥)\s*(0?\.\d+|\d+(?:\.\d+)?)\b/iu);
-    if (pValue?.[1] && pValue?.[2]) fields.pValue = normalizedField(`p ${pValue[1]} ${pValue[2]}`, "effect", effect, 0.99);
+    const pValue = clause.match(/\bp\s*(<=|>=|=|<|>|≤|≥)\s*(0?\.\d+|\d+(?:\.\d+)?)\b/iu);
+    if (plausible && pValue?.[1] && pValue?.[2]) fields.pValue = normalizedField(`p ${pValue[1]} ${pValue[2]}`, "effect", effect, 0.99);
   }
 
   return Object.keys(fields).length ? { fields } : null;

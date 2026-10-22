@@ -93,7 +93,7 @@ export function ResearchComposer({
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void submit();
   }
 
-  return <form className="ws-research-composer" onSubmit={event => void submit(event)} aria-label="Исследовать тему">
+  return <form className="ws-research-composer" onSubmit={event => void submit(event)} aria-label="Разбор по исследованиям">
     <fieldset className="ws-research-modes">
       <legend>Что получить</legend>
       <div className="ws-research-mode-grid">

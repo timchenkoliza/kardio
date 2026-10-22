@@ -1,5 +1,11 @@
 import { countLabel } from "@/lib/agents/format";
-import { researchContentScopeLabel, researchDomainPolicyLabel, researchSourceScopeLabel, type ResearchRunOptions } from "@/lib/agents/research-options";
+import type { RoutedIntent } from "@/lib/agents/intent";
+import { hasStudyIdentifiers, studyIdentifierCount, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
+import type { AgentResult, AgentRun } from "@/lib/agents/types";
+import type { NormalizedIntent } from "@/lib/mesh/intent";
+import type { AnswerMode } from "@/lib/portal/answer-mode";
+import type { PortalJob } from "@/lib/portal/jobs";
+import { researchContentScopeLabel, researchDomainPolicyLabel, researchModeLabel, researchSourceScopeLabel, type ResearchRunOptions } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { routeTask, runAgent, type RunOutcome } from "./supervisor";
 import { bindResearchRunOptions } from "./services/research-runtime-policy";
@@ -22,49 +28,53 @@ function structuredEvidenceNote(args: { attempted: number; enriched: number; ful
   return parts.join(" · ") || "Доступного текста для структурирования не найдено";
 }
 
+/**
+ * The one way the research scenario runs, whichever door the physician used:
+ * the scenario page (`/api/agents/research`), a background research job, or the
+ * portal input routed to the research job (`executeAskRun`, which passes the
+ * queued run). Scenario settings are applied before retrieval, the top
+ * PubMed records are read and structured, and the plan says what happened.
+ */
 export async function executeResearchRun(
   sessionId: string,
   specialty: SpecialtyId,
   text: string,
   options: ResearchRunOptions,
+  queued: { run?: AgentRun | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null; answerMode?: AnswerMode | null } = {},
 ): Promise<RunOutcome> {
   const store = workspaceStore();
   const profile = bindResearchRunOptions(await loadProfile(sessionId, specialty), options);
   const catalog = await catalogFor(specialty);
   const rehydrated = isRehydrated(sessionId, specialty);
-  const routed = routeTask(text, specialty, { preferred: "research" });
+  const routed = queued.routed ?? routeTask(text, specialty, { preferred: "research" });
 
-  const outcome = await runAgent(
-    { store, sessionId, catalog, rehydrated },
-    { agentId: "research", specialty, profile, trigger: "composer", text, routed },
-  );
-
-  if (outcome.run.status !== "blocked") {
+  // Reading and structuring the top records happens before the run is marked finished, so the result
+  // page never shows a «done» answer that is still missing the effects it is about to read.
+  const finishing = async ({ results, run }: { results: AgentResult[]; run: AgentRun }): Promise<AgentResult[]> => {
     const enrichmentStarted = Date.now();
     const skipStructuredRetrieval = options.contentScope === "guidelines" || options.mode === "articles";
-    const enrichment = skipStructuredRetrieval
-      ? { results: outcome.results, attempted: 0, enriched: 0, fullText: 0, abstracts: 0, unavailable: 0, notes: [] as string[] }
-      : await enrichResearchResultsWithStructuredEvidence(outcome.results, { limit: options.mode === "academic" ? 4 : 3 });
-
-    if (enrichment.enriched) {
-      outcome.results = enrichment.results;
-      await store.upsertResults(sessionId, outcome.results);
-    }
+    // A publication named by identifier is read in full whatever the mode: reading it is the job.
+    const named = hasStudyIdentifiers(studyIdentifiersIn(text));
+    const limit = named ? Math.max(1, studyIdentifierCount(studyIdentifiersIn(text))) : options.mode === "academic" ? 4 : 3;
+    const enrichment = skipStructuredRetrieval && !named
+      ? { results, attempted: 0, enriched: 0, fullText: 0, abstracts: 0, unavailable: 0, notes: [] as string[] }
+      : await enrichResearchResultsWithStructuredEvidence(results, { limit });
 
     const domainPolicy = researchDomainPolicyLabel(options);
-    const extractionDetail = structuredEvidenceNote(enrichment, options.mode === "articles");
-    outcome.run.plan = [{
+    const extractionDetail = structuredEvidenceNote(enrichment, options.mode === "articles" && !named);
+    run.plan = [{
       id: "research-retrieval-policy",
       label: "Применили фильтры до поиска",
       tool: null,
       status: "done",
       detail: [
+        `Что получить: ${researchModeLabel(options.mode)}`,
         `Источники: ${researchSourceScopeLabel(options.sourceScope)}`,
         `Тип: ${researchContentScopeLabel(options.contentScope)}`,
         domainPolicy ? `Сайты: ${domainPolicy}` : null,
       ].filter(Boolean).join(" · "),
       connectorIds: [],
-    }, ...outcome.run.plan, {
+    }, ...run.plan, {
       id: "research-structured-evidence",
       label: "Извлекли и нормализовали параметры исследований",
       tool: "retrieveDocument",
@@ -73,7 +83,7 @@ export async function executeResearchRun(
       connectorIds: enrichment.attempted ? ["pubmed"] : [],
     }];
     if (enrichment.attempted) {
-      outcome.run.toolsUsed.push({
+      run.toolsUsed = [...run.toolsUsed, {
         tool: "retrieveDocument",
         connectorIds: ["pubmed"],
         modes: ["LIVE"],
@@ -81,20 +91,25 @@ export async function executeResearchRun(
         itemCount: enrichment.enriched,
         durationMs: Date.now() - enrichmentStarted,
         note: extractionDetail,
-      });
+      }];
     }
 
-    if (outcome.run.synthesis?.includes(OLD_FULL_TEXT_GAP) && !skipStructuredRetrieval) {
+    if (run.synthesis?.includes(OLD_FULL_TEXT_GAP) && (!skipStructuredRetrieval || named)) {
       const replacement = enrichment.fullText
         ? `Полный текст получен для ${countLabel(enrichment.fullText, ["публикации", "публикаций", "публикаций"])}${enrichment.abstracts ? `, для ${countLabel(enrichment.abstracts, ["публикации", "публикаций", "публикаций"])} — только аннотация` : ""}. Параметры исследований указаны только там, где они явно есть в тексте`
         : enrichment.abstracts
           ? `Полный текст статей недоступен, для ${countLabel(enrichment.abstracts, ["публикации", "публикаций", "публикаций"])} использована аннотация. Параметры исследований указаны только там, где они явно есть в тексте`
           : OLD_FULL_TEXT_GAP;
-      outcome.run.synthesis = outcome.run.synthesis.replace(OLD_FULL_TEXT_GAP, replacement);
+      run.synthesis = run.synthesis.replace(OLD_FULL_TEXT_GAP, replacement);
     }
-    if (enrichment.notes.length) outcome.run.riskNotices = [...new Set([...outcome.run.riskNotices, ...enrichment.notes])];
-    await store.saveRun(sessionId, outcome.run);
-  }
+    // What text was read is a property of each record (shown in the answer and the trace), not a safety notice.
+    return enrichment.attempted ? enrichment.results : results;
+  };
+
+  const outcome = await runAgent(
+    { store, sessionId, catalog, rehydrated, finishing },
+    { agentId: "research", specialty, profile, trigger: "composer", text, routed, run: queued.run ?? null, job: queued.job ?? null, intent: queued.intent ?? null, answerMode: queued.answerMode ?? null },
+  );
 
   if (rehydrated) markRehydrationConsumed(sessionId, specialty);
   const fresh = await loadProfile(sessionId, specialty);

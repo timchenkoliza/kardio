@@ -45,6 +45,11 @@ export interface SupervisorDeps {
   rehydrated?: boolean;
   /** Browser driver for browser-capable sources (tests inject fixtures; null disables). */
   browserDriver?: BrowserDriver | null;
+  /**
+   * Last work on the merged results before the run is marked finished (the research scenario reads and
+   * structures its top records here). It may add plan steps and tool uses to the run; it returns the results to keep.
+   */
+  finishing?: (args: { results: AgentResult[]; run: AgentRun }) => Promise<AgentResult[]>;
 }
 
 export interface RunOutcome {
@@ -420,6 +425,11 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   run.riskNotices = [...new Set([...run.riskNotices, ...executed.notices, ...validation.notes])];
   run.resultIds = merged.results.map(result => result.id);
   run.newResultCount = merged.newCount;
+  if (deps.finishing) {
+    merged.results = await deps.finishing({ results: merged.results, run });
+    await deps.store.upsertResults(deps.sessionId, merged.results);
+  }
+  // The status reflects the executor's own sources; what the finishing step could read is reported per record.
   run.status = toolStatuses.some(status => status === "unavailable" || status === "failed") ? "partial" : "completed";
   run.completedAt = new Date().toISOString();
   run.durationMs = Date.now() - started;

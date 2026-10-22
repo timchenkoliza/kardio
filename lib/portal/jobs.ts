@@ -48,6 +48,11 @@ export function jobForRun(run: { agentId: AgentId; intent: string | null }): Por
   return byAgent[run.agentId];
 }
 
+/** The research scenario page: its composer carries the settings that change execution. */
+export function researchScenarioHref(specialty: string, text?: string | null): string {
+  return `/${specialty}/agents/research${text?.trim() ? `?q=${encodeURIComponent(text.trim())}` : ""}`;
+}
+
 export function askHref(specialty: string, args: { run?: string; job?: PortalJob } = {}): string {
   const params = new URLSearchParams();
   if (args.run) params.set("run", args.run);

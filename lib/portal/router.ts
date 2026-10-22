@@ -1,6 +1,7 @@
 import type { RoutedIntent, IntentKind } from "@/lib/agents/intent";
 import { detectRiskSignals, type RiskSignals } from "@/lib/agents/risk-rules";
 import type { AgentId } from "@/lib/agents/types";
+import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { hostForFamily } from "@/lib/mesh/capabilities";
@@ -45,7 +46,7 @@ const RULES: readonly Rule[] = [
   { job: "events", weight: 4, patterns: [word("событи"), word("конференц"), word("конгресс"), word("вебинар"), word("мероприят"), word("школ[аыуе](?![" + L + "])"), word("форум"), word("симпозиум"), word("зарегистрир"), word("в календар"), word("съезд")] },
   { job: "learning", weight: 4, patterns: [word("обучени"), word("курс(?:ы|ов)? (?:по|для|повышени)"), word("учебн"), word("лекци"), word("нмо"), word("баллы"), word("аккредитац"), word("подготов" + `${L}*` + " к (?:экзамен|аккредитац|сертификац)"), word("хочу (?:разобраться|освежить|изучить|подтянуть)"), word("что почитать"), word("с чего начать изучени")] },
   { job: "guidelines", weight: 4, patterns: [word("клиническ" + `${L}*` + " рекомендац"), word("рекомендаци"), word("гайдлайн"), word("guideline"), word("клинреком"), word("кр(?![" + L + "])"), word("стандарт" + `${L}*` + " (?:медицинск|оказани)"), word("порядок оказани"), word("рубрикатор"), word("приказ" + `${L}*` + " минздрав"), re("\\b(?:ESC|AHA|ACC|NICE|ADA|EASD|GINA|GOLD|KDIGO|ACOG|FIGO|AAP|ILAE|EAN|EULAR|IDSA)\\b")] },
-  { job: "research", weight: 3, patterns: [word("исследуй"), word("исследовани(?:я|й|ям|ях)"), word("доказательн"), word("доказательств"), word("метаанализ"), word("рки"), word("сравни"), word("обзор литератур"), word("что известно"), word("какие данные"), word("pubmed"), word("найди (?:данные|статьи|публикации)"), word("эффективн" + `${L}*` + " .{1,40} (?:vs|против|по сравнению)")] },
+  { job: "research", weight: 3, patterns: [word("разб(?:ери|ерите|ор|рать)" + " (?:эт" + `${L}*` + " )?(?:исследовани|стать|публикаци|работ|рки|испытани|метаанализ)"), word("что показал" + `${L}*` + " (?:исследовани|испытани|рки|метаанализ|работ)"), word("результат" + `${L}*` + " (?:исследовани|испытани|рки)"), re("(?<![\\p{L}])исследовани[ея] [A-Z][A-Za-z0-9-]{2,}"), word("исследуй"), word("исследовани(?:я|й|ям|ях)"), word("доказательн"), word("доказательств"), word("метаанализ"), word("рки"), word("сравни"), word("обзор литератур"), word("что известно"), word("какие данные"), word("pubmed"), word("найди (?:данные|статьи|публикации)"), word("эффективн" + `${L}*` + " .{1,40} (?:vs|против|по сравнению)")] },
   { job: "updates", weight: 3, patterns: [word("что нового"), word("новост"), word("обновлени"), word("за (?:последн" + `${L}*` + " )?(?:неделю|месяц)"), word("свеж"), word("что появилось"), word("последние (?:публикаци|данные|исследовани)")] },
   { job: "answer", weight: 2, patterns: [word("что такое"), word("как (?:лечить|диагностир|вести|отличить|оценить)"), word("каки(?:е|х) (?:критери|показани|противопоказани)"), word("сколько"), word("когда (?:назнача|начина|показан)"), word("можно ли"), word("показани"), word("критери"), word("норм[аыу](?![" + L + "])"), word("первой линии|первая линия"), word("тактика"), word("алгоритм"), word("дифференциальн"), word("длительност")] },
 ];
@@ -89,6 +90,9 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
   // Comparing several drugs is an evidence question.
   if (drugs.length >= 2 && scores.has("research")) add("research", 2, "сравнение препаратов");
   if (options.hasAttachment) add("materials", 3, "прикреплён файл");
+  // A pasted PMID, DOI or PubMed link names one publication: that is a study review, whatever else the text says.
+  const identifiers = studyIdentifiersIn(text);
+  if (hasStudyIdentifiers(identifiers)) add("research", 6, describeStudyIdentifiers(identifiers));
 
   let job: PortalJob;
   let reasons: string[];
@@ -102,7 +106,7 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
   } else if (!scores.size) {
     job = "answer";
     confidence = vague ? 0.2 : 0.5;
-    reasons = [vague ? "Тема не распознана — попробуем найти ответ по источникам" : `Вопрос по теме: ${concepts.slice(0, 3).map(item => item.label).join(", ")}`];
+    reasons = [vague ? "Тема не распознана — попробуем найти ответ по источникам" : concepts.length ? `Вопрос по теме: ${concepts.slice(0, 3).map(item => item.label).join(", ")}` : "Тема не из словаря специальности — ищем по словам вопроса"];
   } else {
     const ranked = [...scores.entries()].sort((a, b) => b[1].score - a[1].score || PRIORITY.indexOf(a[0]) - PRIORITY.indexOf(b[0]));
     const [best, entry] = ranked[0];

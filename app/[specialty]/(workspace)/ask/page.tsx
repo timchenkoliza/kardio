@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { formatRelativeRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { ActionRequest, AgentResult, AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { ANSWER_MODE_COPY } from "@/lib/portal/answer-mode";
-import { isPortalJob, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
+import { isPortalJob, JOBS, jobForRun, researchScenarioHref, type PortalJob } from "@/lib/portal/jobs";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { JobIcon } from "@/components/portal/job-icon";
 import { ExperienceView } from "@/components/experience/experience-view";
@@ -73,6 +73,8 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       actions = (await store.listActions(sessionId, specialty)).filter(action => action.status === "pending_confirmation" && action.resultIds.some(id => ids.has(id)));
     }
   }
+
+  if (!run && requestedJob === "research" && !lookup) redirect(researchScenarioHref(specialty, first(query.q)));
 
   if (!run) {
     const job: PortalJob | null = isPortalJob(requestedJob) ? requestedJob : null;

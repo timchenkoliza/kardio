@@ -174,8 +174,8 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
   </article>;
 }
 
-export function ResultList({ results, specialty, emptyText }: { results: AgentResultView[]; specialty: string; emptyText: string }) {
+export function ResultList({ results, specialty, emptyText, illustrated = true }: { results: AgentResultView[]; specialty: string; emptyText: string; illustrated?: boolean }) {
   if (!results.length) return <p className="ws-empty">{emptyText}</p>;
-  const media = feedIllustrations(results);
+  const media = illustrated ? feedIllustrations(results) : new Map<string, AgentResultMedia>();
   return <div className="ws-result-list">{results.map(result => <ResultCard key={result.id} result={result} specialty={specialty} media={media.get(result.id) ?? null} />)}</div>;
 }

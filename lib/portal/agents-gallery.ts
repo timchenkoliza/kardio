@@ -1,5 +1,5 @@
 import type { SpecialtyId } from "@/lib/domain/types";
-import { askHref, type PortalJob } from "@/lib/portal/jobs";
+import { askHref, researchScenarioHref, type PortalJob } from "@/lib/portal/jobs";
 
 /**
  * Agents as the physician sees them: capability personas over the one portal
@@ -47,6 +47,8 @@ export function galleryHref(agent: GalleryAgent, specialty: SpecialtyId): string
   if (!galleryAvailable(agent, specialty)) return null;
   if (agent.id === "materials") return `/${specialty}/materials`;
   if (agent.id === "calculators") return `/${specialty}/tools`;
+  // The research scenario has its own settings (what to get, sources, type): open it, not the bare input.
+  if (agent.id === "research") return researchScenarioHref(specialty);
   return agent.job ? askHref(specialty, { job: agent.job }) : null;
 }
 

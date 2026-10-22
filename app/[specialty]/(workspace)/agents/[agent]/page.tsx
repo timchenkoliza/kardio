@@ -7,11 +7,9 @@ import { AgentRunButton } from "@/components/workspace/agent-run-button";
 import { BulkActions } from "@/components/workspace/bulk-actions";
 import { SeenMarker } from "@/components/workspace/lifecycle";
 import { PendingActions } from "@/components/workspace/pending-actions";
-import { ResearchComparison } from "@/components/workspace/research-comparison";
 import { ResearchComposer } from "@/components/workspace/research-composer";
-import { ResearchExport } from "@/components/workspace/research-export";
 import { ResearchJobStatus } from "@/components/workspace/research-job-status";
-import { ResearchOverview, ResearchResultsTable } from "@/components/workspace/research-report";
+import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
 import { agentIdFromSlug } from "@/lib/agents/definitions";
@@ -79,32 +77,27 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
     </header>
 
-    {onDemand ? <section className="ws-agent-composer" aria-label="Новое исследование"><ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} /></section> : null}
+    {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}
+    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} /></section> : null}
 
-    <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile) && !onDemand} />
+    {/* The research scenario is configured in its composer (what to get, sources, type); topic settings do not change a typed question. */}
+    {!onDemand && <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile)} />}
     <PendingActions actions={pendingForAgent} />
 
     {agentId === "drugs" && selectedRun && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} />}
 
-    <div className="ws-agent-layout">
+    <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
         {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
-          {onDemand && <ResearchOverview run={selectedRun} results={researchResults} totalResults={results.length} options={researchView} />}
-          {onDemand && <ResearchComparison results={researchResults} />}
-          {onDemand && researchResults.length > 0 && <ResearchExport specialty={specialty} runId={selectedRun.id} completedAt={selectedRun.completedAt ?? selectedRun.startedAt} mode={researchView.mode} results={researchResults} />}
+          {onDemand && <ResearchAnswerView run={selectedRun} results={researchResults} mode={researchView.mode} />}
+          {onDemand && <ResearchMore run={selectedRun} results={researchResults} specialty={specialty} mode={researchView.mode} />}
 
           {!tracksNew && agentId !== "research" && results.length > 0 && <section className="ws-section" aria-labelledby="ws-all-title">
             <h2 id="ws-all-title" className="ws-section-title">{agentId === "learning" ? `Маршрут · ${results.length}` : `Найдено · ${results.length}`}</h2>
             <ResultList results={results} specialty={specialty} emptyText="" />
           </section>}
 
-          {onDemand && <section className="ws-section" aria-labelledby="ws-research-results-title">
-            <h2 id="ws-research-results-title" className="ws-section-title">{researchView.mode === "articles" ? `Источники · ${researchResults.length}` : `Найдено · ${researchResults.length}`}</h2>
-            {researchView.mode === "articles"
-              ? <ResearchResultsTable results={researchResults} />
-              : <ResultList results={researchResults} specialty={specialty} emptyText="По выбранным фильтрам ничего не найдено. Расширьте источники или тип материалов." />}
-          </section>}
 
           {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
             <h2 id="ws-fresh-title" className="ws-section-title">{lastSeenAt ? `Новое с прошлого просмотра · ${fresh.length}` : `Найдено · ${fresh.length}`}</h2>
@@ -129,5 +122,9 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </section>}
       </aside>
     </div>
+    {onDemand && selectedRun ? <section className="ws-section ws-agent-composer" aria-labelledby="ws-research-new-title">
+      <h2 id="ws-research-new-title" className="ws-section-title">Новый разбор</h2>
+      <ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} />
+    </section> : null}
   </div>;
 }

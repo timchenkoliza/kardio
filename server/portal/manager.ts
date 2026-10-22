@@ -15,6 +15,8 @@ import { workspaceStore } from "@/server/agents/store";
 import { createRun, RUN_EXECUTION_DEADLINE_MS } from "@/server/agents/supervisor";
 import type { RunOutcome } from "@/server/agents/supervisor";
 import { executeRun, loadProfile } from "@/server/agents/workspace";
+import { executeResearchRun } from "@/server/agents/research-run";
+import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { recordPortalEvent } from "./telemetry";
 
 /**
@@ -107,7 +109,10 @@ export async function executeAskRun(sessionId: string, specialty: SpecialtyId, r
   // The strategy is re-decided from the stored text and the context persisted at creation (never asks again).
   const strategy = decideStrategy({ text: run.input.text, specialty, job: run.input.explicitJob ? job : null, session: pinnedSession(run.input.context?.entities ?? [], new Date()), answered: run.input.context?.answered ?? { id: "execution", optionId: null }, planConfirmed: run.input.context?.planConfirmed ?? "execution" });
   const intent = strategy.intent;
-  const outcome = await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.job.family, intent, run, answerMode: run.input.answerMode ?? null });
+  // The research scenario runs the same way from every door (settings before retrieval, records read and structured).
+  const outcome = run.agentId === "research"
+    ? await executeResearchRun(sessionId, specialty, run.input.text, researchOptionsForAnswerMode(run.input.answerMode), { run, routed: intent.route.routed, job: intent.job.family, intent, answerMode: run.input.answerMode ?? null })
+    : await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.job.family, intent, run, answerMode: run.input.answerMode ?? null });
   if (intent.route.job === "research" && outcome.run.status !== "blocked" && outcome.run.resultIds.length) {
     await recordPortalEvent(sessionId, "research_result_completed", { specialty, job: intent.route.job, runId: outcome.run.id, count: outcome.run.resultIds.length });
   }

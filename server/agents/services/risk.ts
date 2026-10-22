@@ -11,7 +11,8 @@ export interface DeidentifiedText {
   needsReview: boolean;
 }
 
-const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|а|у|ом|е)?|[Бб]ольн(?:ой|ая|ого|ому)|[Pp]atient)\s+([А-ЯЁA-Z][а-яёa-z]+(?:[-‐][А-ЯЁA-Z][а-яёa-z]+)?)(\s+[А-ЯЁA-Z]\.\s?(?:[А-ЯЁA-Z]\.)?)?/gu;
+// Role word + surname, then up to two more capitalised words (first name, patronymic) or initials.
+const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|а|у|ом|е)?|[Бб]ольн(?:ой|ая|ого|ому)|[Pp]atient)\s+([А-ЯЁA-Z][а-яёa-z]+(?:[-‐][А-ЯЁA-Z][а-яёa-z]+)?)((?:\s+[А-ЯЁA-Z][а-яёa-z]+){0,2})(\s+[А-ЯЁA-Z]\.\s?(?:[А-ЯЁA-Z]\.)?)?/gu;
 
 export function deidentify(text: string): DeidentifiedText {
   const result = redactDirectIdentifiers(text);

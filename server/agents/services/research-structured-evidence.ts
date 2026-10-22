@@ -7,6 +7,7 @@ import {
   type ResearchStructuredEvidence,
 } from "@/lib/agents/research-structured-evidence";
 import { normalizeResearchStudy, researchStudyNormalizationToAttributes } from "@/lib/agents/research-study-normalization";
+import { extractConclusion } from "../adapters/pubmed-abstracts";
 import { retrievePubmedEvidenceDocument, type PubmedDocumentSection, type PubmedEvidenceDocument } from "../adapters/pubmed-document";
 
 const FIELD_RULES: Record<ResearchEvidenceFieldId, { sectionHints: RegExp[]; sentence: RegExp }> = {
@@ -88,6 +89,22 @@ function pmidFromResult(result: AgentResult): string | null {
   return result.source.sourceUrl.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/iu)?.[1] ?? null;
 }
 
+/**
+ * What text the run actually read for a publication, and the authors' own
+ * conclusion quoted from the abstract (original language, never paraphrased).
+ */
+export function evidenceTextAttributes(document: PubmedEvidenceDocument): Record<string, string> {
+  const attributes: Record<string, string> = { "evidenceText.access": document.access, "evidenceText.url": document.sourceUrl };
+  if (document.note) attributes["evidenceText.note"] = document.note;
+  if (document.access === "unavailable") return attributes;
+  const conclusion = extractConclusion(document.abstract?.length ? document.abstract : document.sections);
+  if (conclusion) {
+    attributes["authorsConclusion.text"] = conclusion.text;
+    attributes["authorsConclusion.label"] = conclusion.label;
+  }
+  return attributes;
+}
+
 export interface StructuredEvidenceEnrichment {
   results: AgentResult[];
   attempted: number;
@@ -120,6 +137,8 @@ export async function enrichResearchResultsWithStructuredEvidence(
 
   for (const { result, pmid } of candidates) {
     const document = await retrieve(pmid);
+    const current = enrichedById.get(result.id);
+    if (current) current.attributes = { ...current.attributes, ...evidenceTextAttributes(document) };
     if (document.access === "unavailable") {
       unavailable += 1;
       if (document.note) notes.push(`${pmid}: ${document.note}`);
@@ -129,16 +148,13 @@ export async function enrichResearchResultsWithStructuredEvidence(
     else abstracts += 1;
     if (document.note) notes.push(`${pmid}: ${document.note}`);
     const structured = extractStructuredResearchEvidence(document);
-    if (!structured) continue;
-    const current = enrichedById.get(result.id);
-    if (!current) continue;
+    if (!structured || !current) continue;
     const normalized = normalizeResearchStudy(structured);
     current.attributes = {
       ...current.attributes,
       ...structuredEvidenceToAttributes(structured),
       ...researchStudyNormalizationToAttributes(normalized),
     };
-    enrichedById.set(current.id, current);
     enriched += 1;
   }
 

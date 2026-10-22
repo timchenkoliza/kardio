@@ -5,6 +5,8 @@ import type { AgentResultView, AgentRun } from "@/lib/agents/types";
 import type { SpecialtyAdapter } from "@/lib/specialty";
 import { stateForOrigin } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
+import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
+import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultList } from "@/components/workspace/result-card";
 import { StateBadge } from "./for-you";
 import { FollowupJobButton, SaveResultButton } from "./result-actions";
@@ -182,11 +184,13 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
   }
 
   if (job === "research") {
+    // The same answer as on the scenario page: the research scenario runs and renders one way from every door.
+    const mode = researchOptionsForAnswerMode(run.input.answerMode).mode;
     return <>
       {notices}
-      <Synthesis text={run.synthesis} />
-      {results.length > 0 && <p><Link className="ws-text-link" href={`/${specialty}/agents/research?run=${encodeURIComponent(run.id)}`}>Полный разбор: сравнение исследований и экспорт<ArrowRight size={15} aria-hidden="true" /></Link></p>}
-      {results.length > 0 ? <Cards results={results} specialty={specialty} /> : <p className="ws-empty">Исследований по вопросу не нашлось. Уточните заболевание, вмешательство или сравнение.</p>}
+      <ResearchAnswerView run={run} results={results} mode={mode} />
+      <ResearchMore run={run} results={results} specialty={adapter.id} mode={mode} />
+      {run.input.text && <p><Link className="ws-text-link" href={`/${specialty}/agents/research?q=${encodeURIComponent(run.input.text)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>}
       <NextActions run={run} job={job} />
     </>;
   }
