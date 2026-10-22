@@ -67,7 +67,8 @@ export function searchMedical(args: {
   if (meaningful) {
     for (const result of rankWorkspaceResearch(eligible, [meaningful], 24)) {
       const existing = byId.get(result.content.id);
-      if (!existing && args.topicIds.length && result.matchedTerms.length < 2) continue;
+      // One shared word is not a match for a typed question: «приготовить» or «СНИЛС» must not surface a guideline.
+      if (!existing && (args.topicIds.length || args.requireTopicMatch) && result.matchedTerms.length < 2) continue;
       if (existing) {
         existing.score += result.score;
         existing.matchedTerms = result.matchedTerms;

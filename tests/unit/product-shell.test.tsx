@@ -134,7 +134,8 @@ describe("UI-05 quick agents launch jobs, never change the mode", () => {
     const cards = quickAgentCards("cardiology");
     expect(cards.map(card => card.job)).toEqual(["drug", "guidelines", "research"]);
     for (const card of cards) {
-      expect(card.href).toBe(`/cardiology/ask?job=${card.job}`);
+      // The research shortcut opens its configured scenario (docs/agent-mvp/DECISION.md); the others open the routed job.
+      expect(card.href).toBe(card.job === "research" ? "/cardiology/agents/research" : `/cardiology/ask?job=${card.job}`);
       expect(card.href).not.toMatch(/mode/u);
     }
     const html = renderToStaticMarkup(<QuickAgents specialty="cardiology" />);

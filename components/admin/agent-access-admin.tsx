@@ -20,7 +20,7 @@ const AGENT_LABELS: Record<ProductAgentId, string> = {
   whats_new: "Что нового",
   guidelines: "Рекомендации",
   drugs: "Препараты",
-  research: "Исследовать тему",
+  research: "Разбор по исследованиям",
   events: "События",
   learning: "Обучение",
   materials: "Материалы",

@@ -1,10 +1,11 @@
 import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
+import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
 import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
-import { entrezDate } from "./adapters/pubmed";
+import { entrezDate, type PubmedArticle } from "./adapters/pubmed";
 import type { AgentContext } from "./context";
 import type { ResultDraft } from "./drafts";
 import { drugStudyDrafts, drugStudyTerm, pubmedWindow } from "./services/drug-change";
@@ -182,6 +183,69 @@ async function drugs(ctx: AgentContext): Promise<ExecutorResult> {
   return { intent: "track_drugs", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
 }
 
+function pubmedFindingDraft(ctx: AgentContext, questionKey: string, question: string, article: PubmedArticle, reason: string): ResultDraft {
+  return {
+    key: stableId("research", questionKey, "pubmed", article.pmid),
+    agentId: ctx.agentId,
+    specialty: ctx.specialty,
+    kind: "research_finding" as const,
+    category: "publication",
+    title: truncate(article.title, 180),
+    summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.publicationTypes.length ? ` · ${article.publicationTypes.slice(0, 2).join(", ")}` : ""}`,
+    reasonShown: [reason, article.journal || "PubMed"],
+    observedAt: article.sortDate,
+    evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
+    source: pubmedProvenance(article, ctx.nowIso),
+    actions: [{ kind: "open_source" as const, label: "PubMed", href: article.url, requiresConfirmation: false }, { kind: "save" as const, label: "Сохранить", href: null, requiresConfirmation: false }],
+    attributes: { question, journal: article.journal, doi: article.doi, publicationTypes: article.publicationTypes.join(", ") },
+    partner: null,
+    rank: 0,
+  };
+}
+
+/**
+ * The physician named the publication (PMID, PMCID, DOI or a PubMed link):
+ * look it up exactly, without the topic search and without the approved-journal
+ * filter — the physician chose the article, the result says when its journal is
+ * outside the list the physicians validated.
+ */
+async function researchByIdentifiers(ctx: AgentContext, builder: PlanBuilder, question: string, identifiers: StudyIdentifiers): Promise<ExecutorResult> {
+  const asked = describeStudyIdentifiers(identifiers);
+  builder.note("Распознали публикацию в запросе", asked);
+  const articles = builder.record("Нашли публикацию в PubMed по идентификатору", await tools.searchPubmed(ctx, { term: pubmedTermForIdentifiers(identifiers), retmax: studyIdentifierCount(identifiers), sort: "relevance" }), items => items.length ? countLabel(items.length, ["публикация", "публикации", "публикаций"]) : "не найдена");
+  const questionKey = question.toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
+  const approved = new Set(tools.trustedJournals(ctx).map(journal => journal.toLocaleLowerCase("en-US")));
+  const drafts = await finishWithChecks(builder, ctx, articles.map(article => {
+    const draft = pubmedFindingDraft(ctx, questionKey, question, article, `Вы указали: ${asked}`);
+    const outsideList = article.journal && !approved.has(article.journal.toLocaleLowerCase("en-US"));
+    return outsideList ? { ...draft, attributes: { ...draft.attributes, journalOutsideApprovedList: true } } : draft;
+  }));
+  const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
+  const unavailable = pubmedUse && pubmedUse.status !== "ok";
+  const skipped = pubmedUse?.status === "ok" && !articles.length && pubmedUse.note?.startsWith("PubMed пропущен");
+  const synthesis = unavailable
+    ? `PubMed недоступен: ${pubmedUse?.note ?? "нет ответа"}. Публикацию (${asked}) проверить не удалось, разбор не выполнен.`
+    : skipped
+      ? `${pubmedUse?.note}. Публикацию (${asked}) не искали: включите международные источники и исследования в настройках разбора.`
+      : drafts.length
+      ? `Разбор публикации по ${asked}: ${drafts.map(draft => `«${truncate(draft.title, 140)}» (${draft.source.source})`).join("; ")}.`
+      : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на страницу статьи в PubMed.`;
+  builder.note("Собрали разбор публикации", "Параметры исследования — только из текста статьи, с цитатой");
+  return { intent: "research_question", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };
+}
+
+/**
+ * Words that frame a study request («разбери исследование», «какие данные»,
+ * «для пациента»). They say nothing about the topic, so they never match a
+ * catalog item: «как приготовить борщ? разбор исследований» finds nothing.
+ */
+const REQUEST_FRAMING = /(?<![\p{L}])(?:разб\p{L}*|исследова\p{L}*|стать[яиюей]\p{L}*|публикац\p{L}*|данны\p{L}*|результат\p{L}*|показал\p{L}*|известн\p{L}*|пациент\p{L}*|больн\p{L}*|него|неё|нее|ему|ней|подскаж\p{L}*|найди|покажи|что|какие|какой|какая|каков\p{L}*)(?![\p{L}])/giu;
+
+export function researchTopicQuery(question: string): string {
+  // Redaction placeholders ([ФИО], [SNILS]) and ages are not topics either.
+  return question.replace(/\[[\p{L}_ ]+\]/gu, " ").replace(/(?<![\p{N}])\d{1,3}\s*(?:лет|года|год)(?![\p{L}])/gu, " ").replace(REQUEST_FRAMING, " ").replace(/[?!.,:;«»"]+/gu, " ").replace(/\s+/gu, " ").trim();
+}
+
 async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
   const question = ctx.inputText?.trim() || topicLabels(ctx.specialty, ctx.preference.topics).join(", ");
@@ -189,11 +253,16 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в настройках агента");
     return { intent: "research_question", plan: builder.plan, toolsUsed: [], drafts: [], synthesis: null, notices: [] };
   }
+  const identifiers = studyIdentifiersIn(question);
+  if (hasStudyIdentifiers(identifiers)) return researchByIdentifiers(ctx, builder, question, identifiers);
   // A typed question is searched by its own topics, not by every topic in the profile.
   const questionTopics = ctx.inputText?.trim() ? topicsMentioned(ctx.specialty, question) : ctx.preference.topics;
   const scoped: AgentContext = questionTopics.length ? { ...ctx, preference: { ...ctx.preference, topics: questionTopics } } : ctx;
   builder.note("Сформулировали вопрос и план поиска", `«${truncate(question, 140)}» · ${topicsDetail(scoped)}`);
-  const hits = builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: question, limit: 6, topics: questionTopics, requireTopicMatch: Boolean(ctx.inputText?.trim()) }), items => countLabel(items.length, ["материал", "материала", "материалов"]));
+  const catalogQuery = ctx.inputText?.trim() ? researchTopicQuery(question) : question;
+  const hits = catalogQuery || questionTopics.length
+    ? builder.record("Искали в каталоге РКО и РКЖ", await tools.searchMedical(ctx, { query: catalogQuery, limit: 6, topics: questionTopics, requireTopicMatch: Boolean(ctx.inputText?.trim()) }), items => countLabel(items.length, ["материал", "материала", "материалов"]))
+    : [];
   const topicTerm = tools.pubmedTermForTopics(scoped);
   const englishTerms = question.match(/[A-Za-z][A-Za-z0-9\- ]{2,}/g)?.join(" ").trim();
   const concepts = pubmedConceptsIn(question);
@@ -228,23 +297,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     partner: null,
     rank: 0,
   }));
-  const pubmedDrafts: ResultDraft[] = articles.map(article => ({
-    key: stableId("research", questionKey, "pubmed", article.pmid),
-    agentId: ctx.agentId,
-    specialty: ctx.specialty,
-    kind: "research_finding" as const,
-    category: "publication",
-    title: truncate(article.title, 180),
-    summary: `${article.journal}${article.pubDate ? ` · ${article.pubDate}` : ""}${article.publicationTypes.length ? ` · ${article.publicationTypes.slice(0, 2).join(", ")}` : ""}`,
-    reasonShown: [pubmedReason, article.journal || "PubMed"],
-    observedAt: article.sortDate,
-    evidence: [factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso))],
-    source: pubmedProvenance(article, ctx.nowIso),
-    actions: [{ kind: "open_source" as const, label: "PubMed", href: article.url, requiresConfirmation: false }, { kind: "save" as const, label: "Сохранить", href: null, requiresConfirmation: false }],
-    attributes: { question, journal: article.journal, doi: article.doi },
-    partner: null,
-    rank: 0,
-  }));
+  const pubmedDrafts: ResultDraft[] = articles.map(article => pubmedFindingDraft(ctx, questionKey, question, article, pubmedReason));
   const drafts = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [
@@ -356,7 +409,7 @@ async function materials(ctx: AgentContext): Promise<ExecutorResult> {
       rank: 0,
     };
   });
-  const synthesis = drafts.length ? `По вопросу «${truncate(question, 120)}» нашлось ${countLabel(drafts.length, ["место", "места", "мест"])} в ваших материалах. Ответ собран только из них.` : `В ваших материалах нет совпадений по вопросу «${truncate(question, 120)}». Добавьте документ или задайте вопрос агенту «Исследовать тему».`;
+  const synthesis = drafts.length ? `По вопросу «${truncate(question, 120)}» нашлось ${countLabel(drafts.length, ["место", "места", "мест"])} в ваших материалах. Ответ собран только из них.` : `В ваших материалах нет совпадений по вопросу «${truncate(question, 120)}». Добавьте документ или откройте «Разбор по исследованиям».`;
   return { intent: "ask_my_materials", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: [] };
 }
 

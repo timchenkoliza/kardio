@@ -5,6 +5,9 @@ import type { AgentResultView, AgentRun } from "@/lib/agents/types";
 import type { SpecialtyAdapter } from "@/lib/specialty";
 import { stateForOrigin } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
+import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
+import { hasStudyIdentifiers, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
+import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultList } from "@/components/workspace/result-card";
 import { StateBadge } from "./for-you";
 import { FollowupJobButton, SaveResultButton } from "./result-actions";
@@ -83,7 +86,7 @@ function NextActions({ run, job }: { run: AgentRun; job: PortalJob }) {
   const text = run.input.text?.trim();
   if (!text || run.status === "blocked") return null;
   const options: Array<{ job: PortalJob; label: string }> = [];
-  if (job !== "research") options.push({ job: "research", label: "Разобрать по исследованиям" });
+  if (job !== "research") options.push({ job: "research", label: "Разбор по исследованиям" });
   if (job !== "guidelines") options.push({ job: "guidelines", label: "Клинические рекомендации по теме" });
   if (job !== "learning") options.push({ job: "learning", label: "Что изучить по теме" });
   return <section className="pt-next" aria-labelledby="pt-next-title">
@@ -121,7 +124,8 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
   if (run.status === "blocked") {
     return <div className="pt-blocked" role="alert">
       <p><ShieldAlert size={16} aria-hidden="true" />{run.plan[0]?.detail ?? "Запрос остановлен проверкой безопасности."}</p>
-      {run.riskNotices.map(notice => <p key={notice} className="ws-muted">{notice}</p>)}
+      {/* The reason above is also a risk notice: show each message once. */}
+      {run.riskNotices.filter(notice => notice !== run.plan[0]?.detail).map(notice => <p key={notice} className="ws-muted">{notice}</p>)}
     </div>;
   }
   if (run.status === "failed") return <p className="ws-empty" role="alert">Не получилось собрать результат: {run.error ?? "источник ответил ошибкой"}. Попробуйте ещё раз или переформулируйте вопрос.</p>;
@@ -182,12 +186,17 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
   }
 
   if (job === "research") {
+    // The same answer as on the scenario page: the research scenario runs and renders one way from every door.
+    const mode = researchOptionsForAnswerMode(run.input.answerMode).mode;
     return <>
       {notices}
-      <Synthesis text={run.synthesis} />
-      {results.length > 0 && <p><Link className="ws-text-link" href={`/${specialty}/agents/research?run=${encodeURIComponent(run.id)}`}>Полный разбор: сравнение исследований и экспорт<ArrowRight size={15} aria-hidden="true" /></Link></p>}
-      {results.length > 0 ? <Cards results={results} specialty={specialty} /> : <p className="ws-empty">Исследований по вопросу не нашлось. Уточните заболевание, вмешательство или сравнение.</p>}
-      <NextActions run={run} job={job} />
+      <ResearchAnswerView run={run} results={results} mode={mode} />
+      <ResearchMore run={run} results={results} specialty={adapter.id} mode={mode} />
+      {/* A named publication was read as asked: other sources and topic follow-ups would search a PMID as a topic. */}
+      {run.input.text && !hasStudyIdentifiers(studyIdentifiersIn(run.input.text)) && <>
+        <p><Link className="ws-text-link" href={`/${specialty}/agents/research?q=${encodeURIComponent(run.input.text)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>
+        <NextActions run={run} job={job} />
+      </>}
     </>;
   }
 

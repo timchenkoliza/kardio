@@ -8,6 +8,8 @@ export interface PubmedEvidenceDocument {
   pmcid: string | null;
   access: "full_text" | "abstract" | "unavailable";
   sections: PubmedDocumentSection[];
+  /** The PubMed abstract, kept alongside a PMC full text: the authors' own conclusion is read from it. */
+  abstract?: PubmedDocumentSection[];
   sourceUrl: string;
   note: string | null;
 }
@@ -115,6 +117,7 @@ export async function retrievePubmedEvidenceDocument(
         pmcid: parsed.pmcid,
         access: "full_text",
         sections: full,
+        abstract: parsed.sections,
         sourceUrl: `https://pmc.ncbi.nlm.nih.gov/articles/${parsed.pmcid}/`,
         note: null,
       };

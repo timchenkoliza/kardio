@@ -11,7 +11,11 @@ export interface DeidentifiedText {
   needsReview: boolean;
 }
 
-const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|а|у|ом|е)?|[Бб]ольн(?:ой|ая|ого|ому)|[Pp]atient)\s+([А-ЯЁA-Z][а-яёa-z]+(?:[-‐][А-ЯЁA-Z][а-яёa-z]+)?)(\s+[А-ЯЁA-Z]\.\s?(?:[А-ЯЁA-Z]\.)?)?/gu;
+// Role word in any singular case + surname, then up to two more capitalised words (first name, patronymic) or
+// initials. Cyrillic names only: «Patient Reported Outcomes» is a term, not a person.
+const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|ки|ке|ку|кой|а|у|ом|е)?|[Бб]ольн(?:ой|ого|ому|ым|ом|ая|ую))\s+([А-ЯЁ][а-яё]+(?:[-‐][А-ЯЁ][а-яё]+)?)((?:\s+[А-ЯЁ][а-яё]+){0,2})(\s+[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.)?)?/gu;
+// A full name with a patronymic, without a role word: «Петрова Анна Сергеевна», «Анна Сергеевна Петрова».
+const FULL_NAME = /(?<![\p{L}])(?:[А-ЯЁ][а-яё]+\s+){1,2}[А-ЯЁ][а-яё]*(?:ович|евич|ич|овна|евна|ична|инична)(?:\s+[А-ЯЁ][а-яё]+)?(?![\p{L}])/gu;
 
 export function deidentify(text: string): DeidentifiedText {
   const result = redactDirectIdentifiers(text);
@@ -23,6 +27,12 @@ export function deidentify(text: string): DeidentifiedText {
     if (!redactions.includes("fio")) redactions.push("fio");
   }
   PATIENT_NAME.lastIndex = 0;
+  if (FULL_NAME.test(redacted)) {
+    FULL_NAME.lastIndex = 0;
+    redacted = redacted.replace(FULL_NAME, "[ФИО]");
+    if (!redactions.includes("fio")) redactions.push("fio");
+  }
+  FULL_NAME.lastIndex = 0;
   return { text: redacted, redactions, needsReview: result.status === "needs_review" };
 }
 
