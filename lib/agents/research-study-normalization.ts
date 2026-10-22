@@ -80,6 +80,55 @@ function sentenceMatch(source: ResearchEvidenceField | undefined, sourceField: R
   return normalizedField(formatter(match), sourceField, source, multiplier);
 }
 
+/** A value read from one sentence: that sentence is its quote, not the whole support text. */
+function quotedField(value: string, source: ResearchEvidenceField, quote: string): ResearchStudyField {
+  return { ...normalizedField(value, "effect", source, 0.99), supportText: quote };
+}
+
+// Abbreviations are matched case-sensitively: «12 or 24 months» and «24 hr» are not an odds or hazard ratio.
+const MEASURE = "(?:[Hh]azard|[Rr]isk|[Oo]dds|[Rr]ate) [Rr]atios?|[Rr]elative [Rr]isk|[Mm]ean [Dd]ifference|a?HR|RR|a?OR";
+const EFFECT = new RegExp(`(?<![A-Za-z])(${MEASURE})(?![A-Za-z])(?:\\s*[([]\\s*(?:a?HR|RR|a?OR)\\s*[)\\]])?\\s*(?:was|of|=|:|,)?\\s*([−-]?\\d+(?:\\.\\d+)?)(?!\\d|\\.\\d|\\s*%|,\\d)`, "u");
+const NEXT_MEASURE = new RegExp(`(?<![A-Za-z])(?:${MEASURE})(?![A-Za-z])`, "u");
+const INTERVAL = /95%\s*(?:confidence\s+interval|CI)(?:\s*[([]CI[)\]])?\s*[,;:=]?\s*([−-]?\d+(?:\.\d+)?)\s*(?:to|[-–])\s*([−-]?\d+(?:\.\d+)?)(?!\s*%|\d)/iu;
+const P_VALUE = /(?<![A-Za-z])[Pp]\s*(<=|>=|=|<|>|≤|≥)\s*(0?\.\d+|\d+(?:\.\d+)?)(?![\d%])/u;
+
+function effectSentences(value: string): string[] {
+  return value.replace(/\s+/gu, " ").split(/(?<=[.!?])\s+(?=[A-Z([])/u).filter(sentence => sentence.trim().length > 0);
+}
+
+/**
+ * The first sentence that states a ratio or a mean difference with its value.
+ * The interval and p are read only from the same statement — up to the next
+ * effect measure — and kept only when consistent with the estimate. A value
+ * followed by «%» or a decimal comma is not read at all.
+ */
+export function readEffect(text: string): { measure: string; estimate: string; interval: string | null; pValue: string | null; quote: string } | null {
+  for (const sentence of effectSentences(text)) {
+    const value = decimalText(sentence);
+    const match = value.match(EFFECT);
+    if (!match || match.index === undefined) continue;
+    const measure = normalizeEffectMeasure(match[1].replace(/^a(?=HR|OR)/u, ""));
+    const estimate = match[2].replace("−", "-");
+    const ratio = measure === "HR" || measure === "RR" || measure === "OR" || measure === "Rate ratio";
+    // A ratio is never zero or negative: such a reading is a parsing error, not a result.
+    if (ratio && !(Number(estimate) > 0)) continue;
+    let clause = value.slice(match.index + match[0].length);
+    const next = clause.search(NEXT_MEASURE);
+    if (next >= 0) clause = clause.slice(0, next);
+    const ci = clause.match(INTERVAL);
+    let interval: string | null = null;
+    if (ci?.[1] && ci?.[2]) {
+      const lower = Number(ci[1].replace("−", "-"));
+      const upper = Number(ci[2].replace("−", "-"));
+      const point = Number(estimate);
+      if (lower <= point && point <= upper && (!ratio || lower > 0)) interval = `${ci[1].replace("−", "-")}–${ci[2].replace("−", "-")}`;
+    }
+    const p = clause.match(P_VALUE);
+    return { measure, estimate, interval, pValue: p ? `p ${p[1]} ${p[2]}` : null, quote: sentence.trim() };
+  }
+  return null;
+}
+
 function normalizeEffectMeasure(value: string): string {
   const key = value.toLocaleLowerCase("en-US").replace(/\s+/g, " ");
   if (key === "hr" || key.includes("hazard ratio")) return "HR";
@@ -118,7 +167,7 @@ function normalizedComparator(source: ResearchEvidenceField | undefined): Resear
 
 function normalizedEndpoint(source: ResearchEvidenceField | undefined): ResearchStudyField | null {
   if (!source) return null;
-  const match = source.supportText.match(/\bprimary\s+(?:endpoint|outcome)(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*([^.;]{8,180})/iu);
+  const match = source.supportText.match(/\bprimary(?:\s+(?:efficacy|safety|composite|clinical))?\s+(?:end\s?point|outcome)(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*([^.;]{8,180})/iu);
   if (match?.[1]) return normalizedField(match[1], "endpoint", source, 0.96);
   // The endpoint field is matched on «follow-up» too: a sentence that never names an endpoint or outcome is not one.
   if (!/\b(?:end\s?points?|outcomes?)\b/iu.test(source.value)) return null;
@@ -152,7 +201,8 @@ export function normalizeResearchStudy(structured: ResearchStructuredEvidence | 
   const sampleSize = sentenceMatch(
     population,
     "population",
-    /\b(?:n\s*=\s*(\d{1,3}(?:[,\s]\d{3})+|\d{1,7})|(?:a total of\s+)?(\d{1,3}(?:[,\s]\d{3})+|\d{1,7})\s+(?:patients?|participants?|subjects?|adults?|children|women|men)|(?:enrolled|included|randomi[sz]ed|assigned)\s+(\d{1,3}(?:[,\s]\d{3})+|\d{1,7}))\b/iu,
+    // A count is a sample size only after an enrolment word or «n =»: «occurred in 386 patients» is an event count.
+    /\b(?:n\s*=\s*(\d{1,3}(?:[,\s]\d{3})+|\d{1,7})|a total of\s+(\d{1,3}(?:[,\s]\d{3})+|\d{1,7})\s+(?:patients?|participants?|subjects?|adults?|children|women|men)|(?:enrolled|included|randomi[sz]ed|assigned|recruited|involving|comprising)\s+(\d{1,3}(?:[,\s]\d{3})+|\d{1,7})(?!\s*:|\d|\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:trials?|studies|RCTs?|cohorts?|articles|reports)))\b/iu,
     match => {
       const count = match[1] ?? match[2] ?? match[3] ?? "";
       return `N=${count.replace(/[,\s]/gu, "")}`;
@@ -171,7 +221,7 @@ export function normalizeResearchStudy(structured: ResearchStructuredEvidence | 
   const ageRange = meanMedianAge ?? sentenceMatch(
     population,
     "population",
-    /\b(?:aged?|age(?:\s+range)?(?:\s+(?:was|of))?)\s*[:=]?\s*(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*(?:years?)?\b/iu,
+    /\b(?:aged?|age(?:\s+range)?(?:\s+(?:was|of))?)\s*[:=]?\s*(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*(?:years?|yrs?)\b/iu,
     match => `${match[1]}–${match[2]} years`,
     0.94,
   );
@@ -216,32 +266,13 @@ export function normalizeResearchStudy(structured: ResearchStructuredEvidence | 
   if (followUp) fields.followUp = followUp;
 
   if (effect) {
-    // NEJM / Lancet style: «hazard ratio, 0.74» and «hazard ratio (HR) 0.74» state the same value as «HR = 0.74».
-    const effectText = decimalText(effect.supportText);
-    const effectMatch = effectText.match(/\b(hazard ratio|risk ratio|relative risk|odds ratio|rate ratio|mean difference|HR|RR|OR)\b(?:\s*\((?:HR|RR|OR)\))?\s*(?:was|of|=|:|,)?\s*([−-]?\d+(?:\.\d+)?)/iu);
-    const measure = effectMatch?.[1] ? normalizeEffectMeasure(effectMatch[1]) : null;
-    const estimate = effectMatch?.[2] ? effectMatch[2].replace("−", "-") : null;
-    // A ratio is never zero or negative: such a reading is a parsing error, not a result.
-    const ratio = measure === "HR" || measure === "RR" || measure === "OR" || measure === "Rate ratio";
-    const plausible = estimate !== null && (!ratio || Number(estimate) > 0);
-    if (measure && plausible) fields.effectMeasure = normalizedField(measure, "effect", effect, 0.99);
-    if (estimate && plausible) fields.effectEstimate = normalizedField(estimate, "effect", effect, 0.99);
-
-    // The interval and p belong to the estimate only when they follow it in the same sentence: values from another
-    // sentence (a secondary endpoint, a mean difference) must never be glued to this ratio.
-    const after = effectMatch?.index !== undefined ? effectText.slice(effectMatch.index + effectMatch[0].length) : "";
-    const clause = after.split(/(?<=\.)\s+(?=[A-Z])/u)[0].slice(0, 220);
-    const ci = clause.match(/\b95%\s*(?:confidence\s+interval|CI)(?:\s*\[CI\])?\s*[,;:=]?\s*([−-]?\d+(?:\.\d+)?)\s*(?:to|[-–])\s*([−-]?\d+(?:\.\d+)?)/iu);
-    if (plausible && ci?.[1] && ci?.[2]) {
-      const lower = Number(ci[1].replace("−", "-"));
-      const upper = Number(ci[2].replace("−", "-"));
-      const value = Number(estimate);
-      const consistent = lower <= value && value <= upper && (!ratio || lower > 0);
-      if (consistent) fields.confidenceInterval = normalizedField(`${ci[1].replace("−", "-")}–${ci[2].replace("−", "-")}`, "effect", effect, 0.99);
+    const read = readEffect(effect.supportText);
+    if (read) {
+      fields.effectMeasure = quotedField(read.measure, effect, read.quote);
+      fields.effectEstimate = quotedField(read.estimate, effect, read.quote);
+      if (read.interval) fields.confidenceInterval = quotedField(read.interval, effect, read.quote);
+      if (read.pValue) fields.pValue = quotedField(read.pValue, effect, read.quote);
     }
-
-    const pValue = clause.match(/\bp\s*(<=|>=|=|<|>|≤|≥)\s*(0?\.\d+|\d+(?:\.\d+)?)\b/iu);
-    if (plausible && pValue?.[1] && pValue?.[2]) fields.pValue = normalizedField(`p ${pValue[1]} ${pValue[2]}`, "effect", effect, 0.99);
   }
 
   return Object.keys(fields).length ? { fields } : null;

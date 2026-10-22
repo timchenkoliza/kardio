@@ -52,7 +52,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const researchJob = onDemand && sessionId && requestedJobId ? await getResearchJob(sessionId, specialty, requestedJobId) : null;
   const researchView = researchJob?.options ?? requestedResearchView;
   const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) ?? researchJob?.runId ?? null });
-  const { definition, card, results, partner, selectedRun, runs, profile } = detail;
+  const { definition, card, results, partner, runs, profile } = detail;
+  // The research scenario opens on an empty question unless a run is asked for: a shortcut never lands on an old answer.
+  const requestedRun = Boolean(first(query.run) ?? researchJob?.runId);
+  const selectedRun = onDemand && !requestedRun ? null : detail.selectedRun;
   const now = new Date().toISOString();
   const lastSeenAt = profile.subscriptions[agentId].lastSeenAt;
   const fresh = results.filter(result => result.newSinceLastSeen);
@@ -70,9 +73,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       <span className="ws-agent-icon is-large"><AgentIcon icon={definition.icon} size={26} /></span>
       <div className="ws-agent-head-copy">
         <h1>{definition.name}</h1>
-        <p className="ws-agent-job">{definition.job}</p>
-        <p className="ws-muted">{definition.description}</p>
-        <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускался"} · {card.headline}</p>
+        {onDemand && selectedRun
+          // With a result, the header names the question being answered; the description is on the empty scenario page.
+          ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p></>
+          : <>
+            <p className="ws-agent-job">{definition.job}</p>
+            <p className="ws-muted">{definition.description}</p>
+            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускался"} · {card.headline}</p>
+          </>}
       </div>
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
     </header>

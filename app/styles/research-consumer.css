@@ -274,3 +274,31 @@
   .ws-agent-layout.is-single { grid-template-columns: minmax(0, 1fr); }
   .ws-agent-layout.is-single .ws-agent-aside { position: static; }
 }
+/* Collapsed blocks look collapsible: a chevron that turns when open. */
+.ws-research-more > details > summary,
+.ws-ra-conclusion summary,
+.ws-ra-quote summary { list-style: none; gap: var(--ws-space-8); }
+.ws-research-more > details > summary::-webkit-details-marker,
+.ws-ra-conclusion summary::-webkit-details-marker,
+.ws-ra-quote summary::-webkit-details-marker { display: none; }
+.ws-research-more > details > summary::after,
+.ws-ra-conclusion summary::after,
+.ws-ra-quote summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--ws-mode-transition);
+}
+.ws-research-more > details > summary::after { margin-left: auto; color: var(--ws-text-secondary); }
+.ws-research-more > details[open] > summary::after,
+.ws-ra-conclusion[open] summary::after,
+.ws-ra-quote[open] summary::after { transform: rotate(225deg) translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .ws-research-more > details > summary::after,
+  .ws-ra-conclusion summary::after,
+  .ws-ra-quote summary::after { transition: none; }
+}

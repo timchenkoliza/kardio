@@ -41,9 +41,16 @@ function splitSentences(value: string): string[] {
     .filter(sentence => sentence.length >= 30 && sentence.length <= 900);
 }
 
-function clampText(value: string, max = 760): string {
-  const clean = value.replace(/\s+/gu, " ").trim();
-  return clean.length <= max ? clean : `${clean.slice(0, max - 1).trimEnd()}…`;
+function wholeSentences(sentences: readonly string[], max = 760): string {
+  const kept: string[] = [];
+  let length = 0;
+  for (const sentence of sentences) {
+    const clean = sentence.replace(/\s+/gu, " ").trim();
+    if (kept.length && length + clean.length + 1 > max) break;
+    kept.push(clean);
+    length += clean.length + 1;
+  }
+  return kept.join(" ");
 }
 
 function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly PubmedDocumentSection[], access: "full_text" | "abstract"): ResearchEvidenceField | null {
@@ -63,7 +70,8 @@ function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly 
     if (matches.length >= 3) break;
   }
   if (!matches.length) return null;
-  const supportText = clampText(matches.map(match => match.sentence).join(" "));
+  // Whole sentences only: a cut at a fixed length turned «n = 4744» into «N=47» and «P<0.001» into «p < 0».
+  const supportText = wholeSentences(matches.map(match => match.sentence));
   const section = [...new Set(matches.map(match => match.section).filter(Boolean))].join(" · ") || null;
   return {
     value: supportText,
@@ -76,8 +84,11 @@ function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly 
 export function extractStructuredResearchEvidence(document: PubmedEvidenceDocument): ResearchStructuredEvidence | null {
   if (document.access === "unavailable" || !document.sections.length) return null;
   const fields: ResearchStructuredEvidence["fields"] = {};
+  // The abstract states the main result; a full text also carries subgroup and prognostic statistics.
+  // Fields are read from the abstract first and only the missing ones from the full text.
+  const abstract = document.access === "full_text" && document.abstract?.length ? document.abstract : null;
   for (const fieldId of Object.keys(FIELD_RULES) as ResearchEvidenceFieldId[]) {
-    const field = fieldFromSections(fieldId, document.sections, document.access);
+    const field = (abstract ? fieldFromSections(fieldId, abstract, "abstract") : null) ?? fieldFromSections(fieldId, document.sections, document.access);
     if (field) fields[fieldId] = field;
   }
   const value: ResearchStructuredEvidence = { access: document.access, sourceUrl: document.sourceUrl, fields };

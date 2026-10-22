@@ -311,3 +311,84 @@ describe("out of scope and unsafe input", () => {
     expect(onTopic.drafts.length).toBeGreaterThan(0);
   });
 });
+
+describe("QA review regressions (docs/agent-mvp/DECISION.md, independent QA pass)", () => {
+  const effectOf = (results: string) => studyDigest(view(readAttributes(document("abstract", SYNTHETIC_ABSTRACT.map(section => section.label === "RESULTS" ? { ...section, text: results } : section))))).effect;
+
+  it("never reads a number that the text does not state as that statistic", () => {
+    expect(effectOf("At 12 or 24 months, the primary outcome occurred less often with drug X (HR 0.80, 95% CI 0.70-0.91; P<0.001).")).toBe("HR 0.80; 95% ДИ 0.70–0.91; p < 0.001");
+    expect(effectOf("In patients with stage 3 or 4 chronic kidney disease the hazard ratio was 0.72 (95% CI 0.60 to 0.86).")).toBe("HR 0.72; 95% ДИ 0.60–0.86");
+    expect(effectOf("Within 24 hr 3 events occurred in the drug X group and none in the placebo group during admission.")).toBeNull();
+    expect(effectOf("The relative risk was 26% lower with drug X (95% CI 10 to 40%; p=0.002) during the whole study period.")).toBeNull();
+    expect(effectOf("The hazard ratio was 1,25 with drug X compared with placebo (p=0,01) during the whole follow-up period.")).toBeNull();
+  });
+
+  it("does not glue the interval or p of the next statistic", () => {
+    expect(effectOf("Drug X reduced heart failure events (HR 0.80; 95% CI 0.70-0.91) and all-cause death (HR 0.92; 95% CI 0.80-1.05; p=0.24) during follow-up.")).toBe("HR 0.80; 95% ДИ 0.70–0.91");
+    expect(effectOf("Drug X reduced events (HR 0.85, p=0.03) but not hospital stay (HR 0.90; 95% CI 0.80 to 1.01) during follow-up.")).toBe("HR 0.85; p = 0.03");
+  });
+
+  it("reads Lancet brackets and keeps the one sentence as the quote", () => {
+    const digest = studyDigest(view(readAttributes(document("abstract", SYNTHETIC_ABSTRACT.map(section => section.label === "RESULTS" ? { ...section, text: "Recurrence occurred in 40 patients. The primary endpoint occurred in 61 patients with drug X and 49 with placebo (hazard ratio [HR] 1·25, 95% CI 0·86–1·82; p=0·24). Bleeding was rare." } : section)))));
+    expect(digest.effect).toBe("HR 1.25; 95% ДИ 0.86–1.82; p = 0.24");
+    expect(digest.effectQuote).toBe("The primary endpoint occurred in 61 patients with drug X and 49 with placebo (hazard ratio [HR] 1·25, 95% CI 0·86–1·82; p=0·24).");
+  });
+
+  it("keeps long numbers whole and does not take ratios, trial counts or months for N and age", () => {
+    const long = `${"Patients with heart failure were screened at many centres across several countries in this trial. ".repeat(6)}A total of 4744 patients were enrolled and followed for the primary outcome.`;
+    const population = (text: string) => studyDigest(view(readAttributes(document("abstract", [{ label: "METHODS", text }, SYNTHETIC_ABSTRACT[2]])))).population;
+    expect(population(long) ?? "").not.toMatch(/N=47(?!44)|N=4(?!7)/u);
+    expect(population("Patients were randomized 1:1 to drug X or placebo in this double-blind trial of adults with heart failure.")).toBeNull();
+    expect(population("We included 12 randomized trials involving 45,000 patients with heart failure in this meta-analysis.")).toBe("N=45000");
+    expect(population("Infants aged 2 to 6 months with bronchiolitis were enrolled in this trial at several sites.") ?? "").not.toContain("years");
+  });
+
+  it("routes lab tests, events, learning, materials and updates as before", () => {
+    const cases: Array<[string, string]> = [
+      ["Вебинар: разбор исследования DAPA-HF", "events"],
+      ["Конференция: результаты исследований по ХСН", "events"],
+      ["Лекция по результатам исследования EMPEROR", "learning"],
+      ["По моему документу: результаты исследования EMPEROR", "materials"],
+      ["В моих материалах статья PMID 31535829", "materials"],
+      ["Что нового: результаты исследований за неделю", "updates"],
+    ];
+    for (const [text, job] of cases) expect(routePortalIntent(text, "cardiology").job, text).toBe(job);
+    for (const text of ["Когда назначать исследование NT-proBNP?", "Когда нужно исследование HbA1c?", "Что показало исследование крови на ферритин?", "Разбор работы кардиостимулятора"]) {
+      expect(routePortalIntent(text, "cardiology").job, text).not.toBe("research");
+    }
+    for (const text of ["Что показало исследование DAPA-HF?", "Результаты исследования SINGLE-AF", "Разбор исследования EMPEROR-Reduced", "Что показали исследования по ХСН с сохранённой фракцией?", "https://www.ncbi.nlm.nih.gov/pubmed/31535829"]) {
+      expect(routePortalIntent(text, "cardiology").job, text).toBe("research");
+    }
+  });
+
+  it("does not over-block research about patients in general, and stops chest pain now", () => {
+    for (const text of ["Какие исследования по гипотермии у пациентов после остановки сердца?", "Исследования у пациентов без сознания после реанимации", "Диагностическая ценность ЭКГ у пациентов с ГКМП — что показали исследования?", "Посмотри ЭКГ-критерии ГЛЖ", "Посмотри КТ-ангиографию против нагрузочных тестов"]) {
+      expect(checkInputRisk(text).allowed, text).toBe(true);
+    }
+    expect(checkInputRisk("Мой пациент сейчас с болью в груди, что делать").allowed).toBe(false);
+    expect(checkInputRisk("Посмотри ЭКГ моего пациента").allowed).toBe(false);
+  });
+
+  it("masks names in every case form and a bare full name, not English terms", () => {
+    for (const text of ["пациентке Петровой Анне Сергеевне 54 года", "у пациентки Ивановой Марии", "пациентку Смирнову Ольгу", "больную Кузнецову", "с больным Петровым Иваном", "Петрова Анна Сергеевна, 54 года"]) {
+      expect(checkInputRisk(text).sanitizedText, text).not.toMatch(/Петров|Иванов|Мари|Смирнов|Ольг|Кузнецов|Иван(?!о)|Сергеевн/u);
+    }
+    expect(checkInputRisk("Patient Reported Outcomes in heart failure trials").sanitizedText).toBe("Patient Reported Outcomes in heart failure trials");
+  });
+
+  it("parses identifier variants and builds safe DOI links", () => {
+    expect(studyIdentifiersIn("PMIDs 31535829, 34449189").pmids).toEqual(["31535829", "34449189"]);
+    expect(studyIdentifiersIn("pmc7031581").pmcids).toEqual(["PMC7031581"]);
+    expect(studyIdentifiersIn("Что там в 10.1056/NEJMoa1911303?").dois).toEqual(["10.1056/nejmoa1911303"]);
+    const digest = studyDigest(view({ doi: "10.1002/(sici)1097#x" }));
+    expect(digest.links.find(link => link.label === "DOI")?.href).toBe("https://doi.org/10.1002/(sici)1097%23x");
+  });
+
+  it("says why PubMed was not used instead of «повторите позже»", () => {
+    const excluded = buildResearchAnswer(run({ resultIds: [], toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: ["LIVE"], status: "unavailable", itemCount: 0, durationMs: 0, note: "PubMed исключён в ваших источниках" }] as AgentRun["toolsUsed"] }), []);
+    expect(excluded.headline).toContain("исключён в источниках вашего профиля");
+    expect(excluded.headline).not.toContain("Повторите");
+    const noTopic = buildResearchAnswer(run({ input: { text: "Разбор исследований" } as AgentRun["input"], resultIds: [], toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: ["LIVE"], status: "partial", itemCount: 0, durationMs: 0, note: "Нет тем для поиска" }] as AgentRun["toolsUsed"] }), []);
+    expect(noTopic.headline).toContain("Не удалось понять тему вопроса");
+  });
+});

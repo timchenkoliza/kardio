@@ -6,6 +6,7 @@ import type { SpecialtyAdapter } from "@/lib/specialty";
 import { stateForOrigin } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
+import { hasStudyIdentifiers, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultList } from "@/components/workspace/result-card";
 import { StateBadge } from "./for-you";
@@ -85,7 +86,7 @@ function NextActions({ run, job }: { run: AgentRun; job: PortalJob }) {
   const text = run.input.text?.trim();
   if (!text || run.status === "blocked") return null;
   const options: Array<{ job: PortalJob; label: string }> = [];
-  if (job !== "research") options.push({ job: "research", label: "Разобрать по исследованиям" });
+  if (job !== "research") options.push({ job: "research", label: "Разбор по исследованиям" });
   if (job !== "guidelines") options.push({ job: "guidelines", label: "Клинические рекомендации по теме" });
   if (job !== "learning") options.push({ job: "learning", label: "Что изучить по теме" });
   return <section className="pt-next" aria-labelledby="pt-next-title">
@@ -190,8 +191,11 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
       {notices}
       <ResearchAnswerView run={run} results={results} mode={mode} />
       <ResearchMore run={run} results={results} specialty={adapter.id} mode={mode} />
-      {run.input.text && <p><Link className="ws-text-link" href={`/${specialty}/agents/research?q=${encodeURIComponent(run.input.text)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>}
-      <NextActions run={run} job={job} />
+      {/* A named publication was read as asked: other sources and topic follow-ups would search a PMID as a topic. */}
+      {run.input.text && !hasStudyIdentifiers(studyIdentifiersIn(run.input.text)) && <>
+        <p><Link className="ws-text-link" href={`/${specialty}/agents/research?q=${encodeURIComponent(run.input.text)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>
+        <NextActions run={run} job={job} />
+      </>}
     </>;
   }
 

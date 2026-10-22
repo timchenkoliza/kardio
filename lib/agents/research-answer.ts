@@ -100,7 +100,7 @@ function effectLine(normalized: ResearchStudyNormalization | null): string | nul
 
 function populationLine(normalized: ResearchStudyNormalization | null): string | null {
   const fields = normalized?.fields;
-  const parts = [fields?.sampleSize?.value ?? null, fields?.age?.value ?? null].filter(Boolean);
+  const parts = [fields?.sampleSize?.value ?? null, fields?.age?.value ? `age ${fields.age.value}` : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 }
 
@@ -123,7 +123,7 @@ function linksFor(result: AgentResultView): StudyLink[] {
   const read = text(result.attributes["evidenceText.url"]);
   if (text(result.attributes["evidenceText.access"]) === "full_text" && read && read !== pubmed) links.push({ label: "Полный текст PMC", href: read });
   const doi = text(result.attributes.doi);
-  if (doi) links.push({ label: "DOI", href: `https://doi.org/${doi}` });
+  if (doi) links.push({ label: "DOI", href: `https://doi.org/${doi.split("/").map(encodeURIComponent).join("/")}` });
   return links;
 }
 
@@ -153,13 +153,12 @@ export function studyDigest(result: AgentResultView): StudyDigest {
   };
 }
 
-/** Records that were read come first; within them, the run's own ranking is kept. */
-function byDepth(a: StudyDigest, b: StudyDigest): number {
-  const depth = (study: StudyDigest) => (study.effect ? 0 : study.conclusion ? 1 : study.access && study.access !== "unavailable" ? 2 : 3);
-  return depth(a) - depth(b);
+/** The run's own ranking decides the order; how deeply a record was read only breaks ties. */
+function depth(study: StudyDigest): number {
+  return study.effect ? 0 : study.conclusion ? 1 : study.access && study.access !== "unavailable" ? 2 : 3;
 }
 
-const PRACTICE = "Ниже — выводы авторов на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+const PRACTICE = "Выводы авторов приведены выше на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
   const question = run.input.text ?? "";
@@ -168,7 +167,10 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const pubmedUse = run.toolsUsed.find(use => use.tool === "searchPubmed");
   const pubmedDown = Boolean(pubmedUse && pubmedUse.status !== "ok" && pubmedUse.status !== "partial");
   const organic = results.filter(result => !result.partner);
-  const digests = organic.map(studyDigest).sort(byDepth);
+  const ranked = [...organic].sort((a, b) => a.rank - b.rank);
+  const digests = ranked.map(result => ({ digest: studyDigest(result), rank: result.rank }))
+    .sort((a, b) => a.rank - b.rank || depth(a.digest) - depth(b.digest))
+    .map(entry => entry.digest);
 
   if (run.status === "blocked") {
     return { kind: "blocked", headline: "Запрос остановлен проверкой безопасности: продукт не разбирает данные конкретного пациента и не назначает лечение.", studies: [], trust: [], practice: PRACTICE, limitations: [...run.riskNotices], totalFound: 0 };
@@ -189,21 +191,27 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
 
   const trust = [
     designs.length ? `Дизайн по данным PubMed: ${designs.slice(0, 4).join(", ")}.` : null,
-    read.length ? `Прочитано: ${fullText ? `полный текст — ${fullText}` : ""}${fullText && read.length - fullText ? ", " : ""}${read.length - fullText ? `только аннотация — ${read.length - fullText}` : ""}. Цифры эффекта взяты из этого текста, у каждой есть цитата.` : null,
-    statuses.length ? `Ссылки на источники: подтверждено ${supported} из ${statuses.length}${partial ? `, частично — ${partial}` : ""}. Это проверка ссылок, а не оценка качества исследования.` : null,
+    read.length ? `Прочитано: ${fullText ? `полный текст — ${fullText}` : ""}${fullText && read.length - fullText ? ", " : ""}${read.length - fullText ? `только аннотация — ${read.length - fullText}` : ""}.${withEffect ? " Цифры эффекта взяты из этого текста, у каждой есть цитата." : ""}` : null,
+    statuses.length ? `Сверка ссылок с источником: полностью — ${supported} из ${statuses.length}${partial ? `, подтверждены только данные публикации — ${partial}` : ""}. Это сверка ссылок, а не оценка качества исследования.` : null,
   ].filter((value): value is string => Boolean(value));
 
   const limitations = [
     pubmedDown ? `PubMed: ${pubmedUse?.note ?? "недоступен во время запуска"}.` : null,
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
-    digests.some(study => study.outsideApprovedList) ? "Журнал не входит в список, одобренный врачами: качество источника оцените сами." : null,
-    !named && organic.some(result => result.source.connectorId === "pubmed") ? "Поиск в PubMed ограничен журналами, которые одобрили врачи, и шестью самыми подходящими записями." : null,
+    digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
+    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
     "Выводы авторов приводятся на языке оригинала, перевода нет.",
   ].filter((value): value is string => Boolean(value));
 
   if (pubmedDown && !organic.length) {
-    return { kind: "unavailable", headline: `PubMed не ответил, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`, studies: [], trust: [], practice: PRACTICE, limitations, totalFound: 0 };
+    // The note says why: excluded in the physician's sources, switched off, or no answer from NCBI.
+    const note = pubmedUse?.note ?? "";
+    const excluded = /исключ/u.test(note);
+    const headline = excluded
+      ? "PubMed исключён в источниках вашего профиля, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
+      : `PubMed не ответил${note ? ` (${note.replace(/\.$/u, "")})` : ""}, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`;
+    return { kind: "unavailable", headline, studies: [], trust: [], practice: PRACTICE, limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0 };
   }
   if (named) {
     const asked = describeStudyIdentifiers(identifiers);
@@ -216,11 +224,15 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     return { kind: "study", headline: `${study.design ? `${study.design[0].toLocaleUpperCase("ru-RU")}${study.design.slice(1)}, ` : ""}${study.journal}${study.year ? `, ${study.year}` : ""}. ${result}`, studies: digests.slice(0, 4), trust, practice: PRACTICE, limitations, totalFound: organic.length };
   }
   if (!organic.length) {
-    return { kind: "not_found", headline: "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.", studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
+    const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
+    const headline = noTopic
+      ? "Не удалось понять тему вопроса, поэтому поиск не выполнялся. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
+      : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
+    return { kind: "not_found", headline, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
   }
   const headline = [
     `Нашли ${countLabel(organic.length, ["публикацию", "публикации", "публикаций"])} по вопросу.`,
-    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : "Тексты публикаций не читались — ниже только данные PubMed и каталога.",
+    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : "Тексты публикаций не читались — ниже только данные PubMed и каталога.",
   ].join(" ");
   return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: PRACTICE, limitations, totalFound: organic.length };
 }

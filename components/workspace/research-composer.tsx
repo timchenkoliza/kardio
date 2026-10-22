@@ -135,14 +135,14 @@ export function ResearchComposer({
       <label>Источники
         <select value={sourceScope} onChange={event => setSourceScope(event.target.value as PhysicianResearchSourceScope)}>
           <option value="all">РФ + международные</option>
-          <option value="russia">Только РФ</option>
+          <option value="russia">Только РФ (без PubMed)</option>
           <option value="international">Только международные</option>
         </select>
       </label>
       <label>Тип
         <select value={contentScope} onChange={event => setContentScope(event.target.value as PhysicianResearchContentScope)}>
           <option value="all">Клинрекомендации + исследования</option>
-          <option value="guidelines">Только клинрекомендации</option>
+          <option value="guidelines">Только клинрекомендации (без статей PubMed)</option>
           <option value="research">Только исследования</option>
         </select>
       </label>

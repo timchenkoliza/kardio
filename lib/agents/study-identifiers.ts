@@ -13,10 +13,11 @@ export interface StudyIdentifiers {
 
 const MAX_IDENTIFIERS = 4;
 
-const PUBMED_URL = /pubmed\.ncbi\.nlm\.nih\.gov\/(\d{1,9})/giu;
+const PUBMED_URL = /(?:pubmed\.ncbi\.nlm\.nih\.gov|ncbi\.nlm\.nih\.gov\/pubmed)\/(\d{1,9})/giu;
 const PMC_URL = /(?:ncbi\.nlm\.nih\.gov\/pmc\/articles|pmc\.ncbi\.nlm\.nih\.gov\/articles)\/(PMC\d{4,9})/giu;
-const PMID_LABEL = /\bPMID\s*[:#]?\s*(\d{1,9})\b/giu;
-const PMCID = /\b(PMC\d{4,9})\b/gu;
+// A list continues only with whole numbers: «PMID 1 и 10.1056/…» does not take «10» from the DOI.
+const PMID_LABEL = /\bPMIDs?\s*[:#]?\s*(\d{1,9}(?:\s*(?:,|и|and)\s*\d{1,9}(?![\d./]))*)\b/giu;
+const PMCID = /\b(PMC\d{4,9})\b/giu;
 const DOI = /\b(10\.\d{4,9}\/[^\s"'<>«»,;]+)/giu;
 
 function unique(values: Iterable<string>): string[] {
@@ -24,11 +25,11 @@ function unique(values: Iterable<string>): string[] {
 }
 
 function trimDoi(value: string): string {
-  return value.replace(/[.)\]]+$/u, "").toLocaleLowerCase("en-US");
+  return value.replace(/[.,;:!?)\]]+$/u, "").toLocaleLowerCase("en-US");
 }
 
 export function studyIdentifiersIn(text: string): StudyIdentifiers {
-  const pmids = [...text.matchAll(PUBMED_URL), ...text.matchAll(PMID_LABEL)].map(match => match[1]);
+  const pmids = [...text.matchAll(PUBMED_URL), ...text.matchAll(PMID_LABEL)].flatMap(match => match[1].split(/\s*(?:,|и|and)\s*/u));
   const pmcids = [...text.matchAll(PMC_URL), ...text.matchAll(PMCID)].map(match => match[1].toUpperCase());
   const dois = [...text.matchAll(DOI)].map(match => trimDoi(match[1]));
   return { pmids: unique(pmids), pmcids: unique(pmcids), dois: unique(dois) };

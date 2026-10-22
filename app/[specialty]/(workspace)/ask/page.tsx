@@ -5,6 +5,7 @@ import { formatRelativeRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { ActionRequest, AgentResult, AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { researchModeLabel, researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { ANSWER_MODE_COPY } from "@/lib/portal/answer-mode";
 import { isPortalJob, JOBS, jobForRun, researchScenarioHref, type PortalJob } from "@/lib/portal/jobs";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
@@ -125,7 +126,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       <div>
         <h1>{JOBS[job].label}</h1>
         {run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
-        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
+        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{job === "research" ? `Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}` : ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
       </div>
     </header>
 

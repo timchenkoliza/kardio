@@ -95,8 +95,12 @@ describe.skipIf(!live)("research scenario against live PubMed", () => {
       // Every number shown is in the quoted text it came from.
       for (const study of answer.studies.filter(item => item.effect)) {
         expect(study.effectQuote).toBeTruthy();
-        const estimate = study.effect!.split(";")[0].split(" ").at(-1)!;
-        expect(decimalText(study.effectQuote!)).toContain(estimate);
+        // Every number of the effect line (estimate, interval bounds, p) stands in the quoted sentence as a whole number.
+        const quote = decimalText(study.effectQuote!);
+        for (const number of study.effect!.match(/-?\d+(?:\.\d+)?/gu) ?? []) {
+          if (number === "95") continue;
+          expect(quote, `${study.effect} ⟵ ${quote}`).toMatch(new RegExp(`(?<![\\d.])${number.replace(".", "\\.").replace("-", "[-−]?")}(?![\\d])`, "u"));
+        }
       }
       // Every shown study points to its primary source.
       for (const study of answer.studies) expect(study.links.length + (study.internalHref ? 1 : 0)).toBeGreaterThan(0);
