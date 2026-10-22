@@ -252,7 +252,7 @@ describe("one compact answer", () => {
 });
 
 describe("the portal input runs the same research scenario", () => {
-  const SESSION = "agent-mvp-research";
+  const SESSION = "7".repeat(64);
   beforeEach(async () => {
     vi.stubEnv("PUBMED_DISABLED", "1");
     resetMemorySession(SESSION);

@@ -17,7 +17,7 @@ import { ensureSession } from "@/server/services/state";
  *   LIVE_SOURCES=1 LIVE_REPORT=docs/agent-mvp/live-run.md npx vitest run tests/live/research-scenario-live.test.ts
  */
 const live = process.env.LIVE_SOURCES === "1";
-const SESSION = "live-research-scenario";
+const SESSION = "8".repeat(64);
 
 interface Case {
   id: string;
