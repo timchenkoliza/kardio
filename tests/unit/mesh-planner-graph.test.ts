@@ -67,7 +67,7 @@ describe("SourcePlanner — minimal source set per requirement", () => {
 
   it("respects the physician's excluded sources", async () => {
     const registry = createSourceRegistry({ browserDriver: new FixtureDriver() });
-    const plan = planSources({ intent: compileIntent(ACCEPTANCE, "cardiology"), sources: descriptors(registry), statuses: await statusesOf(registry), excludedConnectors: ["pubmed"] });
+    const plan = planSources({ intent: compileIntent(ACCEPTANCE, "cardiology"), sources: descriptors(registry), statuses: await statusesOf(registry), excludedSources: ["pubmed"] });
     expect(plan.steps.some(step => step.sourceId === "pubmed")).toBe(false);
     expect(plan.rejected.find(item => item.sourceId === "pubmed")?.reason).toMatch(/исключён/u);
   });

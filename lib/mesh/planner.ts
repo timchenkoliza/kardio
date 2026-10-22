@@ -61,6 +61,14 @@ const STAND_IN: Partial<Record<EvidenceRequirement, EvidenceRequirement>> = {
 const AUTHORITY_RANK: Record<SourceAuthority, number> = { official: 0, primary: 1, professional: 2, secondary: 3 };
 const MAX_INVOCATIONS = 6;
 
+/** Rejection reason for a source the physician turned off («Не использовать»). */
+export const EXCLUDED_BY_PHYSICIAN = "исключён в ваших источниках";
+
+/** Sources the plan would have used for this intent but the physician excluded (shown in the run trace, never silently missing). */
+export function excludedByPhysician(plan: Pick<ExecutionPlan, "rejected">): SourceId[] {
+  return [...new Set(plan.rejected.filter(item => item.reason === EXCLUDED_BY_PHYSICIAN).map(item => item.sourceId))];
+}
+
 function precondition(requirement: EvidenceRequirement, intent: NormalizedIntent): string | null {
   const drug = intent.entities.drugs.length > 0;
   const nosology = Boolean(intent.context.nosology);
@@ -93,14 +101,15 @@ export function planSources(args: {
   intent: NormalizedIntent;
   sources: readonly SourceDescriptor[];
   statuses: Partial<Record<SourceId, SourceStatusReport>>;
-  excludedConnectors?: readonly string[];
+  /** Mesh sources the physician excluded, resolved from profile options by meshSourcePreference(). */
+  excludedSources?: readonly SourceId[];
   planId?: string;
 }): ExecutionPlan {
   const { intent } = args;
   const steps: ExecutionStep[] = [];
   const rejected: ExecutionPlan["rejected"] = [];
   const unmet: ExecutionPlan["unmet"] = [];
-  const excluded = new Set(args.excludedConnectors ?? []);
+  const excluded = new Set<SourceId>(args.excludedSources ?? []);
   let counter = 0;
   const nextId = () => `step-${++counter}`;
   const invocations = () => steps.filter(step => step.role !== "handoff").length;
@@ -113,7 +122,7 @@ export function planSources(args: {
       if (!operation) continue;
       if (!servesSpecialty(source, intent.context.specialty)) { rejected.push({ sourceId: source.id, requirement, reason: "источник не для этой специальности" }); continue; }
       if (!source.jobs.includes(intent.job.primary)) { rejected.push({ sourceId: source.id, requirement, reason: "источник не подходит для этой задачи" }); continue; }
-      if (excluded.has(source.connectorId) || excluded.has(source.id)) { rejected.push({ sourceId: source.id, requirement, reason: "исключён в ваших источниках" }); continue; }
+      if (excluded.has(source.id)) { rejected.push({ sourceId: source.id, requirement, reason: EXCLUDED_BY_PHYSICIAN }); continue; }
       const status = args.statuses[source.id]?.status;
       if (status === "UNAVAILABLE") { rejected.push({ sourceId: source.id, requirement, reason: args.statuses[source.id]?.reason ?? "источник недоступен" }); continue; }
       pool.push({ source, operation });
@@ -142,7 +151,9 @@ export function planSources(args: {
       return;
     }
     if (!executable.length && !handoffs.length) {
-      if (required) unmet.push({ requirement, reason: `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
+      // The physician's own exclusion is named as such, not as a missing integration.
+      const byPhysician = rejected.some(item => item.requirement === requirement && item.reason === EXCLUDED_BY_PHYSICIAN);
+      if (required) unmet.push({ requirement, reason: byPhysician ? `источник ${EXCLUDED_BY_PHYSICIAN}` : `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
       return;
     }
     // Optional evidence is added only when it is cheap, or is an official hand-off.
