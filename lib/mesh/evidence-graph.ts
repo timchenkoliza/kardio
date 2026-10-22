@@ -103,7 +103,9 @@ export function searchConditions(intent: NormalizedIntent): string[] {
     ...(intent.context.subtype ? [intent.context.subtype.label] : []),
     ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic")).map(concept => concept.label),
   ];
-  return [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
+  // «внебольничная» is already in «внебольничная пневмония»: a label inside an earlier one is not repeated.
+  const unique = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
+  return unique.filter((label, index) => !unique.slice(0, index).some(earlier => earlier.includes(label)));
 }
 
 export function buildEvidenceGraph(args: {
