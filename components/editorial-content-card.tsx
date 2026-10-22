@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, CircleAlert } from "lucide-react";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { currentnessLabel, isPartner, kindLabel, publicationLabel } from "@/lib/ui/labels";
-import { approvedEditorialMediaForContent } from "@/lib/ui/approved-medical-media";
+import { contentDerivative } from "@/lib/media/derivatives";
 import { ContentSaveButton } from "./content-actions";
 import { EditorialMedia } from "./editorial-media";
 
@@ -31,9 +31,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
   const exceptionalState = content.currentness !== "current";
   const resolvedPresentation = presentation ?? presentationForContent(content, featured);
   const hero = featured || resolvedPresentation === "hero";
-  const hasCanonicalMedia = Boolean(content.asset?.url);
-  const hasApprovedFallback = content.specialty === specialty && Boolean(approvedEditorialMediaForContent(content));
-  const hasMedia = hasCanonicalMedia || hasApprovedFallback;
+  const hasMedia = Boolean(contentDerivative(content, specialty));
   const artDirectedFallback = !hasMedia && (hero || (resolvedPresentation === "clinical" && position === 1));
   const hasVisual = hasMedia || artDirectedFallback;
   const className = [
@@ -48,7 +46,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
       className={className}
       data-kind={content.kind}
       data-presentation={resolvedPresentation}
-      data-media-state={hasCanonicalMedia ? "real" : hasApprovedFallback ? "approved-fallback" : artDirectedFallback ? "art-directed" : "none"}
+      data-media-state={hasMedia ? "derivative" : artDirectedFallback ? "art-directed" : "none"}
       data-rank-position={position}
     >
       <div className="editorial-card-meta">

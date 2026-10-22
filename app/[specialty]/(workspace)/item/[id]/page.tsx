@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { isRussian } from "@/lib/presentation/physician";
 import { isSpecialty, specialties } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
-import { CardMediaView, dateLabel, TrustBadge } from "@/components/portal/for-you";
+import { CardMediaView, dateLabel, renderableMedia, TrustBadge } from "@/components/portal/for-you";
 import { SaveResultButton } from "@/components/portal/result-actions";
 import { ScenarioButtons } from "@/components/portal/scenario-buttons";
 import { TrackedLink } from "@/components/portal/tracked-link";
@@ -39,6 +39,7 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
   if (!card) notFound();
 
   const date = dateLabel(card.date);
+  const media = renderableMedia(card.media);
   const russianQuotes = quotes.filter(quote => isRussian(quote.text));
   const originalQuotes = quotes.filter(quote => !isRussian(quote.text));
   const hasOriginal = Boolean(card.original || originalQuotes.length);
@@ -95,7 +96,7 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
             </div>
           </details>}
         </div>
-        {card.media && <aside className="pt-item-aside"><CardMediaView media={card.media} className="pt-item-media" eager /></aside>}
+        {media && <aside className="pt-item-aside"><CardMediaView media={media} className="pt-item-media" eager /></aside>}
       </div>
     </article>
     <p className="ws-muted pt-item-note">{nbsp(card.showcase

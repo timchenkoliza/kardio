@@ -1,0 +1,971 @@
+{
+  "version": 1,
+  "policy": "Source images are ingestion material: the clinical truth of a picture. They are never shown as card media. Each source is matched to one document and one clinical object; scripts/publish-media-derivatives.ts turns it into a design-system derivative, validates it against the source and records it in data/media-derivatives.json. Coordinates are pixels of the stored copy in `file`.",
+  "sources": [
+    {
+      "id": "src-cardiology-ecg-af",
+      "specialty": "cardiology",
+      "subject": "atrial_fibrillation",
+      "file": "/media/cardiology/ecg-atrial-fibrillation.webp",
+      "sourceType": "ecg",
+      "sourceClass": "diagnostic",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:ECG_Atrial_Fibrillation_98_bpm.jpg",
+        "title": "ECG Atrial Fibrillation 98 bpm",
+        "sha256": "433e46eedcd3d9e9b8197943c1423a9adb1226664377ad400a8a6431a8cf588f",
+        "width": 1190,
+        "height": 595,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "Ewingdo · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "ЭКГ в 12 отведениях при фибрилляции предсердий: нерегулярные комплексы QRS без зубцов P",
+      "document": {
+        "id": "gl-af-export",
+        "title": "Фибрилляция и трепетание предсердий"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "ЭКГ при фибрилляции предсердий — диагностический признак предмета рекомендаций"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [
+          [
+            294,
+            120,
+            42,
+            22
+          ],
+          [
+            294,
+            263,
+            42,
+            22
+          ],
+          [
+            294,
+            412,
+            42,
+            22
+          ],
+          [
+            608,
+            120,
+            30,
+            22
+          ],
+          [
+            608,
+            263,
+            30,
+            22
+          ],
+          [
+            608,
+            412,
+            30,
+            22
+          ],
+          [
+            918,
+            120,
+            30,
+            22
+          ],
+          [
+            918,
+            263,
+            30,
+            22
+          ],
+          [
+            918,
+            412,
+            30,
+            22
+          ]
+        ],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "backgroundTolerance": 80,
+        "mustPreserve": [
+          "нерегулярные интервалы RR",
+          "отсутствие зубцов P",
+          "форма и полярность комплексов QRS в каждом отведении",
+          "расположение отведений"
+        ],
+        "render": "trace"
+      }
+    },
+    {
+      "id": "src-cardiology-pulmonary-hypertension",
+      "specialty": "cardiology",
+      "subject": "pulmonary_hypertension",
+      "file": "/media/cardiology/pulmonary-hypertension.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Pulmonary_Hypertension.png",
+        "title": "Pulmonary Hypertension",
+        "sha256": "ef3ef728454b3fc256b0c6e32e22c8cf4011e7719dc2c4c6a8c105494e2fc43a",
+        "width": 820,
+        "height": 410,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Лёгочная гипертензия: расширенные правые отделы сердца и лёгочные артерии",
+      "document": {
+        "id": "gl-ph-2024",
+        "title": "Легочная гипертензия, включая хроническую тромбоэмболическую легочную гипертензию"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Правые отделы сердца и лёгочные артерии при лёгочной гипертензии — предмет рекомендаций"
+      },
+      "passport": {
+        "crop": [
+          0,
+          0,
+          820,
+          318
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": true,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "правый желудочек и лёгочный ствол",
+          "разделение артериальной и венозной крови цветом",
+          "расположение камер сердца"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-coronary-angiography",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "file": "/media/cardiology/coronary-angiography.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Coronary_Angiography.png",
+        "title": "Coronary Angiography",
+        "sha256": "7f9c7497318963a89a5b765850de20df53337315489c83997c4d3440bd9365e6",
+        "width": 870,
+        "height": 435,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Схема коронарографии: катетер в устье левой коронарной артерии и стеноз на ангиограмме",
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Стеноз коронарной артерии на ангиограмме — морфологический субстрат стабильной ИБС"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [],
+        "keepText": [],
+        "hueSplit": true,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "ход катетера",
+          "ветвление коронарных артерий",
+          "место стеноза и стрелка, указывающая на него",
+          "разделение артерий и вен цветом"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-atherosclerotic-stenosis",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "file": "/media/cardiology/atherosclerotic-stenosis.webp",
+      "sourceType": "diagram",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Plaque_at_different_degrees_of_atherosclerotic_stenosis.jpg",
+        "title": "Plaque at different degrees of atherosclerotic stenosis",
+        "sha256": "1e63b9d1e50152d422a907f9098af12ace26a67044157a371c00b30c973fdace",
+        "width": 1200,
+        "height": 600,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "K. Michaud, C. Basso, G. d’Amati и соавт. · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Атеросклеротическая бляшка при стенозе коронарной артерии на 50, 75 и 90 %",
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Степень атеросклеротического сужения коронарной артерии — ключевая характеристика стабильной ИБС"
+      },
+      "passport": {
+        "crop": [
+          10,
+          0,
+          1180,
+          540
+        ],
+        "remove": [],
+        "keepText": [
+          [
+            150,
+            470,
+            100,
+            52
+          ],
+          [
+            550,
+            470,
+            100,
+            52
+          ],
+          [
+            945,
+            470,
+            100,
+            52
+          ]
+        ],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "три сечения артерии слева направо: 50, 75 и 90 %",
+          "размер остаточного просвета в каждом сечении",
+          "подписи 50 %, 75 % и 90 %",
+          "диаметр X с двусторонней стрелкой"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-heart-four-chamber",
+      "specialty": "cardiology",
+      "subject": "heart_chambers_valves",
+      "file": "/media/cardiology/heart-four-chamber.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Heart_tee_four_chamber_view.jpg",
+        "title": "Heart tee four chamber view",
+        "sha256": "e04378dc9fa42ac9bc8214fd0394cdad0bcb0ea51b42a44db5c4470d66890acd",
+        "width": 1200,
+        "height": 600,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "Patrick J. Lynch, C. Carl Jaffe · CC BY 2.5",
+      "license": "CC BY 2.5",
+      "alt": "Сердце в четырёхкамерной проекции: предсердия, желудочки, клапаны и миокард",
+      "document": {
+        "id": "gl-hcm-2020",
+        "title": "Гипертрофическая кардиомиопатия"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Нормальная четырёхкамерная анатомия — контекст кардиомиопатии; признаков гипертрофии на изображении нет"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "backgroundTolerance": 40,
+        "mustPreserve": [
+          "четыре камеры и их взаимное расположение",
+          "клапаны и хорды",
+          "толщина стенок желудочков"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-heart-anatomy",
+      "specialty": "cardiology",
+      "subject": "heart_anatomy",
+      "file": "/media/cardiology/heart-anatomy.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Red_heart_illustration.png",
+        "title": "Red heart illustration",
+        "sha256": "f5941e64088895dbd7f7e42ade31ce31e8e3c8cb6ef92b1c1d56eb1e8547ae5b",
+        "width": 1200,
+        "height": 600,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "RawPixel / Wikimedia Commons · CC0",
+      "license": "CC0",
+      "alt": "Анатомическая иллюстрация сердца с коронарными сосудами",
+      "document": {
+        "id": "gl-vt-2025",
+        "title": "Желудочковые нарушения ритма сердца. Внезапная сердечная смерть"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Общая анатомия сердца — контекст рекомендаций по желудочковым аритмиям, не изображение аритмии"
+      },
+      "passport": {
+        "crop": [
+          380,
+          20,
+          440,
+          560
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "контур сердца и магистральных сосудов",
+          "ход коронарных артерий"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-blood-pressure",
+      "specialty": "cardiology",
+      "subject": "arterial_hypertension",
+      "file": "/media/cardiology/blood-pressure-monitor.webp",
+      "sourceType": "photo",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Sphygmomanometer,_automatic_blood_pressure_monitor._Oscillometric_measurements,_millimeter_of_mercury_(mmHg)_unit.jpg",
+        "title": "Sphygmomanometer, automatic blood pressure monitor",
+        "sha256": "959910191d456ab951ca978829d2650453e09b33db15fae9c710110b1c904103",
+        "width": 1200,
+        "height": 600,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "Albarubescens · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Автоматический тонометр с манжетой",
+      "document": {
+        "id": "gl-ah-2024",
+        "title": "Артериальная гипертензия у взрослых"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Измерение артериального давления — основа диагностики артериальной гипертензии"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": true,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "тонометр и манжета"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-coronary-ct",
+      "specialty": "cardiology",
+      "subject": "coronary_artery_disease",
+      "file": "/media/cardiology/coronary-ct.webp",
+      "sourceType": "ct",
+      "sourceClass": "diagnostic",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Coronary_CT_Angiography_Scan.jpg",
+        "title": "Coronary CT Angiography Scan",
+        "sha256": "63b26d21b9393235740305c3392079d612e32045b98b7de13c7b2dba6c1d9d61",
+        "width": 1200,
+        "height": 600,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of the original, stored in e625c91"
+      },
+      "credit": "Goleisureintl · CC BY 4.0",
+      "license": "CC BY 4.0",
+      "alt": "Объёмная реконструкция КТ-коронарографии",
+      "document": {
+        "id": "gl-ihd-2020",
+        "title": "Стабильная ишемическая болезнь сердца"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "КТ-коронарография — метод визуализации коронарных артерий при ИБС"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "ход коронарных артерий по поверхности сердца"
+        ]
+      }
+    },
+    {
+      "id": "src-cardiology-cardiac-mri",
+      "specialty": "cardiology",
+      "subject": "myocardial_infarction",
+      "file": "/media/cardiology/cardiac-mri-cine.webp",
+      "sourceType": "mri",
+      "sourceClass": "diagnostic",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:4CH_cine_infarct.gif",
+        "title": "4CH cine infarct",
+        "sha256": "3e48f81d6eec390cf61718dfbc7a7ed35b5328903595fd796aa6e1772eb92907",
+        "width": 916,
+        "height": 458,
+        "retrievedAt": "2026-10-20",
+        "normalization": "2:1 crop of one frame of the original, stored in e625c91"
+      },
+      "credit": "Doregan · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "МРТ сердца в четырёхкамерной проекции после нижнего инфаркта",
+      "document": {
+        "id": "video-stemi-2020",
+        "title": "Острый инфаркт миокарда с подъемом сегмента ST ЭКГ (2020)"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "МРТ сердца после перенесённого инфаркта — визуализация предмета лекции"
+      },
+      "passport": {
+        "crop": null,
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "проекция",
+          "камеры сердца",
+          "истончённый участок миокарда"
+        ]
+      }
+    },
+    {
+      "id": "src-therapy-pneumonia",
+      "specialty": "therapy",
+      "subject": "pneumonia",
+      "file": "/media/source/therapy/blausen-0994-pneumonia.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0994_Pneumonia.png",
+        "title": "Blausen 0994 Pneumonia",
+        "sha256": "0238dc315ff3e7bbcc30fc9f1a6ade22dc76a239e03350c72434f13e30f4089d",
+        "width": 1200,
+        "height": 1040,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Альвеолы, заполненные воспалительным экссудатом при пневмонии",
+      "document": {
+        "id": "sc-therapy-cap-2019",
+        "title": "Диагностика и лечение внебольничной пневмонии у взрослых: рекомендации ATS и IDSA"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Альвеолы с экссудатом — морфологический субстрат пневмонии, предмет рекомендаций"
+      },
+      "passport": {
+        "crop": [
+          70,
+          584,
+          498,
+          360
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "гроздья альвеол и капиллярная сеть",
+          "экссудат внутри альвеол"
+        ]
+      }
+    },
+    {
+      "id": "src-therapy-asthma",
+      "specialty": "therapy",
+      "subject": "asthma",
+      "file": "/media/source/therapy/blausen-0620-inflamed-airway.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0620_Lungs_NormalvsInflamedAirway.png",
+        "title": "Blausen 0620 Lungs NormalvsInflamedAirway",
+        "sha256": "fd228de841aa150ae9a1439e1f37bcee09d4fcb993342d0ee99d82524c04823e",
+        "width": 1024,
+        "height": 768,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Нормальный и воспалённый бронх: утолщение стенки, сужение просвета и слизь при бронхиальной астме",
+      "document": {
+        "id": "sc-therapy-gina-2024",
+        "title": "GINA: глобальная стратегия лечения и профилактики бронхиальной астмы"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Воспаление и сужение дыхательных путей — механизм бронхиальной астмы"
+      },
+      "passport": {
+        "crop": [
+          20,
+          172,
+          990,
+          372
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "нормальный бронх слева, воспалённый справа",
+          "толщина стенки и просвет",
+          "слизь в просвете воспалённого бронха"
+        ],
+        "removeThinLines": true
+      }
+    },
+    {
+      "id": "src-pediatrics-otitis-media",
+      "specialty": "pediatrics",
+      "subject": "otitis_media",
+      "file": "/media/source/pediatrics/otitis-media.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Otitis_Media.png",
+        "title": "Otitis Media",
+        "sha256": "3b93bc50ae80c1a2c4029cec19e0f2228e9f574f5c84c1d36468ab8bbc71c50d",
+        "width": 1200,
+        "height": 1200,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Острый средний отит: воспаление и жидкость в полости среднего уха, суженная слуховая труба",
+      "document": {
+        "id": "sc-pediatrics-aom-2013",
+        "title": "Диагностика и лечение острого среднего отита: рекомендации AAP"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Воспаление и жидкость в среднем ухе — предмет рекомендаций по острому среднему отиту"
+      },
+      "passport": {
+        "crop": [
+          80,
+          440,
+          1100,
+          580
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "наружное, среднее и внутреннее ухо слева направо",
+          "скопление жидкости в среднем ухе",
+          "слуховая труба"
+        ],
+        "removeThinLines": true
+      }
+    },
+    {
+      "id": "src-pediatrics-gastroenteritis",
+      "specialty": "pediatrics",
+      "subject": "gastroenteritis",
+      "file": "/media/source/pediatrics/child-digestive-system.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Child_Digestive_System.png",
+        "title": "Child Digestive System",
+        "sha256": "88ebba1389973e0249560d2257ffa16a467770bb839ddcc144b7325968f9c211",
+        "width": 768,
+        "height": 1024,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Органы пищеварения ребёнка: желудок, тонкая и толстая кишка",
+      "document": {
+        "id": "sc-pediatrics-gastroenteritis-2014",
+        "title": "Острый гастроэнтерит у детей: рекомендации ESPGHAN и ESPID"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Анатомия пищеварительного тракта ребёнка — контекст гастроэнтерита, не изображение самого заболевания"
+      },
+      "passport": {
+        "crop": [
+          150,
+          515,
+          460,
+          445
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "расположение желудка, тонкой и толстой кишки"
+        ],
+        "removeThinLines": true
+      }
+    },
+    {
+      "id": "src-obgyn-placenta",
+      "specialty": "obgyn",
+      "subject": "preeclampsia",
+      "file": "/media/source/obgyn/placenta.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Placenta.png",
+        "title": "Placenta",
+        "sha256": "f02fee3fc63ed40daf6a792ecfd9f7965d3814c1980b4d08363a8bd41077b539",
+        "width": 1200,
+        "height": 1111,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Сагиттальный разрез: плацента на стенке матки, пуповина и плод",
+      "document": {
+        "id": "sc-obgyn-uspstf-aspirin-2021",
+        "title": "Аспирин для профилактики преэклампсии: рекомендация USPSTF"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Плацента — орган, с нарушением формирования которого связана преэклампсия; самой преэклампсии изображение не показывает"
+      },
+      "passport": {
+        "crop": [
+          0,
+          50,
+          1200,
+          950
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "положение плаценты на стенке матки",
+          "пуповина между плацентой и плодом",
+          "положение плода"
+        ]
+      }
+    },
+    {
+      "id": "src-obgyn-pregnancy",
+      "specialty": "obgyn",
+      "subject": "preterm_birth",
+      "file": "/media/source/obgyn/blausen-0747-pregnancy.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0747_Pregnancy.png",
+        "title": "Blausen 0747 Pregnancy",
+        "sha256": "f0bf115aeb98ede29b31bb02aece81a6e5b598a47a5263927f4ffbbc80bd2d94",
+        "width": 1500,
+        "height": 1500,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Беременная матка: плод, плацента, околоплодные воды и шейка матки",
+      "document": {
+        "id": "sc-obgyn-nice-preterm",
+        "title": "Преждевременные роды: рекомендации NICE (NG25)"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Анатомия беременной матки и шейки — контекст преждевременных родов, не изображение самих родов"
+      },
+      "passport": {
+        "crop": [
+          300,
+          150,
+          700,
+          700
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "положение плода в матке",
+          "плацента",
+          "шейка матки"
+        ],
+        "removeThinLines": true
+      }
+    },
+    {
+      "id": "src-neurology-ischemic-stroke",
+      "specialty": "neurology",
+      "subject": "ischemic_stroke",
+      "file": "/media/source/neurology/blausen-0836-stroke.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0836_Stroke.png",
+        "title": "Blausen 0836 Stroke",
+        "sha256": "25dae0b020785f3c5460c46a96d40cc9bf0d523e68dfcf27055e66a7c4668ae1",
+        "width": 550,
+        "height": 800,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "Blausen Medical Communications · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Тромб, закупоривающий мозговую артерию, и полушарие мозга с артериями",
+      "document": {
+        "id": "sc-neurology-eso-ivt-2021",
+        "title": "Внутривенный тромболизис при остром ишемическом инсульте: рекомендации ESO"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Окклюзия мозговой артерии тромбом — мишень внутривенного тромболизиса"
+      },
+      "passport": {
+        "crop": [
+          0,
+          0,
+          550,
+          640
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "тромб в просвете артерии на выноске",
+          "место окклюзии на мозге",
+          "сторона и проекция головы"
+        ]
+      }
+    },
+    {
+      "id": "src-neurology-multiple-sclerosis",
+      "specialty": "neurology",
+      "subject": "multiple_sclerosis",
+      "file": "/media/source/neurology/multiple-sclerosis.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Multiple_Sclerosis.png",
+        "title": "Multiple Sclerosis",
+        "sha256": "dab4f3541abf3b91ea08f9f06d27d8ad011e76f5c34bd598e702571ad5cdcc5f",
+        "width": 1200,
+        "height": 1000,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Демиелинизация: иммунные клетки у аксона с разрушенной миелиновой оболочкой",
+      "document": {
+        "id": "sc-neurology-ectrims-ms-2018",
+        "title": "Медикаментозное лечение рассеянного склероза: рекомендации ECTRIMS и EAN"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Разрушение миелина иммунными клетками — механизм рассеянного склероза"
+      },
+      "passport": {
+        "crop": [
+          722,
+          462,
+          442,
+          330
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "backgroundTolerance": 100,
+        "mustPreserve": [
+          "аксон с повреждённой миелиновой оболочкой",
+          "иммунные клетки рядом с аксоном"
+        ]
+      }
+    },
+    {
+      "id": "src-neurology-multiple-sclerosis-cns",
+      "specialty": "neurology",
+      "subject": "multiple_sclerosis",
+      "file": "/media/source/neurology/multiple-sclerosis.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Multiple_Sclerosis.png",
+        "title": "Multiple Sclerosis",
+        "sha256": "dab4f3541abf3b91ea08f9f06d27d8ad011e76f5c34bd598e702571ad5cdcc5f",
+        "width": 1200,
+        "height": 1000,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY-SA 4.0",
+      "license": "CC BY-SA 4.0",
+      "alt": "Центральная нервная система: головной и спинной мозг, периферические нервы",
+      "document": {
+        "id": "sc-neurology-ectrims-ms-2018",
+        "title": "Медикаментозное лечение рассеянного склероза: рекомендации ECTRIMS и EAN"
+      },
+      "match": {
+        "grade": "MEDIUM",
+        "reason": "Головной и спинной мозг — органы, поражаемые при рассеянном склерозе; саму демиелинизацию этот фрагмент не показывает"
+      },
+      "passport": {
+        "crop": [
+          0,
+          330,
+          560,
+          670
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "головной мозг и спинной мозг",
+          "отходящие периферические нервы"
+        ]
+      }
+    },
+    {
+      "id": "src-endocrinology-type2-diabetes",
+      "specialty": "endocrinology",
+      "subject": "type2_diabetes",
+      "file": "/media/source/endocrinology/blausen-0309-diabetes-type2.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0309_Diabetes_Type2.png",
+        "title": "Blausen 0309 Diabetes Type2",
+        "sha256": "972eed5c03493e16acfdea106a3273aacf211e72b60d19c50e1a84ca1ccd44d0",
+        "width": 1024,
+        "height": 768,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Сахарный диабет 2 типа: поджелудочная железа и клеточная мембрана с инсулиновыми рецепторами и молекулами глюкозы",
+      "document": {
+        "id": "sc-endocrinology-ada-easd-2022",
+        "title": "Управление гипергликемией при сахарном диабете 2 типа: консенсус ADA и EASD 2022"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Поджелудочная железа и взаимодействие инсулина с рецепторами клетки — предмет сахароснижающей терапии при СД 2 типа"
+      },
+      "passport": {
+        "crop": [
+          20,
+          20,
+          984,
+          700
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "положение поджелудочной железы в теле",
+          "выноска с клеточной мембраной",
+          "рецепторы и молекулы глюкозы"
+        ]
+      }
+    },
+    {
+      "id": "src-endocrinology-osteoporosis",
+      "specialty": "endocrinology",
+      "subject": "osteoporosis",
+      "file": "/media/source/endocrinology/blausen-0686-osteoporosis.webp",
+      "sourceType": "anatomical_illustration",
+      "sourceClass": "editorial",
+      "origin": {
+        "url": "https://commons.wikimedia.org/wiki/File:Blausen_0686_Osteoporosis_01.png",
+        "title": "Blausen 0686 Osteoporosis 01",
+        "sha256": "a6878268e94bc01ab9b059d28e2acb381587b78f71db63660238bed67e98293f",
+        "width": 768,
+        "height": 1024,
+        "retrievedAt": "2026-10-22",
+        "normalization": "flatten on white, longest side ≤ 1200 px, WebP q90"
+      },
+      "credit": "BruceBlaus · CC BY 3.0",
+      "license": "CC BY 3.0",
+      "alt": "Остеопороз: нормальная осанка и кифоз, истончение кортикального слоя и разрежение трабекулярной кости",
+      "document": {
+        "id": "sc-endocrinology-es-osteoporosis-2019",
+        "title": "Медикаментозное лечение постменопаузального остеопороза: рекомендации Эндокринологического общества"
+      },
+      "match": {
+        "grade": "STRONG",
+        "reason": "Истончение кости и деформация позвоночника — проявления остеопороза"
+      },
+      "passport": {
+        "crop": [
+          30,
+          0,
+          720,
+          1010
+        ],
+        "remove": [],
+        "keepText": [],
+        "hueSplit": false,
+        "brandMarks": false,
+        "patientIdentifiers": false,
+        "mustPreserve": [
+          "норма слева, остеопороз справа",
+          "стрелки толщины кортикального слоя",
+          "кифоз позвоночника"
+        ]
+      }
+    }
+  ]
+}

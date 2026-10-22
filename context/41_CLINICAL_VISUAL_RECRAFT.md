@@ -72,9 +72,31 @@ visual system).
 - Image-to-image: OpenAI Images edits — `OPENAI_API_KEY`, optional `RECRAFT_IMAGE_MODEL`.
 - Without keys the pipeline reports `unavailable`; with vision only it returns the semantic lock without generation.
 
-## Feed illustrations (same match gate)
+## Feed pictures: publish pipeline (CHG-2026-10-22-media-style-pipeline)
 
-Feed cards use licensed Wikimedia Commons illustrations stored as 2:1 crops in `public/media/cardiology`
-(`lib/ui/approved-medical-media.ts`). `matchCardioIllustration` returns only STRONG or MEDIUM matches, most specific
-object first; weak proxies are not shown. Four of every five article cards carry an illustration
-(`visualResultIds`); images are labelled «Иллюстрация» and are never evidence.
+Physician-facing cards never show a source image. They read approved derivatives from
+`data/media-derivatives.json`, produced at publish time by `npm run media:publish`:
+
+```
+data/media-sources.json (source image + document + clinical object + passport)
+  → eligibility: match gate, identifiers, brand marks, dark diagnostic ground   server/media/style-pipeline.ts
+  → anchor check: the document names the same clinical object                    lib/media/subjects.ts
+  → ds-tonal-redraw: crop → remove labels → fit 2:1 crop-safe box → one detail
+    level → ground → `surface`, four DS fills, one contour weight in `accent-ink`
+  → validation of the encoded file: palette, frame, negative space, anchor,
+    brand attention, detail level, structure precision/recall, orientation,
+    removed regions, kept text
+  → approved derivative in public/media/derived + manifest record (source, document,
+    subject, versions, checks, fallback) — or a rejected record with its reason
+```
+
+The transformation is deterministic: every output pixel comes from the same place in the source, so a
+structure cannot be invented or moved; validation proves it on the file. The generative engine above
+(`server/recraft`) stays an editorial tool until model keys exist; a derivative it produces would enter
+the same manifest and validation.
+
+Card media policy (`lib/media/derivatives.ts`), the same for all specialties: approved derivative of the
+card's clinical object in the card's specialty, not yet used on the page → in-house art for that object →
+no picture. MEDIUM matches carry «Иллюстрация к теме, не к конкретному случаю». The renderer re-checks every
+derivative against the manifest and draws nothing otherwise. `/admin/media-audit` (Preview and development
+only) shows SOURCE → TRANSFORMED → CARD for every source.

@@ -41,7 +41,7 @@ export interface ForYouCard {
   original: { title: string; summary: string | null } | null;
   /** Russian topic tags. */
   tags: string[];
-  /** Real image (licensed, matched to the subject) or in-house line art; null when nothing fits. */
+  /** Approved design-system derivative of a matched source image, in-house line art, or null (lib/media/derivatives.ts). */
   media: CardMedia | null;
   /** Editorial source label: «Надёжный источник», «Подборка редакции»… */
   trust: { label: string; tone: TrustTone };
@@ -51,8 +51,13 @@ export interface ForYouCard {
   showcase: boolean;
 }
 
+/**
+ * There is deliberately no «raw image» variant: a source image never reaches a
+ * card. `derivative` points to an approved record of data/media-derivatives.json
+ * and the renderer re-checks it there.
+ */
 export type CardMedia =
-  | { kind: "image"; src: string; alt: string; credit: string | null }
+  | { kind: "derivative"; derivativeId: string; src: string; alt: string; credit: string; caveat: string | null }
   | { kind: "art"; art: ArtKey; alt: string; animated: boolean };
 
 export function stateForOrigin(origin: DataOrigin | null | undefined): CapabilityState {
