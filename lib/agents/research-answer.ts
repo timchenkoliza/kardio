@@ -226,7 +226,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   if (!organic.length) {
     const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
     const headline = noTopic
-      ? "Не удалось понять тему вопроса, поэтому поиск не выполнялся. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
+      ? "Не удалось понять тему вопроса: в PubMed не искали, в каталоге специальности совпадений нет. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
       : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
     return { kind: "not_found", headline, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
   }

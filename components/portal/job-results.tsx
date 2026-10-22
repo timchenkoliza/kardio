@@ -124,7 +124,8 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
   if (run.status === "blocked") {
     return <div className="pt-blocked" role="alert">
       <p><ShieldAlert size={16} aria-hidden="true" />{run.plan[0]?.detail ?? "Запрос остановлен проверкой безопасности."}</p>
-      {run.riskNotices.map(notice => <p key={notice} className="ws-muted">{notice}</p>)}
+      {/* The reason above is also a risk notice: show each message once. */}
+      {run.riskNotices.filter(notice => notice !== run.plan[0]?.detail).map(notice => <p key={notice} className="ws-muted">{notice}</p>)}
     </div>;
   }
   if (run.status === "failed") return <p className="ws-empty" role="alert">Не получилось собрать результат: {run.error ?? "источник ответил ошибкой"}. Попробуйте ещё раз или переформулируйте вопрос.</p>;

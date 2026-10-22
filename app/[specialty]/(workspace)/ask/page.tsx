@@ -126,7 +126,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       <div>
         <h1>{JOBS[job].label}</h1>
         {run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
-        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{job === "research" ? `Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}` : ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
+        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && run.status !== "blocked" && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{job === "research" ? `Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}` : ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
       </div>
     </header>
 
