@@ -1,0 +1,148 @@
+version: 2
+mode: shadow
+project: kardio
+
+# R = engineering/domain blast radius. E = user experience / mental-model blast radius.
+# Required gates are the UNION of R and E. Rollout ceiling is the more conservative ceiling.
+risk_classes:
+  R0:
+    description: Copy, docs, non-functional presentation changes
+    path_patterns: ["docs/**", "**/*.md"]
+    required_gates: [static, preview]
+    max_recommended_rollout_percent: 100
+  R1:
+    description: UI/layout/product interaction without medical or persistent-state semantics
+    path_patterns: ["components/**", "app/**/*.tsx", "styles/**"]
+    required_gates: [static, e2e, ds_audit, preview]
+    max_recommended_rollout_percent: 20
+  R2:
+    description: Agent behavior, routing, prompts, source ranking, content selection
+    path_patterns: ["server/agents/**", "lib/agents/**", "lib/portal/**"]
+    required_gates: [static, unit, integration, eval, simulation, preview]
+    max_recommended_rollout_percent: 5
+  R3:
+    description: Database, migrations, API, auth, persistent state, external actions and release infrastructure
+    path_patterns: ["db/**", "migrations/**", "app/api/**", "server/http.ts", "server/services/**", "server/agents/store/**", ".github/workflows/**", "control-plane/**"]
+    required_gates: [static, migration, unit, integration, e2e, simulation, preview, human_engineering_review]
+    max_recommended_rollout_percent: 1
+  R4:
+    description: Medical evidence policy, safety-critical behavior, claims or clinical-risk gates
+    semantic_triggers: [medical_evidence, drug_safety, contraindication, clinical_recommendation, source_verification]
+    required_gates: [static, unit, integration, medical_eval, adversarial_simulation, live_source_smoke, preview, human_domain_review]
+    max_recommended_rollout_percent: 1
+
+experience_impact_classes:
+  E0:
+    description: No user-visible experience semantics change
+    required_gates: []
+    max_recommended_rollout_percent: 100
+  E1:
+    description: Presentation change preserving job, module, meaning and mental model
+    triggers: [user_visible, copy_change, visual_morphology_change]
+    required_gates: [experience_contract, experience_smoke]
+    max_recommended_rollout_percent: 20
+  E2:
+    description: Task-fit, ranking, module selection or representation change
+    triggers: [result_ranking_change, module_selection_change, representation_change, information_density_change, visual_text_balance_change]
+    required_gates: [experience_contract, task_fit_eval, representation_eval, accessibility_eval]
+    max_recommended_rollout_percent: 5
+  E3:
+    description: Meaningful capability, personalization, onboarding or structural blueprint change
+    triggers: [meaningful_capability, personalization_change, onboarding_change, structural_layout_change, blueprint_change]
+    required_gates: [experience_contract, task_fit_eval, representation_eval, personalization_privacy, onboarding_eval, blueprint_stability]
+    max_recommended_rollout_percent: 5
+  E4:
+    description: Mental-model, core-navigation, action-semantics or factual-meaning change
+    triggers: [mental_model_change, core_navigation_change, action_semantics_change, factual_meaning_change, safety_threshold_change]
+    required_gates: [experience_contract, task_fit_eval, representation_eval, stable_shell_eval, accessibility_eval, human_product_review]
+    max_recommended_rollout_percent: 1
+
+risk_resolution:
+  engineering_strategy: highest_wins
+  experience_strategy: highest_wins
+  unknown_engineering_change_defaults_to: R3
+  unknown_user_visible_change_defaults_to: E2
+  required_gates: union
+  rollout_ceiling: min_of_engineering_and_experience
+
+experience_invariants:
+  runtime_ui:
+    arbitrary_llm_frontend_generation: forbidden
+    output_contract: ExperienceManifest
+  stable_shell:
+    personalization_may_change: [ordering, density, default_expansion, visual_text_ratio, prominence, shortcuts, suggested_actions, onboarding_depth]
+    personalization_must_not_silently_change: [meaning, factual_content, safety_thresholds, compliance_information, destructive_action_semantics, core_navigation_landmarks]
+  personalization:
+    low_confidence_uses_default_ux: true
+    inferred_state_requires_expiry: true
+    structural_blueprint_requires_invalidation_rules: true
+    authentication_state_is_not_profile_state: true
+  onboarding:
+    only_for_meaningful_capability_transition: true
+    contextual_not_product_tour: true
+    explicit_dismissal_is_respected: true
+    mastery_suppresses_future_guides: true
+
+release_stages:
+  - { name: preview, exposure_percent: 0 }
+  - { name: canary_1, exposure_percent: 1 }
+  - { name: canary_5, exposure_percent: 5 }
+  - { name: cohort_20, exposure_percent: 20 }
+  - { name: cohort_50, exposure_percent: 50 }
+  - { name: stable, exposure_percent: 100 }
+
+promotion_rules:
+  common:
+    require_same_commit_sha_across_evidence: true
+    blocking_ci_failures_allowed: 0
+    blocking_ds_findings_allowed: 0
+    unresolved_high_severity_security_findings_allowed: 0
+    missing_required_evidence_is_blocking: true
+  preview_to_canary_1:
+    require_all_risk_gates_green: true
+    require_all_experience_gates_green: true
+    require_baseline_comparison: true
+  canary_1_to_canary_5:
+    min_observation_events: 50
+    max_error_rate_relative_increase: 0.10
+    max_p95_latency_relative_increase: 0.20
+    zero_new_safety_breaches: true
+  canary_5_to_cohort_20:
+    min_observation_events: 200
+    max_error_rate_relative_increase: 0.05
+    zero_new_safety_breaches: true
+    require_target_metric_non_negative: true
+  cohort_20_to_cohort_50:
+    min_observation_events: 500
+    require_target_metric_positive_or_neutral_with_confidence: true
+  cohort_50_to_stable:
+    min_observation_events: 1000
+    zero_blocking_guardrail_breaches: true
+    require_learning_capture: true
+
+rollback_triggers:
+  immediate: [safety_breach, evidence_integrity_breach, destructive_migration_failure, auth_or_access_control_regression, sustained_5xx_spike, stable_shell_regression, personalization_privacy_breach]
+  hold: [latency_guardrail_breach, target_metric_degradation, simulation_mismatch_seen_in_prod, onboarding_regression]
+
+permissions:
+  product_orchestrator:
+    can_create_change: true
+    can_create_branch: true
+    can_request_preview: true
+    can_recommend_rollout: true
+    can_merge_main: false
+    can_change_rollout_percent: false
+  branch_engineer:
+    can_write_feature_branch: true
+    can_merge_main: false
+  release_controller:
+    can_recommend_rollout: true
+    can_execute_rollout: false
+  human_owner:
+    required_for: [merge_main, canary_start, rollback_execution]
+
+shadow_exit_criteria:
+  min_completed_changes: 5
+  max_false_green_decisions: 0
+  max_false_block_rate: 0.20
+  every_incident_backfilled_as_regression_case: true
