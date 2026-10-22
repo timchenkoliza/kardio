@@ -4,6 +4,7 @@ import type { ClaimKind, EvidenceGraph, GraphDocument, NormalizedClaim } from ".
 import type { JobType } from "./jobs";
 import { experienceManifestSchema, MANIFEST_SCHEMA, MODULE_POLICY, STABLE_SHELL_VERSION, type ExperienceManifest, type ManifestAction, type ManifestExecution, type ManifestModule, type ManifestView, type ModuleFamily, type RepresentationMode } from "./manifest";
 import { validateManifest, type PolicyContext, type PolicyReport } from "./policies";
+import { matchesJournal, meshSourcePreference } from "./source-preferences";
 
 /**
  * Experience Compiler:
@@ -24,7 +25,12 @@ export interface UserContext {
   signals: string[];
   /** Physician's own topics, when they set them. */
   topics: string[];
+  /** Physician's «Приоритет» source options (profile ids): their evidence goes first among equals, never filtered. */
+  trustedSources?: readonly string[];
 }
+
+/** Manifest signal recording a «Приоритет» source option, so a refinement keeps the same order. */
+export const PRIORITY_SIGNAL = "priority_source:";
 
 export interface CompileInput {
   graph: EvidenceGraph;
@@ -88,8 +94,25 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
 };
 const TAKEAWAY_MAX = 6;
 
-function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeaway" | "priorityClaims"> = {}): string[] {
+/**
+ * «Приоритет» from the profile as a rank: a prioritised journal (0), then a
+ * prioritised source (1), then the rest (2). It only reorders — never adds,
+ * removes or filters evidence. It never outranks topical relevance or the
+ * Russian-first rule in the key takeaway, and never reorders guideline
+ * versions: the newest version stays first.
+ */
+function priorityRank(user: Partial<UserContext> | undefined): (document: GraphDocument | undefined) => number {
+  const { sources, journals } = meshSourcePreference(user?.trustedSources ?? []);
+  return document => {
+    if (!document || document.kind === "guideline") return 2;
+    if (matchesJournal(document.attributes.journal, journals)) return 0;
+    return sources.includes(document.sourceId) ? 1 : 2;
+  };
+}
+
+function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, "takeaway" | "priorityClaims" | "user">> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
+  const priority = priorityRank(input.user);
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
   const subtype = graph.context.subtype;
@@ -106,9 +129,10 @@ function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeawa
   }
   for (const [kind, cap] of input.takeaway ?? TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
-      // On the asked subtype first, Russian sources before international, newer first, then source relevance.
+      // On the asked subtype first, Russian sources before international, the physician's priority sources, newer first, then source relevance.
       .sort((a, b) => onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
         || Number(docs.get(a.documentId)?.jurisdiction !== "RU") - Number(docs.get(b.documentId)?.jurisdiction !== "RU")
+        || priority(docs.get(a.documentId)) - priority(docs.get(b.documentId))
         || DATE(docs.get(b.documentId)).localeCompare(DATE(docs.get(a.documentId)))
         || Number(docs.get(a.documentId)?.attributes.relevance ?? 0) - Number(docs.get(b.documentId)?.attributes.relevance ?? 0));
     // Document metadata is already in each item's source line; it is shown only for a document with nothing else picked.
@@ -163,7 +187,9 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
     }
     case "evidence": {
-      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
+      // Every found publication stays; the physician's priority journals and sources go first.
+      const priority = priorityRank(input.user);
+      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => priority(a) - priority(b) || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       return { ...base, documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "review_conclusion").map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { language: "en" } };
@@ -221,7 +247,7 @@ function assemble(graph: EvidenceGraph, input: CompileInput, modules: ManifestMo
     representation: { density, mode: args.fallback ? "safe_answer" : REPRESENTATION[graph.job] },
     modules,
     actions: actionsFor(graph, modules),
-    personalization: { applied: false, source: "default", signals: input.user.signals.filter(signal => signal === "specialty" || signal.startsWith("saved_topic:")) },
+    personalization: { applied: false, source: "default", signals: input.user.signals.filter(signal => signal === "specialty" || signal.startsWith("saved_topic:") || signal.startsWith(PRIORITY_SIGNAL)) },
     stableShell: STABLE_SHELL_VERSION,
     provenance: { sourceIds: [...new Set(graph.sources.filter(source => source.outcome !== "not_invoked").map(source => source.id))], documentCount: graph.documents.length, claimCount: graph.claims.length },
     compiler: { version: COMPILER_VERSION, fallback: args.fallback, warnings: args.warnings, decisions: args.decisions, policy: { passed: args.report?.passed ?? true, blocking: args.report?.blocking ?? 0, findings: args.report?.findings.length ?? 0 } },

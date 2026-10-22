@@ -1,7 +1,7 @@
 import { countLabel } from "@/lib/agents/format";
 import { truncate } from "@/lib/agents/text";
 import type { Evidence, EvidenceLevel, IntegrationMode, PlanStep, ResultActionKind, ResultKind, RunExperience, ToolUse } from "@/lib/agents/types";
-import { compileExperience, type CompileInput, type CompileOutput } from "@/lib/mesh/compiler";
+import { compileExperience, PRIORITY_SIGNAL, type CompileInput, type CompileOutput, type UserContext } from "@/lib/mesh/compiler";
 import type { EvidenceGraph, NormalizedClaim, NormalizedDocument, SourceInvocation, SourceResult } from "@/lib/mesh/evidence";
 import { buildEvidenceGraph } from "@/lib/mesh/evidence-graph";
 import { compareShadow, shadowSide, type RunExecution, type ShadowComparison } from "@/lib/mesh/execution";
@@ -174,6 +174,12 @@ function synthesisOf(graph: EvidenceGraph, intent: NormalizedIntent, question: s
   return lines.join("\n\n");
 }
 
+/** The physician's real signals for the compiler: specialty, own topics and «Приоритет» sources (an order, never a filter). */
+function userContext(ctx: AgentContext): UserContext {
+  const trusted = ctx.preference.trustedSources.filter(id => !ctx.preference.excludedSources.includes(id));
+  return { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`), ...trusted.map(id => `${PRIORITY_SIGNAL}${id}`)], topics: ctx.preference.topics, trustedSources: trusted };
+}
+
 const META_FAMILIES = new Set(["sources", "handoff", "next_actions", "notices"]);
 
 /**
@@ -191,7 +197,7 @@ function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedInten
   const slow = new Set<string>();
   const total = plan.steps.filter(step => step.role !== "handoff").length;
   // A Skill's takeaway priority and explanation apply from the first module; flow branches need the complete graph.
-  const compileInput: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {}, answerMode: ctx.answerMode ?? null, ...args.extras };
+  const compileInput: Omit<CompileInput, "graph"> = { user: userContext(ctx), modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {}, answerMode: ctx.answerMode ?? null, ...args.extras };
   const publish = () => {
     const pendingSteps = plan.steps.filter(step => open.has(step.id) && step.role !== "handoff");
     const pending = [...new Map(pendingSteps.map(step => [registry[step.sourceId].name, { name: registry[step.sourceId].name, slow: slow.has(step.id) }])).values()];
@@ -304,7 +310,7 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   const connectorOf = (sourceId: SourceId) => registry[sourceId].connectorId;
   const drafts = draftsFromDocuments(ctx, documents, connectorOf);
   const resultKeys = Object.fromEntries(drafts.map(draft => [String(draft.attributes.documentId), `${ctx.agentId}:${draft.key}`]));
-  const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
+  const base: Omit<CompileInput, "graph"> = { user: userContext(ctx), modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
   let output: CompileOutput;
   let flow: FlowRun | null = null;
   let skillFallback: string | null = null;

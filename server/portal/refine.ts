@@ -1,6 +1,6 @@
 import type { AgentRun, RunExperience } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
-import { compileExperience, type CompileInput } from "@/lib/mesh/compiler";
+import { compileExperience, PRIORITY_SIGNAL, type CompileInput } from "@/lib/mesh/compiler";
 import { mergeEvidence } from "@/lib/mesh/evidence-graph";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { planSources } from "@/lib/mesh/planner";
@@ -122,7 +122,8 @@ export async function refineRun(sessionId: string, specialty: SpecialtyId, runId
   const visible = applyView(graph, view);
   const directives = viewDirectives(visible, experience.manifest, view, graph);
   const base: Omit<CompileInput, "graph"> = {
-    user: { signals: experience.manifest.personalization.signals, topics: [] },
+    // The refined view keeps the run's «Приоритет» order (recorded as manifest signals).
+    user: { signals: experience.manifest.personalization.signals, topics: [], trustedSources: experience.manifest.personalization.signals.filter(signal => signal.startsWith(PRIORITY_SIGNAL)).map(signal => signal.slice(PRIORITY_SIGNAL.length)) },
     modules: strategy.intent.modules,
     policy: { descriptors: sources },
     scenario: strategy.intent.context.scenario,
