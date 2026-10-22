@@ -1,4 +1,5 @@
-import type { FeedArtKey } from "@/lib/ui/feed-art";
+import type { ArtKey, FeedArtKey, SpecialtyArtKey } from "@/lib/ui/feed-art";
+import { SPECIALTY_ART } from "./specialty-art";
 
 /**
  * Yandex Med cardiology line art (context/31_CARDIO_VISUAL_PROMPT_SYSTEM.md):
@@ -154,8 +155,8 @@ const ART: Record<FeedArtKey, () => React.ReactElement> = {
   conduction: ConductionArt,
 };
 
-export function FeedArt({ art, alt, animated = true }: { art: FeedArtKey; alt: string; animated?: boolean }) {
-  const Art = ART[art];
+export function FeedArt({ art, alt, animated = true }: { art: ArtKey; alt: string; animated?: boolean }) {
+  const Art = art in ART ? ART[art as FeedArtKey] : SPECIALTY_ART[art as SpecialtyArtKey];
   return <svg className={animated ? `ws-feed-art fa-${art} is-animated` : `ws-feed-art fa-${art}`} viewBox="0 0 400 200" role="img" aria-label={alt} preserveAspectRatio="xMidYMid slice">
     <rect className="fa-paper" width="400" height="200" />
     <Art />

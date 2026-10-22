@@ -26,7 +26,7 @@ async function ask(page: Page, text: string) {
   await expect(page.locator(".pt-result")).toBeVisible();
 }
 
-test("primary home is one professional input, three jobs and «Для вас» — no agent catalogue", async ({ page }) => {
+test("primary home is one professional input, three jobs and «Для вас» — the agent gallery lives on its own page", async ({ page }) => {
   await page.goto("/pediatrics");
   await expect(page.getByRole("heading", { level: 1, name: /Ответы и\s+обновления\s+— педиатрам/ })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Что хотите узнать или сделать?" })).toBeVisible();
@@ -36,12 +36,15 @@ test("primary home is one professional input, three jobs and «Для вас» �
   await expect(shortcuts.nth(1)).toContainText("Клинические рекомендации");
   await expect(shortcuts.nth(2)).toContainText("Разбор по исследованиям");
   await expect(page.getByRole("heading", { level: 2, name: /Для\s+вас/ })).toBeVisible();
-  // Physicians do not need the agent concept: no catalogue, no agent vocabulary on the main surface.
+  // One input, not a catalogue: the home never asks to pick an agent first. The gallery is a primary
+  // section of its own («Агенты»), reached from the navigation and from one quiet link under the jobs.
   await expect(page.locator(".ws-agent-card")).toHaveCount(0);
-  const main = await page.locator("main").innerText();
-  expect(main).not.toMatch(/агент/iu);
+  await expect(page.locator("main .pt-gallery")).toHaveCount(0);
+  await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveCount(1);
+  await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveAttribute("href", "/pediatrics/agents");
   const nav = page.getByRole("navigation", { name: "Основная навигация" });
-  await expect(nav).not.toContainText("агент");
+  await expect(nav.getByRole("link")).toHaveText(["Главное", "Агенты", "Мои материалы"]);
+  await expect(nav.getByRole("link", { name: "Агенты" })).toHaveAttribute("href", "/pediatrics/agents");
   await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("footer")).toContainText(/© \d{4} ООО «Яндекс»/);
 });

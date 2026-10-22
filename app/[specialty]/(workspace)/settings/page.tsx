@@ -8,7 +8,10 @@ import { formatDateRu } from "@/lib/agents/format";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
 import type { SourceStanding } from "@/lib/agents/source-policy";
 import { rowsByStanding, SOURCE_VALIDATION } from "@/server/agents/services/source-policy";
-import { isSpecialty } from "@/lib/specialty";
+import { isSpecialty, specialties } from "@/lib/specialty";
+import { sourceLabels, topicLabels } from "@/lib/agents/vocabulary";
+import { countLabel } from "@/lib/agents/format";
+import { nbsp } from "@/lib/ui/typography";
 import { connectorRegistry } from "@/server/agents/connectors";
 import { pageSession } from "@/server/agents/page-session";
 import { workspaceStore } from "@/server/agents/store";
@@ -18,10 +21,10 @@ import { loadProfile } from "@/server/agents/workspace";
 export const dynamic = "force-dynamic";
 
 const STANDING_GROUP_TITLE: Record<Exclude<SourceStanding, "unreviewed">, string> = {
-  approved: "Белый список",
-  conditional: "Одобрены с условием",
-  reviewed_not_whitelisted: "Проверены, но не в белом списке",
-  rejected: "Отклонены врачами",
+  approved: "Рекомендованы врачами",
+  conditional: "Рекомендованы с условием",
+  reviewed_not_whitelisted: "Используются с пометкой «Требует сверки»",
+  rejected: "Не используются как доказательство",
 };
 
 function percent(value: number | null): string {
@@ -36,13 +39,35 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
   const validation = rowsByStanding();
   const connectors = connectorRegistry();
   const metrics = computeAgentMetrics(sessionId ? memoryEvents(sessionId) : []);
-  const storage = workspaceStore().kind;
+  const store = workspaceStore();
+  const storage = store.kind;
+  const [materials, runs] = sessionId ? await Promise.all([store.listMaterials(sessionId, specialty), store.listRuns(sessionId, specialty, undefined, 200)]) : [[], []];
+  const questions = runs.filter(run => run.input.text && run.trigger !== "schedule_catchup" && run.trigger !== "configuration").length;
+  const topics = topicLabels(specialty, profile.interests.topics);
+  const trusted = sourceLabels(profile.interests.trustedSources);
 
   return <div className="ws-page ws-settings">
     <header className="ws-page-head">
-      <h1>Настройки</h1>
+      <h1>{nbsp("Профиль и настройки")}</h1>
       <p>Темы и источники уточняют подборку «Для вас» и порядок источников в ответах. Настраивать необязательно: ответы и подборка работают и без этого.</p>
     </header>
+
+    <section className="ws-section ws-card-block ws-profile" id="profile" aria-labelledby="ws-profile-title">
+      <div className="ws-profile-head">
+        <span className="ws-avatar is-large" aria-hidden="true">Вы</span>
+        <div>
+          <h2 id="ws-profile-title" className="ws-section-title">{nbsp("Ваш профиль")}</h2>
+          <p className="ws-muted">Вход не нужен: профиль привязан к этому браузеру и хранит только специальность, темы и источники.</p>
+        </div>
+      </div>
+      <dl className="ws-profile-facts">
+        <div><dt>Специальность</dt><dd>{specialties[specialty].name}</dd></div>
+        <div><dt>Темы</dt><dd>{topics.length ? topics.slice(0, 6).join(", ") : "Не выбраны — подборка строится по всей специальности"}</dd></div>
+        <div><dt>Предпочитаемые источники</dt><dd>{trusted.length ? trusted.join(", ") : "Все проверенные источники"}</dd></div>
+        <div><dt>Мои материалы</dt><dd><Link className="ws-text-link" href={`/${specialty}/materials`}>{countLabel(materials.length, ["материал", "материала", "материалов"])}</Link></dd></div>
+        <div><dt>Вопросов задано</dt><dd>{questions}</dd></div>
+      </dl>
+    </section>
 
     <InterestsSetup specialty={specialty} interests={profile.interests} mode="settings" />
 
@@ -62,7 +87,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
 
     <section className="ws-section ws-card-block ws-validation" aria-labelledby="ws-validation-title">
       <h2 id="ws-validation-title" className="ws-section-title">Источники, проверенные врачами</h2>
-      <p className="ws-muted">{SOURCE_VALIDATION.title} · обновлено {formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают одобренные источники выше, не используют отклонённые как доказательство, а для источников вне белого списка показывают не больше чем «частично подтверждено».</p>
+      <p className="ws-muted">{SOURCE_VALIDATION.title} · обновлено {formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».</p>
       {(["approved", "conditional", "reviewed_not_whitelisted", "rejected"] as const).map(standing => <details key={standing} open={standing === "approved"}>
         <summary>{STANDING_GROUP_TITLE[standing]} · {validation[standing].length}</summary>
         <ul>{validation[standing].map(row => <li key={`${row.host}-${row.brand}`}><strong>{row.brand}</strong><span>{row.host}{row.condition ? ` · ${row.condition}` : ""}</span>{row.note && <span>{row.note}</span>}</li>)}</ul>
@@ -96,7 +121,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
       <h2 id="ws-demo-title" className="ws-section-title">Демонстрация</h2>
       <p className="ws-muted">Отметки «новое» считаются от вашего прошлого визита. Чтобы показать механику ещё раз, можно сбросить отметки просмотра.</p>
       <ResetSeenButton />
-      <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
+      <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Агенты и фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
       {(specialty === "cardiology" || specialty === "oncology") && <p className="ws-legacy-link"><Link href={`/${specialty}/legacy`}>Предыдущая версия интерфейса (архив)<ArrowUpRight size={14} aria-hidden="true" /></Link></p>}
     </section>
   </div>;

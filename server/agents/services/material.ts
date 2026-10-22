@@ -2,6 +2,7 @@ import { inflateRawSync } from "node:zlib";
 import { contentTokens, stableId, stem, truncate } from "@/lib/agents/text";
 import type { AgentResult, Material, MaterialParseStatus, Provenance } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { fallbackTitle, knownSite, type LinkEnrichment } from "./link-enrichment";
 import { checkUploadRisk, deidentify } from "./risk";
 
 /**
@@ -133,33 +134,47 @@ export function materialFromUpload(args: { specialty: SpecialtyId; fileName: str
     provenance: { connectorId: "user-uploads", source: "Загружено вами", sourceUrl: null, publisher: null, retrievedAt: args.now, publishedAt: null, version: null, ownership: "USER_UPLOADED", dataOrigin: "user_content" },
     collectionIds: [],
     createdAt: args.now,
+    format: "file",
   };
 }
 
-export function materialFromLink(args: { specialty: SpecialtyId; url: string; title?: string | null; note?: string | null; now: string }): Material {
+export function materialFromLink(args: { specialty: SpecialtyId; url: string; title?: string | null; note?: string | null; now: string; enrichment?: LinkEnrichment | null }): Material {
   const parsedUrl = new URL(args.url);
   const note = args.note?.trim() ? deidentify(args.note.trim()).text.slice(0, 4000) : null;
+  const found = args.enrichment ?? null;
+  const userTitle = args.title?.trim() || null;
+  // The physician's own title wins; otherwise the recognised one; never the hostname or the path.
+  const title = (userTitle || found?.title || fallbackTitle(parsedUrl, knownSite(parsedUrl.hostname))).slice(0, 200);
+  const abstract = found?.abstract ?? null;
+  const text = [title, found?.summary, note, abstract].filter(Boolean).join("\n") || null;
+  const recognised = found && (found.basis === "pubmed" || found.basis === "crossref");
   return {
     id: newMaterialId(),
     specialty: args.specialty,
     kind: "link",
     ownership: "PUBLIC_SOURCE",
-    title: (args.title?.trim() || parsedUrl.hostname + parsedUrl.pathname).slice(0, 200),
+    title,
     url: parsedUrl.toString(),
     note,
     fileName: null,
     mimeType: null,
     sizeBytes: null,
-    text: [args.title?.trim(), note].filter(Boolean).join("\n") || null,
-    textChars: note?.length ?? 0,
-    parseStatus: "metadata_only",
-    parseNote: "Страница по ссылке не загружается: в поиске участвуют название и ваша заметка",
+    text,
+    textChars: text?.length ?? 0,
+    parseStatus: abstract ? "indexed" : "metadata_only",
+    parseNote: abstract
+      ? `Сохранены название и аннотация из ${found?.basis === "pubmed" ? "PubMed" : "базы публикаций"} — полный текст по ссылке`
+      : recognised ? "Сохранены название и выходные данные — полный текст по ссылке"
+        : found?.note ?? "Страница по ссылке не загружается: в поиске участвуют название и ваша заметка",
     redactions: [],
     sourceResultId: null,
     sourceAgentId: null,
-    provenance: { connectorId: "user-uploads", source: parsedUrl.hostname, sourceUrl: parsedUrl.toString(), publisher: parsedUrl.hostname, retrievedAt: args.now, publishedAt: null, version: null, ownership: "PUBLIC_SOURCE", dataOrigin: "user_content" },
+    provenance: { connectorId: "user-uploads", source: found?.publisher ?? parsedUrl.hostname.replace(/^www\./u, ""), sourceUrl: parsedUrl.toString(), publisher: found?.publisher ?? null, retrievedAt: args.now, publishedAt: found?.publishedAt ?? null, version: null, ownership: "PUBLIC_SOURCE", dataOrigin: "user_content" },
     collectionIds: [],
     createdAt: args.now,
+    format: found?.format ?? "website",
+    typeLabel: found?.typeLabel ?? null,
+    summary: found?.summary ?? null,
   };
 }
 
@@ -186,6 +201,7 @@ export function materialFromNote(args: { specialty: SpecialtyId; title: string; 
     provenance: { connectorId: "user-uploads", source: "Ваша заметка", sourceUrl: null, publisher: null, retrievedAt: args.now, publishedAt: null, version: null, ownership: "USER_UPLOADED", dataOrigin: "user_content" },
     collectionIds: [],
     createdAt: args.now,
+    format: "note",
   };
 }
 
@@ -214,6 +230,7 @@ export function materialFromResult(result: AgentResult, now: string): Material {
     provenance: result.source,
     collectionIds: [],
     createdAt: now,
+    format: "result",
   };
 }
 
