@@ -21,8 +21,39 @@ function matchesPath(file: string, risk: RiskClass): boolean {
   return false;
 }
 
+/**
+ * Semantic triggers implied by non-code deltas. A source delta that moves
+ * medical claims is medical evidence (R4) whatever files changed; drug
+ * safety sections and guideline statements add their own triggers.
+ */
+export function derivedSemanticTriggers(contract: ChangeContract): string[] {
+  const triggers = new Set<string>();
+  const knowledge = contract.knowledge_delta;
+  if (knowledge && (knowledge.claims_added.length || knowledge.claims_removed.length)) {
+    triggers.add("medical_evidence");
+    triggers.add("source_verification");
+    if (knowledge.claim_kinds.some(kind => kind === "contraindication" || kind === "warning")) { triggers.add("drug_safety"); triggers.add("contraindication"); }
+    if (knowledge.claim_kinds.some(kind => kind === "guideline_statement" || kind === "society_assertion")) triggers.add("clinical_recommendation");
+  }
+  if (contract.cause === "ranking_delta") triggers.add("source_verification");
+  return [...triggers];
+}
+
+/** Experience triggers implied by an experience delta (module set, order, representation). */
+export function derivedExperienceTriggers(contract: ChangeContract): string[] {
+  const delta = contract.experience_delta;
+  const triggers = new Set<string>();
+  if (!delta) return [];
+  const families = (rows: string[][]) => rows.map(row => [...row].sort().join(",")).join("|");
+  if (families(delta.module_families_before) !== families(delta.module_families_after)) triggers.add("module_selection_change");
+  if (delta.order_changed) triggers.add("module_selection_change");
+  if (delta.representation_changed) triggers.add("representation_change");
+  if (delta.manifests_regenerated.length && !triggers.size) triggers.add("source_content_refresh");
+  return [...triggers];
+}
+
 function matchingSemanticRisks(contract: ChangeContract): RiskClass[] {
-  const triggers = new Set(contract.semantic_triggers ?? []);
+  const triggers = new Set([...(contract.semantic_triggers ?? []), ...derivedSemanticTriggers(contract)]);
   return RISK_ORDER.filter(risk => {
     const expected = RISK_POLICIES[risk].semanticTriggers ?? [];
     return expected.some(trigger => triggers.has(trigger));
@@ -35,7 +66,9 @@ function isPotentiallyUserVisible(file: string): boolean {
     file.startsWith("app/") ||
     file.startsWith("server/agents/") ||
     file.startsWith("lib/agents/") ||
-    file.startsWith("lib/portal/")
+    file.startsWith("lib/portal/") ||
+    file.startsWith("lib/mesh/") ||
+    file.startsWith("server/mesh/")
   );
 }
 
@@ -60,7 +93,7 @@ function classifyExperienceImpact(contract: ChangeContract, changedFiles: string
     return { impact: "E0", matched: ["E0"], reasons: ["E0: no user-visible experience contract required"] };
   }
 
-  const declaredTriggers = new Set(experience.impact_triggers ?? []);
+  const declaredTriggers = new Set([...(experience.impact_triggers ?? []), ...derivedExperienceTriggers(contract)]);
   if (experience.user_visible) declaredTriggers.add("user_visible");
   if (experience.capability_transition === "meaningful") declaredTriggers.add("meaningful_capability");
   if (experience.capability_transition === "mental_model_change") declaredTriggers.add("mental_model_change");
@@ -116,7 +149,7 @@ export function classifyRisk(args: {
   for (const risk of matchingSemanticRisks(args.contract)) {
     matched.add(risk);
     const triggers = RISK_POLICIES[risk].semanticTriggers ?? [];
-    const actual = (args.contract.semantic_triggers ?? []).filter(trigger => triggers.includes(trigger));
+    const actual = [...(args.contract.semantic_triggers ?? []), ...derivedSemanticTriggers(args.contract)].filter(trigger => triggers.includes(trigger));
     reasons.push(`${risk}: semantic trigger ${actual.join(", ")}`);
   }
 
@@ -130,9 +163,12 @@ export function classifyRisk(args: {
 
   const engineeringPolicies = [...matched].map(risk => RISK_POLICIES[risk]);
   const experiencePolicies = experience.matched.map(impact => EXPERIENCE_POLICIES[impact]);
+  const declaresObligations = Object.values(args.contract.does_not_change ?? {}).some(value => value === true);
   const requiredGates = [...new Set([
     ...engineeringPolicies.flatMap(policy => policy.requiredGates),
     ...experiencePolicies.flatMap(policy => policy.requiredGates),
+    // A declared negative obligation is only worth something if it is checked.
+    ...(declaresObligations ? ["negative_obligations"] : []),
   ])];
   const ceilings = [
     ...engineeringPolicies.map(policy => policy.maxRecommendedRolloutPercent),

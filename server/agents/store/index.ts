@@ -19,6 +19,20 @@ export function workspaceStore(): WorkspaceStore {
 }
 
 /**
+ * Run ids handed to a browser must be readable from any later server
+ * instance. Serverless deployments (Vercel) run many instances, so the
+ * in-process store is not acceptable there for runs; KARDIO_REQUIRE_DURABLE_RUNS=1
+ * enforces the same anywhere else.
+ */
+export function durableRunsRequired(): boolean {
+  return Boolean(process.env.VERCEL) || process.env.KARDIO_REQUIRE_DURABLE_RUNS === "1";
+}
+
+export function durableRunStoreMissing(): boolean {
+  return durableRunsRequired() && workspaceStore().kind !== "postgres";
+}
+
+/**
  * In memory mode, restore a profile from the browser mirror when this
  * instance has never seen the session (cold start / another instance).
  */

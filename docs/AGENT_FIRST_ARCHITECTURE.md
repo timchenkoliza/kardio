@@ -1,5 +1,7 @@
 # Agent-first physician workspace — architecture
 
+> **Historical as product IA (2026-10-21).** The physician-facing product is now the retention-first portal (`context/42_RETENTION_FIRST_PORTAL.md`): one input, jobs and «Для вас». The agent layer below remains the implementation behind it — the Portal Manager (`server/portal/manager.ts`) routes jobs to these agents, plus the new `reference` capability (`server/agents/executor-reference.ts`).
+
 Status: implemented on branch `migration/agent-first-workspace` (2026-10-19). Product direction: `context/40_AGENT_FIRST_WORKSPACE.md`. Audit of the previous app: `CURRENT_APP_MAP.md`.
 
 ## 1. Hierarchy

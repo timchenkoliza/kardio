@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components lib server db scripts tests control-plane && node scripts/check-design-tokens.mjs && node scripts/check-product-copy.mjs",
@@ -25,6 +26,7 @@
     "db:article-media-sync": "tsx scripts/sync-article-media-inventory.ts",
     "db:verify": "tsx scripts/verify-db.ts",
     "agents:metrics": "tsx scripts/agent-metrics.ts",
+    "portal:metrics": "tsx scripts/portal-metrics.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "ontology:validate": "tsx scripts/validate-ontology.ts",
     "telegram:inspect": "tsx scripts/inspect-telegram-export.ts",
@@ -49,6 +51,7 @@
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
+    "linkedom": "0.18.12",
     "lucide-react": "1.59.0",
     "next": "16.4.2",
     "pg": "8.23.1",

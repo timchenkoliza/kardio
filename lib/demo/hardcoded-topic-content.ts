@@ -7,7 +7,7 @@ interface EditorialBlueprint {
   tags: readonly string[];
 }
 
-const FALLBACK_TOPICS: Record<SpecialtyId, readonly string[]> = {
+const FALLBACK_TOPICS: Partial<Record<SpecialtyId, readonly string[]>> = {
   cardiology: [
     "Артериальная гипертензия",
     "Ишемическая болезнь сердца",
@@ -211,7 +211,7 @@ export function topicLabelsForHardcodedExpansion(
   };
 
   for (const item of existingContent) add(item.topics.at(-1));
-  for (const topic of FALLBACK_TOPICS[specialty]) add(topic);
+  for (const topic of FALLBACK_TOPICS[specialty] ?? []) add(topic);
   return labels;
 }
 

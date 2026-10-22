@@ -87,6 +87,11 @@ export class MemoryWorkspaceStore implements WorkspaceStore {
     return clone(values.sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, limit));
   }
 
+  async findRunSession(id: string) {
+    for (const [sessionId, value] of buckets) if (value.runs.has(id)) return sessionId;
+    return null;
+  }
+
   async getRun(sessionId: string, id: string) {
     const value = buckets.get(sessionId)?.runs.get(id);
     return value ? clone(value) : null;

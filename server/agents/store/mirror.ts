@@ -23,6 +23,8 @@ interface CompactProfile {
   ca: string | null;
   lv: string | null;
   pv: string | null;
+  fs?: string | null;
+  fv?: string | null;
 }
 
 export function encodeProfileMirror(profile: UserProfile): string {
@@ -36,6 +38,8 @@ export function encodeProfileMirror(profile: UserProfile): string {
     ca: profile.configuredAt,
     lv: profile.lastVisitAt,
     pv: profile.previousVisitAt,
+    fs: profile.firstSeenAt,
+    fv: profile.firstValueAt,
   };
   let encoded = Buffer.from(JSON.stringify(compact), "utf8").toString("base64url");
   if (encoded.length > MAX_COOKIE_CHARS) {
@@ -66,6 +70,8 @@ export function decodeProfileMirror(value: string | undefined | null, specialty:
       configuredAt: compact.ca ?? null,
       lastVisitAt: compact.lv ?? null,
       previousVisitAt: compact.pv ?? null,
+      firstSeenAt: compact.fs ?? null,
+      firstValueAt: compact.fv ?? null,
       updatedAt: now,
     }, specialty, now);
   } catch {

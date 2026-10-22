@@ -1,3 +1,4 @@
+import { specialties } from "@/lib/specialty";
 import type { AccessSubjectId } from "@/lib/access/agent-entitlements";
 import type { SourceStanding } from "@/lib/agents/source-policy";
 import type { VerificationStatus } from "@/lib/agents/types";
@@ -128,7 +129,7 @@ function inferCampaignGoal(text: string): string {
 }
 
 function audienceForSpecialty(specialty: SpecialtyId): string {
-  return specialty === "cardiology" ? "Кардиологи" : "Онкологи";
+  return specialties[specialty].audience;
 }
 
 function scaffold(kind: PharmaOutputKind, brief: ContentStudioBrief): string {

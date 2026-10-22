@@ -35,6 +35,7 @@ export async function GET(request: Request) {
   }
 
   const council = expertTwinsCouncilForSpecialty(specialtyResult.data);
+  if (!council) return NextResponse.json({ error: "Unsupported specialty" }, { status: 400 });
   let configured = false;
   try {
     configured = Boolean(expertTwinsBaseUrl());
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
   }
 
   const council = expertTwinsCouncilForSpecialty(parsed.data.specialty);
+  if (!council) return NextResponse.json({ error: "Unsupported specialty" }, { status: 400 });
   const input: ExpertTwinsCase = {
     council,
     question: parsed.data.question,

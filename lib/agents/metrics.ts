@@ -29,6 +29,7 @@ export interface AgentProductMetrics {
 
 /** Conservative per-run estimates of manual work replaced; documented, not measured. */
 export const MINUTES_SAVED_PER_USEFUL_RUN: Record<AgentId, number> = {
+  reference: 8,
   whats_new: 10,
   guidelines: 15,
   drugs: 10,

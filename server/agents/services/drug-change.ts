@@ -78,75 +78,88 @@ export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
   return DRUG_CHANGES
     .filter(record => !topics.length || record.topics.some(topic => topics.includes(topic)))
     .filter(record => new Date(`${record.changeDate}T00:00:00Z`).getTime() >= horizonStart)
-    .map(record => {
-      const matched = topics.filter(topic => record.topics.includes(topic));
-      const assessment = assessDrugChange({
-        type: record.type,
-        region: record.region,
-        status: record.status,
-        sourceKind: record.source.kind,
-        verificationTarget: record.verifyIn,
-        practiceImpact: PRACTICE_IMPACT[record.id] ?? null,
-      });
-      const evidence = record.claims.map(claim => factCheck(evidenceFromQuote({
-        connectorId: "regulatory-news",
-        sourceName: record.source.name,
-        sourceUrl: record.source.url,
-        publisher: record.source.name,
-        retrievedAt: DRUG_SNAPSHOT_RETRIEVED_AT,
-        publishedAt: record.source.publishedAt,
-        claim: claim.claim,
-        quote: claim.quote,
-        quoteLanguage: claim.quoteLanguage,
-        quoteKind: claim.quoteKind,
-        level: record.type === "IMPORTANT_NEW_STUDY" ? "secondary_news" : record.type === "GUIDELINE_CHANGE" ? "guideline" : "regulatory",
-        secondary: record.source.kind === "secondary",
-        verifyIn: record.verifyIn,
-      }), { dateUncertain: Boolean(record.changeDateNote && /не указан/u.test(record.changeDateNote)) }));
-      const official = officialEvidence(record, assessment, ctx.nowIso);
-      if (official) evidence.push(official);
+    .map(record => drugChangeDraft(ctx, record, topics.filter(topic => record.topics.includes(topic))));
+}
 
-      // Source basis and official verification are shown once in the card facts line.
-      const reasonShown = [matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности"];
+/**
+ * Regulatory signals about drugs the physician named, in any specialty: the
+ * record is about the drug, not about the specialty that collected it.
+ */
+export function drugChangesForDrugs(ctx: AgentContext, russianNames: readonly string[]): ResultDraft[] {
+  if (ctx.preference.excludedSources.includes("regulators") || !russianNames.length) return [];
+  const names = russianNames.map(name => name.toLocaleLowerCase("ru-RU").replace(/ё/g, "е"));
+  return DRUG_CHANGES
+    .filter(record => names.some(name => record.inn.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").includes(name)))
+    .map(record => ({ ...drugChangeDraft(ctx, record, []), reasonShown: [`Препарат из вашего вопроса: ${record.inn}`] }));
+}
 
-      return {
-        key: stableId("drug", record.id),
-        agentId: ctx.agentId,
-        specialty: ctx.specialty,
-        kind: "drug_change" as const,
-        category: record.type,
-        title: record.title,
-        summary: summaryFor(record),
-        reasonShown,
-        observedAt: record.changeDate,
-        evidence,
-        source: {
-          connectorId: "regulatory-news",
-          source: record.source.name,
-          sourceUrl: record.source.url,
-          publisher: record.source.name,
-          retrievedAt: DRUG_SNAPSHOT_RETRIEVED_AT,
-          publishedAt: record.source.publishedAt,
-          version: null,
-          ownership: "PUBLIC_SOURCE" as const,
-          dataOrigin: "curated_snapshot" as const,
-        },
-        actions: regulatoryActions(record, assessment),
-        attributes: {
-          inn: record.inn,
-          brand: record.brand,
-          holder: record.holder,
-          region: REGION_LABEL[record.region],
-          status: record.status,
-          changeDate: record.changeDate,
-          changeDateNote: record.changeDateNote,
-          verifyIn: record.verifyIn,
-          ...drugAssessmentToAttributes(assessment),
-        },
-        partner: null,
-        rank: 0,
-      };
-    });
+function drugChangeDraft(ctx: AgentContext, record: DrugChangeRecord, matched: readonly string[]): ResultDraft {
+  const assessment = assessDrugChange({
+    type: record.type,
+    region: record.region,
+    status: record.status,
+    sourceKind: record.source.kind,
+    verificationTarget: record.verifyIn,
+    practiceImpact: PRACTICE_IMPACT[record.id] ?? null,
+  });
+  const evidence = record.claims.map(claim => factCheck(evidenceFromQuote({
+    connectorId: "regulatory-news",
+    sourceName: record.source.name,
+    sourceUrl: record.source.url,
+    publisher: record.source.name,
+    retrievedAt: DRUG_SNAPSHOT_RETRIEVED_AT,
+    publishedAt: record.source.publishedAt,
+    claim: claim.claim,
+    quote: claim.quote,
+    quoteLanguage: claim.quoteLanguage,
+    quoteKind: claim.quoteKind,
+    level: record.type === "IMPORTANT_NEW_STUDY" ? "secondary_news" : record.type === "GUIDELINE_CHANGE" ? "guideline" : "regulatory",
+    secondary: record.source.kind === "secondary",
+    verifyIn: record.verifyIn,
+  }), { dateUncertain: Boolean(record.changeDateNote && /не указан/u.test(record.changeDateNote)) }));
+  const official = officialEvidence(record, assessment, ctx.nowIso);
+  if (official) evidence.push(official);
+
+  // Source basis and official verification are shown once in the card facts line.
+  const reasonShown = [matched.length ? `Тема: ${topicLabels(ctx.specialty, matched).join(", ")}` : "Все темы специальности"];
+
+  return {
+    key: stableId("drug", record.id),
+    agentId: ctx.agentId,
+    specialty: ctx.specialty,
+    kind: "drug_change" as const,
+    category: record.type,
+    title: record.title,
+    summary: summaryFor(record),
+    reasonShown,
+    observedAt: record.changeDate,
+    evidence,
+    source: {
+      connectorId: "regulatory-news",
+      source: record.source.name,
+      sourceUrl: record.source.url,
+      publisher: record.source.name,
+      retrievedAt: DRUG_SNAPSHOT_RETRIEVED_AT,
+      publishedAt: record.source.publishedAt,
+      version: null,
+      ownership: "PUBLIC_SOURCE" as const,
+      dataOrigin: "curated_snapshot" as const,
+    },
+    actions: regulatoryActions(record, assessment),
+    attributes: {
+      inn: record.inn,
+      brand: record.brand,
+      holder: record.holder,
+      region: REGION_LABEL[record.region],
+      status: record.status,
+      changeDate: record.changeDate,
+      changeDateNote: record.changeDateNote,
+      verifyIn: record.verifyIn,
+      ...drugAssessmentToAttributes(assessment),
+    },
+    partner: null,
+    rank: 0,
+  };
 }
 
 /** Builds a PubMed term for randomized trials in the user's topics. */

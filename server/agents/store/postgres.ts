@@ -58,6 +58,11 @@ export class PostgresWorkspaceStore implements WorkspaceStore {
     return row?.payload ?? null;
   }
 
+  async findRunSession(id: string) {
+    const [row] = await db.select({ sessionId: agentRuns.sessionId }).from(agentRuns).where(eq(agentRuns.id, id)).limit(1);
+    return row?.sessionId ?? null;
+  }
+
   async saveRun(sessionId: string, run: AgentRun) {
     await db.insert(agentRuns).values({
       id: run.id, sessionId, specialty: run.specialty, agentId: run.agentId, status: run.status, trigger: run.trigger,

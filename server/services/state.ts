@@ -1,3 +1,4 @@
+import { isSpecialty } from "@/lib/specialty";
 import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -58,7 +59,7 @@ function normalizeState(value: Partial<UserState> | null | undefined): UserState
       && typeof preference.label === "string"
       && (preference.mode === "hidden" || preference.mode === "less" || preference.mode === "pinned")
       && (preference.shell === "explore" || preference.shell === "practice" || preference.shell === "workspace")
-      && (preference.specialty === "cardiology" || preference.specialty === "oncology")
+      && isSpecialty(preference.specialty)
     )) : [],
   };
 }
@@ -75,6 +76,11 @@ export async function ensureSession(candidate?: string): Promise<{ id: string; s
     if (candidate && sessionIdPattern.test(candidate)) {
       const existing = fallbackStates.get(candidate);
       if (existing) return { id: candidate, state: normalizeState(existing), created: false };
+      // Serverless instances do not share memory: adopt the well-formed anonymous id instead of
+      // rotating it, so the browser keeps one identity (and one retention cohort) across instances.
+      const adopted = emptyUserState();
+      fallbackStates.set(candidate, adopted);
+      return { id: candidate, state: adopted, created: false };
     }
     const id = randomBytes(32).toString("hex");
     const state = emptyUserState();
@@ -84,6 +90,15 @@ export async function ensureSession(candidate?: string): Promise<{ id: string; s
   if (candidate && sessionIdPattern.test(candidate)) {
     const [record] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, candidate));
     if (record && Date.now() - record.updatedAt.getTime() < 180 * 86400_000) return { id: candidate, state: normalizeState(record.state), created: false };
+    // Adopt the browser's well-formed id (assigned once by proxy.ts) instead of rotating it: concurrent
+    // first requests then agree on one session, and runs created under it stay readable.
+    // An expired session is not revived: it rotates as before.
+    if (!record) {
+      const state = emptyUserState();
+      await db.insert(anonymousSessions).values({ id: candidate, state, updatedAt: new Date() }).onConflictDoNothing();
+      const [stored] = await db.select().from(anonymousSessions).where(eq(anonymousSessions.id, candidate));
+      return { id: candidate, state: stored ? normalizeState(stored.state) : state, created: true };
+    }
   }
   const id = randomBytes(32).toString("hex");
   const state = emptyUserState();

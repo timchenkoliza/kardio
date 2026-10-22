@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { HttpError, failure, json, rateLimit } from "@/server/http";
 import { getRequestAccessStateFromRequest } from "@/server/access/request-access";
 import { agentCommandSchema, executeAgentCommand } from "@/server/agents/commands";
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     rateLimit(`agents:${key}`, 60);
     const command = agentCommandSchema.parse(await readJsonBody(request));
     const sessionId = await agentSession(request, command.specialty);
-    const result = await executeAgentCommand(sessionId, command);
+    // The run is durable before this returns; its work continues after the response.
+    const result = await executeAgentCommand(sessionId, command, { schedule: task => after(task) });
     return attachAgentCookies(json(result), sessionId, command.specialty);
   } catch (error) {
     return failure(error);

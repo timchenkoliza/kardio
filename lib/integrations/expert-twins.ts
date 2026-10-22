@@ -88,8 +88,9 @@ export const expertTwinsPanels: Record<ExpertTwinsCouncil, ExpertTwinsPanelMembe
   ],
 };
 
-export function expertTwinsCouncilForSpecialty(specialty: SpecialtyId): ExpertTwinsCouncil {
-  return specialty;
+/** Expert Twins councils exist only for the legacy cardiology and oncology archive. */
+export function expertTwinsCouncilForSpecialty(specialty: SpecialtyId): ExpertTwinsCouncil | null {
+  return specialty === "cardiology" || specialty === "oncology" ? specialty : null;
 }
 
 export function inferExpertTwinsDomainTags(council: ExpertTwinsCouncil, input: string): string[] {

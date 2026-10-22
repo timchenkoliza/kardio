@@ -10,8 +10,8 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { SourceStanding } from "./source-policy";
 
-export type AgentId = "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
-export const AGENT_IDS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
+export type AgentId = "reference" | "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
+export const AGENT_IDS: readonly AgentId[] = ["reference", "whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
 
 /** Integration honesty: every adapter declares exactly one of these. */
 export type IntegrationMode = "LIVE" | "MOCK" | "UNAVAILABLE";
@@ -70,7 +70,11 @@ export type ToolName =
   | "indexUserMaterial"
   | "searchUserMaterials"
   | "generateLearningPlan"
-  | "matchPartnerContent";
+  | "matchPartnerContent"
+  | "lookupDrugLabel"
+  | "readAbstracts"
+  /** One planned source invocation of the source mesh (any source, any execution mode). */
+  | "readSource";
 
 export interface Provenance {
   connectorId: string;
@@ -115,6 +119,8 @@ export type ResultKind =
   | "research_finding"
   | "learning_module"
   | "material_hit"
+  | "reference_answer"
+  | "drug_label"
   | "partner";
 
 export type ResultActionKind = "open_internal" | "open_source" | "save" | "calendar" | "registration" | "email";
@@ -165,7 +171,13 @@ export interface AgentResultView extends AgentResult {
   newSinceLastSeen: boolean;
 }
 
-export type RunStatus = "running" | "completed" | "partial" | "failed" | "blocked";
+/**
+ * Run lifecycle. A run is durable from the moment its id is returned:
+ *   queued → running → partial (validated modules shown, evidence still arriving or limited) → completed
+ * failed / blocked are terminal. A run is finished when `completedAt` is set; `partial` with
+ * `completedAt` means it finished with limited evidence.
+ */
+export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed" | "blocked";
 export type RunTrigger = "manual" | "composer" | "schedule_catchup" | "configuration";
 
 export interface PlanStep {
@@ -195,7 +207,18 @@ export interface AgentRun {
   startedAt: string;
   completedAt: string | null;
   status: RunStatus;
-  input: { text: string | null; preferenceDigest: string };
+  input: {
+    text: string | null;
+    preferenceDigest: string;
+    explicitJob?: boolean;
+    followup?: boolean;
+    /**
+     * Execution context decided when the run was created (ids only, never text):
+     * entities resolved from the session, the clarification answered, a confirmed plan.
+     * Execution re-decides the strategy from these, deterministically.
+     */
+    context?: { entities: string[]; answered: { id: string; optionId: string | null } | null; planConfirmed: string | null } | null;
+  };
   intent: string | null;
   plan: PlanStep[];
   toolsUsed: ToolUse[];
@@ -205,6 +228,41 @@ export interface AgentRun {
   durationMs: number | null;
   riskNotices: string[];
   synthesis: string | null;
+  /** Compiled experience of mesh-executed jobs: the manifest and the evidence graph it points at. */
+  experience?: RunExperience | null;
+  /** Durable progress of a run that has not finished (and the record of how it got there). */
+  progress?: RunProgress | null;
+  /** How the run was executed: Skill fast path or dynamic plan, flow branches, shadow comparison. */
+  execution?: import("@/lib/mesh/execution").RunExecution | null;
+  /** Refinements applied to this result in place (result as context), oldest first, bounded. */
+  patches?: Array<import("@/lib/mesh/patch").ExperiencePatch>;
+}
+
+/** Physician-facing progress of a run; no implementation detail beyond source names. */
+export interface RunProgress {
+  /** 0 until the first validated module is published; +1 for every published ExperiencePatch. */
+  manifestVersion: number;
+  stepsTotal: number;
+  stepsDone: number;
+  /** Sources still being checked; `slow` once a source passed its soft deadline. */
+  pending: Array<{ name: string; slow: boolean }>;
+  /** Milliseconds from run creation to the first validated useful module. */
+  firstModuleMs: number | null;
+  /** Execution must finish by this time; a run still open after it is reported as expired. */
+  deadlineAt: string;
+  updatedAt: string;
+  patch: import("@/lib/mesh/patch").ExperiencePatch | null;
+}
+
+/**
+ * Stored with the run so the result page renders exactly what was compiled.
+ * Types live in lib/mesh; kept structural here to avoid a dependency cycle.
+ */
+export interface RunExperience {
+  intentId: string;
+  manifest: import("@/lib/mesh/manifest").ExperienceManifest;
+  graph: import("@/lib/mesh/evidence").EvidenceGraph;
+  plan: { id: string; steps: number; invocations: number; reused: boolean };
 }
 
 export interface AgentPreference {
@@ -244,6 +302,10 @@ export interface UserProfile {
   configuredAt: string | null;
   lastVisitAt: string | null;
   previousVisitAt: string | null;
+  /** First portal open for this specialty (retention cohort anchor). */
+  firstSeenAt: string | null;
+  /** First result page with at least one source-supported finding (activation). */
+  firstValueAt: string | null;
   updatedAt: string;
 }
 
@@ -306,7 +368,7 @@ export interface ActionRequest {
 export interface ConnectorDescriptor {
   id: string;
   name: string;
-  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
+  kind: "catalog" | "literature" | "guidelines" | "regulatory" | "drug_labels" | "professional_reference" | "events" | "society" | "messenger" | "web" | "user_documents" | "calendar" | "email" | "partner";
   mode: IntegrationMode;
   dataOrigin: DataOrigin;
   snapshotAt: string | null;
@@ -333,7 +395,7 @@ export interface AgentDefinition {
   name: string;
   job: string;
   description: string;
-  icon: "sparkles" | "scale" | "pill" | "search" | "calendar" | "graduation" | "folder";
+  icon: "sparkles" | "scale" | "pill" | "search" | "calendar" | "graduation" | "folder" | "answer";
   inputs: AgentInputSpec[];
   preferenceGroups: Array<"topics" | "contentTypes" | "sources" | "frequency" | "delivery" | "formats" | "horizon" | "goals">;
   supportedTools: ToolName[];

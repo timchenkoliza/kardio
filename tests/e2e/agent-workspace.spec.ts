@@ -1,17 +1,22 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * Agent-first workspace: critical paths and acceptance criteria.
- * PubMed is a LIVE connector; CI may have no network, so assertions never
- * depend on PubMed results — only on honest reporting of its state.
+ * Capabilities behind the portal (background checks, events, drugs,
+ * materials, settings). The portal home itself is covered by
+ * portal-journey.spec.ts. PubMed is a LIVE connector; CI may have no network,
+ * so assertions never depend on PubMed results — only on honest reporting.
  */
 
+const TOPIC_IDS: Record<string, string> = { "ХСН": "hf", "Артериальная гипертензия": "ah", "Фибрилляция предсердий": "af", "Кардиомиопатии": "cardiomyopathy" };
+
+/** Topics are optional in the portal; tests set them through the same command the settings page uses. */
 async function setupInterests(page: Page, topics: string[]) {
-  await page.goto("/cardiology");
-  for (const topic of topics) await page.getByRole("group", { name: "Что вас интересует?" }).getByRole("button", { name: topic, exact: true }).click();
-  await page.getByRole("button", { name: "Запустить агентов" }).click();
-  await expect(page.locator(".ws-setup.is-onboarding")).toHaveCount(0, { timeout: 30_000 });
-  await page.reload();
+  await page.goto("/cardiology/settings");
+  const ok = await page.evaluate(async ids => {
+    const response = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setInterests", specialty: "cardiology", topics: ids, trustedSources: ["rko", "esc", "pubmed"], excludedSources: [], runAgents: true }) });
+    return response.ok;
+  }, topics.map(topic => TOPIC_IDS[topic]));
+  expect(ok).toBe(true);
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -20,39 +25,15 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(metrics.body).toBeLessThanOrEqual(metrics.inner + 1);
 }
 
-test("home opens on the «Что нового для вас» feed, delegation and agents below", async ({ page }) => {
-  await page.goto("/cardiology");
-  await expect(page.getByRole("heading", { level: 1, name: "Что нового для вас" })).toBeVisible();
-  const feed = page.locator(".ws-feed");
-  await expect(feed.locator("> *").first().locator("svg.ws-feed-art")).toBeVisible();
-  await expect(feed.locator(".fa-ecg_af").first()).toBeAttached();
-  const partner = page.getByRole("complementary", { name: "Партнёрский материал" });
-  await expect(partner).toBeVisible();
-  await expect(partner).toContainText("Партнёрский материал");
-  await expect(page.locator(".ws-feed-video")).toHaveCount(1);
-  await expect(page.getByRole("link", { name: /Смотреть видеолекцию/ })).toHaveAttribute("href", /\/cardiology\/content\/video-/);
-  await expect(page.getByRole("textbox", { name: "Что хотите делегировать?" })).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "Основная навигация" });
-  await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
-  await expect(nav.getByRole("link", { name: /Мои агенты/ })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Мои материалы" })).toBeVisible();
-  await expect(nav).not.toContainText("Лента");
-  await expect(nav).not.toContainText("Источники");
-  await expect(page.locator(".ws-agent-card")).toHaveCount(7);
-  for (const name of ["Что нового для меня", "Изменения рекомендаций", "Препараты", "Исследовать тему", "События", "Моё обучение", "Мои материалы"]) {
-    await expect(page.getByRole("heading", { level: 3, name })).toBeVisible();
-  }
-});
-
-test("visual configuration without prompts runs the agents", async ({ page }) => {
+test("configuring topics runs the background checks behind «Для вас»", async ({ page }) => {
   await setupInterests(page, ["ХСН", "Артериальная гипертензия"]);
-  const drugs = page.locator('.ws-agent-card[data-agent="drugs"]');
-  await expect(drugs).toContainText(/регистрац/);
+  await page.goto("/cardiology/agents");
+  await expect(page.getByRole("heading", { level: 1, name: "Фоновые проверки" })).toBeVisible();
+  await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toContainText(/регистрац/);
   await expect(page.locator('.ws-agent-card[data-agent="whats_new"]')).toContainText(/по вашим темам|с вашего прошлого визита/);
-  // Agent findings lead the home feed (the former «Последние результаты» block); catalog fill uses .ws-feed-card.
-  const feed = page.getByRole("region", { name: "Лента «Что нового для вас»" });
-  await expect(feed.locator(".ws-result").first()).toBeVisible();
-  await expect(feed.getByRole("link", { name: "Вся сводка «Что нового для меня»" })).toBeVisible();
+  await page.goto("/cardiology");
+  await expect(page.locator(".pt-card").first()).toBeVisible();
+  await expect(page.locator(".pt-foryou")).toContainText("Почему вы это видите");
 });
 
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {
@@ -96,20 +77,22 @@ test("events agent: discovery → relevance → confirmed calendar file", async 
   await page.getByRole("dialog").getByRole("button", { name: "Отменить" }).click();
 });
 
-test("composer routes intent → plan → tools → evidence-backed result", async ({ page }) => {
+test("an evidence question routes to the research job with a checked trace", async ({ page }) => {
   await page.goto("/cardiology");
-  await page.getByRole("textbox", { name: "Что хотите делегировать?" }).fill("Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта");
-  await expect(page.locator(".ws-route")).toContainText("Исследовать тему");
-  await page.locator(".ws-composer-run").click();
-  await expect(page).toHaveURL(/\/cardiology\/agents\/research\?run=/, { timeout: 30_000 });
-  // The research trace is collapsed by default so the report stays first.
+  await page.getByRole("textbox", { name: "Что хотите узнать или сделать?" }).fill("Какие данные о ПОАК при фибрилляции предсердий и промежуточном риске инсульта");
+  await expect(page.locator(".pt-input .ws-route")).toContainText("разбор по исследованиям");
+  await page.locator(".pt-input .ws-composer-run").click();
+  await expect(page).toHaveURL(/\/cardiology\/ask\?run=/, { timeout: 45_000 });
+  // The run is durable at once; sources are checked on the result page.
+  await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByRole("heading", { level: 1, name: "Разбор по исследованиям" })).toBeVisible();
+  await expect(page.locator(".pt-synthesis")).toContainText("Чего не хватает");
   await page.locator(".ws-trace-disclosure > summary").click();
   const trace = page.locator(".ws-trace");
   await expect(trace.getByRole("heading", { name: "Как получен результат" })).toBeVisible();
   await expect(trace).toContainText("Искали в каталоге РКО и РКЖ");
   await expect(trace).toContainText("Искали публикации в PubMed");
   await expect(trace).toContainText("Проверили утверждения по источникам");
-  await expect(trace).toContainText("Чего не хватает");
   await expect(page.locator(".ws-result").first()).toContainText(/фибрилляц|fibrillation/i);
   await expect(page.locator(".ws-verify").first()).toBeVisible();
 });
@@ -133,7 +116,9 @@ test("my materials: add a note and retrieve it only from my base", async ({ page
 test("settings expose honest connector states", async ({ page }) => {
   await page.goto("/cardiology/settings");
   const connectors = page.locator(".ws-connectors");
-  await expect(connectors.locator("li").filter({ hasText: "ГРЛС" })).toContainText("Не подключено");
+  await expect(connectors.locator("li").filter({ hasText: "ГРЛС Минздрава" })).toContainText("Не подключено");
+  await expect(connectors.locator("li").filter({ hasText: "Рубрикатор клинических рекомендаций" })).toContainText("Не подключено");
+  await expect(connectors.locator("li").filter({ hasText: "Инструкции FDA" })).toContainText(/Онлайн|Не подключено/);
   await expect(connectors.locator("li").filter({ hasText: "Telegram-каналы" })).toContainText("Не подключено");
   await expect(connectors.locator("li").filter({ hasText: "Партнёрские материалы" })).toContainText("Демо-данные");
   await expect(connectors.locator("li").filter({ hasText: "PubMed" }).first()).toContainText(/Онлайн|Не подключено/);
@@ -143,7 +128,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
   test(`workspace pages have no horizontal overflow at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await setupInterests(page, ["ХСН", "Фибрилляция предсердий"]);
-    for (const path of ["/cardiology", "/cardiology/agents", "/cardiology/agents/drugs", "/cardiology/agents/events", "/cardiology/agents/guidelines", "/cardiology/agents/learning", "/cardiology/materials", "/cardiology/settings"]) {
+    for (const path of ["/cardiology", "/cardiology/ask?job=drug", "/pediatrics", "/cardiology/agents", "/cardiology/agents/drugs", "/cardiology/agents/events", "/cardiology/agents/guidelines", "/cardiology/agents/learning", "/cardiology/materials", "/cardiology/settings"]) {
       await page.goto(path);
       await expect(page.locator("main")).toBeVisible();
       await expectNoHorizontalOverflow(page);

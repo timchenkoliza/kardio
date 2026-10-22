@@ -33,8 +33,9 @@ function cleanXmlText(value: string): string {
 }
 
 function attr(attributes: string, name: string): string | null {
-  const match = attributes.match(new RegExp(`${name}=["']([^"']+)["']`, "iu"));
-  return match?.[1] ?? null;
+  // Quote-aware: Cochrane labels contain an apostrophe (Label="AUTHORS' CONCLUSIONS").
+  const match = attributes.match(new RegExp(`${name}=(?:"([^"]*)"|'([^']*)')`, "iu"));
+  return match?.[1] ?? match?.[2] ?? null;
 }
 
 export function parsePubmedAbstractXml(xml: string): { pmcid: string | null; sections: PubmedDocumentSection[] } {

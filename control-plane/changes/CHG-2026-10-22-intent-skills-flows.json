@@ -1,0 +1,79 @@
+{
+  "change_id": "CHG-2026-10-22-intent-skills-flows",
+  "cause": "code",
+  "status": "IN_PROGRESS",
+  "title": "Intent Skills & Flows: known jobs run as versioned Skills with inspectable Flows; one clarification; result as context",
+  "problem": {
+    "user_segment": "practising physicians (cardiology and pediatrics first; all six launch specialties keep the generic path)",
+    "job": "ask one professional question and get the right execution without choosing agents, sources or workflows",
+    "observed_failure": "every request was planned the same way: «что изменилось в рекомендациях» did not compare versions, «препарат при заболевании — что сейчас известно» returned a bare instruction, follow-ups started unrelated runs and ambiguous requests were guessed",
+    "evidence": [
+      "«Эмпаглифлозин при ХСН-сФВ — что сейчас известно?» on b5317b5: drug_reference without the Russian guideline or the society guideline",
+      "«Какие новые рекомендации по ХСН-сФВ?» on b5317b5: no ESC 2026 summary, no research",
+      "a follow-up «Оставь только российские источники» minted a new unrelated run"
+    ]
+  },
+  "hypothesis": "If repeated jobs run as evaluated Skills with evidence-dependent Flows, ambiguous requests get one bounded question and follow-ups patch the open result, physicians get more complete answers for the same input with fewer reformulations, without losing any module, source or provenance the generic path had.",
+  "target_metric": { "name": "reformulation_rate_same_session", "desired_direction": "decrease" },
+  "guardrails": [
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 },
+    { "name": "lost_modules_vs_baseline", "operator": "=", "threshold": 0 },
+    { "name": "lost_answering_sources_vs_baseline", "operator": "=", "threshold": 0 },
+    { "name": "cross_specialty_clinical_leak", "operator": "=", "threshold": 0 },
+    { "name": "raw_query_text_in_telemetry", "operator": "=", "threshold": 0 },
+    { "name": "clarification_turns_per_request", "operator": "<=", "threshold": 1 }
+  ],
+  "semantic_triggers": ["medical_evidence", "source_verification", "clinical_recommendation"],
+  "expected_paths": [
+    "lib/mesh/**",
+    "server/mesh/**",
+    "server/portal/**",
+    "server/agents/**",
+    "components/experience/**",
+    "components/portal/**",
+    "components/workspace/workspace-provider.tsx",
+    "app/[specialty]/(workspace)/ask/page.tsx",
+    "app/styles/portal.css",
+    "lib/agents/types.ts",
+    "control-plane/changes/CHG-2026-10-22-intent-skills-flows.json",
+    "control-plane/changes/CHG-2026-10-22-intent-skills-primary.json",
+    "tests/**",
+    "docs/INTENT_SKILLS_FLOWS.md"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "a Skill result loses a module or an answering source the generic path had",
+    "an unsupported claim reaches the page",
+    "a clarification is shown twice for one request",
+    "a Skill id, Flow id or step list is rendered as navigation or copy",
+    "cardiology evidence appears in a pediatric Skill result",
+    "free-text query appears in telemetry"
+  ],
+  "capability_delta": { "capabilities": ["evidence_answer"], "sources_added": [], "sources_removed": [], "operations": [] },
+  "changes": { "module_family": false, "representation": true, "ranking": true, "source_policy": false },
+  "does_not_change": { "navigation": true, "onboarding": true, "safety_thresholds": true, "source_policy": true },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "reference_answer",
+    "secondary_jobs": ["guideline_check", "guideline_discovery", "drug_reference"],
+    "impact_triggers": ["user_visible", "representation_change", "result_ranking_change"],
+    "capability_transition": "incremental",
+    "module": {
+      "strategy": "reuse",
+      "allowed_modules": ["key_takeaway", "recommendation_delta", "conflict", "drug_reference", "evidence", "sources", "handoff", "next_actions", "notices"],
+      "forbidden_modules": ["comparison", "timeline", "calculator"]
+    },
+    "representation": {
+      "primary": "EVIDENCE_STACK",
+      "secondary": ["SOURCE_TRAIL", "SHORT_TEXT"],
+      "visualization": "forbidden",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": { "navigation_landmarks_unchanged": true, "action_semantics_unchanged": true, "factual_meaning_unchanged": true, "safety_thresholds_unchanged": true },
+    "personalization": { "mode": "none", "inferred_traits_expire": true, "sensitive_traits_forbidden": true },
+    "onboarding": { "meaningful_capability_transition": false, "required_when_relevant": false, "dismissal_respected": true, "mastery_suppresses_future_guides": true },
+    "cache": { "blueprint_cacheable": true, "invalidation_triggers": ["source_document_version_change", "source_policy_change", "domain_graph_change", "compiler_version_change", "skill_version_change"] }
+  }
+}

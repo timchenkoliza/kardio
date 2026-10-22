@@ -26,6 +26,21 @@ function preference(overrides: Partial<AgentPreference>): AgentPreference {
  * checking are deliberately not agents: they are shared capabilities.
  */
 export const AGENT_DEFINITIONS: Record<AgentId, AgentDefinition> = {
+  reference: {
+    id: "reference",
+    name: "Справка",
+    job: "Отвечает на профессиональный вопрос выводами систематических обзоров и рекомендаций, а по препарату — разделами официальной инструкции",
+    description: "Ищет свежие систематические обзоры, метаанализы и рекомендации, приводит их выводы цитатой с источником и годом. По препарату показывает разделы инструкции FDA и сигналы безопасности. Не подбирает лечение конкретному пациенту.",
+    icon: "answer",
+    inputs: [{ id: "text", label: "Вопрос", required: true }],
+    preferenceGroups: ["delivery"],
+    supportedTools: ["readSource", "searchPubmed", "readAbstracts", "lookupDrugLabel", "findDrugChanges", "searchMedical", "factCheck", "riskCheck", "rankEvidence"],
+    triggerMode: "on_demand",
+    outputSchema: ["reference_answer", "drug_label", "drug_change", "research_finding"],
+    safetyPolicy: { ...baseSafety, partnerContent: "not_applicable" },
+    status: "active",
+    defaultPreference: preference({ contentTypes: ["research", "guidelines", "drugs"], frequency: "important_only" }),
+  },
   whats_new: {
     id: "whats_new",
     name: "Что нового для меня",
@@ -133,7 +148,7 @@ export const AGENT_DEFINITIONS: Record<AgentId, AgentDefinition> = {
   },
 };
 
-export const AGENT_ORDER: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
+export const AGENT_ORDER: readonly AgentId[] = ["reference", "whats_new", "guidelines", "drugs", "research", "events", "learning", "materials"];
 
 export function agentDefinition(id: AgentId): AgentDefinition {
   return AGENT_DEFINITIONS[id];
@@ -145,6 +160,7 @@ export function isAgentId(value: unknown): value is AgentId {
 
 /** URL slugs keep links readable; ids stay snake_case internally. */
 export const AGENT_SLUGS: Record<AgentId, string> = {
+  reference: "reference",
   whats_new: "whats-new",
   guidelines: "guidelines",
   drugs: "drugs",

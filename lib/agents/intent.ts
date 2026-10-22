@@ -5,7 +5,7 @@ import { normalizeText, stemPattern, wordPattern } from "./text";
 import type { AgentId } from "./types";
 import { topicsMentioned } from "./vocabulary";
 
-export type IntentKind = "monitor_updates" | "compare_guidelines" | "track_drugs" | "research_question" | "find_events" | "plan_learning" | "ask_my_materials";
+export type IntentKind = "reference_answer" | "monitor_updates" | "compare_guidelines" | "track_drugs" | "research_question" | "find_events" | "plan_learning" | "ask_my_materials";
 
 export interface RoutedIntent {
   agentId: AgentId;

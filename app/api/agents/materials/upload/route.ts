@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { failure, HttpError, json, rateLimit } from "@/server/http";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const fieldsSchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   title: z.string().trim().max(200).optional(),
   note: z.string().trim().max(2000).optional(),
 });

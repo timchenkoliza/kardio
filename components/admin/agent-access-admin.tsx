@@ -16,6 +16,7 @@ import {
 } from "@/lib/access/agent-entitlements";
 
 const AGENT_LABELS: Record<ProductAgentId, string> = {
+  reference: "Справка",
   whats_new: "Что нового",
   guidelines: "Рекомендации",
   drugs: "Препараты",
