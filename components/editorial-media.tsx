@@ -1,9 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
+import { contentDerivative } from "@/lib/media/derivatives";
 import { kindLabel } from "@/lib/ui/labels";
-import { prototypeMediaForContent } from "@/lib/ui/prototype-media-bank";
-import { approvedEditorialMediaForContent } from "@/lib/ui/approved-medical-media";
-import { readyArticleMotionForContent } from "@/lib/ui/article-motion-media";
 
 function mediaTreatment(content: ContentObject): "diagnostic" | "editorial" {
   const explicitText = [content.title, ...content.tags, ...content.topics].join(" ");
@@ -27,16 +25,10 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
   compact?: boolean;
   fallback?: boolean;
 }) {
-  const prototypeAsset = content.specialty === specialty && !content.asset?.url ? prototypeMediaForContent(content) : null;
-  const motionAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset
-    ? readyArticleMotionForContent(content)
-    : null;
-  const approvedAsset = content.specialty === specialty && !content.asset?.url && !prototypeAsset && !motionAsset
-    ? approvedEditorialMediaForContent(content)
-    : null;
-  const mediaUrl = content.asset?.url ?? prototypeAsset?.src ?? motionAsset?.output_url ?? approvedAsset?.src ?? null;
+  // The document's own asset and the prototype bank are source material: only an approved derivative is drawn.
+  const derivative = contentDerivative(content, specialty);
 
-  if (!mediaUrl) {
+  if (!derivative?.src) {
     if (!fallback) return null;
 
     const context = content.topics[0] ?? content.tags[0] ?? null;
@@ -57,38 +49,15 @@ export function EditorialMedia({ content, specialty, compact = false, fallback =
     );
   }
 
-  const mediaState = content.asset?.url
-    ? "real"
-    : prototypeAsset
-      ? "prototype"
-      : motionAsset
-        ? "generated-motion"
-        : "approved-fallback";
-  const alt = content.asset?.caption
-    ?? prototypeAsset?.alt
-    ?? (motionAsset ? `Анимированная иллюстрация к материалу «${content.title}» на основе исходного изображения` : null)
-    ?? approvedAsset?.alt
-    ?? "";
-  const credit = content.asset?.credit
-    ?? (motionAsset ? motionAsset.provenance_note : null)
-    ?? approvedAsset?.credit
-    ?? null;
-
   return (
     <figure
       className={compact ? "editorial-media compact has-image" : "editorial-media has-image"}
       data-media-treatment={mediaTreatment(content)}
-      data-media-state={mediaState}
+      data-media-state="derivative"
+      data-derivative-id={derivative.id}
     >
-      <img
-        src={mediaUrl}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        width={content.asset?.width ?? motionAsset?.width ?? undefined}
-        height={content.asset?.height ?? motionAsset?.height ?? undefined}
-      />
-      {credit && <figcaption>{credit}</figcaption>}
+      <img src={derivative.src} alt={derivative.alt} loading="lazy" decoding="async" width={derivative.width} height={derivative.height} />
+      <figcaption>{derivative.label}</figcaption>
     </figure>
   );
 }

@@ -66,7 +66,9 @@ describe("«Для вас» in every launch specialty", () => {
     expect(card.primary).toMatchObject({ href: card.href, external: false });
     expect(card.source.url).toBe("https://pubmed.ncbi.nlm.nih.gov/1/");
     expect(card.trust.label).toBe("Надёжный источник");
-    expect(card.media?.kind).toBe("art");
+    // Stroke in general: the approved derivative of an occluded cerebral artery, labelled as a topic illustration.
+    expect(card.media).toMatchObject({ kind: "derivative", caveat: "Иллюстрация к теме, не к конкретному случаю" });
+    expect(card.media?.kind === "derivative" && card.media.derivativeId).toMatch(/^drv-neurology-ischemic-stroke-/u);
     for (const text of [card.title, card.summary ?? "", card.whyShown, card.whyItMatters ?? "", card.trust.label]) expect(containsInternalJargon(text)).toBe(false);
     expect(`${card.title} ${card.summary}`).not.toMatch(/\bAHA\b/u);
   });

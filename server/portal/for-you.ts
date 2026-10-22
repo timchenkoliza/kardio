@@ -3,13 +3,13 @@ import { withNewFlags } from "@/lib/agents/profile";
 import type { AgentId, AgentResult, AgentRun, DrugChangeType, Material, UserProfile } from "@/lib/agents/types";
 import { topicLabels } from "@/lib/agents/vocabulary";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
-import { stateForOrigin, type CardMedia, type ForYouCard, type ForYouKind } from "@/lib/portal/cards";
+import { mediaKey, selectCardMedia } from "@/lib/media/derivatives";
+import { stateForOrigin, type ForYouCard, type ForYouKind } from "@/lib/portal/cards";
 import { askHref, type PortalJob } from "@/lib/portal/jobs";
 import { showcaseById, showcaseFor, type ShowcaseItem } from "@/lib/portal/showcase";
 import { EXAMPLE_DISCLOSURE, EXAMPLE_SPONSOR, PLACEMENT_FORMATS } from "@/lib/pharma/placement-formats";
 import { isRussian, localizeItem, physicianSafe, publicationFacts, trustLabel } from "@/lib/presentation/physician";
-import { matchCardioIllustration, type ApprovedMedicalMediaAsset } from "@/lib/ui/approved-medical-media";
-import { artAlt, artForTopics } from "@/lib/ui/feed-art";
+import { artForTopics } from "@/lib/ui/feed-art";
 import { kindLabel } from "@/lib/ui/labels";
 import { specialties } from "@/lib/specialty";
 import { currentResults } from "@/server/agents/workspace";
@@ -23,7 +23,8 @@ import { evidenceEligibleCatalog } from "@/server/agents/services/search";
  *
  * Every card passes the physician presentation layer before it is rendered:
  * a Russian title and summary (the source wording only behind «Оригинал»),
- * Russian tags, an editorial source label, a matched picture or none, and
+ * Russian tags, an editorial source label, a picture from the media policy
+ * (approved derivative → in-house art → none, lib/media/derivatives.ts), and
  * an internal page that the whole card opens in the same tab. When the live
  * feed of a specialty is short it is completed with «Подборка редакции» —
  * real documents with real links, labelled as a selection, never as new.
@@ -125,27 +126,7 @@ export function scenariosFor(kind: ForYouKind, topic: string): ForYouCard["scena
   ];
 }
 
-function imageMedia(asset: ApprovedMedicalMediaAsset): CardMedia {
-  return { kind: "image", src: asset.src, alt: asset.alt, credit: asset.credit };
-}
-
-/** Picture for a card: a licensed image matched to the cardiology subject, specialty line art elsewhere, or none. */
-function mediaFor(specialty: SpecialtyId, text: string, tags: readonly string[], kind: string | null, avoid: string | null): CardMedia | null {
-  if (specialty === "cardiology") {
-    const match = matchCardioIllustration({ text, kind });
-    if (!match) return null;
-    const asset = match.asset.src === avoid ? match.alternatives.find(item => item.src !== avoid) ?? match.asset : match.asset;
-    return imageMedia(asset);
-  }
-  const art = artForTopics(tags);
-  return art ? { kind: "art", art, alt: artAlt(art), animated: false } : null;
-}
-
-function mediaKey(media: CardMedia | null): string | null {
-  return !media ? null : media.kind === "image" ? media.src : media.art;
-}
-
-export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean }, specialty: SpecialtyId, isNew: boolean, options: { avoidMedia?: string | null } = {}): ForYouCard {
+export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean }, specialty: SpecialtyId, isNew: boolean, options: { used?: Set<string> } = {}): ForYouCard {
   const kind = kindFor(result);
   const topicAttr = typeof result.attributes.topic === "string" ? result.attributes.topic : null;
   const label = kind === "publication" && typeof result.attributes.studyType === "string" ? result.attributes.studyType : result.kind === "drug_change" && result.category && result.category in DRUG_CHANGE_LABEL ? DRUG_CHANGE_LABEL[result.category as DrugChangeType].title : LABEL[kind];
@@ -154,7 +135,13 @@ export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean },
   const href = internalHref(result, specialty);
   const state = stateForOrigin(result.source.dataOrigin);
   const topic = topicAttr ?? localized.tags[0] ?? (localized.basis === "template" ? "" : localized.title);
-  const media = result.kind === "event" ? null : mediaFor(specialty, `${result.title} ${result.summary}`, localized.tags, result.kind, options.avoidMedia ?? null);
+  const media = result.kind === "event" ? null : selectCardMedia({
+    specialty,
+    text: [result.title, result.summary, localized.title, ...localized.tags].join(" "),
+    kind: result.kind,
+    art: specialty === "cardiology" ? null : artForTopics(localized.tags),
+    used: options.used,
+  });
   return {
     id: result.id,
     kind,
@@ -181,44 +168,46 @@ export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean },
   };
 }
 
-function catalogCards(content: readonly ContentObject[], specialty: SpecialtyId, topics: readonly string[], seen: Set<string>): ForYouCard[] {
+/** A catalog document as a card. Its own asset (a source image) is never the card picture: the media policy decides. */
+export function catalogCard(item: ContentObject, specialty: SpecialtyId, topics: readonly string[], used?: Set<string>): ForYouCard {
+  const href = `/${specialty}/content/${encodeURIComponent(item.id)}`;
+  const tags = [...item.topics, ...item.tags].filter(isRussian).slice(0, 3);
+  return {
+    id: `catalog-${item.id}`,
+    kind: "catalog" as const,
+    label: kindLabel[item.kind],
+    title: item.title,
+    summary: item.summary,
+    whyItMatters: item.publicationYear ? `Актуальная версия ${item.publicationYear} года по данным источника` : null,
+    whyShown: topics.length ? `Темы из настроек: ${topicLabels(specialty, topics).slice(0, 2).join(", ")}` : `Специальность: ${specialties[specialty].name}`,
+    source: { name: item.source.name, url: item.canonicalUrl, state: "SNAPSHOT" as const, freshness: "каталог специальности" },
+    date: item.publicationDate ?? (item.publicationYear ? String(item.publicationYear) : null),
+    topic: null,
+    isNew: false,
+    primary: { label: "Открыть", href, external: false },
+    next: null,
+    resultId: null,
+    partner: null,
+    href,
+    original: null,
+    tags,
+    media: selectCardMedia({ specialty, text: [item.title, item.summary, ...item.tags, ...item.topics].join(" "), kind: item.kind, used }),
+    trust: trustLabel("SNAPSHOT"),
+    scenarios: scenariosFor("catalog", tags[0] ?? item.title),
+    showcase: false,
+  };
+}
+
+function catalogCards(content: readonly ContentObject[], specialty: SpecialtyId, topics: readonly string[], seen: Set<string>, used: Set<string>): ForYouCard[] {
   if (!specialties[specialty].catalog) return [];
   const eligible = evidenceEligibleCatalog(content).filter(item => item.specialty === specialty && item.kind === "guideline" && item.currentness === "current" && !seen.has(item.title.toLocaleLowerCase("ru-RU")));
   return eligible
     .sort((a, b) => (b.publicationYear ?? 0) - (a.publicationYear ?? 0) || b.priority - a.priority || a.id.localeCompare(b.id))
     .slice(0, 3)
-    .map(item => {
-      const href = `/${specialty}/content/${encodeURIComponent(item.id)}`;
-      const tags = [...item.topics, ...item.tags].filter(isRussian).slice(0, 3);
-      const match = matchCardioIllustration({ text: [item.title, item.summary, ...item.tags, ...item.topics].join(" "), kind: item.kind });
-      return {
-        id: `catalog-${item.id}`,
-        kind: "catalog" as const,
-        label: kindLabel[item.kind],
-        title: item.title,
-        summary: item.summary,
-        whyItMatters: item.publicationYear ? `Актуальная версия ${item.publicationYear} года по данным источника` : null,
-        whyShown: topics.length ? `Темы из настроек: ${topicLabels(specialty, topics).slice(0, 2).join(", ")}` : `Специальность: ${specialties[specialty].name}`,
-        source: { name: item.source.name, url: item.canonicalUrl, state: "SNAPSHOT" as const, freshness: "каталог специальности" },
-        date: item.publicationDate ?? (item.publicationYear ? String(item.publicationYear) : null),
-        topic: null,
-        isNew: false,
-        primary: { label: "Открыть", href, external: false },
-        next: null,
-        resultId: null,
-        partner: null,
-        href,
-        original: null,
-        tags,
-        media: item.asset?.url ? { kind: "image" as const, src: item.asset.url, alt: item.asset.caption ?? "", credit: item.asset.credit ?? null } : match ? imageMedia(match.asset) : null,
-        trust: trustLabel("SNAPSHOT"),
-        scenarios: scenariosFor("catalog", tags[0] ?? item.title),
-        showcase: false,
-      };
-    });
+    .map(item => catalogCard(item, specialty, topics, used));
 }
 
-export function showcaseCard(item: ShowcaseItem): ForYouCard {
+export function showcaseCard(item: ShowcaseItem, used?: Set<string>): ForYouCard {
   const href = itemHref(item.specialty, item.id);
   return {
     id: item.id,
@@ -239,7 +228,7 @@ export function showcaseCard(item: ShowcaseItem): ForYouCard {
     href,
     original: { title: item.originalTitle, summary: null },
     tags: [...item.tags],
-    media: item.art ? { kind: "art", art: item.art, alt: artAlt(item.art), animated: false } : null,
+    media: selectCardMedia({ specialty: item.specialty, text: [item.title, item.summary, ...item.tags, item.topic].join(" "), kind: item.kind, art: item.art, used }),
     trust: trustLabel("SNAPSHOT", { showcase: true }),
     scenarios: scenariosFor("showcase", item.topic),
     showcase: true,
@@ -283,7 +272,7 @@ function partnerCard(profile: UserProfile, specialty: SpecialtyId): ForYouCard |
   };
 }
 
-/** Neighbouring cards never repeat a picture; every fifth illustrated card stays text-only. */
+/** Neighbouring cards never repeat a picture (alternatives are chosen at selection); every sixth illustrated card stays text-only. */
 function varyMedia(cards: ForYouCard[]): ForYouCard[] {
   // One picture is shown once per feed: a repeat reads as filler, so the later card goes text-only.
   const used = new Set<string>();
@@ -317,19 +306,21 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
     return true;
   });
   // New first, then the freshest; events keep their own slot below.
+  // One set per page: a later card about the same subject takes another approved derivative, its art, or none.
+  const used = new Set<string>();
   const updates = unique.filter(result => result.kind !== "event")
     .sort((a, b) => Number(isNew(b)) - Number(isNew(a)) || (b.observedAt ?? "").localeCompare(a.observedAt ?? "") || a.rank - b.rank)
-    .map(result => resultCard(result, specialty, isNew(result)));
+    .map(result => resultCard(result, specialty, isNew(result), { used }));
   const events = unique.filter(result => result.kind === "event")
     .sort((a, b) => String(a.attributes.startDate ?? "").localeCompare(String(b.attributes.startDate ?? "")))
     .slice(0, 1)
-    .map(result => resultCard(result, specialty, isNew(result)));
+    .map(result => resultCard(result, specialty, isNew(result), { used }));
 
   const learningRun = args.runs.find(run => run.agentId === "learning" && run.status !== "running");
   // The learning step should add something: skip a reading already shown as an update card.
   const shownUrls = new Set(updates.map(card => card.source.url).filter(Boolean));
   const learning = learningRun ? currentResults(args.results.filter(result => result.agentId === "learning"), learningRun).filter(result => result.attributes.done !== true && !shownUrls.has(result.source.sourceUrl)).sort((a, b) => a.rank - b.rank)[0] : undefined;
-  const learningCard = learning ? resultCard(learning, specialty, false) : null;
+  const learningCard = learning ? resultCard(learning, specialty, false, { used }) : null;
 
   const savedHref = `/${specialty}/materials`;
   const savedCard: ForYouCard | null = args.materials.length ? {
@@ -357,10 +348,10 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
     showcase: false,
   } : null;
 
-  const fill = updates.length < 4 ? catalogCards(args.content, specialty, profile.interests.topics, seen) : [];
+  const fill = updates.length < 4 ? catalogCards(args.content, specialty, profile.interests.topics, seen, used) : [];
   const shown = new Set([...updates, ...fill].map(card => card.source.url).filter(Boolean));
   const selection = updates.length + fill.length < LIVE_TARGET
-    ? showcaseFor(specialty).filter(item => !shown.has(item.url)).slice(0, Math.max(3, LIVE_TARGET + 1 - updates.length - fill.length)).map(showcaseCard)
+    ? showcaseFor(specialty).filter(item => !shown.has(item.url)).slice(0, Math.max(3, LIVE_TARGET + 1 - updates.length - fill.length)).map(item => showcaseCard(item, used))
     : [];
   const partner = partnerCard(profile, specialty);
 

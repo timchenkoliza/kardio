@@ -1,6 +1,7 @@
-/* eslint-disable @next/next/no-img-element -- licensed static media from public/media, sized by CSS */
+/* eslint-disable @next/next/no-img-element -- approved derivatives from public/media/derived, sized by CSS */
 import { ArrowRight, ExternalLink, Handshake } from "lucide-react";
 import { formatDateRu } from "@/lib/agents/format";
+import { publishableDerivative } from "@/lib/media/derivatives";
 import { STATE_LABEL, type CardMedia, type ForYouCard } from "@/lib/portal/cards";
 import type { ClientPortalEvent } from "@/lib/portal/metrics";
 import { russianPublicationDate } from "@/lib/presentation/physician";
@@ -31,11 +32,20 @@ export function StateBadge({ state, freshness }: { state: ForYouCard["source"]["
   return <span className="ws-mode pt-state" data-state={state}>{STATE_LABEL[state]}{freshness ? ` · ${freshness}` : ""}</span>;
 }
 
+/** Media a physician may see: in-house art, or a derivative the manifest still lists as approved. */
+export function renderableMedia(media: CardMedia | null): CardMedia | null {
+  if (!media) return null;
+  return media.kind === "art" || publishableDerivative(media) ? media : null;
+}
+
 export function CardMediaView({ media, className = "pt-card-media", eager = false }: { media: CardMedia; className?: string; eager?: boolean }) {
   if (media.kind === "art") return <figure className={className} data-media="art"><FeedArt art={media.art} alt={media.alt} animated={media.animated} /></figure>;
-  return <figure className={className} data-media="image">
-    <img src={media.src} alt={media.alt} loading={eager ? "eager" : "lazy"} decoding="async" />
-    {media.credit && <figcaption>{media.credit}</figcaption>}
+  // Anything that is not an approved derivative — a source image, a rejected attempt, a stale id — renders nothing.
+  const derivative = publishableDerivative(media);
+  if (!derivative) return null;
+  return <figure className={className} data-media="derivative" data-derivative-id={derivative.id} data-pipeline={derivative.transformation.version}>
+    <img src={derivative.src as string} alt={derivative.alt} width={derivative.width} height={derivative.height} loading={eager ? "eager" : "lazy"} decoding="async" />
+    <figcaption>{media.caveat ? `${media.caveat}. ` : ""}{derivative.label}</figcaption>
   </figure>;
 }
 
@@ -49,6 +59,7 @@ function SourceLink({ url, className = "pt-source-link" }: { url: string; classN
 
 function Card({ card, lead }: { card: ForYouCard; lead: boolean }) {
   const date = dateLabel(card.date);
+  const media = renderableMedia(card.media);
   if (card.partner) {
     return <aside className="pt-card is-partner" aria-label="Партнёрский материал">
       <p className="ws-format-disclosure"><Handshake size={13} aria-hidden="true" />{card.partner.disclosure} · {card.partner.sponsor}</p>
@@ -58,7 +69,7 @@ function Card({ card, lead }: { card: ForYouCard; lead: boolean }) {
       <div className="pt-card-actions"><TrackedLink className="ws-text-link" href={card.primary.href} events={[]}>{card.primary.label}<ArrowRight size={14} aria-hidden="true" /></TrackedLink></div>
     </aside>;
   }
-  return <article className={`pt-card${card.media ? " has-media" : ""}${lead ? " is-lead" : ""}${card.isNew ? " is-new" : ""}`} data-kind={card.kind} data-showcase={card.showcase || undefined} aria-labelledby={`fy-${card.id}`}>
+  return <article className={`pt-card${media ? " has-media" : ""}${lead ? " is-lead" : ""}${card.isNew ? " is-new" : ""}`} data-kind={card.kind} data-showcase={card.showcase || undefined} aria-labelledby={`fy-${card.id}`}>
     <div className="pt-card-body">
       <div className="pt-card-meta">
         {card.isNew && <span className="ws-new">Новое</span>}
@@ -80,7 +91,7 @@ function Card({ card, lead }: { card: ForYouCard; lead: boolean }) {
         {card.source.url && <SourceLink url={card.source.url} />}
       </div>}
     </div>
-    {card.media && <CardMediaView media={card.media} eager={lead} />}
+    {media && <CardMediaView media={media} eager={lead} />}
   </article>;
 }
 

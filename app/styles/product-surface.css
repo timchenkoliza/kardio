@@ -146,6 +146,11 @@
 .pt-card-media .ws-feed-art { display: block; width: 100%; height: 100%; aspect-ratio: 2 / 1; object-fit: cover; }
 .pt-card-media figcaption { padding: var(--ws-space-4) var(--ws-space-16) 0; background: var(--ws-canvas); color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
 .pt-cards > .pt-card.has-media > .pt-card-media { order: -1; }
+/* A derivative is drawn on `surface` with its subject in the crop-safe box: shown whole, never cropped by the card. */
+.pt-card-media[data-media="derivative"],
+.pt-item-media[data-media="derivative"] { background: var(--ws-surface); }
+.pt-card-media[data-media="derivative"] img,
+.pt-item-media[data-media="derivative"] img { object-fit: contain; }
 
 .pt-tags { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--ws-space-4); }
 .pt-tags li { display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--ws-space-8); border-radius: var(--ws-radius-tag); background: var(--ws-surface); color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
