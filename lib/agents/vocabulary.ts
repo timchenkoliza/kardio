@@ -150,7 +150,7 @@ export const FREQUENCY_OPTIONS: ReadonlyArray<{ id: Frequency; label: string; ho
 ];
 
 export const DELIVERY_OPTIONS: ReadonlyArray<{ id: DeliveryChannel; label: string; available: boolean; note: string }> = [
-  { id: "home", label: "На главной", available: true, note: "Результаты появляются в карточке агента" },
+  { id: "home", label: "На главной", available: true, note: "Находки появляются в ленте «Для вас»" },
   { id: "save", label: "Сохранять", available: true, note: "Новые находки сразу попадают в «Мои материалы»" },
   { id: "notification", label: "Уведомления", available: false, note: "Push и email-уведомления пока не подключены" },
   { id: "calendar", label: "Календарь", available: true, note: "Только через подтверждение: файл .ics для вашего календаря" },

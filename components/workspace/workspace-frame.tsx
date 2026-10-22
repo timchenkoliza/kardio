@@ -44,7 +44,8 @@ export function sectionFromPath(pathname: string, specialty: string): WorkspaceS
   if (rest.startsWith("/materials")) return "materials";
   if (rest.startsWith("/anonymizer")) return "anonymizer";
   if (rest.startsWith("/settings")) return "settings";
-  if (rest.startsWith("/content")) return "content";
+  // A catalog document is a material opened from Главное, like /item.
+  if (rest.startsWith("/content")) return "home";
   return "home";
 }
 

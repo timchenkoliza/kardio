@@ -43,7 +43,8 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
   const now = new Date().toISOString();
   const recent = lastActivity(runs);
   // Background checks list what they found; titles pass the same Russian presentation as the feed.
-  const background = workspace.cards.filter(card => card.agentId !== "reference").map(card => ({ ...card, highlights: card.highlights.map(title => isRussian(title) ? title : localizeItem({ title, typeLabel: "Публикация" }).title) }));
+  // Only the checks that fill «Для вас», and each address once: «Что нового» is already a task card above.
+  const background = workspace.cards.filter(card => card.agentId === "guidelines" || card.agentId === "drugs" || card.agentId === "events").map(card => ({ ...card, highlights: card.highlights.map(title => isRussian(title) ? title : localizeItem({ title, typeLabel: "Публикация" }).title) }));
   const pending = actions.filter(action => action.status === "pending_confirmation");
 
   return <div className="ws-page pt-agents">
@@ -73,7 +74,8 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
               <p className="pt-agent-sources"><span>Источники:</span> {nbsp(agent.sources)}</p>
               {run && <p className="pt-agent-last">Последний запрос: <Link href={askHref(specialty, { run: run.id })}>«{run.input.text}»</Link> · {formatRelativeRu(run.completedAt ?? run.startedAt)}</p>}
               <div className="pt-agent-foot">
-                <span className="pt-agent-status" data-ready={available}>{available ? "Готов к работе" : "Готовим для вашей специальности"}</span>
+                {/* Only the exception is labelled: a status every card shares says nothing. */}
+                {!available && <span className="pt-agent-status" data-ready={available}>Готовим для вашей специальности</span>}
                 {href && <span className="pt-agent-cta" aria-hidden="true">{agent.id === "materials" ? "Открыть" : agent.id === "calculators" ? "Посчитать" : "Спросить"}<ArrowRight size={14} /></span>}
               </div>
             </div>

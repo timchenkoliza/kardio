@@ -81,7 +81,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <PartnerToggle enabled={profile.partnerContent} />
         </section>
 
-        <section className="pt-profile-card" id="sources" aria-labelledby="ws-connectors-title">
+        <section className="pt-profile-card" id="connections" aria-labelledby="ws-connectors-title">
           <h2 id="ws-connectors-title">{nbsp("Источники и подключения")}</h2>
           <p>Что продукт действительно умеет читать и делать сейчас. «Онлайн» — запрос к источнику в момент вопроса; «Снимок» — реальные данные, собранные из источника на указанную дату; «Не подключено» — продукт прямо говорит, что не может это сделать, и даёт ссылку для самостоятельной проверки.</p>
           <ul className="ws-connectors">{connectors.map(connector => <li key={connector.id}>
@@ -114,7 +114,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <h2 id="ws-demo-title">Демонстрация</h2>
           <p>Отметки «новое» считаются от вашего прошлого визита. Чтобы показать механику ещё раз, можно сбросить отметки просмотра.</p>
           <ResetSeenButton />
-          <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Агенты и фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
+          <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
           {(specialty === "cardiology" || specialty === "oncology") && <p className="ws-legacy-link"><Link href={`/${specialty}/legacy`}>Предыдущая версия интерфейса (архив)<ArrowUpRight size={14} aria-hidden="true" /></Link></p>}
         </section>
       </div>

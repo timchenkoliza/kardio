@@ -13,7 +13,7 @@ export function recentQuestions(runs: readonly AgentRun[], limit = MAX_RECENT): 
   const picked: AgentRun[] = [];
   for (const run of [...runs].sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
     if (run.trigger !== "composer" || !run.input.text || run.status === "blocked") continue;
-    const key = (run.input.continuation?.followup ?? run.input.text).trim().toLocaleLowerCase("ru-RU");
+    const key = `${run.input.continuation?.runId ?? ""}:${(run.input.continuation?.followup ?? run.input.text).trim().toLocaleLowerCase("ru-RU")}`;
     if (seen.has(key)) continue;
     seen.add(key);
     picked.push(run);
@@ -22,9 +22,12 @@ export function recentQuestions(runs: readonly AgentRun[], limit = MAX_RECENT): 
   return picked;
 }
 
-/** Where a past question opens: the research scenario keeps its own page; everything else the result page. */
+/**
+ * Where a past question opens: its result page, for every task (the research
+ * review renders there too, with the way back to its material and the follow-up).
+ */
 export function recentHref(specialty: SpecialtyId, run: AgentRun): string {
-  return run.agentId === "research" ? `/${specialty}/agents/research?run=${encodeURIComponent(run.id)}` : askHref(specialty, { run: run.id });
+  return askHref(specialty, { run: run.id });
 }
 
 /**
@@ -43,7 +46,8 @@ export function RecentQuestions({ specialty, runs, limit = MAX_RECENT, title = "
     <ul>
       {recent.map(run => {
         const outcome = runOutcome(run);
-        const question = run.input.continuation ? `${run.input.continuation.followup} (уточнение)` : run.input.text!;
+        const root = run.input.continuation?.question ?? "";
+        const question = run.input.continuation ? `${run.input.continuation.followup} — уточнение к «${root.length > 70 ? `${root.slice(0, 67)}…` : root}»` : run.input.text!;
         return <li key={run.id}>
           <Link href={recentHref(specialty, run)}>{question}</Link>
           <span>{JOBS[jobForRun(run)].label} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{outcome.kind !== "found" ? ` · ${outcome.label.toLocaleLowerCase("ru-RU")}` : ""}</span>

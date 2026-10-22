@@ -132,7 +132,11 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         {run.input.continuation
           ? <>
             <p className="pt-question">Уточнение: «{run.input.continuation.followup}»</p>
-            <p className="ws-muted pt-continues" data-continues={run.input.continuation.runId}>Продолжение вопроса <Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.runId })}>«{run.input.continuation.question}»</Link> — его условия сохранены.</p>
+            <p className="ws-muted pt-continues" data-continues={run.input.continuation.runId}>
+              Продолжение вопроса <Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.rootRunId ?? run.input.continuation.runId })}>«{run.input.continuation.question}»</Link>
+              {run.input.continuation.steps?.length ? <> после уточнений {run.input.continuation.steps.map(step => `«${step}»`).join(", ")} (<Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.runId })}>предыдущий шаг</Link>)</> : null}
+              {run.input.continuation.replaced ? ` — условия сохранены, кроме популяции: ${run.input.continuation.replaced}.` : " — его условия сохранены."}
+            </p>
           </>
           : run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
         {/* The depth was not chosen before the question, so it is not shown as a choice; the research scenario names what it gets. */}
@@ -144,6 +148,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     {outcome && outcome.kind !== "found" && outcome.kind !== "blocked" && phase !== "expired" && <div className="pt-outcome" role="status" data-outcome={outcome.kind}>
       <span className="ws-run-status" data-tone={outcome.tone}>{outcome.label}</span>
       {outcome.note && <p>{outcome.note}</p>}
+      {(outcome.kind === "partial" || outcome.kind === "source_error") && run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
     </div>}
 
     {!finished

@@ -166,7 +166,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
       {saved === "topics" && <span className="pt-profile-saved" role="status">Сохранено, лента обновится при следующем открытии</span>}
     </section>
 
-    <section className="pt-profile-card" aria-labelledby="pt-sources-title">
+    <section className="pt-profile-card" id="sources" aria-labelledby="pt-sources-title">
       <h2 id="pt-sources-title">{nbsp("Источники и базы знаний")}</h2>
       <p>«Приоритет» поднимает находки источника выше, «Не использовать» убирает их из ответов. Остальные источники работают как обычно.</p>
       <ul className="pt-sources">
@@ -189,7 +189,7 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
         })}
         <li className="pt-source" data-source="materials">
           <span className="pt-source-icon"><FolderOpen size={16} aria-hidden="true" /></span>
-          <span className="pt-source-copy"><strong>Собственные материалы</strong><span>Ваши файлы, ссылки и заметки: агент «Мои материалы» отвечает только по ним</span></span>
+          <span className="pt-source-copy"><strong>Собственные материалы</strong><span>Ваши файлы, ссылки и заметки: вопрос по материалам ищет ответ только в них</span></span>
           <a className="ws-text-link" href={`/${specialty}/materials`}>Открыть</a>
         </li>
       </ul>
@@ -209,8 +209,8 @@ export function AnswerModeCard({ answerMode }: { answerMode: AnswerMode }) {
     if (result) setSaved(true);
   }
   return <section className="pt-profile-card" aria-labelledby="pt-answer-title">
-    <h2 id="pt-answer-title">{nbsp("Предпочтения ответов")}</h2>
-    <p>Как подробно показывать новые ответы. Перед вопросом ничего выбирать не нужно: подробности раскрываются на самом ответе.</p>
+    <h2 id="pt-answer-title">{nbsp("Разбор исследований по умолчанию")}</h2>
+    <p>{nbsp("Что получать, когда вопрос уходит в разбор исследований. На остальные ответы этот выбор не влияет: они всегда начинаются с главного вывода, подробности свёрнуты.")}</p>
     <AnswerModeControl value={mode} onChange={next => void choose(next)} legend="Режим ответа по умолчанию" name="default-answer-mode" disabled={pending} />
     <p className="ws-muted">{ANSWER_MODE_COPY[mode].detail}</p>
     {saved && <span className="pt-profile-saved" role="status">Сохранено</span>}

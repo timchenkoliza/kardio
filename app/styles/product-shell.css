@@ -628,8 +628,11 @@
 .pt-feed-group-title { margin: 0; font-size: var(--font-size-heading-3); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-heading-3); }
 .pt-feed-group-title .ws-muted { font-weight: var(--font-weight-regular); }
 
-/* ---------- Feed on phones: a decorative illustration never takes the first screen from the finding ---------- */
+/* ---------- Feed on phones: an illustration «к теме, не к конкретному случаю» never takes the first screen from the finding ---------- */
 
 @media (max-width: 767px) {
-  .pt-cards .pt-card-media[data-media="art"] { display: none; }
+  .pt-cards .pt-card-media { display: none; }
 }
+
+/* «К ленте» lands on the card: its title clears the sticky top bar */
+.pt-card-title { scroll-margin-top: calc(var(--ws-touch-target) + var(--ws-space-24)); }

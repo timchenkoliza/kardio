@@ -96,6 +96,16 @@ export function askedTerms(intent: NormalizedIntent): string[][] {
   return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set(words(concept.term))]).filter(group => group.length);
 }
 
+/** The conditions the search actually used, in the physician's words (shown above the answer). */
+export function searchConditions(intent: NormalizedIntent): string[] {
+  const labels = [
+    ...(intent.context.nosology ? [intent.context.nosology.label] : []),
+    ...(intent.context.subtype ? [intent.context.subtype.label] : []),
+    ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic")).map(concept => concept.label),
+  ];
+  return [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
+}
+
 export function buildEvidenceGraph(args: {
   id: string;
   intent: NormalizedIntent;
@@ -185,7 +195,7 @@ export function buildEvidenceGraph(args: {
     job: intent.job.primary,
     family: intent.job.family,
     specialty: intent.context.specialty,
-    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent) },
+    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent), conditions: searchConditions(intent) },
     sources,
     documents: graphDocuments,
     versions: [...documents.values()].map(document => ({ documentId: document.id, ...document.version })),

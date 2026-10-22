@@ -18,7 +18,7 @@ import { executeRun, loadProfile } from "@/server/agents/workspace";
 import { executeResearchRun } from "@/server/agents/research-run";
 import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { recordPortalEvent } from "./telemetry";
-import { continuedQuestion, isDependentFollowup } from "@/lib/portal/continuation";
+import { continuedQuestion, isDependentFollowup, replacedCondition } from "@/lib/portal/continuation";
 
 /**
  * Portal Manager: owns the physician's request and its final result.
@@ -184,7 +184,17 @@ export async function continuationFor(sessionId: string, specialty: SpecialtyId,
   if (!previous || previous.specialty !== specialty || !previous.input.text || previous.status === "blocked") return null;
   if (!isDependentFollowup(text, specialty)) return null;
   const job = previous.input.explicitJob && isPortalJob(previous.intent) ? previous.intent : null;
-  return { text: continuedQuestion(previous.input.text, text), options: { job, continuation: { runId: previous.id, followup: text.trim(), question: previous.input.text } } };
+  // A chain keeps the original question and the steps in between; the header never shows the internal joined text.
+  const before = previous.input.continuation;
+  const continuation = {
+    runId: previous.id,
+    followup: text.trim(),
+    question: before?.question ?? previous.input.text,
+    rootRunId: before?.rootRunId ?? (before ? before.runId : previous.id),
+    steps: before ? [...(before.steps ?? []), before.followup] : [],
+    replaced: replacedCondition(previous.input.text, text),
+  };
+  return { text: continuedQuestion(previous.input.text, text), options: { job, continuation } };
 }
 
 export async function respondToAsk(sessionId: string, specialty: SpecialtyId, typed: string, requested: AskOptions = {}): Promise<AskResponse> {

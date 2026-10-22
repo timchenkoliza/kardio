@@ -42,6 +42,9 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
   const media = renderableMedia(card.media);
   const russianQuotes = quotes.filter(quote => isRussian(quote.text));
   const originalQuotes = quotes.filter(quote => !isRussian(quote.text));
+  // The short form is only a real finding: a line of publication metadata is not a «Ключевая мысль».
+  const keyText = card.summary && !/^(?:Документ:|Национальный документ:|Опубликовано в журнале|Уверенность доказательств)/u.test(card.summary) ? card.summary : card.whyItMatters ?? null;
+  const authorsWords = !keyText && !russianQuotes.length ? originalQuotes.slice(0, 1) : [];
   const hasOriginal = Boolean(card.original || originalQuotes.length);
 
   return <div className="ws-page pt-item" data-item-kind={card.kind}>
@@ -65,8 +68,12 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
       <div className="pt-item-grid">
         <div className="pt-item-main">
           <section className="pt-item-section pt-item-key" aria-labelledby="pt-item-key">
-            <h2 id="pt-item-key" className="pt-subtitle">Ключевая мысль</h2>
-            <p>{nbsp(card.summary ?? card.whyItMatters ?? `Материал по специальности «${specialties[specialty].name}». Подробности — в первоисточнике.`)}</p>
+            <h2 id="pt-item-key" className="pt-subtitle">{keyText ? "Ключевая мысль" : "Краткого изложения на русском нет"}</h2>
+            {keyText
+              ? <p>{nbsp(keyText)}</p>
+              : authorsWords.length
+                ? <><p className="pt-derived">Вывод авторов (на английском, дословно):</p>{authorsWords.map(quote => <blockquote key={quote.text.slice(0, 40)} className="pt-quote" lang="en"><p>{quote.text}</p></blockquote>)}</>
+                : <p>{nbsp(`${card.summary ? `${card.summary} ` : ""}Содержание — в первоисточнике по кнопке выше.`)}</p>}
           </section>
           <section className="pt-item-section" aria-labelledby="pt-item-short">
             <h2 id="pt-item-short" className="pt-subtitle">Коротко</h2>

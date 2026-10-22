@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { RecentQuestions } from "@/components/portal/recent-questions";
 import { isSpecialty, specialties } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
@@ -21,10 +19,10 @@ export default async function HistoryPage({ params }: { params: Promise<{ specia
   const runs = sessionId ? await workspaceStore().listRuns(sessionId, specialty, undefined, 120) : [];
   const shown = <RecentQuestions specialty={specialty} runs={runs} limit={40} title="Вопросы" />;
   return <div className="ws-page pt-history">
-    <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
     <header className="ws-page-head">
       <h1>История</h1>
-      <p>{nbsp(`Ваши вопросы по специальности «${specialties[specialty].name}» в этом браузере. Результат открывается таким, каким был получен, — без нового поиска.`)}</p>
+      <p>{nbsp(`Ваши вопросы по специальности «${specialties[specialty].name}» в этом браузере. Результат открывается таким, каким был получен, — без нового поиска. Вопросы других специальностей — в их разделах.`)}</p>
+      {workspaceStore().kind === "memory" && <p className="ws-muted" data-storage="memory">{nbsp("На этом стенде история хранится только до перезапуска сервера.")}</p>}
     </header>
     {runs.some(run => run.trigger === "composer" && run.input.text)
       ? shown

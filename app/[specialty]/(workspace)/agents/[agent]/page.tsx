@@ -18,9 +18,11 @@ import { isConfigured } from "@/lib/agents/profile";
 import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
 import { runOutcome } from "@/lib/portal/run-outcome";
 import { isSpecialty } from "@/lib/specialty";
+import { nbsp } from "@/lib/ui/typography";
 import { filterPhysicianResearchResults, researchViewFromSearchParams, researchViewQuery } from "@/lib/ui/physician-research-view";
 import { pageSession } from "@/server/agents/page-session";
 import { getResearchJob } from "@/server/agents/research-jobs";
+import { workspaceStore } from "@/server/agents/store";
 import { getAgentDetail, MONITORING_AGENTS } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
@@ -29,14 +31,17 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function DrugSinceLastVisit({ results, lastSeenAt }: { results: AgentResultView[]; lastSeenAt: string | null }) {
+function DrugSinceLastVisit({ results, lastSeenAt, unchecked = [] }: { results: AgentResultView[]; lastSeenAt: string | null; unchecked?: readonly string[] }) {
   const fresh = results.filter(result => result.newSinceLastSeen);
   return <section className="ws-since" aria-labelledby="ws-since-title">
     <h2 id="ws-since-title">{lastSeenAt ? `С прошлого просмотра · ${formatRelativeRu(lastSeenAt)}` : "Первый просмотр: изменения за выбранный период"}</h2>
     <ul>{DRUG_CHANGE_TYPES.map(type => {
+      // A category the check did not search (no topics) is «не проверялось», never a zero that reads as «изменений нет».
+      if (unchecked.includes(type)) return <li key={type} data-unchecked="true"><strong>—</strong><span>{DRUG_CHANGE_LABEL[type].title} · не проверялось</span></li>;
       const count = fresh.filter(result => result.category === type).length;
       return <li key={type} className={count ? "has-items" : undefined}><strong>{count}</strong><span>{DRUG_CHANGE_LABEL[type].title}</span></li>;
     })}</ul>
+    {unchecked.length > 0 && <p className="ws-muted">{nbsp("Исследования ищутся только по выбранным темам. Выберите темы — проверка запустится по ним.")}</p>}
   </section>;
 }
 
@@ -66,6 +71,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
   const researchQuery = researchViewQuery(researchView);
   const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
+  // «Повторить с другими источниками»: the question comes from the stored run (`?from=`), never as text in the URL.
+  const fromRunId = onDemand ? first(query.from) : undefined;
+  const fromText = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? (await workspaceStore().getRun(sessionId, fromRunId))?.input.text ?? "" : "";
+  const initialQuestion = fromText || first(query.q) || "";
   const monitoringOutcome = !onDemand && selectedRun ? runOutcome(selectedRun, { monitoring: tracksNew }) : null;
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
@@ -88,7 +97,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     </header>
 
     {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}
-    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} /></section> : null}
+    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} /></section> : null}
 
     {/* The research scenario is configured in its composer (what to get, sources, type); topic settings do not change a typed question. */}
     {!onDemand && <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile)} />}
@@ -99,7 +108,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       <span className="ws-run-status" data-tone={monitoringOutcome.tone}>{monitoringOutcome.label}</span>
       {monitoringOutcome.note && <p>{monitoringOutcome.note}</p>}
     </div>}
-    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} />}
+    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) ? ["IMPORTANT_NEW_STUDY"] : []} />}
 
     <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
@@ -140,7 +149,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     </div>
     {onDemand && selectedRun ? <section className="ws-section ws-agent-composer" aria-labelledby="ws-research-new-title">
       <h2 id="ws-research-new-title" className="ws-section-title">Новый разбор</h2>
-      <ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} />
+      <ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} />
     </section> : null}
   </div>;
 }

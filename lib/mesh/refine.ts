@@ -154,7 +154,7 @@ const ASKED_SECTIONS: ReadonlyArray<{ id: AskedSection; pattern: RegExp }> = [
   { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* приём)`, "u") },
   { id: "interactions", pattern: new RegExp(`${L}взаимодейств`, "u") },
   { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|предупрежден|особ\\p{L}* указани|передозир)`, "u") },
-  { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|печёночн|печеночн|пожил|дет(?:и|ей|ям|ск))`, "u") },
+  { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|почк|почек|печёночн|печеночн|печен|пожил|дет(?:и|ей|ям|ск))`, "u") },
 ];
 
 /** Sections of the instruction a drug question names («Аторвастатин: противопоказания»), in the order asked. */

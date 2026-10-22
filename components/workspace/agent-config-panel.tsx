@@ -69,13 +69,13 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
 
   return <section className={open ? "ws-config is-open" : "ws-config"} aria-labelledby={`config-${definition.id}`}>
     <button type="button" className="ws-config-toggle" aria-expanded={open} aria-controls={`config-body-${definition.id}`} onClick={() => setOpen(!open)}>
-      <SlidersHorizontal size={16} aria-hidden="true" /><span id={`config-${definition.id}`}>Настроить агента</span>
+      <SlidersHorizontal size={16} aria-hidden="true" /><span id={`config-${definition.id}`}>Настроить проверку</span>
     </button>
     {open && <div className="ws-config-body" id={`config-body-${definition.id}`}>
       {groups.has("topics") && <div className="ws-config-topics">
-        <label className="ws-switch"><input type="checkbox" checked={ownTopics} onChange={event => setOwnTopics(event.target.checked)} /><span>Свои темы для этого агента</span></label>
+        <label className="ws-switch"><input type="checkbox" checked={ownTopics} onChange={event => setOwnTopics(event.target.checked)} /><span>Свои темы для этой проверки</span></label>
         {ownTopics ? <ChipGroup name={`${definition.id}-topics`} legend="Темы" options={topicsFor(specialty).map(topic => ({ id: topic.id, label: topic.label }))} value={topics} onChange={setTopics} />
-          : <p className="ws-muted">Агент использует ваши общие темы. Изменить их можно в настройках.</p>}
+          : <p className="ws-muted">Проверка использует ваши общие темы. Изменить их можно в профиле.</p>}
       </div>}
       {groups.has("contentTypes") && <ChipGroup name={`${definition.id}-types`} legend="Что отслеживать" options={CONTENT_TYPE_OPTIONS.filter(option => option.id !== "events" && option.id !== "learning")} value={contentTypes} onChange={setContentTypes} />}
       {groups.has("formats") && <ChipGroup name={`${definition.id}-formats`} legend="Город и формат" options={FORMAT_OPTIONS} value={formats} onChange={setFormats} />}
@@ -85,7 +85,7 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
       {groups.has("delivery") && <ChipGroup name={`${definition.id}-delivery`} legend="Куда доставлять" options={DELIVERY_OPTIONS.map(option => ({ id: option.id, label: option.available ? option.label : `${option.label} · скоро`, disabled: !option.available, note: option.note }))} value={delivery} onChange={setDelivery} />}
       <div className="ws-config-actions">
         <button type="button" className="ws-button is-primary" disabled={pending} onClick={() => void save()}>{definition.id === "research" || definition.id === "materials" ? "Сохранить" : "Сохранить и запустить"}</button>
-        <button type="button" className="ws-button is-quiet" disabled={pending} onClick={() => void toggleEnabled()}>{enabled ? "Выключить агента" : "Включить агента"}</button>
+        <button type="button" className="ws-button is-quiet" disabled={pending} onClick={() => void toggleEnabled()}>{enabled ? "Выключить проверку" : "Включить проверку"}</button>
         {saved && <span className="ws-success" role="status">Настройки сохранены</span>}
       </div>
     </div>}

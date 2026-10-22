@@ -20,9 +20,9 @@ export interface AnswerModeCopy {
 }
 
 export const ANSWER_MODE_COPY: Record<AnswerMode, AnswerModeCopy> = {
-  short: { id: "short", label: "Короткий ответ", secondary: "Быстро и по сути", detail: "Компактный вид: главный вывод и источники, подробности свёрнуты. В разборе исследований — список статей.", icon: "zap" },
-  full: { id: "full", label: "Полный ответ", secondary: "Подробно, с источниками", detail: "Главный вывод, доказательства, расхождения источников и что проверить. В разборе исследований — краткий обзор.", icon: "list" },
-  research: { id: "research", label: "Режим исследования", secondary: "Анализ и сравнение", detail: "Ответ целиком, без сокращения. В разборе исследований — основа для академического текста; занимает больше времени.", icon: "chart" },
+  short: { id: "short", label: "Короткий ответ", secondary: "Быстро и по сути", detail: "В разборе исследований — список статей по вопросу.", icon: "zap" },
+  full: { id: "full", label: "Полный ответ", secondary: "Подробно, с источниками", detail: "В разборе исследований — краткий обзор: что нашли, почему можно доверять, ограничения.", icon: "list" },
+  research: { id: "research", label: "Режим исследования", secondary: "Анализ и сравнение", detail: "В разборе исследований — основа для академического текста; занимает больше времени.", icon: "chart" },
 };
 
 export function isAnswerMode(value: unknown): value is AnswerMode {

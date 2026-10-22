@@ -33,7 +33,10 @@ test("configuring topics runs the background checks behind «Для вас»", a
   await page.locator(".pt-background > summary").filter({ hasText: "Фоновые проверки" }).click();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toBeVisible();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toContainText(/регистрац/);
-  await expect(page.locator('.ws-agent-card[data-agent="whats_new"]')).toContainText(/по вашим темам|с вашего прошлого визита/);
+  // «Что нового» appears once, as a task card; the block lists only the other checks that fill «Для вас».
+  await expect(page.locator('.pt-background .ws-agent-card[data-agent="whats_new"]')).toHaveCount(0);
+  await expect(page.locator('.pt-agent[data-agent="updates"]')).toBeVisible();
+  await expect(page.locator(".pt-background .ws-agent-card")).toHaveCount(3);
   await page.goto("/cardiology");
   await expect(page.locator(".pt-card").first()).toBeVisible();
   // Every card explains itself: the reason it is shown is on the card's own page, one click away in the same tab.
@@ -63,7 +66,7 @@ test("events agent: discovery → relevance → confirmed calendar file", async 
   await page.goto("/cardiology/agents/events");
   // Russian accredited events came from rnmo.ru, which the physicians rejected;
   // organiser-sourced congresses remain, so the test looks abroad.
-  await page.getByRole("button", { name: "Настроить агента" }).click();
+  await page.getByRole("button", { name: "Настроить проверку" }).click();
   await page.getByRole("group", { name: "Город и формат" }).getByRole("button", { name: "Зарубежные", exact: true }).click();
   await page.getByRole("button", { name: "Сохранить и запустить" }).click();
   const event = page.locator(".ws-result-event").first();

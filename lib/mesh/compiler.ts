@@ -88,14 +88,21 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
 };
 const TAKEAWAY_MAX = 6;
 
+/** Sentences about the document or future work («the panel formulated», «further research is needed») are not an answer. */
+const NOT_A_FINDING = /^(?:the (?:panel|committee|working group)|this (?:review|guideline|document|update) (?:summarizes|provides|describes|presents))|^(?:however, )?(?:further|future) (?:research|studies|efforts|trials)/iu;
+function informative(claim: NormalizedClaim): boolean {
+  return claim.kind !== "review_conclusion" || !NOT_A_FINDING.test(claim.statement.trim());
+}
+
 /** Publications a widened search found with only part of the question's conditions: never the answer itself. */
 export function widenedDocuments(graph: EvidenceGraph): GraphDocument[] {
   return graph.documents.filter(document => document.attributes.questionMatch === "partial");
 }
 
-function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeaway" | "priorityClaims"> = {}): string[] {
+function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeaway" | "priorityClaims" | "moduleProps"> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
   const widened = new Set(widenedDocuments(graph).map(document => document.id));
+  const askedSections = Array.isArray(input.moduleProps?.drug_reference?.asked) ? input.moduleProps.drug_reference.asked as string[] : [];
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
   const subtype = graph.context.subtype;
@@ -103,6 +110,9 @@ function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeawa
     && !widened.has(claim.documentId)
     // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
     && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
+    // A question that names instruction sections is answered from them: no indications or document metadata instead.
+    && (!askedSections.length || ((claim.kind !== "indication" || askedSections.includes("indications")) && claim.kind !== "guideline_metadata" && claim.kind !== "currentness"))
+    && informative(claim)
     && (claim.kind !== "indication" || !nosology || family === "drug" || claim.entityIds.includes(nosology))
     && (claim.kind !== "product_listing" || graph.job === "inn_lookup");
   const onSubtype = (claim: NormalizedClaim) => Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));

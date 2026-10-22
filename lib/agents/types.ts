@@ -226,7 +226,18 @@ export interface AgentRun {
      * `text` above is the question with the follow-up added; this keeps what the physician typed
      * and the question it continues, for the result header and the way back.
      */
-    continuation?: { runId: string; followup: string; question: string } | null;
+    continuation?: {
+      /** The result the follow-up was typed under (the previous step). */
+      runId: string;
+      followup: string;
+      /** The physician's original question and its result. */
+      question: string;
+      rootRunId?: string;
+      /** Earlier follow-ups between the original question and this one. */
+      steps?: string[];
+      /** A condition the follow-up replaced («взрослые → дети»), never silently. */
+      replaced?: string | null;
+    } | null;
     /** The material a new search on its topic was started from (internal path and title): the way back. */
     origin?: { href: string; label: string } | null;
   };

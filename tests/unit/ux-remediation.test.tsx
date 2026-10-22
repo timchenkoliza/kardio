@@ -114,7 +114,10 @@ describe("UX-03 «Коротко» leads with what was asked", () => {
       { pmid: "41000001", text: "For empiric treatment of community-acquired pneumonia in adults, no antibiotic regimen showed important differences." },
       { pmid: "41000002", text: "Shorter treatment duration (3-5 days) probably offers the optimal balance for community-acquired pneumonia in adults." },
     ].map(item => ({ pmid: item.pmid, sections: [{ label: "CONCLUSIONS", text: item.text }], conclusion: item.text, conclusionLabel: "CONCLUSIONS" }));
-    const pubmed = Object.assign(async (query: { term: string }) => ({ status: "ok" as const, query: query.term, total: 2, articles: [regimens, duration], error: null, durationMs: 1 }), { calls: [] });
+    // (extended below with a guideline whose «conclusion» describes the panel's work)
+    const panel = { ...fakeArticle("41000003", "Antibiotic duration in community-acquired pneumonia in adults: clinical practice guideline"), journal: "Am J Respir Crit Care Med", publicationTypes: ["Practice Guideline"], sortDate: "2026-01-01", pubDate: "2026 Jan" };
+    conclusions.push({ pmid: "41000003", sections: [{ label: "CONCLUSIONS", text: "The panel formulated and provided the rationale for recommendations on antibiotic duration in community-acquired pneumonia in adults." }], conclusion: "The panel formulated and provided the rationale for recommendations on antibiotic duration in community-acquired pneumonia in adults.", conclusionLabel: "CONCLUSIONS" });
+    const pubmed = Object.assign(async (query: { term: string }) => ({ status: "ok" as const, query: query.term, total: 3, articles: [regimens, duration, panel], error: null, durationMs: 1 }), { calls: [] });
     const ctx = await testContext({ agentId: "reference", topics: [], specialty: "therapy", text: CAP, pubmed: pubmed as never, abstracts: fakeAbstracts(conclusions) });
     const registry = createSourceRegistry({ browserDriver: null });
     const intent = { ...compileIntent(CAP, "therapy"), requirements: ["current_research" as const], optional: [] };
@@ -125,6 +128,29 @@ describe("UX-03 «Коротко» leads with what was asked", () => {
     const { manifest } = compileExperience({ graph, user: { signals: [], topics: [] }, modules: ["key_takeaway", "evidence"], policy: { descriptors: [] }, scenario: null, resultKeys: {} });
     const first = manifest.modules.find(entry => entry.family === "key_takeaway")!.claimIds[0];
     expect(graph.claims.find(claim => claim.id === first)?.documentId).toBe("pubmed:41000002");
+    // A sentence about the panel's work is not an answer (R-A-07).
+    const docs = manifest.modules.find(entry => entry.family === "key_takeaway")!.claimIds.map(id => graph.claims.find(claim => claim.id === id)?.documentId);
+    expect(docs).not.toContain("pubmed:41000003");
+  });
+});
+
+describe("R-A-01 a cached answer is never another question's answer", () => {
+  it("questions that differ in what they ask, or in a follow-up condition, have different identities", () => {
+    const base = compileIntent(CAP, "therapy").id;
+    expect(compileIntent(CAP, "therapy").id).toBe(base);
+    expect(compileIntent(continuedQuestion(CAP, "А если течение нетяжёлое?"), "therapy").id).not.toBe(base);
+    expect(compileIntent("Диагностика внебольничной пневмонии у взрослых", "therapy").id).not.toBe(base);
+  });
+});
+
+describe("R-A-03 a drug safety question in another task is answered from the asked sections", () => {
+  it("with asked sections, «Коротко» has no indications and no document metadata", async () => {
+    const { graph } = await acceptanceGraph();
+    const { manifest } = compileExperience({ graph, user: { signals: [], topics: [] }, modules: ["key_takeaway", "drug_reference", "recommendation_delta"], policy: { descriptors: [] }, scenario: null, resultKeys: {}, moduleProps: { drug_reference: { asked: ["contraindications", "safety"] } } });
+    const kinds = (manifest.modules.find(entry => entry.family === "key_takeaway")?.claimIds ?? []).map(id => graph.claims.find(claim => claim.id === id)!.kind);
+    expect(kinds).not.toContain("indication");
+    expect(kinds).not.toContain("currentness");
+    expect(kinds).not.toContain("guideline_metadata");
   });
 });
 
@@ -150,7 +176,12 @@ describe("UX-04 a follow-up continues the question", () => {
     const response = await respondToAsk(SESSION, "therapy", "А если течение нетяжёлое?", { contextRunId: previous.id, followup: true, schedule: () => undefined });
     expect(response.kind).toBe("run");
     const run = response.kind === "run" ? await store.getRun(SESSION, response.runId) : null;
-    expect(run?.input.continuation).toEqual({ runId: previous.id, followup: "А если течение нетяжёлое?", question: CAP });
+    expect(run?.input.continuation).toMatchObject({ runId: previous.id, followup: "А если течение нетяжёлое?", question: CAP, rootRunId: previous.id, steps: [], replaced: null });
+    // A second step keeps the original question, lists the step in between and names a replaced population.
+    await store.saveRun(SESSION, { ...run!, status: "completed", completedAt: new Date().toISOString() });
+    const second = await respondToAsk(SESSION, "therapy", "а у детей?", { contextRunId: run!.id, followup: true, schedule: () => undefined });
+    const next = second.kind === "run" ? await store.getRun(SESSION, second.runId) : null;
+    expect(next?.input.continuation).toMatchObject({ runId: run!.id, question: CAP, rootRunId: previous.id, steps: ["А если течение нетяжёлое?"], replaced: "взрослые → дети" });
     expect(run?.input.text).toMatch(/внебольничной пневмонии у взрослых\. Уточнение: А если течение нетяжёлое\?/u);
   });
 });
@@ -180,6 +211,9 @@ describe("UX-06 relevance and text match are different labels", () => {
     const html = renderToStaticMarkup(<WorkspaceProvider specialty="cardiology"><ExperienceView run={run} experience={{ intentId: "i", manifest, graph: marked, plan: { id: "p", steps: 0, invocations: 0, reused: false } }} results={[]} /></WorkspaceProvider>);
     expect(html).toContain("Шире вопроса");
     expect(html).not.toContain("Подтверждено источником");
+    // R-A-02: the answer lists what the search used; no label claims the work answers the question.
+    expect(html).toContain("Искали по:");
+    expect(html).not.toContain("По всем условиям вопроса");
   });
 });
 

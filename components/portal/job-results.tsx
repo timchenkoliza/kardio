@@ -193,7 +193,7 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
       <ResearchMore run={run} results={results} specialty={adapter.id} mode={mode} />
       {/* A named publication was read as asked: other sources and topic follow-ups would search a PMID as a topic. */}
       {run.input.text && !hasStudyIdentifiers(studyIdentifiersIn(run.input.text)) && <>
-        <p><Link className="ws-text-link" href={`/${specialty}/agents/research?q=${encodeURIComponent(run.input.text)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>
+        <p><Link className="ws-text-link" href={`/${specialty}/agents/research?from=${encodeURIComponent(run.id)}`}>Повторить с другими источниками или типом материалов<ArrowRight size={15} aria-hidden="true" /></Link></p>
         <NextActions run={run} job={job} />
       </>}
     </>;

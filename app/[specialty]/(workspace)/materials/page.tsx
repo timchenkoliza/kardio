@@ -17,7 +17,7 @@ export default async function MaterialsPage({ params, searchParams }: { params: 
   return <div className="ws-page pt-materials">
     <header className="ws-page-head">
       <h1>Мои материалы</h1>
-      <p>Файлы, ссылки, заметки и сохранённые ответы. Агент отвечает только по ним.</p>
+      <p>Файлы, ссылки, заметки и сохранённые ответы. Вопрос по материалам ищет ответ только в них.</p>
     </header>
     <MaterialsWorkspace specialty={specialty} materials={view.materials.map(material => ({ ...material, text: null }))} collections={view.collections} lastAnswer={view.lastAnswer} answerResults={view.answerResults} examples={materialExamples(specialty)} now={new Date().toISOString()} />
   </div>;

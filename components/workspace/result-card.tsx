@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
+import { Bookmark, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
+import { SavedLink } from "@/components/portal/result-actions";
 import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
@@ -167,7 +168,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
         {result.actions.some(action => action.kind === "calendar") && <button type="button" className="ws-button is-small" disabled={pending} onClick={() => void prepare("calendar_write")}><CalendarPlus size={14} aria-hidden="true" />В календарь</button>}
         {result.actions.filter(action => action.kind === "registration").map(action => <button type="button" key={action.label} className="ws-button is-small is-accent" disabled={pending} onClick={() => void prepare("registration", action.href)}><Ticket size={14} aria-hidden="true" />{action.label}</button>)}
         {result.kind === "learning_module" && <button type="button" className={done ? "ws-button is-small is-done" : "ws-button is-small"} aria-pressed={done} onClick={() => void toggleDone()}><Check size={14} aria-hidden="true" />{done ? "Пройдено" : "Отметить пройденным"}</button>}
-        {result.actions.some(action => action.kind === "save") && <button type="button" className="ws-button is-small is-quiet" disabled={saved} onClick={() => void save()}>{saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}{saved ? "В материалах" : "Сохранить"}</button>}
+        {result.actions.some(action => action.kind === "save") && (saved ? <SavedLink /> : <button type="button" className="ws-button is-small is-quiet" onClick={() => void save()}><Bookmark size={14} aria-hidden="true" />Сохранить</button>)}
         <button type="button" className="ws-icon-button is-quiet" aria-label="Скрыть находку" title="Скрыть находку" onClick={() => { setHidden(true); void command({ action: "dismissResult", resultId: result.id }, { quiet: true, refresh: false }); }}><EyeOff size={15} /></button>
       </div>
     </div>

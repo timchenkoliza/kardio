@@ -67,7 +67,7 @@ function Onboarding({ onMode }: { onMode: (mode: AddMode) => void }) {
       </div>
     </div>
     <ol className="pt-mat-steps">
-      <li><strong>Сохраните ответ</strong><span>Кнопка «Сохранить» есть у каждого ответа агентов и материала в ленте.</span></li>
+      <li><strong>Сохраните ответ</strong><span>Кнопка «Сохранить» есть у ответов и у материалов ленты.</span></li>
       <li><strong>Добавьте ссылку</strong><span>Для PubMed и ссылок с DOI название, журнал и дата подтянутся сами.</span></li>
       <li><strong>Загрузите файл или заметку</strong><span>TXT, MD, CSV, HTML и DOCX — с поиском по тексту.</span></li>
     </ol>

@@ -38,14 +38,17 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const planNotRun = run.plan.some(step => step.status === "skipped" && NOTHING_TO_SEARCH.test(`${step.label} ${step.detail ?? ""}`));
   const nothingToSearch = planNotRun || (run.toolsUsed.some(tool => NOTHING_TO_SEARCH.test(tool.note ?? "")) && !searched);
 
+  // Name what did not answer: «часть источников» does not tell the physician what is missing from the answer.
+  const silent = graph ? [...new Set(graph.sources.filter(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable")).map(source => source.name))] : [];
+  const missing = silent.length ? `Не ответил${silent.length > 1 ? "и" : ""}: ${silent.join(", ")}` : "Часть источников не ответила";
   if (found) {
     return sourceFailed || run.status === "partial"
-      ? { kind: "partial", label: "Готово частично", note: "Часть источников не ответила — показано то, что удалось проверить.", tone: "warning" }
+      ? { kind: "partial", label: "Готово частично", note: `${missing} — показано то, что дали остальные источники. Можно повторить позже.`, tone: "warning" }
       : { kind: "found", label: "Готово", note: null, tone: "ok" };
   }
   if (nothingToSearch) return { kind: "not_run", label: "Проверка не выполнялась", note: options.monitoring ? "Не выбраны темы, по которым проверять. Выберите темы в настройках — проверка запустится." : "В запросе не распознаны заболевание, препарат или тема — искать было нечего.", tone: "warning" };
-  if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: "Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.", tone: "danger" };
-  if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: "Часть источников не ответила, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.", tone: "warning" };
+  if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger" };
+  if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning" };
   return options.monitoring
     ? { kind: "not_found", label: "Проверено: изменений не найдено", note: null, tone: "neutral" }
     : { kind: "not_found", label: "Проверено: ничего не найдено", note: null, tone: "neutral" };

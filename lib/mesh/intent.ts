@@ -121,7 +121,9 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
 
   const nosologySpecialty = domain.nosology ? NOSOLOGIES.find(node => node.id === domain.nosology!.id)!.specialty : null;
   return {
-    id: intentId([specialty, job, domain.nosology?.id ?? "", domain.subtype?.id ?? "", ...drugs.map(drug => drug.inn), ...populations]),
+    // Every recognised condition is part of the identity: two questions that differ in what they ask
+    // («длительность» vs «диагностика», «+ нетяжёлое течение») never share a cached answer.
+    id: intentId([specialty, job, domain.nosology?.id ?? "", domain.subtype?.id ?? "", ...drugs.map(drug => drug.inn), ...populations, ...route.concepts.map(concept => concept.id).sort(), ...latinTermsIn(text).sort()]),
     job: { primary: job, family: route.job, confidence: route.confidence, reasons, explicit: Boolean(options.job) && !forced },
     context: {
       specialty,

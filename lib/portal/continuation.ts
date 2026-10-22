@@ -25,6 +25,15 @@ export function isDependentFollowup(text: string, specialty: SpecialtyId): boole
   return !intent.entities.concepts.some(concept => concept.kind === "topic" || concept.kind === "drug");
 }
 
+/** The population a follow-up replaces in the question it continues («взрослые → дети»), or null. */
+export function replacedCondition(question: string, followup: string): string | null {
+  const before = normalizeQuery(question);
+  const value = normalizeQuery(followup);
+  if (CHILDREN.test(value) && ADULTS.test(before)) return "взрослые → дети";
+  if (ADULTS.test(value) && CHILDREN.test(before)) return "дети → взрослые";
+  return null;
+}
+
 /**
  * The question to execute: the previous question with the follow-up added.
  * A follow-up that names another population replaces the previous one instead

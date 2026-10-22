@@ -211,7 +211,7 @@ export interface EvidenceGraph {
   family: PortalJob;
   specialty: SpecialtyId;
   /** Interpreted question context; `terms` are lowercase words that make a claim on-topic (drug INN/names, drug class, subtype). */
-  context: { nosology: string | null; subtype: string | null; drugs: string[]; terms?: string[]; asked?: string[][] };
+  context: { nosology: string | null; subtype: string | null; drugs: string[]; terms?: string[]; asked?: string[][]; conditions?: string[] };
   sources: GraphSource[];
   documents: GraphDocument[];
   versions: Array<{ documentId: string } & DocumentVersion>;

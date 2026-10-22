@@ -239,7 +239,9 @@ async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedInten
   if (args.record) await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
   const store = knowledgeStore();
   const key = `${intent.id}|${fingerprint(ctx.preference.excludedSources.join(","))}`;
-  const reusable = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
+  const cached = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
+  // An answer with a silent source is not reused: «Повторить» must actually ask that source again.
+  const reusable = cached && !cached.results.some(result => result.invocation.outcome === "failed" || result.invocation.outcome === "unavailable") ? cached : null;
   let results: SourceResult[];
   let skipped: string[] = [];
   if (reusable && reusable.plan.steps.map(step => step.sourceId).join() === plan.steps.map(step => step.sourceId).join()) {
@@ -303,7 +305,10 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
   // The question opens with what it asked for: the named instruction sections first, «что изменилось» as a comparison.
   const opening = openingView(question, intent.job.family);
-  const asked = intent.job.family === "drug" ? askedSections(question) : [];
+  // A question about a named drug's safety or a population is answered from those sections, whatever the task
+  // («Апиксабан у пожилых… сниженной функцией почек: что известно о безопасности?» routes to guidelines).
+  const named = intent.entities.drugs.length ? askedSections(question) : [];
+  const asked = named.includes("safety") && !named.includes("contraindications") ? [...named, "contraindications" as const] : named;
   const directives = opening ? viewDirectives(graph, null, opening, graph) : { moduleProps: {}, priorityClaims: [] as string[] };
   const askedClaims = asked.length ? graph.claims.filter(claim => {
     const chunk = claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId) : undefined;

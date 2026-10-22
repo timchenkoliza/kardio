@@ -62,7 +62,7 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
   const fresh = tracksNew ? organic.filter(result => isNewSinceLastSeen(result, subscription.lastSeenAt)) : [];
   const href = agentHref(specialty, definition.id);
   const topics = topicLabels(specialty, preference.topics);
-  const reasons = [topics.length ? `Темы: ${topics.slice(0, 3).join(", ")}${topics.length > 3 ? ` и ещё ${topics.length - 3}` : ""}` : null, preference.trustedSources.length ? `Ваш приоритет: ${sourceLabels(preference.trustedSources).slice(0, 3).join(", ")}` : null].filter((value): value is string => Boolean(value));
+  const reasons = [topics.length ? `Темы: ${topics.slice(0, 3).join(", ")}${topics.length > 3 ? ` и ещё ${topics.length - 3}` : ""}` : null, preference.trustedSources.length && MONITORING_AGENTS.includes(definition.id) ? `Ваш приоритет: ${sourceLabels(preference.trustedSources).slice(0, 3).join(", ")}` : null].filter((value): value is string => Boolean(value));
 
   let state: AgentCardState["state"];
   if (!subscription.enabled) state = "disabled";
@@ -75,12 +75,14 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
 
   const breakdown: Array<{ label: string; count: number }> = [];
   let headline: string;
+  // «по вашим темам» only when topics are chosen; otherwise the check runs on the whole specialty.
+  const scope = topics.length ? "по вашим темам" : "по специальности";
   const pool = subscription.lastSeenAt ? fresh : organic;
   const sinceVisit = Boolean(subscription.lastSeenAt);
 
   switch (definition.id) {
     case "whats_new":
-      headline = !latestRun ? "Соберёт сводку по вашим темам" : sinceVisit ? (fresh.length ? `${countLabel(fresh.length, ["значимое обновление", "значимых обновления", "значимых обновлений"])} с вашего прошлого визита` : "С прошлого визита нового нет") : `${countLabel(organic.length, ["находка", "находки", "находок"])} по вашим темам`;
+      headline = !latestRun ? `Соберёт сводку ${scope}` : sinceVisit ? (fresh.length ? `${countLabel(fresh.length, ["значимое обновление", "значимых обновления", "значимых обновлений"])} с вашего прошлого визита` : "С прошлого визита нового нет") : `${countLabel(organic.length, ["находка", "находки", "находок"])} ${scope}`;
       for (const [kind, label] of [["update", "Публикации"], ["guideline_change", "Рекомендации"], ["drug_change", "Препараты"]] as const) {
         const value = pool.filter(result => result.kind === kind).length;
         if (value) breakdown.push({ label, count: value });
@@ -93,7 +95,7 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
       for (const [society, value] of bySociety) breakdown.push({ label: society, count: value });
       const top = [...bySociety.entries()].sort((a, b) => b[1] - a[1])[0];
       const checks = organic.filter(result => result.category === "needs_check").length;
-      headline = !latestRun ? "Сравнит версии рекомендаций по вашим темам" : top ? `${top[0]}: ${countLabel(top[1], ["изменение", "изменения", "изменений"])}, ${top[1] === 1 ? "которое может" : "которые могут"} повлиять на практику` : checks ? `${countLabel(checks, ["версия требует", "версии требуют", "версий требуют"])} проверки актуальности` : sinceVisit ? "С прошлого визита новых версий нет" : "Новых версий по вашим темам нет";
+      headline = !latestRun ? `Сравнит версии рекомендаций ${scope}` : top ? `${top[0]}: ${countLabel(top[1], ["изменение", "изменения", "изменений"])}, ${top[1] === 1 ? "которое может" : "которые могут"} повлиять на практику` : checks ? `${countLabel(checks, ["версия требует", "версии требуют", "версий требуют"])} проверки актуальности` : sinceVisit ? "С прошлого визита новых версий нет" : `Новых версий ${scope} нет`;
       if (checks) breakdown.push({ label: "Проверить актуальность", count: checks });
       break;
     }
@@ -104,12 +106,12 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
         const value = counts.get(type);
         if (value) breakdown.push({ label: DRUG_CHANGE_LABEL[type].title, count: value });
       }
-      headline = !latestRun ? "Отследит регистрации, ограничения и исследования" : breakdown.length ? DRUG_CHANGE_TYPES.filter(type => counts.get(type)).map(type => countLabel(counts.get(type) ?? 0, DRUG_CHANGE_LABEL[type].forms)).join(" • ") : sinceVisit ? "С прошлого просмотра изменений нет" : "Изменений по вашим темам не найдено";
+      headline = !latestRun ? "Отследит регистрации, ограничения и исследования" : breakdown.length ? DRUG_CHANGE_TYPES.filter(type => counts.get(type)).map(type => countLabel(counts.get(type) ?? 0, DRUG_CHANGE_LABEL[type].forms)).join(" • ") : sinceVisit ? "С прошлого просмотра изменений нет" : `Изменений ${scope} не найдено`;
       break;
     }
     case "events": {
       const upcoming = organic.length;
-      headline = !latestRun ? "Найдёт события по вашим темам и формату" : upcoming ? `${countLabel(upcoming, ["подходящее мероприятие", "подходящих мероприятия", "подходящих мероприятий"])} в ближайшие ${preference.horizonDays} ${plural(preference.horizonDays, ["день", "дня", "дней"])}` : "Подходящих событий в выбранный период нет";
+      headline = !latestRun ? `Найдёт события ${scope}` : upcoming ? `${countLabel(upcoming, ["подходящее мероприятие", "подходящих мероприятия", "подходящих мероприятий"])} в ближайшие ${preference.horizonDays} ${plural(preference.horizonDays, ["день", "дня", "дней"])}` : "Подходящих событий в выбранный период нет";
       const online = organic.filter(result => result.attributes.online === true).length;
       if (online) breakdown.push({ label: "Онлайн", count: online });
       const nmo = organic.filter(result => result.attributes.nmo === true).length;
@@ -169,6 +171,8 @@ async function latestRunsByAgent(sessionId: string, specialty: SpecialtyId): Pro
       if (!latest.has(run.agentId)) latest.set(run.agentId, run);
       continue;
     }
+    // A feed check's card shows the check, not a question asked on the same capability.
+    if (MONITORING_AGENTS.includes(run.agentId) && run.trigger === "composer") continue;
     if (!latest.has(run.agentId)) latest.set(run.agentId, run);
   }
   return latest;
@@ -237,8 +241,9 @@ export async function getAgentDetail(sessionId: string | null, specialty: Specia
   const [results, runs, actions] = sessionId
     ? await Promise.all([store.listResults(sessionId, specialty, agentId), store.listRuns(sessionId, specialty, agentId, 20), store.listActions(sessionId, specialty)])
     : [[] as AgentResult[], [] as AgentRun[], [] as ActionRequest[]];
-  const finished = runs.filter(run => run.status !== "running");
-  const selectedRun = (options.runId ? finished.find(run => run.id === options.runId) : null) ?? finished[0] ?? null;
+  // A feed check shows its own runs: a question on the same capability («Что нового по ХСН?») has its own result page.
+  const finished = runs.filter(run => run.status !== "running" && (!MONITORING_AGENTS.includes(agentId) || run.trigger !== "composer"));
+  const selectedRun = (options.runId ? runs.find(run => run.id === options.runId && run.status !== "running") : null) ?? finished[0] ?? null;
   const now = new Date();
   const current = currentResults(results, selectedRun).filter(result => eventStillRelevant(result, now));
   const views = withNewFlags(current, profile).map(result => ({ ...result, newSinceLastSeen: MONITORING_AGENTS.includes(agentId) && result.newSinceLastSeen }));
@@ -286,6 +291,8 @@ export async function executeRun(sessionId: string, specialty: SpecialtyId, agen
   const rehydrated = isRehydrated(sessionId, specialty);
   const outcome = await runAgent({ store, sessionId, catalog, rehydrated }, { agentId, specialty, profile, trigger: options.trigger, text: options.text, routed: options.routed, job: options.job ?? null, intent: options.intent ?? null, run: options.run ?? null, answerMode: options.answerMode ?? null });
   if (rehydrated) markRehydrationConsumed(sessionId, specialty);
+  // A question is not a background check: it never moves the check's schedule or replaces its last run.
+  if (options.trigger === "composer" && MONITORING_AGENTS.includes(agentId)) return outcome;
   const fresh = await loadProfile(sessionId, specialty);
   fresh.subscriptions[agentId] = { ...fresh.subscriptions[agentId], lastRunAt: outcome.run.completedAt ?? outcome.run.startedAt, lastRunId: outcome.run.id };
   fresh.updatedAt = new Date().toISOString();

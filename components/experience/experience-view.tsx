@@ -10,6 +10,7 @@ import type { SourceStatus } from "@/lib/mesh/sources";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { SUGGESTIONS } from "@/lib/portal/suggestions";
+import { runOutcome } from "@/lib/portal/run-outcome";
 import { CERTAINTY_LABEL, certaintyOf, DRUG_SECTION_ORDER, DRUG_SECTION_TITLE, drugSectionGroup, editorialVerification, isRussian, localizeItem, physicianSafe, type Certainty, type DrugSectionGroup } from "@/lib/presentation/physician";
 import { nbsp } from "@/lib/ui/typography";
 import { StateBadge } from "@/components/portal/for-you";
@@ -37,6 +38,8 @@ interface Ctx {
   sectionQuestion: boolean;
   /** Documents whose conclusion is already the main answer: not repeated in the list below it. */
   inTakeaway: ReadonlySet<string>;
+  /** Statements already shown in «Коротко»: never printed a second time in another module. */
+  takeawayClaims: ReadonlySet<string>;
 }
 
 /** Section headings as the physician reads them, per result family. */
@@ -103,7 +106,9 @@ function documentTitle(document: GraphDocument): { title: string; original: stri
 function VerificationTag({ status, note = null }: { status: NormalizedClaim["verification"]; note?: string | null }) {
   const label = editorialVerification(status);
   // «Требует сверки» says what exactly was not checked (first reason, physician wording only).
-  const reason = label.tone === "supported" ? null : physicianSafe(note?.split(/\.\s+/u).find(part => part.trim() && !/совпадает с источником не полностью/iu.test(part))?.trim() ?? null);
+  const parts = (note ?? "").split(/\.\s+/u).map(part => part.trim()).filter(part => part && !/^Перевод (?:дословной цитаты|фрагмента страницы)/u.test(part));
+  const first = parts.find(part => !/совпадает с источником не полностью/iu.test(part)) ?? (parts.length ? "текст совпадает с источником не полностью" : null);
+  const reason = label.tone === "supported" ? null : physicianSafe(first);
   return <>
     <span className={`ws-verify ws-verify-${label.tone === "supported" ? "supported" : "partial"}`}>{label.label}</span>
     {reason && <span className="pt-verify-why">{nbsp(reason.replace(/\.$/u, "").replace(/^Не в белом списке врачей/u, "не в списке, проверенном врачами"))}</span>}
@@ -203,7 +208,8 @@ function Gaps({ graph }: { graph: EvidenceGraph }) {
 /** Whether a publication answers the question as asked — separate from whether its text was matched. */
 function RelevanceTag({ document }: { document: GraphDocument }) {
   if (document.attributes.questionMatch === "partial") return <span className="pt-relevance" data-relevance="partial">{nbsp(`Шире вопроса${document.attributes.unmatchedConditions ? `: без условия «${document.attributes.unmatchedConditions}»` : ""}`)}</span>;
-  if (document.attributes.questionMatch === "all_conditions") return <span className="pt-relevance" data-relevance="all">По всем условиям вопроса</span>;
+  // Found by the search conditions listed above the answer — not a judgement that the work answers the question.
+  if (document.attributes.questionMatch === "all_conditions") return <span className="pt-relevance" data-relevance="all">По условиям поиска</span>;
   return null;
 }
 
@@ -220,8 +226,10 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
     </section>;
   }
   const widened = Number(entry.props.widened ?? 0);
+  const conditions = ctx.graph.context.conditions ?? [];
   return <section className="pt-synthesis pt-takeaway" aria-labelledby={id} data-module="key_takeaway" data-answer="direct">
     <h2 id={id} className="pt-subtitle">{nbsp(heading(entry, ctx.job))}</h2>
+    {conditions.length > 0 && <p className="ws-muted pt-search-conditions" data-conditions={conditions.length}>{nbsp(`Искали по: ${conditions.join(" · ")}. Чего нет в этом списке, поиск не учитывал — проверьте по выводам ниже.`)}</p>}
     <ol className="pt-takeaway-list">
       {entry.claimIds.map(claimId => {
         const claim = ctx.index.claim.get(claimId);
@@ -279,7 +287,9 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
         const document = ctx.index.document.get(documentId);
         if (!document) return null;
         const fresh = freshnessState(ctx.graph, document);
-        const docClaims = ctx.graph.claims.filter(claim => claim.documentId === documentId && claims.has(claim.id));
+        const all = ctx.graph.claims.filter(claim => claim.documentId === documentId && claims.has(claim.id));
+        // Statements already in «Коротко» are not printed again under the version.
+        const docClaims = all.filter(claim => !ctx.takeawayClaims.has(claim.id));
         const kind = document.kind === "society_guideline_summary" ? "Рекомендации общества" : document.kind === "guideline_publication" ? "Публикация рекомендаций" : document.jurisdiction === "RU" ? "Российские рекомендации" : "Рекомендации";
         const title = documentTitle(document);
         const practical = docClaims.filter(claim => changed.has(claim.id) || claim.kind === "guideline_statement" || claim.kind === "society_assertion");
@@ -292,6 +302,7 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
           <h3 className="pt-version-title">{nbsp(title.title)}</h3>
           <p className="ws-provenance"><span>{document.publisher ?? sourceName(document)}</span><StateBadge state={fresh.state} freshness={fresh.label} /></p>
           {comparison === "previous_version" && previous && documentId === changedDocument && <p className="pt-version-note" data-comparison="previous_version">{nbsp(`Предыдущая версия: ${previous}. Ниже — что изменилось, по обзору публикации.`)}</p>}
+          {docClaims.length < all.length && <p className="ws-muted" data-in-takeaway={all.length - docClaims.length}>{nbsp(docClaims.length ? "Часть положений — выше, в «Коротко»." : "Положения этой версии — выше, в «Коротко».")}</p>}
           {practical.length > 0 && <p className="pt-practice-label">Что это значит для практики</p>}
           {docClaims.map(claim => <div key={claim.id}>{changed.has(claim.id) && comparison === "previous_version" && <span className="pt-change-tag">Изменение</span>}<Claim claim={claim} ctx={ctx} grouped /></div>)}
           <DocumentOriginal title={title.original} claims={docClaims} />
@@ -324,9 +335,11 @@ function Conflicts({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx })
   </Section>;
 }
 
-function DrugSection({ group, claims, headingId, ctx }: { group: DrugSectionGroup; claims: readonly NormalizedClaim[]; headingId: string; ctx: Ctx }) {
+function DrugSection({ group, claims: all, headingId, ctx }: { group: DrugSectionGroup; claims: readonly NormalizedClaim[]; headingId: string; ctx: Ctx }) {
+  const claims = all.filter(claim => !ctx.takeawayClaims.has(claim.id));
   return <section id={`${headingId}-${group}`} className="pt-drug-section" aria-label={DRUG_SECTION_TITLE[group]}>
     <h3>{DRUG_SECTION_TITLE[group]}</h3>
+    {claims.length < all.length && <p className="ws-muted" data-in-takeaway={all.length - claims.length}>{nbsp(claims.length ? "Часть раздела — выше, в «Коротко»." : "Текст раздела — выше, в «Коротко».")}</p>}
     {claims.map(claim => {
       const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
       const sub = chunk?.heading && chunk.heading.toLocaleLowerCase("ru-RU") !== DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU") ? chunk.heading : null;
@@ -442,6 +455,8 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
   const repeated = all.filter(document => ctx.inTakeaway.has(document.id) && document.attributes.questionMatch !== "partial");
   const documents = all.filter(document => document.attributes.questionMatch !== "partial" && !ctx.inTakeaway.has(document.id));
   const widened = all.filter(document => document.attributes.questionMatch === "partial");
+  // Everything is already in «Коротко»: no section that only says so.
+  if (!documents.length && !widened.length && !ctx.sectionQuestion) return null;
   if (ctx.sectionQuestion) return <details className="pt-widened" data-module="evidence" data-secondary="true">
     <summary>{nbsp(`${heading(entry, ctx.job)} · ${all.length}`)}</summary>
     <ol className="pt-answers">{all.map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol>
@@ -517,8 +532,10 @@ function NextActions({ ctx }: { ctx: Ctx }) {
 
 function Notices({ ctx }: { ctx: Ctx }) {
   const examples = SUGGESTIONS[ctx.run.specialty].slice(0, 2).map(item => `«${item}»`).join(" или ");
+  // When nothing was searched, the state above says so; this line only helps to ask again (never «не нашлось»).
+  const searched = runOutcome(ctx.run).kind !== "not_run";
   return <div className="pt-synthesis" data-module="notices">
-    {!ctx.graph.documents.length && <p>{nbsp(`Подходящих источников не нашлось. Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
+    {!ctx.graph.documents.length && <p>{nbsp(`${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
     <Gaps graph={ctx.graph} />
   </div>;
 }
@@ -549,6 +566,7 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
     job: job ?? graph.family,
     sectionQuestion: experience.manifest.modules.some(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) && entry.props.asked.length > 0),
     inTakeaway: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway" && !entry.props.noDirectAnswer).flatMap(entry => entry.documentIds)),
+    takeawayClaims: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway").flatMap(entry => entry.claimIds)),
     resultFor: (documentId, entry) => {
       const key = entry.resultKeys.find(item => item.endsWith(`mesh:${documentId}`)) ?? `${run.agentId}:mesh:${documentId}`;
       return byKey.get(key) ?? null;
