@@ -25,6 +25,8 @@ export function defaultProfile(specialty: SpecialtyId, now = new Date().toISOStr
     configuredAt: null,
     lastVisitAt: null,
     previousVisitAt: null,
+    firstSeenAt: null,
+    firstValueAt: null,
     updatedAt: now,
   };
 }
@@ -57,6 +59,8 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     configuredAt: typeof value.configuredAt === "string" ? value.configuredAt : null,
     lastVisitAt: typeof value.lastVisitAt === "string" ? value.lastVisitAt : null,
     previousVisitAt: typeof value.previousVisitAt === "string" ? value.previousVisitAt : null,
+    firstSeenAt: typeof value.firstSeenAt === "string" ? value.firstSeenAt : null,
+    firstValueAt: typeof value.firstValueAt === "string" ? value.firstValueAt : null,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
   };
 }
@@ -94,12 +98,22 @@ export function isConfigured(profile: UserProfile): boolean {
   return profile.interests.topics.length > 0;
 }
 
+/**
+ * Agents that build «Для вас» without any configuration: they fall back to the
+ * specialty scope (progressive profiling — value before setup).
+ */
+export const ZERO_SETUP_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "events"];
+const LEARNING_REFRESH_HOURS = 72;
+
 /** Scheduled agents catch up on visit when their frequency window has elapsed. */
 export function isRunDue(profile: UserProfile, agentId: AgentId, now: Date): boolean {
   const definition = AGENT_DEFINITIONS[agentId];
   const subscription = profile.subscriptions[agentId];
-  if (!subscription?.enabled || definition.triggerMode !== "scheduled") return false;
-  if (!isConfigured(profile) && agentId !== "events") return false;
+  if (!subscription?.enabled) return false;
+  // The learning next step is re-derived from real signals every few days.
+  if (agentId === "learning") return !subscription.lastRunAt || (now.getTime() - new Date(subscription.lastRunAt).getTime()) / 3_600_000 >= LEARNING_REFRESH_HOURS;
+  if (definition.triggerMode !== "scheduled") return false;
+  if (!isConfigured(profile) && !ZERO_SETUP_AGENTS.includes(agentId)) return false;
   if (!subscription.lastRunAt) return true;
   const frequency = FREQUENCY_OPTIONS.find(option => option.id === profile.preferences[agentId].frequency) ?? FREQUENCY_OPTIONS[1];
   const elapsedHours = (now.getTime() - new Date(subscription.lastRunAt).getTime()) / 3_600_000;

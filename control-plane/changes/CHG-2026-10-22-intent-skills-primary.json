@@ -1,0 +1,35 @@
+{
+  "change_id": "CHG-2026-10-22-intent-skills-primary",
+  "cause": "experience_delta",
+  "status": "EVALUATED",
+  "title": "Promote cardiology.guideline_change@1.0.0, cardiology.drug_evidence@1.0.0 and pediatrics.drug_reference_children@1.0.0 from shadow to primary (Preview only)",
+  "problem": {
+    "user_segment": "physicians asking a matched repeated job",
+    "job": "guideline change, drug evidence in a disease, pediatric drug reference",
+    "observed_failure": "while in shadow the generic path answers; the Skill's additional evidence (society guideline, version delta, children information first) is computed but not shown",
+    "evidence": [
+      "local live differential (tests/live/skills-differential.test.ts, 14 cases, live MEDI/PubMed/openFDA): 14/14 pass — 0 lost modules, 0 lost answering sources, 0 unsupported claims shown, 0 Skill fallbacks",
+      "remote shadow on the real Preview of f797c7f (dpl_J7Xyk1BiDKEzT1cvQSgJk4ZVoJKf, Neon Postgres): 14/14 runs with execution.shadow.verdict = pass",
+      "additions where the generic path was thin: «Какие новые рекомендации по ХСН-сФВ?» +conflict +evidence +ESC 2026; «Эмпаглифлозин при ХСН-сФВ — что сейчас известно?» +recommendation_delta +conflict +ESC 2026; «Дапаглифлозин при сердечной недостаточности: актуальные данные» +recommendation_delta +ESC 2026",
+      "cardiology.drug_evidence executes the golden path unchanged: same intent id, requirements, optional evidence and module order as «Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?»"
+    ]
+  },
+  "hypothesis": "Making the three evaluated Skills primary shows the more complete answer for matched requests while every module and source of the generic path stays, and any Skill failure falls back to the generic compile of the same evidence.",
+  "target_metric": { "name": "complete_answer_rate_matched_jobs", "desired_direction": "increase" },
+  "guardrails": [
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 },
+    { "name": "lost_modules_vs_generic", "operator": "=", "threshold": 0 },
+    { "name": "lost_answering_sources_vs_generic", "operator": "=", "threshold": 0 },
+    { "name": "skill_fallback_rate", "operator": "<=", "threshold": 0.05 }
+  ],
+  "semantic_triggers": ["medical_evidence", "clinical_recommendation"],
+  "expected_paths": ["lib/mesh/skills/cardiology/index.ts", "lib/mesh/skills/pediatrics/index.ts", "control-plane/changes/CHG-2026-10-22-intent-skills-primary.json"],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "any shadow or post-promotion comparison verdict fail",
+    "a Skill fallback rate above 5% on Preview",
+    "an unsupported claim on a Skill result"
+  ],
+  "changes": { "representation": true, "ranking": true },
+  "does_not_change": { "navigation": true, "onboarding": true, "source_policy": true, "safety_thresholds": true, "user_job": true }
+}

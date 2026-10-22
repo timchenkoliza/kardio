@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import { after, type NextRequest } from "next/server";
 import { z } from "zod";
 import { RESEARCH_CONTENT_SCOPES, RESEARCH_MODES, RESEARCH_SOURCE_SCOPES, normalizeResearchDomains } from "@/lib/agents/research-options";
@@ -5,6 +6,8 @@ import { getRequestAccessStateFromRequest } from "@/server/access/request-access
 import { agentSession, assertSameOriginRequest, attachAgentCookies, readJsonBody } from "@/server/agents/http";
 import { getResearchJob, listResearchJobs, processResearchJob, queueResearchJob } from "@/server/agents/research-jobs";
 import { HttpError, failure, json, rateLimit } from "@/server/http";
+import { STORAGE_UNAVAILABLE } from "@/server/agents/commands";
+import { durableRunStoreMissing } from "@/server/agents/store";
 import { SESSION_COOKIE } from "@/server/services/state";
 
 export const runtime = "nodejs";
@@ -12,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const bodySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   text: z.string().trim().min(2).max(1200),
   mode: z.enum(RESEARCH_MODES),
   sourceScope: z.enum(RESEARCH_SOURCE_SCOPES),
@@ -22,7 +25,7 @@ const bodySchema = z.object({
 }).strict();
 
 const querySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   job: z.string().startsWith("rjob-").max(80).optional(),
 });
 
@@ -36,6 +39,7 @@ function assertPhysicianAccess(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     assertSameOriginRequest(request, "json");
+    if (durableRunStoreMissing()) throw new HttpError(503, STORAGE_UNAVAILABLE, "storage_unavailable");
     assertPhysicianAccess(request);
     const key = request.cookies.get(SESSION_COOKIE)?.value ?? request.headers.get("x-forwarded-for") ?? "anonymous";
     rateLimit(`agents-research-background:${key}`, 12);

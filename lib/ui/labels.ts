@@ -1,6 +1,6 @@
 import type { ContentKind, ContentObject, Currentness, Shell, SpecialtyId } from "@/lib/domain/types";
 
-export const specialtyLabel: Record<SpecialtyId, string> = { cardiology: "Кардиология", oncology: "Онкология" };
+export const specialtyLabel: Record<SpecialtyId, string> = { cardiology: "Кардиология", therapy: "Терапия", pediatrics: "Педиатрия", obgyn: "Акушерство и гинекология", neurology: "Неврология", endocrinology: "Эндокринология", oncology: "Онкология" };
 export const shellLabel: Record<Shell, string> = { explore: "Обзор", practice: "Практика", workspace: "Рабочее пространство" };
 export const kindLabel: Record<ContentKind, string> = { guideline: "Рекомендации", article: "Статья", video: "Видео", event: "Событие", clinical: "Клинический материал", service: "Профессиональный сервис", tool: "Калькулятор", drug: "Справочник", referral: "ВМП" };
 export const currentnessLabel: Record<Currentness, string> = { current: "Актуальная версия по данным источника", review: "Требует проверки актуальности", superseded: "Есть более новая версия", archived: "Архивный материал" };

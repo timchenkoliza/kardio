@@ -52,6 +52,8 @@ LLM может **предложить** job/module/representation, но producti
 
 Никакой arbitrary frontend generation на каждый запрос.
 
+Первая реализация — `lib/mesh/compiler.ts` (manifest `kardio.experience-manifest/0.1`, детерминированно, без модели). `lib/mesh/projection.ts` проецирует runtime manifest в `ExperienceManifest` этого Control Plane, чтобы `evaluateManifestAgainstChange` проверял то, что реально получает пользователь. Архитектура: `docs/INTENT_EVIDENCE_EXPERIENCE_ARCHITECTURE.md`.
+
 ### Stable Shell + Adaptive Interior
 
 Персонализация может менять:
@@ -156,6 +158,34 @@ Output per run:
 - `human_readable_summary.md`.
 
 Future experience simulations additionally persist `experience_manifest_samples.json` and `decision_traces.json`.
+
+## Change — не только код
+
+Код — лишь одна из шести причин изменения (`ChangeContract.cause`):
+
+| cause | что двинулось | кто создаёт |
+| --- | --- | --- |
+| `code` | реализация | инженер / Branch Engineer |
+| `source_delta` | версия документа источника → claims → scenarios → manifests | `server/mesh/changes.ts` после ре-верификации |
+| `policy_delta` | правило DS / Editorial / Evidence / Experience / Source | `changeFromPolicyFindings` (предложение исправления) |
+| `ranking_delta` | порядок/отбор документов | — |
+| `experience_delta` | module set / порядок / representation | — |
+| `taxonomy_delta` | Domain Skill Graph (нозология, подтип, сценарий) | — |
+
+Структура Change расширена слоями `knowledge_delta` (sources, documents with from/to version and changed chunks, claims added/removed, claim kinds, scenarios stale), `capability_delta`, `experience_delta` (manifests invalidated/regenerated, module families before/after, order/representation changed) и `implementation_delta`. Существующие R*/E* сохраняются; release requirements по-прежнему = union обеих осей.
+
+Производные триггеры (`derivedSemanticTriggers`, `derivedExperienceTriggers` в `lib/risk.ts`):
+
+- claims added/removed → `medical_evidence` + `source_verification` (R4); guideline statement / society assertion → `clinical_recommendation`; contraindication / warning → `drug_safety` + `contraindication`; `cause: ranking_delta` → `source_verification`;
+- module set или порядок изменились → `module_selection_change` (E2); representation → `representation_change` (E2); только контент обновился → `source_content_refresh` (E1).
+
+### Negative obligations
+
+`does_not_change { module_family, navigation, user_job, source_policy, onboarding, representation, ranking, safety_thresholds }` — явные обещания, что Change **не** меняет. `lib/obligations.ts` проверяет их по experience samples before/after и по противоречию с позитивными `changes`. Если обязательства объявлены, добавляется required gate `negative_obligations`; нарушение блокирует релиз.
+
+Пример (тест `tests/unit/mesh-incremental.test.ts`): обновился один раздел клинических рекомендаций на источнике → Change `source_delta`, R4/E2; обещание `module_family` нарушено (conflict-модуль исчез, потому что рекомендация теперь согласуется) → `BLOCK`.
+
+Система записывает, оценивает и рекомендует; ни source delta, ни policy-агент не применяют исправление к production сами.
 
 ## Shadow-mode rule
 

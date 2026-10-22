@@ -1,3 +1,4 @@
+import { isSpecialty } from "@/lib/specialty";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -49,7 +50,7 @@ function normalizeJobs(value: unknown): ResearchJob[] {
     if (!item || typeof item !== "object") return false;
     const job = item as Partial<ResearchJob>;
     return typeof job.id === "string"
-      && (job.specialty === "cardiology" || job.specialty === "oncology")
+      && isSpecialty(job.specialty)
       && typeof job.question === "string"
       && typeof job.createdAt === "string"
       && typeof job.status === "string"

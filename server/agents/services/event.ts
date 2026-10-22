@@ -7,6 +7,7 @@ import type { ResultDraft } from "../drafts";
 import { EVENT_RECORDS, EVENTS_SNAPSHOT_RETRIEVED_AT, type EventRecord } from "../snapshots/events";
 import { evidenceFromQuote } from "./evidence";
 import { factCheck } from "./fact-check";
+import { assessSource } from "./source-policy";
 
 /**
  * EventService: search → normalize → rank → explain relevance. Registration
@@ -50,6 +51,8 @@ export function searchEvents(ctx: AgentContext, records: readonly EventRecord[] 
     if (inDays < 0 || startsIn > horizonDays) continue;
     const source = organizerSource(record);
     if (excludedSources.includes(source)) continue;
+    // Listings from sources physicians rejected never compete for a place in the result.
+    if (assessSource({ url: record.listingUrl }).standing === "rejected") continue;
     const matchedFormats = formats.length ? formatMatches(record, formats) : [];
     if (formats.length && !matchedFormats.length) continue;
     const matchedTopics = topics.filter(topic => record.topics.includes(topic));
@@ -66,6 +69,12 @@ export function searchEvents(ctx: AgentContext, records: readonly EventRecord[] 
     results.push({ record, score, reasons, matchedTopics, formatMatches: matchedFormats, inDays: startsIn });
   }
   return results.sort((a, b) => b.score - a.score || a.record.startDate.localeCompare(b.record.startDate) || a.record.id.localeCompare(b.record.id));
+}
+
+/** Upcoming listings hidden because physicians rejected their source; reported, never silently dropped. */
+export function rejectedListingCount(ctx: AgentContext, records: readonly EventRecord[] = EVENT_RECORDS): number {
+  if (ctx.specialty !== "cardiology") return 0;
+  return records.filter(record => daysUntil(record.endDate, ctx.now) >= 0 && daysUntil(record.startDate, ctx.now) <= ctx.preference.horizonDays && assessSource({ url: record.listingUrl }).standing === "rejected").length;
 }
 
 export function eventDateLabel(record: EventRecord): string {

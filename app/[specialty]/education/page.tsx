@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowRight, BookOpen, ExternalLink, GraduationCap, PlayCircle } from "lucide-react";
 import { ProductFrame } from "@/components/product-frame";
 import { ProductProvider } from "@/components/product-provider";
@@ -43,6 +43,8 @@ export default async function EducationPage({
 }) {
   const { specialty: rawSpecialty } = await params;
   if (!isSpecialty(rawSpecialty)) notFound();
+  // The frozen archive exists only for the specialties it was built for; its copy is cardiology/oncology-specific.
+  if (rawSpecialty !== "cardiology" && rawSpecialty !== "oncology") redirect(`/${rawSpecialty}`);
   const specialty = rawSpecialty;
   const queryParams = await searchParams;
   const shellParam = first(queryParams.shell);

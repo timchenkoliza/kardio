@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { ClinicalToolsHub } from "@/components/clinical-tools-hub";
 import { DrugIntelligenceWorkspace } from "@/components/drug-intelligence-workspace";
@@ -91,6 +91,8 @@ export default async function LegacyHome({
 }) {
   const { specialty: rawSpecialty } = await params;
   if (!isSpecialty(rawSpecialty)) notFound();
+  // The frozen archive exists only for the specialties it was built for; its copy is cardiology/oncology-specific.
+  if (rawSpecialty !== "cardiology" && rawSpecialty !== "oncology") redirect(`/${rawSpecialty}`);
   const specialty = rawSpecialty;
   const queryParams = await searchParams;
   const query = first(queryParams.q)?.trim() ?? "";

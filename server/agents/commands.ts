@@ -2,18 +2,23 @@ import { z } from "zod";
 import { countLabel } from "@/lib/agents/format";
 import { AGENT_IDS, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
 import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, GOAL_OPTIONS, SOURCE_OPTIONS, TOPICS } from "@/lib/agents/vocabulary";
-import type { SpecialtyId } from "@/lib/domain/types";
+import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
 import { cancelAction, confirmAction, prepareAction } from "./services/action-confirmation";
 import { materialFromLink, materialFromNote, materialFromResult } from "./services/material";
-import { workspaceStore } from "./store";
+import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
 import { recordAgentEvent } from "./telemetry";
 import { catchUp, executeRun, loadProfile } from "./workspace";
+import { PORTAL_JOBS, type PortalJob } from "@/lib/portal/jobs";
+import { CLIENT_PORTAL_EVENTS } from "@/lib/portal/metrics";
+import { recordPortalOpen, respondToAsk, type Scheduler } from "@/server/portal/manager";
+import { clarificationAnswerSchema, type ClarificationManifest, type PlanPreview } from "@/lib/mesh/skills/types";
+import { recordPortalEvent } from "@/server/portal/telemetry";
 
-const specialty = z.enum(["cardiology", "oncology"]);
+const specialty = z.enum(SPECIALTY_IDS);
 const agentId = z.enum(AGENT_IDS as unknown as [AgentId, ...AgentId[]]);
-const topicIds = Array.from(new Set([...TOPICS.cardiology, ...TOPICS.oncology].map(topic => topic.id)));
+const topicIds = Array.from(new Set(Object.values(TOPICS).flat().map(topic => topic.id)));
 const topic = z.string().refine(value => topicIds.includes(value), "Unknown topic");
 const sourceId = z.string().refine(value => SOURCE_OPTIONS.some(option => option.id === value), "Unknown source");
 const resultId = z.string().regex(/^res-[a-f0-9-]{36}$/);
@@ -39,6 +44,14 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("runAgent"), specialty, agentId, text: freeText.optional() }).strict(),
   z.object({ action: z.literal("runTask"), specialty, text: freeText, agentId: z.union([agentId, z.literal("auto")]).optional(), materialId: materialId.optional() }).strict(),
   z.object({ action: z.literal("catchUp"), specialty }).strict(),
+  z.object({
+    action: z.literal("ask"), specialty, text: freeText, job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), followup: z.boolean().optional(),
+    // The one clarification answered (option or free text), a confirmed explicit plan, the open result a follow-up refines.
+    clarification: clarificationAnswerSchema.optional(),
+    planConfirmed: z.string().min(1).max(80).optional(),
+    contextRunId: z.string().regex(/^run-[a-f0-9-]{36}$/).optional(),
+  }).strict(),
+  z.object({ action: z.literal("track"), specialty, event: z.enum(CLIENT_PORTAL_EVENTS), job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), resultId: resultId.optional(), resultKind: z.string().regex(/^[a-z_]{2,40}$/).optional() }).strict(),
   z.object({ action: z.literal("markSeen"), specialty, agentId }).strict(),
   z.object({ action: z.literal("resetSeen"), specialty }).strict(),
   z.object({ action: z.literal("recordVisit"), specialty }).strict(),
@@ -70,6 +83,12 @@ export interface CommandResult {
   material?: Material;
   notices?: string[];
   redirect?: string;
+  /** One compact question before running (never onboarding, never a source picker). */
+  clarification?: ClarificationManifest;
+  /** The explicit plan of a large request, run on «Продолжить». */
+  plan?: PlanPreview;
+  /** A follow-up applied to the open result in place. */
+  refined?: { applied: boolean; message: string | null; manifestVersion: number; retrieval: boolean };
 }
 
 async function saveProfile(sessionId: string, profile: UserProfile) {
@@ -88,10 +107,17 @@ async function resultFor(sessionId: string, specialtyId: SpecialtyId, id: string
   return result;
 }
 
-export async function executeAgentCommand(sessionId: string, command: AgentCommand): Promise<CommandResult> {
+/** Commands that hand a run id to the browser: that id must be durable before it is returned. */
+const RUN_COMMANDS = new Set<AgentCommand["action"]>(["ask", "runTask", "runAgent"]);
+
+export const STORAGE_UNAVAILABLE = "Не удалось запустить поиск: хранилище результатов не подключено. Это ошибка развёртывания, а не вашего запроса.";
+
+export async function executeAgentCommand(sessionId: string, command: AgentCommand, options: { schedule?: Scheduler } = {}): Promise<CommandResult> {
   const store = workspaceStore();
   const now = new Date().toISOString();
   const specialtyId = command.specialty as SpecialtyId;
+  // A run id from an in-process store would be unreadable from the next serverless instance.
+  if (RUN_COMMANDS.has(command.action) && durableRunStoreMissing()) throw new HttpError(503, STORAGE_UNAVAILABLE, "storage_unavailable");
 
   switch (command.action) {
     case "setInterests": {
@@ -101,9 +127,12 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
         trustedSources: [...new Set(command.trustedSources)].filter(id => !command.excludedSources.includes(id)),
         excludedSources: [...new Set(command.excludedSources)],
       };
+      const before = new Set((await loadProfile(sessionId, specialtyId)).interests.topics);
       profile.configuredAt ??= now;
       await saveProfile(sessionId, profile);
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: profile.interests.topics.length });
+      const added = profile.interests.topics.filter(topicId => !before.has(topicId));
+      for (const topicId of added) await recordPortalEvent(sessionId, "topic_signal_added", { specialty: specialtyId, signal: topicId });
       const ran = command.runAgents ? (await catchUpAll(sessionId, specialtyId)) : [];
       return { ok: true, profileChanged: true, ran };
     }
@@ -147,6 +176,17 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       const outcome = await executeRun(sessionId, specialtyId, routed.agentId, { trigger: "composer", text: command.text, routed });
       return { ok: true, profileChanged: true, runId: outcome.run.id, agentId: routed.agentId, actions: outcome.actions, notices: outcome.run.riskNotices };
     }
+    case "ask": {
+      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
+      if (response.kind === "clarification") return { ok: true, profileChanged: false, clarification: response.clarification };
+      if (response.kind === "plan") return { ok: true, profileChanged: false, plan: response.plan };
+      if (response.kind === "refined") return { ok: true, profileChanged: response.refinement.applied, runId: response.refinement.runId, redirect: response.href, refined: { applied: response.refinement.applied, message: response.refinement.message, manifestVersion: response.refinement.manifestVersion, retrieval: response.refinement.retrieval } };
+      return { ok: true, profileChanged: true, runId: response.runId, agentId: response.agentId, actions: response.actions, notices: response.notices, redirect: response.href };
+    }
+    case "track": {
+      await recordPortalEvent(sessionId, command.event, { specialty: specialtyId, ...(command.job ? { job: command.job } : {}), ...(command.resultId ? { resultId: command.resultId } : {}), ...(command.resultKind ? { resultKind: command.resultKind } : {}) });
+      return { ok: true, profileChanged: false };
+    }
     case "catchUp": {
       const result = await catchUp(sessionId, specialtyId);
       return { ok: true, profileChanged: result.ran.length > 0, ran: result.ran };
@@ -165,15 +205,9 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: true };
     }
     case "recordVisit": {
-      const profile = await loadProfile(sessionId, specialtyId);
-      const last = profile.lastVisitAt ? new Date(profile.lastVisitAt).getTime() : 0;
-      if (Date.now() - last > 30 * 60_000) {
-        profile.previousVisitAt = profile.lastVisitAt;
-        profile.lastVisitAt = now;
-        await saveProfile(sessionId, profile);
-        return { ok: true, profileChanged: true };
-      }
-      return { ok: true, profileChanged: false };
+      // Portal open: anchors the retention cohort and records return sessions.
+      const { returning } = await recordPortalOpen(sessionId, specialtyId);
+      return { ok: true, profileChanged: returning };
     }
     case "saveResult": {
       const result = await resultFor(sessionId, specialtyId, command.resultId);
@@ -182,6 +216,7 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       await store.saveMaterial(sessionId, material);
       await store.upsertResults(sessionId, [{ ...result, savedMaterialId: material.id }]);
       await recordAgentEvent(sessionId, "material_saved", { specialty: specialtyId, agentId: result.agentId, resultId: result.id });
+      await recordPortalEvent(sessionId, "result_saved", { specialty: specialtyId, resultId: result.id, resultKind: result.kind });
       return { ok: true, profileChanged: false, material };
     }
     case "dismissResult": {
@@ -192,6 +227,7 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
     case "openResult": {
       const result = await resultFor(sessionId, specialtyId, command.resultId);
       await recordAgentEvent(sessionId, command.evidence ? "evidence_opened" : "agent_result_opened", { specialty: specialtyId, agentId: result.agentId, resultId: result.id });
+      if (command.evidence) await recordPortalEvent(sessionId, "source_opened", { specialty: specialtyId, resultId: result.id, resultKind: result.kind });
       return { ok: true, profileChanged: false };
     }
     case "addLink": {

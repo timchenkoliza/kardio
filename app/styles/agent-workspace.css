@@ -431,7 +431,8 @@
   transition: background 120ms ease;
 }
 .ws-chip:hover { background: var(--ws-surface-pressed); }
-.ws-chip.is-selected { background: var(--ws-accent-soft); border-color: var(--ws-accent-soft); color: var(--ws-accent-ink); font-weight: var(--font-weight-semibold); }
+/* DS: accent-ink is guaranteed on accent-wash (4.6:1+), not on accent-soft. */
+.ws-chip.is-selected { background: var(--ws-accent-wash); border-color: var(--ws-accent-soft); color: var(--ws-accent-ink); font-weight: var(--font-weight-semibold); }
 .ws-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .ws-setup.is-onboarding .ws-chip:not(.is-selected) { background: var(--ws-canvas); border-color: var(--ws-hairline); }
 .ws-switch { display: inline-flex; align-items: center; gap: var(--ws-space-8); font-size: var(--font-size-label); cursor: pointer; }

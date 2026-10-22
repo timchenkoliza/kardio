@@ -12,7 +12,7 @@ import { AgentIcon } from "./agent-icon";
 import { HelpTip } from "./help-tip";
 import { useWorkspace } from "./workspace-provider";
 
-const EXAMPLES: Record<SpecialtyId, string[]> = {
+const EXAMPLES: Partial<Record<SpecialtyId, string[]>> = {
   cardiology: [
     "Что изменилось по ХСН в рекомендациях за последние месяцы",
     "Найди события по кардиологии в Москве и онлайн на 60 дней и поставь в календарь",
@@ -105,6 +105,6 @@ export function AgentComposer({ specialty, defaultAgent = "auto", compact = fals
       {routed?.risk.prescribing && <span className="ws-risk"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.prescribing}</span>}
       {routed?.risk.patientSpecific && <span className="ws-risk"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.patientSpecific}</span>}
     </div>
-    {!compact && !text && <div className="ws-examples" aria-label="Примеры задач">{EXAMPLES[specialty].map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div>}
+    {!compact && !text && <div className="ws-examples" aria-label="Примеры задач">{(EXAMPLES[specialty] ?? []).map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div>}
   </form>;
 }

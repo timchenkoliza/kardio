@@ -11,14 +11,17 @@ The active product has no access to patient data, EHR/EMR/MIS, appointment sched
 Use this priority order:
 
 1. explicit instructions in the current task;
-2. `context/40_AGENT_FIRST_WORKSPACE.md` for product direction and information architecture (agent-first workspace);
-3. `context/00_START_HERE.md`;
-4. `context/16_V3_SOURCE_OF_TRUTH_AUDIT.md`;
-5. `context/22_FULLSTACK_PRODUCT_REBUILD.md`;
-6. `context/23_APP_ONTOLOGY_V1.md` once present;
-7. other current v3 files;
-8. existing implementation;
-9. external technical references.
+2. `context/42_RETENTION_FIRST_PORTAL.md` for product direction and information architecture (retention-first professional portal, six launch specialties);
+3. `docs/PRODUCT_OPPORTUNITY_MAP.md` for homepage prominence decisions;
+4. `context/00_START_HERE.md`;
+5. `context/16_V3_SOURCE_OF_TRUTH_AUDIT.md`;
+6. `context/22_FULLSTACK_PRODUCT_REBUILD.md`;
+7. `context/23_APP_ONTOLOGY_V1.md` once present;
+8. other current v3 files;
+9. existing implementation;
+10. external technical references.
+
+`context/40_AGENT_FIRST_WORKSPACE.md` is historical: its safety gates and honesty rules still apply, its agent-first IA does not.
 
 `context/21_VISUAL_RESET_V2.md` is authoritative for visual direction, not application architecture. Other repositories/projects are not product truth.
 
@@ -27,6 +30,8 @@ Use this priority order:
 The Cardiology Golden Set contains 54 canonical objects, 18 canonical sources and a 24-object evaluation slice. Treat it as immutable migration evidence. Preserve original IDs, source IDs, URLs, raw records, provenance, currentness, version relationships and rights uncertainty.
 
 There is no approved canonical Oncology dataset yet. Never use Cardiology as Oncology fallback and never fabricate Oncology clinical content.
+
+The same rule covers every launch specialty without a canonical dataset (therapy, pediatrics, obgyn, neurology, endocrinology): they are served by live sources (PubMed, openFDA) and honest hand-offs, never by Cardiology catalog objects, snapshots or partner fixtures.
 
 ## Architecture
 
@@ -62,9 +67,13 @@ Ontology identities must be deterministic and stable. Preserve canonical/origina
 
 AI may assist extraction, tagging, classification, entity linking, query understanding and candidate relation generation. AI must not manufacture clinical authority, missing medical facts, canonical Oncology knowledge or patient context. Model-derived edges remain candidates until explicitly promoted under policy.
 
+## Intent → evidence → experience
+
+The durable contract: a physician states a professional intent once; the system chooses sources and capabilities, executes them, validates evidence and compiles one consistent result. Keep four concepts separate: JOB (`lib/mesh/jobs.ts`), CAPABILITY (`lib/mesh/capabilities.ts`), SOURCE (`lib/mesh/sources.ts`, `server/mesh/sources`), EXPERIENCE (`lib/mesh/manifest.ts`). The pipeline is `compileIntent → planSources → executePlan → buildEvidenceGraph → compileExperience → policy gates → ExperienceView` (see `docs/INTENT_EVIDENCE_EXPERIENCE_ARCHITECTURE.md`). Never add a source picker, an agent per specialty or disease, or runtime-generated UI: new sources are adapters in the registry, new taxonomy goes into the Domain Skill Graph, new representations are approved module families. Source adapters return only normalized documents/chunks/claims; the Experience layer only references evidence-graph ids. Browser-capable sources honour robots.txt and their usage policy, keep only attributed excerpts, and fail explicitly (`layout_changed`, `robots_disallow`, …). Knowledge changes, policy fixes and ranking changes are Changes in `control-plane/` with negative obligations, never silent production edits.
+
 ## Agent layer
 
-Agents live in `lib/agents` (shared types, definitions, routing, policy) and `server/agents` (connectors → tools/services → executors → supervisor → store). Never expose tools or connectors as product sections. Every adapter declares `LIVE`, `MOCK` or `UNAVAILABLE`; never fake a successful external integration. Every medical evidence item keeps provenance and a verification status. Every action outside the product goes through `ActionConfirmationService`. "Since last visit" is computed from `createdAt` vs `lastSeenAt`, never hard-coded.
+Agents live in `lib/agents` (shared types, definitions, routing, policy) and `server/agents` (connectors → tools/services → executors → supervisor → store). The portal layer (`lib/portal`, `server/portal`) owns the physician-facing job, routing and result contract; agents are implementation units behind it. Never expose agents, tools or connectors as product sections. Every adapter declares `LIVE`, `MOCK` or `UNAVAILABLE`; never fake a successful external integration. Every medical evidence item keeps provenance and a verification status. Every action outside the product goes through `ActionConfirmationService`. "Since last visit" is computed from `createdAt` vs `lastSeenAt`, never hard-coded.
 
 ## Engineering discipline
 

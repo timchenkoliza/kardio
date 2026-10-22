@@ -12,6 +12,12 @@ export interface TopicOption {
   catalogTopics: string[];
   pubmed: string;
   keywords: string[];
+  /**
+   * Specialty-framed topic whose keyword is generic («профилактика», «ИИ»): it
+   * scopes searches inside its own specialty only and never matches a question
+   * asked from another specialty.
+   */
+  specialtyBound?: boolean;
 }
 
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
@@ -25,11 +31,76 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид"] },
     { id: "cardiomyopathy", label: "Кардиомиопатии", catalogTopics: ["hypertrophic_cardiomyopathy", "myocarditis"], pubmed: "cardiomyopathy[tiab] OR myocarditis[tiab]", keywords: ["кардиомиопат", "гкмп", "миокардит", "амилоид"] },
     { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "лёгочн", "лаг", "хтэлг"] },
-    { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"] },
-    { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"] },
+    { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"], specialtyBound: true },
+    { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"], specialtyBound: true },
     { id: "endocarditis", label: "Инфекционный эндокардит", catalogTopics: ["infective_endocarditis"], pubmed: "endocarditis[tiab]", keywords: ["эндокардит"] },
-    { id: "prevention", label: "Профилактика", catalogTopics: ["prognosis_and_diagnostics", "treatment_strategies"], pubmed: "\"cardiovascular prevention\"[tiab] OR \"cardiovascular risk\"[tiab]", keywords: ["профилакт", "score2", "суммарн риск", "сердечно-сосудист риск"] },
-    { id: "ai", label: "ИИ в кардиологии", catalogTopics: ["ai_in_cardiology"], pubmed: "\"artificial intelligence\"[tiab] AND cardiology[tiab]", keywords: ["ии", "искусственн интеллект", "нейросет"] },
+    { id: "prevention", label: "Профилактика", catalogTopics: ["prognosis_and_diagnostics", "treatment_strategies"], pubmed: "\"cardiovascular prevention\"[tiab] OR \"cardiovascular risk\"[tiab]", keywords: ["профилакт", "score2", "суммарн риск", "сердечно-сосудист риск"], specialtyBound: true },
+    { id: "ai", label: "ИИ в кардиологии", catalogTopics: ["ai_in_cardiology"], pubmed: "\"artificial intelligence\"[tiab] AND cardiology[tiab]", keywords: ["ии", "искусственн интеллект", "нейросет"], specialtyBound: true },
+  ],
+  therapy: [
+    { id: "ah", label: "Артериальная гипертензия", catalogTopics: [], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
+    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "сахарн диабет", "диабет 2"] },
+    { id: "copd", label: "ХОБЛ", catalogTopics: [], pubmed: "COPD[tiab] OR \"chronic obstructive pulmonary\"[tiab]", keywords: ["хобл"] },
+    { id: "asthma", label: "Бронхиальная астма", catalogTopics: [], pubmed: "asthma[tiab]", keywords: ["астм"] },
+    { id: "pneumonia", label: "Пневмония", catalogTopics: [], pubmed: "pneumonia[tiab]", keywords: ["пневмон"] },
+    { id: "ari", label: "ОРВИ и грипп", catalogTopics: [], pubmed: "\"respiratory tract infections\"[tiab] OR influenza[tiab]", keywords: ["орви", "грипп", "простуд"] },
+    { id: "gerd", label: "ГЭРБ и диспепсия", catalogTopics: [], pubmed: "\"gastroesophageal reflux\"[tiab] OR dyspepsia[tiab]", keywords: ["гэрб", "рефлюкс", "диспепс", "изжог"] },
+    { id: "anemia", label: "Анемии", catalogTopics: [], pubmed: "anemia[tiab] OR anaemia[tiab]", keywords: ["анеми"] },
+    { id: "ckd", label: "Хроническая болезнь почек", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab]", keywords: ["хбп", "почечн", "болезн почек"] },
+    { id: "gout", label: "Подагра", catalogTopics: [], pubmed: "gout[tiab] OR hyperuricemia[tiab]", keywords: ["подагр", "гиперурикем"] },
+    { id: "osteoarthritis", label: "Остеоартрит", catalogTopics: [], pubmed: "osteoarthritis[tiab]", keywords: ["остеоартр", "артроз"] },
+    { id: "lipids", label: "Дислипидемия", catalogTopics: [], pubmed: "dyslipidemia[tiab] OR LDL[tiab]", keywords: ["липид", "холестер", "лпнп", "дислипид"] },
+  ],
+  pediatrics: [
+    { id: "fever", label: "ОРВИ и лихорадка у детей", catalogTopics: [], pubmed: "(\"respiratory tract infections\"[tiab] OR fever[tiab]) AND child*[tiab]", keywords: ["орви", "лихорад", "температур", "простуд"], specialtyBound: true },
+    { id: "otitis", label: "Острый средний отит", catalogTopics: [], pubmed: "\"otitis media\"[tiab]", keywords: ["отит"] },
+    { id: "bronchiolitis", label: "Бронхиолит", catalogTopics: [], pubmed: "bronchiolitis[tiab]", keywords: ["бронхиолит"] },
+    { id: "asthma", label: "Бронхиальная астма у детей", catalogTopics: [], pubmed: "asthma[tiab] AND child*[tiab]", keywords: ["астм"], specialtyBound: true },
+    { id: "atopic", label: "Атопический дерматит", catalogTopics: [], pubmed: "\"atopic dermatitis\"[tiab] OR eczema[tiab]", keywords: ["атопич", "дерматит", "экзем"] },
+    { id: "food_allergy", label: "Пищевая аллергия", catalogTopics: [], pubmed: "\"food allergy\"[tiab] OR \"food hypersensitivity\"[tiab]", keywords: ["пищев аллерг", "аллергия на белок"] },
+    { id: "vaccination", label: "Вакцинация", catalogTopics: [], pubmed: "vaccin*[tiab] AND child*[tiab]", keywords: ["вакцин", "прививк"], specialtyBound: true },
+    { id: "neonatal", label: "Неонатология", catalogTopics: [], pubmed: "newborn*[tiab] OR neonat*[tiab]", keywords: ["новорожд", "неонат", "желтух"] },
+    { id: "growth", label: "Рост и развитие", catalogTopics: [], pubmed: "\"child development\"[tiab] OR \"growth disorders\"[tiab] OR \"short stature\"[tiab]", keywords: ["низкоросл", "задержк развит", "физическ развит"] },
+    { id: "feeding", label: "Вскармливание и питание", catalogTopics: [], pubmed: "breastfeeding[tiab] OR \"infant nutrition\"[tiab] OR \"complementary feeding\"[tiab]", keywords: ["вскармлив", "прикорм", "грудн молок", "детск смес"] },
+    { id: "uti", label: "Инфекции мочевых путей", catalogTopics: [], pubmed: "\"urinary tract infections\"[tiab] AND child*[tiab]", keywords: ["мочев инфекц", "пиелонеф", "инфекц мочев"], specialtyBound: true },
+    { id: "adhd", label: "СДВГ", catalogTopics: [], pubmed: "ADHD[tiab] OR \"attention deficit\"[tiab]", keywords: ["сдвг", "гиперактив"] },
+  ],
+  obgyn: [
+    { id: "preeclampsia", label: "Преэклампсия и гипертензия беременных", catalogTopics: [], pubmed: "preeclampsia[tiab] OR \"pre-eclampsia\"[tiab] OR \"gestational hypertension\"[tiab]", keywords: ["преэклампс", "гестоз"] },
+    { id: "gdm", label: "Гестационный сахарный диабет", catalogTopics: [], pubmed: "\"gestational diabetes\"[tiab]", keywords: ["гестацион диабет", "гсд"] },
+    { id: "preterm", label: "Преждевременные роды", catalogTopics: [], pubmed: "\"preterm birth\"[tiab] OR \"preterm labor\"[tiab]", keywords: ["преждевремен род", "недонош"] },
+    { id: "pregnancy", label: "Ведение беременности", catalogTopics: [], pubmed: "\"prenatal care\"[tiab] OR \"antenatal care\"[tiab]", keywords: ["беременн", "антенатал", "пренатал"] },
+    { id: "endometriosis", label: "Эндометриоз", catalogTopics: [], pubmed: "endometriosis[tiab]", keywords: ["эндометриоз"] },
+    { id: "pcos", label: "Синдром поликистозных яичников", catalogTopics: [], pubmed: "\"polycystic ovary\"[tiab]", keywords: ["спкя", "поликистоз"] },
+    { id: "contraception", label: "Контрацепция", catalogTopics: [], pubmed: "contracepti*[tiab]", keywords: ["контрацеп"] },
+    { id: "menopause", label: "Менопауза и МГТ", catalogTopics: [], pubmed: "menopaus*[tiab] OR \"menopausal hormone therapy\"[tiab]", keywords: ["менопауз", "климакт", "мгт"] },
+    { id: "infertility", label: "Бесплодие и ВРТ", catalogTopics: [], pubmed: "infertility[tiab] OR \"in vitro fertilization\"[tiab]", keywords: ["бесплод", "эко", "врт"] },
+    { id: "cervical", label: "Шейка матки и ВПЧ", catalogTopics: [], pubmed: "\"cervical cancer screening\"[tiab] OR \"human papillomavirus\"[tiab]", keywords: ["впч", "шейк матк", "цервикал"] },
+    { id: "fibroids", label: "Миома матки", catalogTopics: [], pubmed: "leiomyoma[tiab] OR \"uterine fibroids\"[tiab]", keywords: ["миом"] },
+  ],
+  neurology: [
+    { id: "stroke", label: "Инсульт", catalogTopics: [], pubmed: "stroke[tiab]", keywords: ["инсульт", "онмк"] },
+    { id: "epilepsy", label: "Эпилепсия", catalogTopics: [], pubmed: "epilep*[tiab]", keywords: ["эпилеп", "судорог"] },
+    { id: "headache", label: "Мигрень и головная боль", catalogTopics: [], pubmed: "migraine[tiab] OR headache[tiab]", keywords: ["мигрен", "головн бол", "цефалг"] },
+    { id: "ms", label: "Рассеянный склероз", catalogTopics: [], pubmed: "\"multiple sclerosis\"[tiab]", keywords: ["рассеян склероз"] },
+    { id: "parkinson", label: "Болезнь Паркинсона", catalogTopics: [], pubmed: "parkinson*[tiab]", keywords: ["паркинсон"] },
+    { id: "dementia", label: "Деменция и когнитивные нарушения", catalogTopics: [], pubmed: "dementia[tiab] OR \"cognitive impairment\"[tiab] OR alzheimer*[tiab]", keywords: ["деменц", "когнитив", "альцгейм"] },
+    { id: "neuropathy", label: "Полинейропатии", catalogTopics: [], pubmed: "neuropath*[tiab]", keywords: ["нейропат", "невропат", "полинейр"] },
+    { id: "back_pain", label: "Боль в спине", catalogTopics: [], pubmed: "\"low back pain\"[tiab] OR radiculopathy[tiab]", keywords: ["боль в спин", "люмбал", "радикулопат", "дорсопат"] },
+    { id: "sleep", label: "Нарушения сна", catalogTopics: [], pubmed: "insomnia[tiab] OR \"sleep disorders\"[tiab]", keywords: ["инсомн", "бессонниц", "нарушени сна"] },
+    { id: "vertigo", label: "Головокружение", catalogTopics: [], pubmed: "vertigo[tiab] OR dizziness[tiab]", keywords: ["головокруж", "вертиго"] },
+  ],
+  endocrinology: [
+    { id: "dm1", label: "Сахарный диабет 1 типа", catalogTopics: [], pubmed: "\"type 1 diabetes\"[tiab]", keywords: ["сд1", "диабет 1"] },
+    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "диабет 2"] },
+    { id: "obesity", label: "Ожирение", catalogTopics: [], pubmed: "obesity[tiab]", keywords: ["ожирен", "избыточн масс"] },
+    { id: "hypothyroidism", label: "Гипотиреоз", catalogTopics: [], pubmed: "hypothyroidism[tiab]", keywords: ["гипотиреоз"] },
+    { id: "hyperthyroidism", label: "Тиреотоксикоз", catalogTopics: [], pubmed: "hyperthyroidism[tiab] OR \"Graves disease\"[tiab]", keywords: ["тиреотокс", "гипертиреоз", "базедов", "грейвс"] },
+    { id: "thyroid_nodules", label: "Узлы щитовидной железы", catalogTopics: [], pubmed: "\"thyroid nodule\"[tiab] OR \"thyroid nodules\"[tiab]", keywords: ["узл щитовид", "узлов зоб"] },
+    { id: "osteoporosis", label: "Остеопороз", catalogTopics: [], pubmed: "osteoporosis[tiab]", keywords: ["остеопороз"] },
+    { id: "adrenal", label: "Заболевания надпочечников", catalogTopics: [], pubmed: "adrenal[tiab]", keywords: ["надпочечн", "аддисон", "кушинг", "феохромоцит"] },
+    { id: "pituitary", label: "Заболевания гипофиза", catalogTopics: [], pubmed: "pituitary[tiab] OR acromegaly[tiab] OR prolactinoma[tiab]", keywords: ["гипофиз", "акромегал", "пролактин"] },
+    { id: "diabetes_tech", label: "Технологии в диабетологии", catalogTopics: [], pubmed: "\"continuous glucose monitoring\"[tiab] OR \"insulin pump\"[tiab]", keywords: ["инсулинов помп", "мониторинг глюкоз", "cgm"] },
   ],
   oncology: [
     { id: "breast", label: "Рак молочной железы", catalogTopics: [], pubmed: "\"breast cancer\"[tiab]", keywords: ["молочн", "рмж"] },

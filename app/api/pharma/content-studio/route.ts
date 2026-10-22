@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import type { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { canUseAgentCapability } from "@/lib/access/agent-entitlements";
@@ -13,7 +14,7 @@ import { ensureSession, SESSION_COOKIE } from "@/server/services/state";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const specialty = z.enum(["cardiology", "oncology"]);
+const specialty = z.enum(SPECIALTY_IDS);
 const packageId = z.string().regex(/^pkg-[a-f0-9-]{36}$/);
 const draftId = z.string().regex(/^draft-[a-f0-9-]{36}$/);
 const httpUrl = z.string().trim().max(1200).refine(value => {

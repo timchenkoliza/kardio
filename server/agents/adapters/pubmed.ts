@@ -12,6 +12,8 @@ export interface PubmedQuery {
   journals?: string[];
   /** PubMed publication types ([pt]), e.g. clinical trials and systematic reviews. */
   publicationTypes?: string[];
+  /** "pub_date" (default) for monitoring; "relevance" (PubMed Best Match) for answering a question. */
+  sort?: "pub_date" | "relevance";
 }
 
 /** Study types the physicians' validation asks for in a literature feed (PubMed «Clinical Queries»). */
@@ -59,6 +61,23 @@ function stripTags(value: string): string {
   return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Journals often date an issue months ahead («2027 Dec»). A future issue date
+ * is not when the physician could read the article: use the online (epub) or
+ * PubMed entry date instead, so «new» and freshness stay truthful.
+ */
+export function publicationDates(record: Record<string, unknown>, today = new Date()): { pubDate: string | null; sortDate: string | null } {
+  const pubDate = typeof record.pubdate === "string" && record.pubdate ? record.pubdate : null;
+  const sortDate = typeof record.sortpubdate === "string" && record.sortpubdate ? record.sortpubdate.slice(0, 10).replace(/\//g, "-") : null;
+  const todayIso = today.toISOString().slice(0, 10);
+  if (!sortDate || sortDate <= todayIso) return { pubDate, sortDate };
+  const history = Array.isArray(record.history) ? record.history as Array<{ pubstatus?: string; date?: string }> : [];
+  const entrez = history.find(item => item.pubstatus === "entrez" || item.pubstatus === "pubmed")?.date?.slice(0, 10).replace(/\//g, "-") ?? null;
+  const epub = typeof record.epubdate === "string" && record.epubdate ? record.epubdate : null;
+  const online = entrez && entrez <= todayIso ? entrez : null;
+  return { pubDate: epub ? `${epub} (онлайн)` : online ? `${online} (онлайн)` : null, sortDate: online };
+}
+
 export function parseSummaryPayload(payload: unknown): PubmedArticle[] {
   const result = (payload as { result?: Record<string, unknown> })?.result;
   if (!result || typeof result !== "object") return [];
@@ -76,8 +95,7 @@ export function parseSummaryPayload(payload: unknown): PubmedArticle[] {
       title: stripTags(record.title),
       journal: typeof record.source === "string" ? record.source : "",
       journalFull: typeof record.fulljournalname === "string" ? record.fulljournalname : null,
-      pubDate: typeof record.pubdate === "string" && record.pubdate ? record.pubdate : null,
-      sortDate: typeof record.sortpubdate === "string" && record.sortpubdate ? record.sortpubdate.slice(0, 10).replace(/\//g, "-") : null,
+      ...publicationDates(record),
       authors: authors.slice(0, 6),
       doi,
       publicationTypes: pubtypes,
@@ -99,7 +117,8 @@ class PubmedHttpError extends Error {
  * through a shared slot clock instead of failing with HTTP 429.
  */
 let nextSlotAt = 0;
-async function waitForSlot(intervalMs: number): Promise<void> {
+/** Shared NCBI slot clock: every E-utilities call from this instance goes through it. */
+export async function waitForSlot(intervalMs: number): Promise<void> {
   if (intervalMs <= 0) return;
   const now = Date.now();
   const startAt = Math.max(now, nextSlotAt);
@@ -139,7 +158,7 @@ export async function searchPubmedLive(query: PubmedQuery, options: { fetchImpl?
   const fetchImpl = options.fetchImpl ?? (globalThis.fetch as unknown as FetchLike | undefined);
   if (!fetchImpl) return { status: "unavailable", query: term, total: 0, articles: [], error: "Сетевой клиент недоступен", durationMs: 0 };
 
-  const params = new URLSearchParams({ db: "pubmed", retmode: "json", sort: "pub_date", retmax: String(Math.min(Math.max(query.retmax ?? 6, 1), 20)), term, tool: "kardio-workspace" });
+  const params = new URLSearchParams({ db: "pubmed", retmode: "json", sort: query.sort ?? "pub_date", retmax: String(Math.min(Math.max(query.retmax ?? 6, 1), 20)), term, tool: "kardio-workspace" });
   if (query.minDate && query.maxDate) {
     params.set("datetype", "edat");
     params.set("mindate", query.minDate);

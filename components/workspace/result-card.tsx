@@ -19,6 +19,8 @@ const KIND_LABEL: Record<AgentResultView["kind"], string> = {
   research_finding: "Находка",
   learning_module: "Модуль",
   material_hit: "Ваш материал",
+  reference_answer: "Вывод источника",
+  drug_label: "Инструкция",
   partner: "Партнёрский материал",
 };
 
@@ -28,12 +30,13 @@ function categoryLabel(result: AgentResultView): string | null {
     return `${DRUG_CHANGE_LABEL[result.category as DrugChangeType].title}${result.attributes.region ? ` · ${result.attributes.region}` : ""}${status}`;
   }
   if (result.kind === "guideline_change") {
+    if (result.category === "guideline_publication") return `Опубликованные рекомендации${typeof result.attributes.journal === "string" ? ` · ${result.attributes.journal}` : ""}`;
     if (result.category === "needs_check") return "Проверить актуальность";
     if (result.category === "first_guideline") return `${result.attributes.society ?? ""} · первые рекомендации по теме`;
     if (result.category === "consensus_document") return `${result.attributes.society ?? ""} · согласительный документ`;
     return `${result.attributes.society ?? ""} · новая версия`;
   }
-  if (result.kind === "learning_module") return ({ guideline: "Рекомендации", update: "Что нового", lecture: "Видеолекция", self_check: "Самопроверка", event: "Событие с НМО" } as Record<string, string>)[result.category ?? ""] ?? "Модуль";
+  if (result.kind === "learning_module") return ({ guideline: "Рекомендации", update: "Что нового", lecture: "Видеолекция", self_check: "Самопроверка", event: "Событие с НМО", review: "Обзор для чтения" } as Record<string, string>)[result.category ?? ""] ?? "Учебный шаг";
   if (result.kind === "update" && result.category === "publication") return "Новая публикация";
   return null;
 }
@@ -101,9 +104,11 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
 
   function opened(evidence = false) {
     void command({ action: "openResult", resultId: result.id, evidence }, { quiet: true, refresh: false });
+    if (evidence && result.kind === "event") void command({ action: "track", event: "event_opened", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
   }
 
   async function prepare(kind: "calendar_write" | "registration", url?: string | null) {
+    if (kind === "registration") void command({ action: "track", event: "event_registration_clicked", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
     const response = await command({ action: "prepareAction", kind, resultIds: [result.id], ...(url ? { url } : {}) }, { refresh: false });
     if (response?.action) setPendingAction(response.action);
   }

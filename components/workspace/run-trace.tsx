@@ -4,10 +4,10 @@ import type { AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import { ModeBadge } from "./mode-badge";
 
 const STEP_ICON = { done: CircleCheck, skipped: CircleDashed, failed: CircleX, blocked: CircleSlash } as const;
-const STATUS_LABEL: Record<AgentRun["status"], string> = { running: "Выполняется", completed: "Готово", partial: "Готово частично", failed: "Ошибка", blocked: "Остановлено проверкой безопасности" };
+const STATUS_LABEL: Record<AgentRun["status"], string> = { queued: "В очереди", running: "Выполняется", completed: "Готово", partial: "Готово частично", failed: "Ошибка", blocked: "Остановлено проверкой безопасности" };
 
 /** "Как получен результат": the plan in plain language plus which sources were reachable. */
-export function RunTrace({ run, connectors, now }: { run: AgentRun; connectors: ConnectorDescriptor[]; now: string }) {
+export function RunTrace({ run, connectors, now, showSynthesis = true, showConnectors = true }: { run: AgentRun; connectors: ConnectorDescriptor[]; now: string; showSynthesis?: boolean; showConnectors?: boolean }) {
   const used = new Set(run.toolsUsed.flatMap(use => use.connectorIds));
   const shown = connectors.filter(connector => used.has(connector.id) || connector.mode === "UNAVAILABLE");
   return <section className="ws-trace" aria-labelledby={`trace-${run.id}`}>
@@ -24,7 +24,7 @@ export function RunTrace({ run, connectors, now }: { run: AgentRun; connectors: 
       })}
     </ol>
     {run.riskNotices.length > 0 && <ul className="ws-notices">{run.riskNotices.map(notice => <li key={notice}>{notice}</li>)}</ul>}
-    {run.synthesis && <div className="ws-synthesis"><h4>Обзор</h4>{run.synthesis.split("\n\n").map(paragraph => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}</div>}
-    {shown.length > 0 && <div className="ws-sources-used"><h4>Источники агента</h4><ul>{shown.map(connector => <li key={connector.id}><span>{connector.name}</span><ModeBadge mode={connector.mode} origin={connector.dataOrigin} snapshotAt={connector.snapshotAt} /></li>)}</ul></div>}
+    {showSynthesis && run.synthesis && <div className="ws-synthesis"><h4>Обзор</h4>{run.synthesis.split("\n\n").map(paragraph => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}</div>}
+    {showConnectors && shown.length > 0 && <div className="ws-sources-used"><h4>Источники и их состояние</h4><ul>{shown.map(connector => <li key={connector.id}><span>{connector.name}</span><ModeBadge mode={connector.mode} origin={connector.dataOrigin} snapshotAt={connector.snapshotAt} /></li>)}</ul></div>}
   </section>;
 }

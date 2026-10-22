@@ -1,3 +1,4 @@
+import { SPECIALTY_IDS } from "@/lib/domain/types";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import {
@@ -11,6 +12,8 @@ import { getRequestAccessStateFromRequest } from "@/server/access/request-access
 import { agentSession, assertSameOriginRequest, attachAgentCookies, readJsonBody } from "@/server/agents/http";
 import { executeResearchRun } from "@/server/agents/research-run";
 import { HttpError, failure, json, rateLimit } from "@/server/http";
+import { STORAGE_UNAVAILABLE } from "@/server/agents/commands";
+import { durableRunStoreMissing } from "@/server/agents/store";
 import { SESSION_COOKIE } from "@/server/services/state";
 
 export const runtime = "nodejs";
@@ -19,7 +22,7 @@ export const maxDuration = 60;
 
 const domainInput = z.string().trim().min(1).max(253);
 const bodySchema = z.object({
-  specialty: z.enum(["cardiology", "oncology"]),
+  specialty: z.enum(SPECIALTY_IDS),
   text: z.string().trim().min(2).max(1200),
   mode: z.enum(RESEARCH_MODES),
   sourceScope: z.enum(RESEARCH_SOURCE_SCOPES),
@@ -31,6 +34,7 @@ const bodySchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     assertSameOriginRequest(request, "json");
+    if (durableRunStoreMissing()) throw new HttpError(503, STORAGE_UNAVAILABLE, "storage_unavailable");
     const access = getRequestAccessStateFromRequest(request);
     if (access.subject.role === "pharma" || access.subject.role === "editorial") {
       throw new HttpError(403, "У текущего workspace-пользователя нет доступа к агентам врача.");

@@ -17,13 +17,15 @@ export default async function AgentsPage({ params }: { params: Promise<{ special
     sessionId ? workspaceStore().listActions(sessionId, specialty) : Promise.resolve([]),
   ]);
   const now = new Date().toISOString();
-  const enabled = workspace.cards.filter(card => card.enabled);
-  const disabled = workspace.cards.filter(card => !card.enabled);
+  // Background checks only: on-demand answers live behind the portal input, not on this page.
+  const cards = workspace.cards.filter(card => card.agentId !== "reference");
+  const enabled = cards.filter(card => card.enabled);
+  const disabled = cards.filter(card => !card.enabled);
 
   return <div className="ws-page">
     <header className="ws-page-head">
-      <h1>Мои агенты</h1>
-      <p>Каждый агент отвечает за одну профессиональную работу. Поиск, проверка утверждений и источники у них общие — поэтому ответы сопоставимы и проверяемы.</p>
+      <h1>Фоновые проверки</h1>
+      <p>Служебная страница: какие проверки источников работают в фоне для подборки «Для вас» и когда они последний раз запускались. Для вопросов и задач эта страница не нужна — пользуйтесь полем на главной.</p>
     </header>
     <PendingActions actions={actions.filter(action => action.status === "pending_confirmation")} />
     <section className="ws-section" aria-labelledby="ws-active-agents">

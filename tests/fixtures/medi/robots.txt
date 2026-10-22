@@ -1,0 +1,12 @@
+User-Agent: *
+Disallow: /user
+Disallow: /auth
+Disallow: /search
+Disallow: /subscribe
+Disallow: /medi/
+Disallow: /autoload/
+Disallow: /*add_comment
+Sitemap: https://medi.ru/sitemap.xml.gz
+
+User-agent: MJ12bot
+Disallow: /

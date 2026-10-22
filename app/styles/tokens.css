@@ -12,7 +12,7 @@
   --font-size-label: 14px;
   --font-size-caption: 13px;
   --font-size-metadata: 12px;
-  --font-size-micro: 10px;
+  --font-size-micro: 11px;
   --font-size-feature: clamp(26px, 3vw, 38px);
   --font-size-feature-mobile: 26px;
 
@@ -266,10 +266,10 @@
   --ws-art-sector: #afa2ff1f;
 
   /* Typography: line height and tracking per text style */
-  --ws-leading-display: 1.06;
-  --ws-leading-heading-1: 1.04;
-  --ws-leading-heading-2: 1.08;
-  --ws-leading-heading-3: 1.18;
+  --ws-leading-display: 1.2;
+  --ws-leading-heading-1: 1.2;
+  --ws-leading-heading-2: 1.2;
+  --ws-leading-heading-3: 1.2;
   --ws-leading-title: 1.25;
   --ws-leading-body: 1.45;
   --ws-leading-body-compact: 1.52;
@@ -327,14 +327,7 @@
   --ws-brand-height-compact: 20px;
 }
 
-/* Oncology keeps its own accent family on the same neutral system. */
-.ws-app[data-specialty="oncology"] {
-  --ws-accent: #5c58b8;
-  --ws-accent-ink: #46429e;
-  --ws-accent-soft: #e8e7f7;
-  --ws-accent-wash: #f2f1fa;
-  --ws-shadow-focus: 0 0 0 2px rgb(92 88 184 / 28%);
-}
+/* One portal, one accent: specialties share the design-system palette (DS: «One accent, one meaning»). */
 
 /* Extension: hover/pressed shade for neutral controls on `surface`. */
 :root { --ws-surface-pressed: #e8e8eb; }

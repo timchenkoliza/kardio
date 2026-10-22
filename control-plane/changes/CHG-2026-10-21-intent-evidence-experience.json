@@ -1,0 +1,124 @@
+{
+  "change_id": "CHG-2026-10-21-intent-evidence-experience",
+  "cause": "code",
+  "status": "IN_PROGRESS",
+  "title": "Intent → source mesh → evidence graph → compiled experience (foundation v0.1, MEDI as first browser source)",
+  "problem": {
+    "user_segment": "practising physicians (cardiology first; all six launch specialties)",
+    "job": "ask one professional question and get a sourced answer without choosing agents, sites or sources",
+    "observed_failure": "reference answers were assembled by one executor from a fixed source list; Russian professional sources were absent, provenance per statement was implicit and the result layout was hard-coded per job",
+    "evidence": [
+      "acceptance question «Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?» had no Russian guideline or instruction in the answer",
+      "no machine-checkable link between a shown statement and its source document version"
+    ]
+  },
+  "hypothesis": "If one question is compiled into a source plan whose results form a traceable evidence graph rendered through a bounded manifest, physicians get Russian-context answers with visible currentness and provenance, and repeat use of reference questions rises without unsupported claims reaching the page.",
+  "target_metric": {
+    "name": "reference_repeat_use_7d",
+    "desired_direction": "increase"
+  },
+  "guardrails": [
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 },
+    { "name": "cross_specialty_clinical_leak", "operator": "=", "threshold": 0 },
+    { "name": "raw_query_text_in_telemetry", "operator": "=", "threshold": 0 },
+    { "name": "failed_source_presented_as_result", "operator": "=", "threshold": 0 }
+  ],
+  "semantic_triggers": ["medical_evidence", "source_verification", "clinical_recommendation"],
+  "expected_paths": [
+    "lib/mesh/**",
+    "server/mesh/**",
+    "components/experience/**",
+    "server/agents/**",
+    "server/portal/manager.ts",
+    "lib/portal/**",
+    "lib/agents/**",
+    "app/[specialty]/(workspace)/ask/page.tsx",
+    "components/workspace/run-trace.tsx",
+    "app/styles/portal.css",
+    "control-plane/lib/**",
+    "control-plane/policies/kardio-v1.yaml",
+    "control-plane/changes/CHG-2026-10-21-intent-evidence-experience.json",
+    "control-plane/README.md",
+    "tests/**",
+    "docs/INTENT_EVIDENCE_EXPERIENCE_ARCHITECTURE.md",
+    "AGENTS.md",
+    ".env.example",
+    "package.json",
+    "package-lock.json"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "a statement without a supporting document reaches the page",
+    "a failed or disallowed source is shown as a result",
+    "cardiology-only evidence appears for another specialty",
+    "a robots-disallowed MEDI path is requested",
+    "free-text query appears in telemetry"
+  ],
+  "capability_delta": {
+    "capabilities": ["evidence_answer"],
+    "sources_added": ["medi", "minzdrav_rubricator", "grls"],
+    "sources_removed": [],
+    "operations": ["search", "fetch"]
+  },
+  "changes": {
+    "module_family": true,
+    "representation": true,
+    "ranking": true,
+    "source_policy": true
+  },
+  "does_not_change": {
+    "navigation": true,
+    "onboarding": true,
+    "safety_thresholds": true
+  },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "reference_answer",
+    "secondary_jobs": ["guideline_check", "drug_reference", "inn_lookup", "disease_reference", "guideline_discovery"],
+    "impact_triggers": ["user_visible", "module_selection_change", "representation_change", "result_ranking_change"],
+    "capability_transition": "incremental",
+    "module": {
+      "strategy": "compose",
+      "allowed_modules": ["key_takeaway", "recommendation_delta", "conflict", "drug_reference", "evidence", "sources", "handoff", "next_actions", "notices"],
+      "forbidden_modules": ["comparison", "timeline", "calculator"]
+    },
+    "representation": {
+      "primary": "EVIDENCE_STACK",
+      "secondary": ["SOURCE_TRAIL", "SHORT_TEXT"],
+      "visualization": "forbidden",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": {
+      "navigation_landmarks_unchanged": true,
+      "action_semantics_unchanged": true,
+      "factual_meaning_unchanged": true,
+      "safety_thresholds_unchanged": true
+    },
+    "personalization": {
+      "mode": "none",
+      "inferred_traits_expire": true,
+      "sensitive_traits_forbidden": true
+    },
+    "onboarding": {
+      "meaningful_capability_transition": false,
+      "required_when_relevant": false,
+      "dismissal_respected": true,
+      "mastery_suppresses_future_guides": true
+    },
+    "cache": {
+      "blueprint_cacheable": true,
+      "invalidation_triggers": ["source_document_version_change", "source_policy_change", "domain_graph_change", "compiler_version_change"]
+    },
+    "golden_set": {
+      "required_cases": [
+        "cardiology: эмпаглифлозин при ХСН с сохранённой ФВ",
+        "endocrinology: инструкция к препарату по МНН",
+        "pediatrics: answer without cardiology-only sources",
+        "unrecognised question: notices only, no next actions"
+      ],
+      "same_job_paraphrase_count": 2
+    }
+  }
+}

@@ -1,7 +1,10 @@
 import { approvedJournals } from "./services/source-policy";
 import { topicById } from "@/lib/agents/vocabulary";
+import { specialties } from "@/lib/specialty";
 import type { ContentObject } from "@/lib/domain/types";
+import type { DrugLabel } from "./adapters/openfda";
 import type { PubmedArticle } from "./adapters/pubmed";
+import type { PubmedAbstract } from "./adapters/pubmed-abstracts";
 import type { AgentContext } from "./context";
 import { timedTool, type ResultDraft, type ToolOutput } from "./drafts";
 import { findDrugChanges as findDrugChangeDrafts } from "./services/drug-change";
@@ -52,6 +55,15 @@ export function searchMedical(ctx: AgentContext, args: { query?: string | null; 
   });
 }
 
+/**
+ * PubMed scope of the physician's specialty, used when no topic narrows the
+ * search. Matched on titles: an abstract that merely mentions children is not
+ * a pediatric guideline, and «why you see this» must stay true.
+ */
+export function specialtyScopeTerm(ctx: AgentContext): string {
+  return specialties[ctx.specialty].pubmedScope.replace(/\[tiab\]/g, "[ti]");
+}
+
 export function pubmedTermForTopics(ctx: AgentContext, topics: readonly string[] = ctx.preference.topics): string | null {
   const terms = topics.map(id => topicById(ctx.specialty, id)?.pubmed).filter((value): value is string => Boolean(value)).slice(0, 5);
   if (!terms.length) return null;
@@ -68,7 +80,7 @@ export function trustedJournals(ctx: AgentContext): string[] {
   return [...new Set([...approvedJournals(), ...chosen])];
 }
 
-export function searchPubmed(ctx: AgentContext, args: { term: string | null; minDate?: string; maxDate?: string; retmax?: number; journals?: string[]; publicationTypes?: string[] }): Promise<ToolOutput<PubmedArticle>> {
+export function searchPubmed(ctx: AgentContext, args: { term: string | null; minDate?: string; maxDate?: string; retmax?: number; journals?: string[]; publicationTypes?: string[]; sort?: "pub_date" | "relevance" }): Promise<ToolOutput<PubmedArticle>> {
   return timedTool("searchPubmed", ["pubmed"], async () => {
     if (ctx.agentId === "research") {
       const researchOptions = researchRunOptionsFor(ctx.profile);
@@ -78,7 +90,7 @@ export function searchPubmed(ctx: AgentContext, args: { term: string | null; min
     }
     if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в ваших источниках" };
     if (!args.term) return { items: [], status: "partial", note: "Нет тем для поиска" };
-    const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals: args.journals, publicationTypes: args.publicationTypes });
+    const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals: args.journals, publicationTypes: args.publicationTypes, ...(args.sort ? { sort: args.sort } : {}) });
     return { items: result.articles, status: result.status === "ok" ? "ok" : result.status === "unavailable" ? "unavailable" : "failed", note: result.error };
   });
 }
@@ -138,7 +150,9 @@ export function findDrugChanges(ctx: AgentContext): Promise<ToolOutput<ResultDra
 }
 
 export function searchEvents(ctx: AgentContext): Promise<ToolOutput<NormalizedEvent>> {
-  return timedTool("searchEvents", ["events-listings", "nmo-portal"], () => ({ items: searchEventRecords(ctx), status: "partial", note: "Портал НМО не подключён — используется снимок афиш" }));
+  return timedTool("searchEvents", ["events-listings", "nmo-portal"], () => ctx.specialty === "cardiology"
+    ? { items: searchEventRecords(ctx), status: "partial", note: "Портал НМО не подключён — используется снимок афиш" }
+    : { items: [], status: "unavailable", note: "Для этой специальности нет проверенной афиши событий" });
 }
 
 export function generateLearningPlan(ctx: AgentContext): Promise<ToolOutput<ResultDraft>> {
@@ -151,4 +165,23 @@ export function searchUserMaterials(ctx: AgentContext, query: string): Promise<T
 
 export function matchPartnerContent(ctx: AgentContext): Promise<ToolOutput<ResultDraft>> {
   return timedTool("matchPartnerContent", ["partner-channel"], () => ({ items: matchPartner(ctx) }));
+}
+
+/** lookupDrugLabel(): verbatim sections of the current US label (openFDA, LIVE). */
+export function lookupDrugLabel(ctx: AgentContext, genericName: string): Promise<ToolOutput<DrugLabel>> {
+  return timedTool("lookupDrugLabel", ["openfda-labels"], async () => {
+    const result = await ctx.drugLabel(genericName);
+    if (result.status === "ok" && result.label) return { items: [result.label], status: "ok", note: null };
+    if (result.status === "not_found") return { items: [], status: "ok", note: `В базе FDA нет инструкции для «${genericName}»` };
+    return { items: [], status: result.status === "failed" ? "failed" : "unavailable", note: result.error };
+  });
+}
+
+/** readAbstracts(): conclusions of the found reviews and guidelines (NCBI efetch, LIVE). */
+export function readAbstracts(ctx: AgentContext, pmids: readonly string[]): Promise<ToolOutput<PubmedAbstract>> {
+  return timedTool("readAbstracts", ["pubmed"], async () => {
+    if (!pmids.length) return { items: [], status: "ok", note: null };
+    const result = await ctx.abstracts(pmids);
+    return { items: result.abstracts, status: result.status === "ok" ? "ok" : "unavailable", note: result.error };
+  });
 }
