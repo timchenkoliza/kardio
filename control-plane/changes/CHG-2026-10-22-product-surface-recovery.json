@@ -1,0 +1,79 @@
+{
+  "change_id": "CHG-2026-10-22-product-surface-recovery",
+  "cause": "product_regression",
+  "status": "IN_PROGRESS",
+  "title": "Restore physician-grade product surface without regressing Intent→Evidence→Experience runtime",
+  "problem": {
+    "user_segment": "physicians across the six launch specialties",
+    "job": "use one professional portal that feels editorially curated, visually legible and agent-capable while preserving evidence provenance",
+    "observed_failure": "The production release preserved backend evidence/runtime capabilities but degraded the user-facing product: raw English source text and internal verification notes are exposed, the For You feed lost editorial/media composition, agent gallery was removed from primary navigation, materials links are not enriched, onboarding/profile/session cues are incomplete, and the shell reads like an admin workspace rather than a physician product.",
+    "evidence": [
+      "Production screenshots 22 Oct 2026: raw English PubMed/FDA content, typography inconsistency, no feed images, non-clickable card surface and weak hierarchy",
+      "components/workspace/workspace-frame.tsx explicitly removes the agent catalogue from primary navigation",
+      "server/portal/for-you.ts maps raw result.title/result.summary directly into ForYouCard",
+      "components/experience/experience-view.tsx renders non-Russian verbatim claims and verificationNote",
+      "server/agents/services/material.ts does not fetch/enrich linked pages and falls back to hostname+pathname"
+    ]
+  },
+  "hypothesis": "If the stable runtime is kept but every physician-facing surface passes through an explicit Experience Quality layer (localization/editorial/media/layout/navigation/onboarding contracts), the portal can recover the previously achieved feed quality and demonstrate agent capabilities without sacrificing provenance, durability or safety.",
+  "target_metric": { "name": "qualified_repeat_use_after_value_session", "desired_direction": "increase" },
+  "guardrails": [
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 },
+    { "name": "raw_backend_policy_copy_visible", "operator": "=", "threshold": 0 },
+    { "name": "unexpected_english_on_ru_surface", "operator": "=", "threshold": 0 },
+    { "name": "lost_sources_vs_runtime_baseline", "operator": "=", "threshold": 0 },
+    { "name": "lost_durable_runs", "operator": "=", "threshold": 0 },
+    { "name": "cross_specialty_clinical_leak", "operator": "=", "threshold": 0 }
+  ],
+  "semantic_triggers": ["product_surface", "localization", "editorial_policy", "media_matching", "agent_gallery", "materials_workspace", "onboarding"],
+  "expected_paths": [
+    "components/portal/**",
+    "components/experience/**",
+    "components/workspace/**",
+    "server/portal/**",
+    "server/agents/services/material.ts",
+    "lib/portal/**",
+    "app/[specialty]/(workspace)/**",
+    "app/styles/**",
+    "public/**",
+    "tests/**",
+    "control-plane/changes/CHG-2026-10-22-product-surface-recovery.json"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "raw English clinical prose is shown by default on a Russian physician surface",
+    "internal connector/policy/whitelist wording is visible to the physician",
+    "a source or provenance item available in the current runtime disappears",
+    "an internal agent scenario opens a new browser tab",
+    "a short page footer floats mid-screen instead of anchoring to the shell bottom",
+    "agent gallery is absent from primary navigation",
+    "another specialty receives cardiology clinical fixtures as if they were live specialty evidence"
+  ],
+  "capability_delta": { "capabilities": ["experience_quality", "agent_gallery", "materials_enrichment"], "sources_added": [], "sources_removed": [], "operations": ["localize", "editorialize", "enrich_metadata", "match_media", "persist_session_context"] },
+  "changes": { "module_family": true, "representation": true, "ranking": true, "source_policy": false },
+  "does_not_change": { "navigation": false, "onboarding": false, "safety_thresholds": true, "source_policy": true },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "professional_home",
+    "secondary_jobs": ["reference_answer", "guideline_check", "research_review", "materials_retrieval", "agent_discovery"],
+    "impact_triggers": ["user_visible", "representation_change", "navigation_change", "onboarding_change", "result_ranking_change"],
+    "capability_transition": "meaningful",
+    "module": {
+      "strategy": "extend",
+      "allowed_modules": ["hero", "agent_gallery", "feed_card", "media_card", "key_takeaway", "recommendation_delta", "drug_reference", "evidence", "sources", "materials_library", "onboarding", "profile_entry", "next_actions", "notices"],
+      "forbidden_modules": []
+    },
+    "representation": {
+      "primary": "EDITORIAL_MEDIA_SURFACE",
+      "secondary": ["EVIDENCE_STACK", "SOURCE_TRAIL", "GALLERY", "LIBRARY"],
+      "visualization": "required_when_informative",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": { "navigation_landmarks_unchanged": false, "action_semantics_unchanged": true, "factual_meaning_unchanged": true, "safety_thresholds_unchanged": true },
+    "personalization": { "mode": "specialty_and_session_context", "inferred_traits_expire": true, "sensitive_traits_forbidden": true },
+    "onboarding": { "meaningful_capability_transition": true, "required_when_relevant": true, "dismissal_respected": true, "mastery_suppresses_future_guides": true },
+    "cache": { "blueprint_cacheable": true, "invalidation_triggers": ["source_document_version_change", "source_policy_change", "domain_graph_change", "compiler_version_change", "editorial_policy_change", "media_policy_change"] }
+  }
+}
