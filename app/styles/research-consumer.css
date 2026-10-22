@@ -302,3 +302,14 @@
   .ws-ra-conclusion summary::after,
   .ws-ra-quote summary::after { transition: none; }
 }
+/* DS audit (R-02, R-05, R-13): readable meta line, 44 px targets on touch screens, a solid focus ring on the question. */
+.ws-agent-page .ws-agent-meta { color: var(--ws-text-secondary); }
+.ws-research-composer .ws-composer-box:focus-within { outline: 2px solid var(--ws-focus-ring); outline-offset: 2px; }
+@media (max-width: 1023px) {
+  .ws-research-filters select,
+  .ws-research-filters .ws-text-link,
+  .ws-research-composer .ws-research-domain-controls > summary,
+  .ws-research-composer .ws-research-domain-fields input { min-height: var(--ws-touch-target); }
+  .save-button.compact { min-width: var(--ws-touch-target); min-height: var(--ws-touch-target); }
+  .save-button { min-width: var(--ws-touch-target); min-height: var(--ws-touch-target); }
+}
