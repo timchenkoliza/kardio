@@ -138,13 +138,21 @@ export function materialFromUpload(args: { specialty: SpecialtyId; fileName: str
   };
 }
 
+/** Cut a long title on a word boundary and say so with «…». */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:–—-]+$/u, "")}…`;
+}
+
 export function materialFromLink(args: { specialty: SpecialtyId; url: string; title?: string | null; note?: string | null; now: string; enrichment?: LinkEnrichment | null }): Material {
   const parsedUrl = new URL(args.url);
   const note = args.note?.trim() ? deidentify(args.note.trim()).text.slice(0, 4000) : null;
   const found = args.enrichment ?? null;
   const userTitle = args.title?.trim() || null;
   // The physician's own title wins; otherwise the recognised one; never the hostname or the path.
-  const title = (userTitle || found?.title || fallbackTitle(parsedUrl, knownSite(parsedUrl.hostname))).slice(0, 200);
+  const title = clip(userTitle || found?.title || fallbackTitle(parsedUrl, knownSite(parsedUrl.hostname)), 200);
   const abstract = found?.abstract ?? null;
   const text = [title, found?.summary, note, abstract].filter(Boolean).join("\n") || null;
   const recognised = found && (found.basis === "pubmed" || found.basis === "crossref");

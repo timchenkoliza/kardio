@@ -45,7 +45,7 @@ function MaterialItem({ material, specialty, collections, onCommand }: { materia
       <strong className="ws-material-title"><MaterialTitle material={material} specialty={specialty} /></strong>
       {material.summary && <p className="ws-material-summary">{material.summary}</p>}
       <span className="ws-material-meta">{`Добавлено ${added}`}{published ? ` · опубликовано ${published}` : ""}{material.fileName ? ` · ${material.fileName}` : ""}{material.kind === "file" || material.kind === "note" ? ` · ${PARSE_LABEL[material.parseStatus]}` : ""}{material.textChars && material.kind !== "link" ? ` · ${material.textChars.toLocaleString("ru-RU")} знаков` : ""}</span>
-      {material.parseNote && <span className="ws-material-note">{material.parseNote}</span>}
+      {material.parseNote && <span className={material.kind === "link" ? "ws-material-meta" : "ws-material-note"}>{material.parseNote}</span>}
       {material.redactions.length > 0 && <span className="ws-material-note">Замаскированы персональные данные: {material.redactions.length}</span>}
       {material.note && material.kind !== "note" && <p className="ws-material-own-note">{material.note}</p>}
       {material.url && <a className="pt-source-link" href={material.url} target="_blank" rel="noreferrer">Открыть первоисточник<ExternalLink size={13} aria-hidden="true" /></a>}

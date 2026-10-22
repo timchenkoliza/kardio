@@ -187,6 +187,10 @@
 }
 .pt-source-link:hover { text-decoration: underline; }
 
+/* Small primary buttons carry 13 px labels: white on accent-ink keeps them above 4.5:1. */
+.pt-card-actions .ws-button.is-primary.is-small,
+.pt-mat-onboarding .ws-button.is-primary.is-small { background: var(--ws-accent-ink); color: var(--ws-on-accent); }
+
 /* ---------- Line art: rectangles and ellipses of the specialty drawings ---------- */
 
 .ws-feed-art :where(rect:not(.fa-paper), ellipse) { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
@@ -331,6 +335,12 @@
 .ws-material-main .pt-source-link { align-self: flex-start; }
 .pt-mat-toolbar { align-items: center; }
 
+/* ---------- Background checks (agent cards under the gallery): DS contrast ---------- */
+
+.ws-agent-card .ws-agent-meta { color: var(--ws-text-secondary); }
+.ws-agent-card[data-agent="whats_new"] .ws-button.is-primary,
+.ws-agent-card[data-agent="whats_new"] .ws-button.is-primary:hover { background: var(--ws-accent-ink); color: var(--ws-on-accent); }
+
 /* ---------- Touch: every new control is a full target ---------- */
 
 @media (pointer: coarse), (max-width: 767px) {
@@ -345,6 +355,9 @@
   .pt-mat-onboarding .ws-button.is-small,
   .pt-mat-examples .ws-button.is-small { min-height: var(--ws-touch-target); }
   .ws-profile-facts a { display: inline-flex; align-items: center; min-height: var(--ws-touch-target); }
+  .ws-agent-card .ws-button.is-small,
+  .ws-agent-card .ws-button.is-primary.is-small { min-height: var(--ws-touch-target); }
+  .ws-agent-card h3 a { display: inline-block; padding: var(--ws-space-12) 0; margin: calc(var(--ws-space-12) * -1) 0; }
 }
 
 /* ---------- Phone: denser shortcuts ---------- */
@@ -354,6 +367,9 @@
   .pt-shortcut .pt-shortcut-mascot { width: 44px; height: 44px; }
   .pt-shortcut-copy span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .pt-card-body { padding: var(--ws-space-12) var(--ws-space-16) var(--ws-space-16); }
+  .pt-mat-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pt-mat-toolbar label,
+  .pt-mat-toolbar select { width: 100%; min-width: 0; }
 }
 
 /* ---------- Tablet ---------- */

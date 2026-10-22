@@ -285,14 +285,15 @@ function partnerCard(profile: UserProfile, specialty: SpecialtyId): ForYouCard |
 
 /** Neighbouring cards never repeat a picture; every fifth illustrated card stays text-only. */
 function varyMedia(cards: ForYouCard[]): ForYouCard[] {
-  let previous: string | null = null;
+  // One picture is shown once per feed: a repeat reads as filler, so the later card goes text-only.
+  const used = new Set<string>();
   let illustrated = 0;
   return cards.map(card => {
-    if (!card.media) { previous = null; return card; }
-    illustrated += 1;
     const key = mediaKey(card.media);
-    if (illustrated % 5 === 0 || key === previous) { previous = null; return { ...card, media: null }; }
-    previous = key;
+    if (!key) return card;
+    illustrated += 1;
+    if (used.has(key) || illustrated % 6 === 0) return { ...card, media: null };
+    used.add(key);
     return card;
   });
 }
