@@ -1,6 +1,7 @@
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
 import { routeIntent, type RoutedIntent } from "@/lib/agents/intent";
 import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
+import { resolveAnswerMode, type AnswerMode } from "@/lib/portal/answer-mode";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunExperience, RunProgress, RunTrigger, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
@@ -257,7 +258,7 @@ function progressBase(run: AgentRun): RunProgress {
  * returned to the browser already exists in storage. Unsafe input is
  * blocked here (a terminal run); everything else is queued.
  */
-export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; now?: Date }): Promise<AgentRun> {
+export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; answerMode?: AnswerMode | null; now?: Date }): Promise<AgentRun> {
   const now = request.now ?? new Date();
   const preference = effectivePreference(request.profile, request.agentId);
   const risk = checkRisk(request.text);
@@ -269,7 +270,7 @@ export async function createRun(store: WorkspaceStore, sessionId: string, reques
     startedAt: now.toISOString(),
     completedAt: risk.allowed ? null : now.toISOString(),
     status: risk.allowed ? "queued" : "blocked",
-    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}) },
+    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}), answerMode: resolveAnswerMode(request.profile, request.answerMode) },
     intent: request.job ?? null,
     plan: risk.allowed ? [] : [{ id: "step-1", label: "Проверили запрос на безопасность", tool: "riskCheck", status: "blocked", detail: risk.blockedReason, connectorIds: [] }],
     toolsUsed: [],
@@ -285,7 +286,7 @@ export async function createRun(store: WorkspaceStore, sessionId: string, reques
   return run;
 }
 
-export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null }): Promise<RunOutcome> {
+export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text?: string | null; routed?: RoutedIntent | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null; answerMode?: AnswerMode | null }): Promise<RunOutcome> {
   const now = deps.now?.() ?? new Date();
   const nowIso = now.toISOString();
   const definition = AGENT_DEFINITIONS[request.agentId];
@@ -368,6 +369,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     drugLabel: deps.drugLabel ?? (name => lookupDrugLabelLive(name)),
     inputText,
     job: request.job ?? null,
+    // The mode persisted with the run wins: execution re-reads what the physician asked for.
+    answerMode: created?.input.answerMode ?? request.answerMode ?? null,
     history: history.filter(item => item.id !== runId),
     // The intent is recompiled from the sanitized text: nothing redacted by the risk gate reaches the sources.
     // The strategy is re-decided from the same text and the context persisted at creation (never asks again).

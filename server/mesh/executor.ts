@@ -185,7 +185,7 @@ function progressivePublisher(args: { ctx: AgentContext; intent: NormalizedInten
   const slow = new Set<string>();
   const total = plan.steps.filter(step => step.role !== "handoff").length;
   // A Skill's takeaway priority and explanation apply from the first module; flow branches need the complete graph.
-  const compileInput: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {}, ...args.extras };
+  const compileInput: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: args.sources }, scenario: intent.context.scenario, resultKeys: {}, answerMode: ctx.answerMode ?? null, ...args.extras };
   const publish = () => {
     const pendingSteps = plan.steps.filter(step => open.has(step.id) && step.role !== "handoff");
     const pending = [...new Map(pendingSteps.map(step => [registry[step.sourceId].name, { name: registry[step.sourceId].name, slow: slow.has(step.id) }])).values()];
@@ -298,7 +298,7 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   const connectorOf = (sourceId: SourceId) => registry[sourceId].connectorId;
   const drafts = draftsFromDocuments(ctx, documents, connectorOf);
   const resultKeys = Object.fromEntries(drafts.map(draft => [String(draft.attributes.documentId), `${ctx.agentId}:${draft.key}`]));
-  const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys };
+  const base: Omit<CompileInput, "graph"> = { user: { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`)], topics: ctx.preference.topics }, modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
   let output: CompileOutput;
   let flow: FlowRun | null = null;
   let skillFallback: string | null = null;

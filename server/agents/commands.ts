@@ -11,6 +11,8 @@ import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
 import { recordAgentEvent } from "./telemetry";
 import { catchUp, executeRun, loadProfile } from "./workspace";
+import { ANSWER_MODES } from "@/lib/portal/answer-mode";
+import { normalizeIdentity } from "@/lib/agents/profile";
 import { PORTAL_JOBS, type PortalJob } from "@/lib/portal/jobs";
 import { CLIENT_PORTAL_EVENTS } from "@/lib/portal/metrics";
 import { recordPortalOpen, respondToAsk, type Scheduler } from "@/server/portal/manager";
@@ -51,7 +53,11 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
     clarification: clarificationAnswerSchema.optional(),
     planConfirmed: z.string().min(1).max(80).optional(),
     contextRunId: z.string().regex(/^run-[a-f0-9-]{36}$/).optional(),
+    /** Depth for this request; the profile default when absent. */
+    answerMode: z.enum(ANSWER_MODES).optional(),
   }).strict(),
+  z.object({ action: z.literal("setAnswerMode"), specialty, answerMode: z.enum(ANSWER_MODES) }).strict(),
+  z.object({ action: z.literal("setProfileIdentity"), specialty, name: z.string().trim().max(80).nullable(), workplace: z.string().trim().max(120).nullable(), experienceYears: z.number().int().min(0).max(70).nullable() }).strict(),
   z.object({ action: z.literal("track"), specialty, event: z.enum(CLIENT_PORTAL_EVENTS), job: z.enum(PORTAL_JOBS as unknown as [PortalJob, ...PortalJob[]]).optional(), resultId: resultId.optional(), resultKind: z.string().regex(/^[a-z_]{2,40}$/).optional() }).strict(),
   z.object({ action: z.literal("markSeen"), specialty, agentId }).strict(),
   z.object({ action: z.literal("resetSeen"), specialty }).strict(),
@@ -178,7 +184,7 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: true, runId: outcome.run.id, agentId: routed.agentId, actions: outcome.actions, notices: outcome.run.riskNotices };
     }
     case "ask": {
-      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
+      const response = await respondToAsk(sessionId, specialtyId, command.text, { job: command.job ?? null, followup: command.followup, clarification: command.clarification ?? null, planConfirmed: command.planConfirmed ?? null, contextRunId: command.contextRunId ?? null, answerMode: command.answerMode ?? null, ...(options.schedule ? { schedule: options.schedule } : {}) });
       if (response.kind === "clarification") return { ok: true, profileChanged: false, clarification: response.clarification };
       if (response.kind === "plan") return { ok: true, profileChanged: false, plan: response.plan };
       if (response.kind === "refined") return { ok: true, profileChanged: response.refinement.applied, runId: response.refinement.runId, redirect: response.href, refined: { applied: response.refinement.applied, message: response.refinement.message, manifestVersion: response.refinement.manifestVersion, retrieval: response.refinement.retrieval } };
@@ -324,6 +330,19 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
     case "setPartnerContent": {
       const profile = await loadProfile(sessionId, specialtyId);
       profile.partnerContent = command.enabled;
+      await saveProfile(sessionId, profile);
+      return { ok: true, profileChanged: true };
+    }
+    case "setAnswerMode": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      profile.answerMode = command.answerMode;
+      await saveProfile(sessionId, profile);
+      await recordPortalEvent(sessionId, "answer_mode_set", { specialty: specialtyId, mode: command.answerMode });
+      return { ok: true, profileChanged: true };
+    }
+    case "setProfileIdentity": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      profile.identity = normalizeIdentity({ name: command.name, workplace: command.workplace, experienceYears: command.experienceYears });
       await saveProfile(sessionId, profile);
       return { ok: true, profileChanged: true };
     }

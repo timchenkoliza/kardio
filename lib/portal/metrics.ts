@@ -30,6 +30,7 @@ export const PORTAL_EVENT_NAMES = [
   // Personalisation
   "specialty_signal_used",
   "topic_signal_added",
+  "answer_mode_set",
   "recommendation_reason_shown",
   // Return
   "return_session",
@@ -73,6 +74,8 @@ export interface PortalEventPayload {
   daysSinceFirst?: number;
   signal?: string;
   state?: string;
+  /** Answer mode chosen in the profile (short | full | research). */
+  mode?: string;
 }
 
 export interface PortalTelemetryEvent {
