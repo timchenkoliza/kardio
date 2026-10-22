@@ -325,6 +325,64 @@
   --ws-gutter-wide: 40px;
   --ws-brand-height: 24px;
   --ws-brand-height-compact: 20px;
+
+  /* Product shell (CHG-2026-10-22-pixel-perfect-product-shell): every geometry of the home
+     composer, answer modes, suggestions, quick agents, mascot, profile and media is a token. */
+  --ws-content-width: 1000px;
+  --ws-composer-min-height: 96px;
+  --ws-composer-padding-x: 20px;
+  --ws-composer-padding-y: 16px;
+  --ws-composer-gap: 10px;
+  --ws-composer-label-size: var(--font-size-label);
+  --ws-composer-text-size: var(--font-size-body);
+  --ws-composer-action-size: 40px;
+  --ws-composer-action-gap: 8px;
+  --ws-composer-ring: 0 0 0 3px rgb(114 117 255 / 22%);
+  --ws-mode-min-height: 56px;
+  --ws-mode-padding-x: 14px;
+  --ws-mode-padding-y: 10px;
+  --ws-mode-gap: 12px;
+  --ws-mode-radius: 16px;
+  --ws-mode-icon: 20px;
+  --ws-mode-icon-box: 32px;
+  --ws-mode-lift: -1px;
+  --ws-mode-transition: 180ms;
+  --ws-sparkle-size: 14px;
+  --ws-sparkle-cycle: 7s;
+  --ws-suggestion-height: 40px;
+  --ws-suggestion-gap: 8px;
+  --ws-suggestion-padding-x: 16px;
+  --ws-suggestion-max-width: 320px;
+  --ws-quick-min-height: 128px;
+  --ws-quick-padding: 18px 20px;
+  --ws-quick-gap: 16px;
+  --ws-quick-mascot: 80px;
+  --ws-quick-mascot-halo: 96px;
+  --ws-quick-mobile-width: 296px;
+  --ws-mascot-tilt: 1.5deg;
+  --ws-mascot-lift: 2px;
+  --ws-mascot-breath: 3600ms;
+  --ws-profile-avatar: 64px;
+  --ws-profile-column: 360px;
+  --ws-profile-gap: 24px;
+  --ws-media-feed-ratio: 2 / 1;
+  --ws-media-article-ratio: 3 / 1;
+  --ws-upload-min-height: 220px;
+  --ws-table-row-min-height: 56px;
+
+  /* Mascot «Смузи»: one character, token colours (pale lavender body, darker limbs, dark indigo eyes). */
+  --ws-mascot-body: #e6e2ff;
+  --ws-mascot-body-deep: #d2cbff;
+  --ws-mascot-limb: #bdb3ff;
+  --ws-mascot-limb-deep: #a99cf7;
+  --ws-mascot-eye: #272b52;
+  --ws-mascot-glint: #ffffff;
+  --ws-mascot-blush: #f3d6ea;
+  --ws-mascot-halo: #efecff;
+  --ws-mascot-prop: #ffffff;
+  --ws-mascot-prop-ink: #8c84e9;
+  --ws-mascot-prop-accent: #c9c2ff;
+  --ws-mascot-shadow: rgb(89 87 239 / 16%);
 }
 
 /* One portal, one accent: specialties share the design-system palette (DS: «One accent, one meaning»). */

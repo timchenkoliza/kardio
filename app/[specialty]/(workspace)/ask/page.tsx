@@ -5,6 +5,7 @@ import { formatRelativeRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { ActionRequest, AgentResult, AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
+import { ANSWER_MODE_COPY } from "@/lib/portal/answer-mode";
 import { isPortalJob, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { JobIcon } from "@/components/portal/job-icon";
@@ -77,6 +78,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     const job: PortalJob | null = isPortalJob(requestedJob) ? requestedJob : null;
     const definition = job ? JOBS[job] : null;
     const quick = job ? QUICK_START[job] : undefined;
+    const defaults = await loadProfile(sessionId, specialty);
     return <div className="ws-page pt-ask">
       <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
       <header className="pt-ask-head">
@@ -87,7 +89,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         </div>
       </header>
       {lookup && lookup.availability !== "available" && <p className="ws-empty" role="status" data-run-unavailable={lookup.availability}>{UNAVAILABLE_COPY[lookup.availability]}</p>}
-      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} />
+      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} showModes />
       {quick && <div className="pt-card-actions"><FollowupJobButton text={quick.text} job={job as PortalJob} label={quick.label} primary /></div>}
     </div>;
   }
@@ -121,7 +123,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       <div>
         <h1>{JOBS[job].label}</h1>
         {run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
-        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}</p>
+        <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{ANSWER_MODE_COPY[run.input.answerMode].label}</span></>}</p>
       </div>
     </header>
 

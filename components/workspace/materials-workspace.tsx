@@ -152,6 +152,11 @@ export function MaterialsWorkspace({ specialty, materials, collections, lastAnsw
   }
 
   return <div className={empty ? "ws-materials is-empty" : "ws-materials"}>
+    {!empty && <div className="pt-mat-actions" role="group" aria-label="Добавить в библиотеку">
+      <button type="button" className="ws-button is-primary is-small" onClick={() => openMode("file")}><Upload size={15} aria-hidden="true" />Загрузить файл</button>
+      <button type="button" className="ws-button is-small" onClick={() => openMode("link")}><Link2 size={15} aria-hidden="true" />Добавить ссылку</button>
+      <button type="button" className="ws-button is-small" onClick={() => openMode("note")}><NotebookPen size={15} aria-hidden="true" />Написать заметку</button>
+    </div>}
     {empty && <Onboarding onMode={openMode} />}
 
     <section className="ws-materials-ask" aria-labelledby="ws-ask-title">

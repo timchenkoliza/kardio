@@ -86,7 +86,7 @@
   height: calc(var(--ws-tabbar-height) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--ws-structural);
   border-top: 1px solid var(--ws-hairline);
 }

@@ -36,6 +36,7 @@ import "./styles/research-comparison.css";
 import "./styles/research-background.css";
 import "./styles/portal.css";
 import "./styles/product-surface.css";
+import "./styles/product-shell.css";
 
 export const metadata: Metadata = { title: "Яндекс Мед · для врачей", description: "Профессиональные ответы, клинические рекомендации, препараты и обновления по специальности — с источником и датой у каждого утверждения." };
 

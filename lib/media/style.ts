@@ -5,7 +5,7 @@
  * cool colour carries meaning in the source.
  */
 
-export const MEDIA_PIPELINE = { name: "ds-tonal-redraw", version: "1.0.0" } as const;
+export const MEDIA_PIPELINE = { name: "ds-tonal-redraw", version: "1.1.0" } as const;
 export const MEDIA_TRANSFORMATION_VERSION = `${MEDIA_PIPELINE.name}@${MEDIA_PIPELINE.version}`;
 
 export const MEDIA_STYLE = {
@@ -24,14 +24,14 @@ export const MEDIA_STYLE = {
 
 export const MEDIA_PALETTE: readonly string[] = [MEDIA_STYLE.background, ...MEDIA_STYLE.tones, MEDIA_STYLE.line, ...MEDIA_STYLE.warm];
 
-/** 2:1 frame at 2× density; the subject sits inside the central crop-safe box, so 3:2 and 16:9 crops keep it whole. */
-export const MEDIA_FRAME = { width: 1600, height: 800, box: { width: 1120, height: 688 } } as const;
+/** 2:1 frame at 2× density; the subject sits inside the central crop-safe box (70 % × 66 %), so the 3:1 article crop keeps it whole. */
+export const MEDIA_FRAME = { width: 1600, height: 800, box: { width: 1120, height: 528 } } as const;
 
 export const MEDIA_LIMITS = {
   /** Share of the frame left as ground: drawings, and waveforms that are a single trace. */
-  negativeSpace: { tones: [0.45, 0.9], trace: [0.8, 0.995] },
-  /** Share of the frame taken by the subject's bounding box. */
-  anchorShare: [0.2, 0.62],
+  negativeSpace: { tones: [0.45, 0.94], trace: [0.8, 0.995] },
+  /** Share of the frame taken by the subject's bounding box; a portrait subject in the 2:1 frame sits near the floor. */
+  anchorShare: [0.1, 0.62],
   brandAttentionMax: 0.2,
   /** Share of subject pixels that sit on a boundary between fills. */
   detailMax: 0.2,
