@@ -1,0 +1,85 @@
+{
+  "change_id": "CHG-2026-10-22-media-style-pipeline",
+  "cause": "code",
+  "status": "IN_PROGRESS",
+  "title": "Medical images reach physician cards only as validated design-system derivatives",
+  "problem": {
+    "user_segment": "physicians across the six launch specialties",
+    "job": "read a feed whose medical pictures are relevant to the article and drawn in one visual system",
+    "observed_failure": "The style layer for medical images was never connected: cardiology cards render licensed source crops directly (approved-medical-media.ts: 'no relabelling, no redraw'), catalog cards turn item.asset.url into card media, the Clinical Visual Recraft pipeline runs only from the editorial admin page, is hard-coded to cardiology, has no model keys in any environment and stores nothing. Other specialties have no source images at all.",
+    "evidence": [
+      "server/portal/for-you.ts mediaFor: cardiology → { kind: 'image', src: asset.src } from public/media/cardiology",
+      "server/portal/for-you.ts catalogCards: item.asset?.url → CardMedia.src",
+      "server/recraft/pipeline.ts: specialty !== 'cardiology' → unavailable; called only from app/api/media/recraft (editorial role)",
+      "git log --all -S runRecraft: only e625c91; no feed code ever called it",
+      "Vercel env: no ANTHROPIC_API_KEY / OPENAI_API_KEY; data/article-motion-render-manifest.json has 0 entries"
+    ]
+  },
+  "hypothesis": "If every card picture is a deterministic, validated derivative of a matched source image (or in-house art, or nothing) with provenance to its source and document, physicians see relevant pictures in one visual system without stock aesthetics, invented clinical detail or cross-specialty leakage.",
+  "target_metric": { "name": "qualified_repeat_use_after_value_session", "desired_direction": "increase" },
+  "guardrails": [
+    { "name": "raw_source_image_on_card", "operator": "=", "threshold": 0 },
+    { "name": "derivative_without_provenance", "operator": "=", "threshold": 0 },
+    { "name": "derivative_subject_mismatch", "operator": "=", "threshold": 0 },
+    { "name": "cross_specialty_media_leak", "operator": "=", "threshold": 0 },
+    { "name": "rejected_derivative_rendered", "operator": "=", "threshold": 0 },
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 }
+  ],
+  "semantic_triggers": ["product_surface", "media_matching", "media_policy", "visual_system"],
+  "expected_paths": [
+    "lib/media/**",
+    "server/media/style-pipeline.ts",
+    "scripts/publish-media-derivatives.ts",
+    "data/media-sources.json",
+    "data/media-derivatives.json",
+    "public/media/source/**",
+    "public/media/derived/**",
+    "lib/portal/cards.ts",
+    "server/portal/for-you.ts",
+    "components/portal/for-you.tsx",
+    "components/editorial-media.tsx",
+    "components/editorial-content-card.tsx",
+    "app/[specialty]/(workspace)/item/[id]/page.tsx",
+    "app/admin/media-audit/**",
+    "context/41_CLINICAL_VISUAL_RECRAFT.md",
+    "package.json",
+    "package-lock.json",
+    "tests/**",
+    "control-plane/changes/CHG-2026-10-22-media-style-pipeline.json"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "a source image or a rejected transformation is rendered on a physician-facing card",
+    "a derivative changes side, position or count of a clinical structure relative to its source",
+    "a derivative shows text that differs from the source or an English label on the Russian surface",
+    "a card shows a derivative of another clinical object or another specialty",
+    "a derivative is published without source, document, pipeline version and validation record"
+  ],
+  "capability_delta": { "capabilities": ["media_publish_pipeline", "media_policy", "media_audit"], "sources_added": [], "sources_removed": [], "operations": ["match_media", "transform_media", "validate_media", "fallback_media"] },
+  "changes": { "representation": true, "module_family": false, "ranking": false, "source_policy": false },
+  "does_not_change": { "navigation": true, "onboarding": true, "ranking": true, "source_policy": true, "safety_thresholds": true, "user_job": true },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "professional_home",
+    "secondary_jobs": ["reference_answer", "guideline_check", "research_review"],
+    "impact_triggers": ["user_visible", "representation_change"],
+    "capability_transition": "incremental",
+    "module": {
+      "strategy": "compose",
+      "allowed_modules": ["feed_card", "media_card", "key_takeaway", "sources"],
+      "forbidden_modules": []
+    },
+    "representation": {
+      "primary": "EDITORIAL_MEDIA_SURFACE",
+      "secondary": ["SOURCE_TRAIL"],
+      "visualization": "required_when_informative",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": { "navigation_landmarks_unchanged": true, "action_semantics_unchanged": true, "factual_meaning_unchanged": true, "safety_thresholds_unchanged": true },
+    "personalization": { "mode": "specialty_and_session_context", "inferred_traits_expire": true, "sensitive_traits_forbidden": true },
+    "onboarding": { "meaningful_capability_transition": false, "required_when_relevant": false, "dismissal_respected": true, "mastery_suppresses_future_guides": true },
+    "cache": { "blueprint_cacheable": true, "invalidation_triggers": ["media_policy_change", "compiler_version_change", "editorial_policy_change"] }
+  }
+}

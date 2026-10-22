@@ -13,6 +13,17 @@ const JARGON = /белом списке|white-?list|verificationNote|\bLIVE\b|\b
 /** Four or more consecutive English words: prose, not a journal name or an INN. */
 const ENGLISH_PROSE = /(?:\b[A-Za-z][A-Za-z'’-]+\b[\s,;:]+){4,}[A-Za-z]{2,}/u;
 
+/** Card pictures are approved derivatives or in-house art: never a source image (MEDIA-01, MEDIA-07). */
+async function expectOnlyDerivedMedia(page: Page) {
+  const derived = page.locator('.pt-card-media[data-media="derivative"]');
+  for (const figure of await derived.all()) {
+    await expect(figure).toHaveAttribute("data-derivative-id", /^drv-/u);
+    await expect(figure).toHaveAttribute("data-pipeline", /^ds-tonal-redraw@/u);
+    await expect(figure.locator("img")).toHaveAttribute("src", /^\/media\/derived\//u);
+  }
+  await expect(page.locator('.pt-cards img[src*="/media/cardiology/"], .pt-cards img[src*="/media/source/"], .pt-cards img[src*="attempt-"]')).toHaveCount(0);
+}
+
 async function warmFeed(page: Page, specialty: string) {
   await page.goto(`/${specialty}`);
   // First visit runs the catch-up; the reload shows what it found.
@@ -51,6 +62,7 @@ test("home: the whole card opens its page in the same tab; only the first source
   const cards = page.locator(".pt-cards > article.pt-card");
   expect(await cards.count()).toBeGreaterThanOrEqual(3);
   await expect(page.locator(".pt-cards > article.pt-card.has-media .pt-card-media").first()).toBeVisible();
+  await expectOnlyDerivedMedia(page);
   for (const title of await page.locator(".pt-card-title").allInnerTexts()) {
     expect(title).toMatch(/[А-Яа-яЁё]/u);
     expect(title).not.toMatch(ENGLISH_PROSE);
@@ -90,6 +102,8 @@ test("six launch specialties: a non-empty Russian feed without another specialty
     await warmFeed(page, specialty);
     const cards = page.locator(".pt-cards > article.pt-card");
     expect(await cards.count(), specialty).toBeGreaterThanOrEqual(3);
+    await expectOnlyDerivedMedia(page);
+    for (const id of await page.locator('.pt-card-media[data-media="derivative"]').evaluateAll(nodes => nodes.map(node => node.getAttribute("data-derivative-id") ?? ""))) expect(id, specialty).toMatch(new RegExp(`^drv-${specialty}-`, "u"));
     if (specialty !== "cardiology") {
       await expect(page.locator(".pt-foryou")).not.toContainText(CARDIOLOGY_CLINICAL);
       // An editorial selection is always labelled as one, never as new.
@@ -220,4 +234,22 @@ test("shell: the footer stays at the bottom of a short page; profile is one clic
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/neurology");
   await expect(page.getByRole("navigation", { name: "Разделы" }).getByRole("link")).toHaveText(["Главное", "Агенты", "Материалы", /Профиль/u]);
+});
+
+test("media audit (Preview/dev): every source shows SOURCE → TRANSFORMED → CARD", async ({ page }) => {
+  await page.goto("/admin/media-audit");
+  await expect(page.getByRole("heading", { level: 1, name: "Источник → преобразование → карточка" })).toBeVisible();
+  const rows = page.locator(".ma-row");
+  expect(await rows.count()).toBeGreaterThanOrEqual(13);
+  for (const specialty of ["Терапия", "Педиатрия", "Акушерство и гинекология", "Кардиология", "Неврология", "Эндокринология"]) {
+    await expect(page.getByRole("heading", { level: 2, name: specialty })).toBeVisible();
+  }
+  const approvedRows = page.locator('.ma-row[data-status="approved"]');
+  expect(await approvedRows.count()).toBeGreaterThanOrEqual(13);
+  for (const row of (await approvedRows.all()).slice(0, 4)) {
+    await expect(row.locator('[data-column="source"] img')).toHaveAttribute("src", /^\/media\/(source|cardiology)\//u);
+    await expect(row.locator('[data-column="transformed"] img')).toHaveAttribute("src", /^\/media\/derived\//u);
+    await expect(row.locator('[data-column="card"] article.pt-card')).toBeVisible();
+  }
+  await expect(page.locator('.ma-row[data-status="rejected"]').first()).toBeVisible();
 });
