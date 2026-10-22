@@ -123,13 +123,33 @@ function Original({ children, label = "Показать оригинал" }: { c
   </details>;
 }
 
-function Claim({ claim, ctx, named = false }: { claim: NormalizedClaim; ctx: Ctx; named?: boolean }) {
+/** The original-language text of a claim, or null when the claim reads in Russian. */
+function originalText(claim: NormalizedClaim): string | null {
+  if (claim.method === "verbatim") return claim.language !== "ru" ? claim.statement : null;
+  const statement = physicianSafe(claim.statement);
+  return statement && !isRussian(statement) ? statement : null;
+}
+
+/**
+ * One «Оригинал» per document: the source title and every original-language
+ * passage shown for it, instead of a disclosure per line.
+ */
+function DocumentOriginal({ title, claims }: { title: string | null; claims: readonly NormalizedClaim[] }) {
+  const texts = claims.map(claim => ({ id: claim.id, text: originalText(claim), language: claim.language })).filter((item): item is { id: string; text: string; language: NormalizedClaim["language"] } => Boolean(item.text));
+  if (!title && !texts.length) return null;
+  return <Original label="Оригинал">
+    {title && <p className="pt-original-title">{title}</p>}
+    {texts.map(item => <blockquote key={item.id} className="pt-quote" lang={item.language}><p>{item.text}</p></blockquote>)}
+  </Original>;
+}
+
+function Claim({ claim, ctx, named = false, grouped = false }: { claim: NormalizedClaim; ctx: Ctx; named?: boolean; grouped?: boolean }) {
   const document = ctx.index.document.get(claim.documentId);
   if (claim.method === "verbatim" && claim.language !== "ru") {
     const certainty = claim.kind === "review_conclusion" || document?.sourceId === "pubmed" ? certaintyOf(claim.statement) : null;
     return <div className="pt-claim" data-language="original">
       <p className="pt-derived">{nbsp(originalLead(claim, document, ctx, named))}{certainty && <> <CertaintyTag certainty={certainty} /></>}</p>
-      <Original><blockquote className="pt-quote" lang={claim.language}><p>{claim.statement}</p></blockquote></Original>
+      {!grouped && <Original><blockquote className="pt-quote" lang={claim.language}><p>{claim.statement}</p></blockquote></Original>}
     </div>;
   }
   if (claim.method === "verbatim") {
@@ -141,7 +161,7 @@ function Claim({ claim, ctx, named = false }: { claim: NormalizedClaim; ctx: Ctx
   if (!statement) return null;
   return <div className="pt-claim">
     <p className="pt-derived">{isRussian(statement) ? nbsp(statement) : nbsp("Данные источника — на языке оригинала.")}</p>
-    {!isRussian(statement) && <Original><p>{statement}</p></Original>}
+    {!isRussian(statement) && !grouped && <Original><p>{statement}</p></Original>}
   </div>;
 }
 
@@ -237,8 +257,8 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
           <p className="ws-provenance"><span>{document.publisher ?? sourceName(document)}</span><StateBadge state={fresh.state} freshness={fresh.label} /></p>
           {comparison === "previous_version" && previous && documentId === changedDocument && <p className="pt-version-note" data-comparison="previous_version">{nbsp(`Предыдущая версия: ${previous}. Ниже — что изменилось, по обзору публикации.`)}</p>}
           {practical.length > 0 && <p className="pt-practice-label">Что это значит для практики</p>}
-          {docClaims.map(claim => <div key={claim.id}>{changed.has(claim.id) && comparison === "previous_version" && <span className="pt-change-tag">Изменение</span>}<Claim claim={claim} ctx={ctx} /></div>)}
-          {title.original && <Original label="Название в оригинале"><p>{title.original}</p></Original>}
+          {docClaims.map(claim => <div key={claim.id}>{changed.has(claim.id) && comparison === "previous_version" && <span className="pt-change-tag">Изменение</span>}<Claim claim={claim} ctx={ctx} grouped /></div>)}
+          <DocumentOriginal title={title.original} claims={docClaims} />
           {expanded === documentId && <Expanded documentId={documentId} shown={claims} ctx={ctx} />}
           <DocumentActions document={document} result={ctx.resultFor(documentId, entry)} />
         </li>;
@@ -368,9 +388,9 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
             <span>{sourceName(document)}</span>
           </div>
           <h3 className="pt-version-title">{nbsp(title.title)}</h3>
-          {docClaims.map(claim => <Claim key={claim.id} claim={claim} ctx={ctx} />)}
+          {docClaims.map(claim => <Claim key={claim.id} claim={claim} ctx={ctx} grouped />)}
           {entry.props.expandedDocumentId === document.id && <Expanded documentId={document.id} shown={claims} ctx={ctx} />}
-          {title.original && <Original label="Название в оригинале"><p className="pt-answer-source">{typeof document.attributes.conclusionLabel === "string" ? `${document.attributes.conclusionLabel}: ` : ""}<cite>{title.original}</cite></p></Original>}
+          <DocumentOriginal title={title.original} claims={docClaims} />
           <DocumentActions document={document} result={result} label={document.sourceId === "pubmed" ? "Открыть в PubMed" : undefined} />
         </li>;
       })}
