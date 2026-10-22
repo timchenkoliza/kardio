@@ -7,10 +7,11 @@ import { isRunDue } from "@/lib/agents/profile";
 import { topicsFor } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { askHref, HOME_SHORTCUTS, JOBS } from "@/lib/portal/jobs";
+import { GALLERY } from "@/lib/portal/agents-gallery";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { CatchUpRunner } from "@/components/workspace/lifecycle";
 import { ForYouList } from "@/components/portal/for-you";
-import { JobIcon } from "@/components/portal/job-icon";
+import { Mascot } from "@/components/portal/mascot";
 import { PortalInput } from "@/components/portal/portal-input";
 import { TopicNudge } from "@/components/portal/topic-nudge";
 import { pageSession } from "@/server/agents/page-session";
@@ -84,21 +85,25 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const pending = actions.filter(action => action.status === "pending_confirmation").length;
   const status = forYou.previousVisitAt
     ? `С прошлого визита ${formatDateRu(forYou.previousVisitAt, { day: "numeric", month: "long" }) ?? ""}: ${forYou.newCount ? countLabel(forYou.newCount, ["новый материал", "новых материала", "новых материалов"]) : "нового пока нет"}`
-    : "Первый визит: последнее по специальности";
+    : forYou.cards.some(card => card.showcase) ? "Свежие публикации и подборка редакции по специальности" : "Первый визит: последнее по специальности";
 
   return <div className="ws-page pt-home">
     <CatchUpRunner enabled={catchUpDue} />
     <section className="pt-hero" aria-labelledby="pt-title">
       <h1 id="pt-title">{nbsp(`Ответы и обновления — ${adapter.audienceDative}`)}</h1>
-      <p className="pt-lead">Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из систематических обзоров, клинических рекомендаций и официальных инструкций, у каждого утверждения есть источник и дата.</p>
+      <p className="pt-lead">{nbsp("Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из рекомендаций, обзоров и официальных инструкций — у каждого утверждения есть источник и дата.")}</p>
       <PortalInput specialty={specialty} examples={EXAMPLES[specialty]} />
       <nav className="pt-shortcuts" aria-label="Частые задачи">
-        {HOME_SHORTCUTS.map(job => <Link key={job} className="pt-shortcut" href={askHref(specialty, { job })}>
-          <span className="pt-shortcut-icon"><JobIcon icon={JOBS[job].icon} size={18} /></span>
-          <span className="pt-shortcut-copy"><strong>{JOBS[job].label}</strong><span>{JOBS[job].promise}</span></span>
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>)}
+        {HOME_SHORTCUTS.map(job => {
+          const agent = GALLERY.find(item => item.job === job);
+          return <Link key={job} className="pt-shortcut" href={askHref(specialty, { job })}>
+            <span className="pt-shortcut-copy"><strong>{JOBS[job].label}</strong><span>{JOBS[job].promise}</span></span>
+            {agent && <Mascot variant={agent.id} size={64} className="pt-shortcut-mascot" />}
+            <span className="pt-shortcut-tip" aria-hidden="true">{agent?.help}</span>
+          </Link>;
+        })}
       </nav>
+      <p className="pt-hero-more"><Link className="ws-text-link" href={`/${specialty}/agents`}>Все агенты: консилиум, мероприятия, ваши материалы<ArrowRight size={15} aria-hidden="true" /></Link></p>
     </section>
 
     {pending > 0 && <Link className="ws-pending-banner" href={`/${specialty}/agents`}><BellRing size={18} aria-hidden="true" /><span>{countLabel(pending, ["действие ждёт", "действия ждут", "действий ждут"])} вашего подтверждения</span><ArrowRight size={16} aria-hidden="true" /></Link>}
@@ -109,7 +114,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
           <h2 id="pt-foryou-title" className="ws-section-title">{nbsp("Для вас")}</h2>
           <p className="ws-muted">{status}{forYou.topics.length ? ` · темы: ${forYou.topics.slice(0, 3).join(", ")}` : ""}</p>
         </div>
-        {forYou.topics.length > 0 && <Link className="ws-text-link" href={`/${specialty}/settings`}>Изменить темы<ArrowRight size={15} aria-hidden="true" /></Link>}
+        <Link className="ws-text-link" href={`/${specialty}/settings`}>{forYou.topics.length ? "Изменить темы" : "Выбрать темы"}<ArrowRight size={15} aria-hidden="true" /></Link>
       </div>
       {forYou.cards.length
         ? <ForYouList cards={forYou.cards} />

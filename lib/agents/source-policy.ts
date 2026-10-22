@@ -18,7 +18,7 @@ export const SOURCE_STANDINGS: readonly SourceStanding[] = [
 export const STANDING_LABEL: Record<SourceStanding, string> = {
   approved: "Источник одобрен врачами",
   conditional: "Одобрен врачами с условием",
-  reviewed_not_whitelisted: "Проверен врачами, не в белом списке",
+  reviewed_not_whitelisted: "Проверен врачами, требует сверки",
   rejected: "Источник отклонён врачами",
   unreviewed: "Не проверен врачами",
 };

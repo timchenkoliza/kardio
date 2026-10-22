@@ -1,10 +1,13 @@
 import type { DataOrigin } from "@/lib/agents/types";
+import type { PortalJob } from "@/lib/portal/jobs";
+import type { TrustTone } from "@/lib/presentation/physician";
+import type { ArtKey } from "@/lib/ui/feed-art";
 
 /**
  * «Для вас»: one card contract for every kind of professional item, so the
  * physician never perceives «outputs of seven agents».
  */
-export type ForYouKind = "publication" | "guideline" | "drug_signal" | "event" | "learning" | "saved_topic" | "catalog" | "partner";
+export type ForYouKind = "publication" | "guideline" | "drug_signal" | "event" | "learning" | "saved_topic" | "catalog" | "partner" | "showcase";
 
 /** Internal capability-state taxonomy; the UI translates it into physician language. */
 export type CapabilityState = "LIVE" | "SNAPSHOT" | "DERIVED" | "MOCK" | "UNAVAILABLE" | "BROKEN" | "UNVERIFIED";
@@ -32,7 +35,25 @@ export interface ForYouCard {
   resultId: string | null;
   /** Partner material: always disclosed in words. */
   partner: { sponsor: string; disclosure: string; example: boolean } | null;
+  /** The whole card opens this internal page in the same tab. */
+  href: string;
+  /** Source wording (title, abstract line) kept for «Оригинал»; never shown first on the Russian surface. */
+  original: { title: string; summary: string | null } | null;
+  /** Russian topic tags. */
+  tags: string[];
+  /** Real image (licensed, matched to the subject) or in-house line art; null when nothing fits. */
+  media: CardMedia | null;
+  /** Editorial source label: «Надёжный источник», «Подборка редакции»… */
+  trust: { label: string; tone: TrustTone };
+  /** Scenarios launched in place with the card topic (the text travels in the request body). */
+  scenarios: Array<{ label: string; job: PortalJob; text: string }>;
+  /** Editorial selection shown when the live feed is short; never presented as new or live. */
+  showcase: boolean;
 }
+
+export type CardMedia =
+  | { kind: "image"; src: string; alt: string; credit: string | null }
+  | { kind: "art"; art: ArtKey; alt: string; animated: boolean };
 
 export function stateForOrigin(origin: DataOrigin | null | undefined): CapabilityState {
   switch (origin) {

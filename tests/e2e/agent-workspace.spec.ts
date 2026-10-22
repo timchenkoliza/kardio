@@ -28,12 +28,19 @@ async function expectNoHorizontalOverflow(page: Page) {
 test("configuring topics runs the background checks behind «Для вас»", async ({ page }) => {
   await setupInterests(page, ["ХСН", "Артериальная гипертензия"]);
   await page.goto("/cardiology/agents");
-  await expect(page.getByRole("heading", { level: 1, name: "Фоновые проверки" })).toBeVisible();
+  // The agents page is the gallery; the background checks behind «Для вас» sit in a disclosure under it.
+  await expect(page.getByRole("heading", { level: 1, name: /Агенты для специальности/ })).toBeVisible();
+  await page.locator(".pt-background > summary").filter({ hasText: "Фоновые проверки" }).click();
+  await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toBeVisible();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toContainText(/регистрац/);
   await expect(page.locator('.ws-agent-card[data-agent="whats_new"]')).toContainText(/по вашим темам|с вашего прошлого визита/);
   await page.goto("/cardiology");
   await expect(page.locator(".pt-card").first()).toBeVisible();
-  await expect(page.locator(".pt-foryou")).toContainText("Почему вы это видите");
+  // Every card explains itself: the reason it is shown is on the card's own page, one click away in the same tab.
+  await page.locator(".pt-cards > article.pt-card .pt-card-link").first().click();
+  await expect(page).toHaveURL(/\/cardiology\/(?:item|content)\//u);
+  if (page.url().includes("/item/")) await expect(page.locator(".pt-item-facts")).toContainText("Почему вы это видите");
+  else await expect(page.locator("main")).toContainText("Проверяемость");
 });
 
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {

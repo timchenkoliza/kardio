@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { ChevronDown, FolderOpen, LayoutGrid, Settings2 } from "lucide-react";
+import { Bot, ChevronDown, FolderOpen, LayoutGrid } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { launchSpecialtyList, specialties } from "@/lib/specialty";
 import { WorkspaceProvider } from "./workspace-provider";
@@ -13,18 +13,26 @@ import { ResearchJobWatcher } from "./research-job-watcher";
 export type WorkspaceSection = "home" | "agents" | "materials" | "settings" | "content";
 
 /**
- * Primary navigation is jobs and the physician's own things — never an agent
- * catalogue. The background checks page (/agents) stays reachable from settings.
+ * Primary navigation: the one input (Главное), the capabilities behind it as a
+ * gallery (Агенты — discovery and shortcuts, never a required step), the
+ * physician's own library, and the profile. Every entry is internal, same tab.
  */
-const NAV: Array<{ id: "home" | "materials"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
+const NAV: Array<{ id: "home" | "agents" | "materials"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
   { id: "home", label: "Главное", short: "Главное", path: "", icon: LayoutGrid },
+  { id: "agents", label: "Агенты", short: "Агенты", path: "/agents", icon: Bot },
   { id: "materials", label: "Мои материалы", short: "Материалы", path: "/materials", icon: FolderOpen },
 ];
+
+/** Profile entry: no accounts — the workspace belongs to this browser; the profile is specialty, topics and sources. */
+function ProfileAvatar({ size = "regular" }: { size?: "regular" | "small" }) {
+  return <span className={size === "small" ? "ws-avatar is-small" : "ws-avatar"} aria-hidden="true">Вы</span>;
+}
 
 export function sectionFromPath(pathname: string, specialty: string): WorkspaceSection {
   const rest = pathname.replace(new RegExp(`^/${specialty}`), "");
   if (rest.startsWith("/agents")) return "agents";
-  if (rest.startsWith("/ask")) return "home";
+  if (rest.startsWith("/ask") || rest.startsWith("/item")) return "home";
+  if (rest.startsWith("/tools")) return "agents";
   if (rest.startsWith("/materials")) return "materials";
   if (rest.startsWith("/settings")) return "settings";
   if (rest.startsWith("/content")) return "content";
@@ -53,7 +61,7 @@ function SpecialtySelect({ specialty, sectionPath }: { specialty: SpecialtyId; s
 
 export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { specialty: SpecialtyId; pendingActions?: number; children: ReactNode }) {
   const section = sectionFromPath(usePathname() ?? `/${specialty}`, specialty);
-  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : "";
+  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : section === "agents" ? "/agents" : "";
 
   return <WorkspaceProvider specialty={specialty}>
     <div className="ws-app" data-specialty={specialty}>
@@ -68,11 +76,11 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
             <item.icon size={17} aria-hidden="true" /><span>{item.label}</span>
             {item.id === "home" && pendingActions > 0 && <span className="ws-nav-badge" aria-label={`Ждут подтверждения: ${pendingActions}`}>{pendingActions}</span>}
           </Link>)}
-          <span className="ws-nav-divider" aria-hidden="true" />
-          <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-nav-item is-active" : "ws-nav-item"} aria-current={section === "settings" ? "page" : undefined}>
-            <Settings2 size={17} aria-hidden="true" /><span>Настройки</span>
-          </Link>
         </nav>
+        <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-profile-entry is-active" : "ws-profile-entry"} aria-current={section === "settings" ? "page" : undefined}>
+          <ProfileAvatar />
+          <span className="ws-profile-copy"><strong>Профиль и настройки</strong><span>{specialties[specialty].name} · темы и источники</span></span>
+        </Link>
         <p className="ws-sidebar-note">Профессиональные источники и ваши материалы. Без данных пациентов.</p>
       </aside>
 
@@ -81,10 +89,10 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
         <header className="ws-topbar">
           <BrandLockup specialty={specialty} />
           <SpecialtySelect specialty={specialty} sectionPath={sectionPath} />
-          <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-icon-link is-active" : "ws-icon-link"} aria-label="Настройки и источники" aria-current={section === "settings" ? "page" : undefined}><Settings2 size={20} /></Link>
+          <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-icon-link is-active" : "ws-icon-link"} aria-label="Вы: профиль и настройки" aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" /></Link>
         </header>
         <main id="ws-main" className="ws-main" tabIndex={-1}>{children}</main>
-        <footer className="pt-footer"><p>© {new Date().getFullYear()} ООО «Яндекс»</p></footer>
+        <footer className="pt-footer ws-footer"><p>© {new Date().getFullYear()} ООО «Яндекс»</p></footer>
       </div>
 
       <nav className="ws-tabbar" aria-label="Разделы">
@@ -92,7 +100,7 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
           <item.icon size={20} aria-hidden="true" /><span>{item.short}</span>
           {item.id === "home" && pendingActions > 0 && <span className="ws-nav-badge">{pendingActions}</span>}
         </Link>)}
-        <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><Settings2 size={20} aria-hidden="true" /><span>Настройки</span></Link>
+        <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" /><span>Профиль</span></Link>
       </nav>
       <ResearchJobWatcher specialty={specialty} />
       <ActionConfirmDialog />

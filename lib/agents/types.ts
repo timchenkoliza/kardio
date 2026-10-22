@@ -311,6 +311,8 @@ export interface UserProfile {
 
 export type MaterialKind = "link" | "file" | "note" | "agent_result";
 export type MaterialParseStatus = "indexed" | "metadata_only" | "parser_unavailable" | "rejected";
+/** What a material is, for sorting and filtering in «Мои материалы». Older materials have none and are derived from kind. */
+export type MaterialFormat = "guideline" | "review" | "study" | "article" | "drug_label" | "video" | "website" | "file" | "note" | "result";
 
 export interface Material {
   id: string;
@@ -333,6 +335,10 @@ export interface Material {
   provenance: Provenance | null;
   collectionIds: string[];
   createdAt: string;
+  /** Format, document type and a short line (journal · date · authors) when the link was recognised. */
+  format?: MaterialFormat | null;
+  typeLabel?: string | null;
+  summary?: string | null;
 }
 
 export interface MaterialCollection {

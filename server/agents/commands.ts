@@ -5,6 +5,7 @@ import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, GOAL_OPTIONS, S
 import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
 import { cancelAction, confirmAction, prepareAction } from "./services/action-confirmation";
+import { enrichLink } from "./services/link-enrichment";
 import { materialFromLink, materialFromNote, materialFromResult } from "./services/material";
 import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
@@ -231,7 +232,9 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       return { ok: true, profileChanged: false };
     }
     case "addLink": {
-      const material = materialFromLink({ specialty: specialtyId, url: command.url, title: command.title, note: command.note, now });
+      // Identifiers in the link (PMID, PMCID, DOI) are looked up at fixed public endpoints; the URL itself is never fetched.
+      const enrichment = await enrichLink(command.url);
+      const material = materialFromLink({ specialty: specialtyId, url: command.url, title: command.title, note: command.note, now, enrichment });
       await store.saveMaterial(sessionId, material);
       await recordAgentEvent(sessionId, "material_saved", { specialty: specialtyId, agentId: "materials" });
       return { ok: true, profileChanged: false, material };
