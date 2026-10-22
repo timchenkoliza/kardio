@@ -2,7 +2,7 @@
   "version": 1,
   "pipeline": {
     "name": "ds-tonal-redraw",
-    "version": "ds-tonal-redraw@1.0.0"
+    "version": "ds-tonal-redraw@1.1.0"
   },
   "designSystem": {
     "version": "yandex-med-ds@1+recraft-lock@41",
@@ -19,7 +19,7 @@
   },
   "derivatives": [
     {
-      "id": "drv-therapy-pneumonia-9c96edb059",
+      "id": "drv-therapy-pneumonia-1a3ebbbe2d",
       "status": "approved",
       "specialty": "therapy",
       "subject": "pneumonia",
@@ -51,15 +51,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.9111,
+          "scale": 1.4667,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.2874,
-          "toneBands": "0.480/0.687/0.998",
+          "lineThreshold": 0.3246,
+          "toneBands": "0.484/0.680/0.998",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -81,9 +81,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/therapy/drv-therapy-pneumonia-9c96edb059.webp",
+      "src": "/media/derived/therapy/drv-therapy-pneumonia-1a3ebbbe2d.webp",
       "attemptSrc": null,
-      "sha256": "a7c745f1ed32d3ff4b8b7476564b9b46af0aa30771c0e5d4fabf4d9feacb453b",
+      "sha256": "1795dc2e7618c0418bb5ff6467c07ee2c277d50eb89b3f023448c884b6fdbffc",
       "width": 1600,
       "height": 800,
       "alt": "Альвеолы, заполненные воспалительным экссудатом при пневмонии",
@@ -142,43 +142,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.5086,
-            "threshold": "0.45–0.9"
+            "value": 0.7102,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4929,
-            "threshold": "0.2–0.62"
+            "value": 0.2905,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.137,
+            "value": 0.083,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.111,
+            "value": 0.1293,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9589,
+            "value": 0.9795,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9997,
+            "value": 0.9991,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9589 vs 0.8674 mirrored",
+            "value": "0.9795 vs 0.8941 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -188,10 +188,10 @@
         "kind": "art",
         "ref": "lungs"
       },
-      "createdAt": "2026-10-22T09:15:45.778Z"
+      "createdAt": "2026-10-22T10:51:01.356Z"
     },
     {
-      "id": "drv-therapy-asthma-f8edb2cd8b",
+      "id": "drv-therapy-asthma-6b1262023d",
       "status": "approved",
       "specialty": "therapy",
       "subject": "asthma",
@@ -223,7 +223,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
@@ -253,7 +253,7 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/therapy/drv-therapy-asthma-f8edb2cd8b.webp",
+      "src": "/media/derived/therapy/drv-therapy-asthma-6b1262023d.webp",
       "attemptSrc": null,
       "sha256": "8ce8c84b3912e94cafb30dbb72ca8414ac0dc3eb11f9eeb233ecca5ba840a68f",
       "width": 1600,
@@ -315,13 +315,13 @@
             "id": "negative_space",
             "pass": true,
             "value": 0.7809,
-            "threshold": "0.45–0.9"
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
             "value": 0.3605,
-            "threshold": "0.2–0.62"
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
@@ -360,10 +360,10 @@
         "kind": "art",
         "ref": "lungs"
       },
-      "createdAt": "2026-10-22T09:20:17.259Z"
+      "createdAt": "2026-10-22T10:51:01.791Z"
     },
     {
-      "id": "drv-pediatrics-otitis-media-4f67a05e28",
+      "id": "drv-pediatrics-otitis-media-6ba811ded3",
       "status": "approved",
       "specialty": "pediatrics",
       "subject": "otitis_media",
@@ -395,15 +395,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.0182,
+          "scale": 0.9103,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 24763,
-          "lineThreshold": 0.0981,
-          "toneBands": "0.625/0.726/0.815",
+          "lineThreshold": 0.1047,
+          "toneBands": "0.626/0.726/0.815",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -425,9 +425,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/pediatrics/drv-pediatrics-otitis-media-4f67a05e28.webp",
+      "src": "/media/derived/pediatrics/drv-pediatrics-otitis-media-6ba811ded3.webp",
       "attemptSrc": null,
-      "sha256": "b231a056733a897013d9d6fff583bbd12fe77397a3f776db872d767aec4b03df",
+      "sha256": "ae54e93938038bd00ae6cb8e02e4da1ad74c67971e345f4f03ac1a8bdaf9f745",
       "width": 1600,
       "height": 800,
       "alt": "Острый средний отит: воспаление и жидкость в полости среднего уха, суженная слуховая труба",
@@ -486,43 +486,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.6669,
-            "threshold": "0.45–0.9"
+            "value": 0.7341,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.5097,
-            "threshold": "0.2–0.62"
+            "value": 0.4067,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0917,
+            "value": 0.0734,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1057,
+            "value": 0.1103,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9989,
+            "value": 0.9992,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9645,
+            "value": 0.9659,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9989 vs 0.7554 mirrored",
+            "value": "0.9992 vs 0.762 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -532,10 +532,10 @@
         "kind": "art",
         "ref": "ear"
       },
-      "createdAt": "2026-10-22T09:20:17.823Z"
+      "createdAt": "2026-10-22T10:51:02.293Z"
     },
     {
-      "id": "drv-pediatrics-gastroenteritis-a5f1e45d8e",
+      "id": "drv-pediatrics-gastroenteritis-be1e68f503",
       "status": "approved",
       "specialty": "pediatrics",
       "subject": "gastroenteritis",
@@ -567,15 +567,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.5461,
+          "scale": 1.1865,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 15834,
-          "lineThreshold": 0.05,
-          "toneBands": "0.520/0.676/0.924",
+          "lineThreshold": 0.0549,
+          "toneBands": "0.520/0.676/0.922",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -597,9 +597,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/pediatrics/drv-pediatrics-gastroenteritis-a5f1e45d8e.webp",
+      "src": "/media/derived/pediatrics/drv-pediatrics-gastroenteritis-be1e68f503.webp",
       "attemptSrc": null,
-      "sha256": "c0bde17345ff5afc93c5bbb9120d92f6f0c5fe8c7f9da487ac5b1e291e8a1b7a",
+      "sha256": "1048803f7ab224d8b45a105034359e67cec26cff9db2be9b87a5b273e75e8034",
       "width": 1600,
       "height": 800,
       "alt": "Органы пищеварения ребёнка: желудок, тонкая и толстая кишка",
@@ -658,43 +658,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.7131,
-            "threshold": "0.45–0.9"
+            "value": 0.8313,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.3822,
-            "threshold": "0.2–0.62"
+            "value": 0.2252,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0824,
+            "value": 0.0502,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.0662,
+            "value": 0.0785,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9957,
+            "value": 0.9981,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9958,
+            "value": 0.9871,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9957 vs 0.8538 mirrored",
+            "value": "0.9981 vs 0.8756 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -704,10 +704,10 @@
         "kind": "art",
         "ref": "gut"
       },
-      "createdAt": "2026-10-22T09:20:18.299Z"
+      "createdAt": "2026-10-22T10:51:02.580Z"
     },
     {
-      "id": "drv-obgyn-preeclampsia-06403bf150",
+      "id": "drv-obgyn-preeclampsia-d4d697a1da",
       "status": "approved",
       "specialty": "obgyn",
       "subject": "preeclampsia",
@@ -739,15 +739,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 0.7242,
+          "scale": 0.5558,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.078,
-          "toneBands": "0.551/0.670/0.757",
+          "lineThreshold": 0.09,
+          "toneBands": "0.553/0.669/0.756",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -769,9 +769,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/obgyn/drv-obgyn-preeclampsia-06403bf150.webp",
+      "src": "/media/derived/obgyn/drv-obgyn-preeclampsia-d4d697a1da.webp",
       "attemptSrc": null,
-      "sha256": "ffb70193493a2c883cfe890293e95641b7e7fee55a6fcc9da46901158850ddd2",
+      "sha256": "31005903c109231145d168542f7beee897fc943b1a10ecf35a656768e3e12235",
       "width": 1600,
       "height": 800,
       "alt": "Сагиттальный разрез: плацента на стенке матки, пуповина и плод",
@@ -830,43 +830,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.6491,
-            "threshold": "0.45–0.9"
+            "value": 0.7932,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4264,
-            "threshold": "0.2–0.62"
+            "value": 0.2506,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0987,
+            "value": 0.0586,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1113,
+            "value": 0.124,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9996,
+            "value": 0.9999,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9197,
+            "value": 0.9297,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9996 vs 0.8243 mirrored",
+            "value": "0.9999 vs 0.8605 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -876,10 +876,10 @@
         "kind": "art",
         "ref": "pregnancy"
       },
-      "createdAt": "2026-10-22T09:15:46.550Z"
+      "createdAt": "2026-10-22T10:51:02.925Z"
     },
     {
-      "id": "drv-obgyn-preterm-birth-d68a2f4a52",
+      "id": "drv-obgyn-preterm-birth-870508bd6b",
       "status": "approved",
       "specialty": "obgyn",
       "subject": "preterm_birth",
@@ -911,15 +911,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 0.9829,
+          "scale": 0.7543,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 26454,
-          "lineThreshold": 0.0668,
-          "toneBands": "0.492/0.588/0.706",
+          "lineThreshold": 0.0808,
+          "toneBands": "0.494/0.587/0.701",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -941,9 +941,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/obgyn/drv-obgyn-preterm-birth-d68a2f4a52.webp",
+      "src": "/media/derived/obgyn/drv-obgyn-preterm-birth-870508bd6b.webp",
       "attemptSrc": null,
-      "sha256": "be0e31532036dcb9770dc573035835d83d9c40505f25d2996f150456c203eb2e",
+      "sha256": "7f8657d19ad567857f85519fed200b1a42dba37fb7673960046e72cf6a773855",
       "width": 1600,
       "height": 800,
       "alt": "Беременная матка: плод, плацента, околоплодные воды и шейка матки",
@@ -1002,43 +1002,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.7824,
-            "threshold": "0.45–0.9"
+            "value": 0.872,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.3483,
-            "threshold": "0.2–0.62"
+            "value": 0.2046,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0587,
+            "value": 0.0343,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.09,
+            "value": 0.1054,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9986,
+            "value": 0.9999,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.97,
+            "value": 0.9641,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9986 vs 0.7323 mirrored",
+            "value": "0.9999 vs 0.7607 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -1048,10 +1048,10 @@
         "kind": "art",
         "ref": "pregnancy"
       },
-      "createdAt": "2026-10-22T09:20:19.167Z"
+      "createdAt": "2026-10-22T10:51:03.230Z"
     },
     {
-      "id": "drv-cardiology-atrial-fibrillation-48c177a206",
+      "id": "drv-cardiology-atrial-fibrillation-b5d5625291",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "atrial_fibrillation",
@@ -1133,15 +1133,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "trace",
-          "scale": 0.9412,
+          "scale": 0.8874,
           "backgroundTolerance": 80,
           "thinLinesRemovedPx": 0,
           "lineThreshold": 0,
-          "toneBands": "0.552/0.622/0.666",
+          "toneBands": "0.563/0.633/0.679",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -1163,9 +1163,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-atrial-fibrillation-48c177a206.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-atrial-fibrillation-b5d5625291.webp",
       "attemptSrc": null,
-      "sha256": "9aef9e2818a6f75c13ead626e9d126602fa5506eda31faf050876187dad5b9a7",
+      "sha256": "cff21e5d97c123f237aacdf0f77602aa1305369c890851cdf24f2326d760c38d",
       "width": 1600,
       "height": 800,
       "alt": "ЭКГ в 12 отведениях при фибрилляции предсердий: нерегулярные комплексы QRS без зубцов P",
@@ -1224,25 +1224,25 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.9657,
+            "value": 0.9696,
             "threshold": "0.8–0.995"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4489,
-            "threshold": "0.2–0.62"
+            "value": 0.3985,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0343,
+            "value": 0.0304,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.2055,
+            "value": 0.216,
             "threshold": "n/a (trace)"
           },
           {
@@ -1266,7 +1266,7 @@
           {
             "id": "removed_regions",
             "pass": true,
-            "value": 0.9995,
+            "value": 0.9994,
             "threshold": "≥ 0.98"
           }
         ],
@@ -1276,10 +1276,10 @@
         "kind": "art",
         "ref": "ecg_af"
       },
-      "createdAt": "2026-10-22T09:20:14.610Z"
+      "createdAt": "2026-10-22T10:50:59.197Z"
     },
     {
-      "id": "drv-cardiology-pulmonary-hypertension-3f6e70ad6c",
+      "id": "drv-cardiology-pulmonary-hypertension-de7be98f75",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "pulmonary_hypertension",
@@ -1311,7 +1311,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
@@ -1341,7 +1341,7 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-pulmonary-hypertension-3f6e70ad6c.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-pulmonary-hypertension-de7be98f75.webp",
       "attemptSrc": null,
       "sha256": "a30471b2d6bd5f6db8d2fdec149af57c008484696b1d79ba5e746f705ae6af13",
       "width": 1600,
@@ -1403,13 +1403,13 @@
             "id": "negative_space",
             "pass": true,
             "value": 0.7547,
-            "threshold": "0.45–0.9"
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
             "value": 0.3018,
-            "threshold": "0.2–0.62"
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
@@ -1448,10 +1448,10 @@
         "kind": "art",
         "ref": "pulmonary"
       },
-      "createdAt": "2026-10-22T09:15:44.764Z"
+      "createdAt": "2026-10-22T10:50:59.505Z"
     },
     {
-      "id": "drv-cardiology-coronary-artery-disease-1afef1ec15",
+      "id": "drv-cardiology-coronary-artery-disease-8da7089111",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "coronary_artery_disease",
@@ -1478,14 +1478,14 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.2874,
+          "scale": 1.2138,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1103,
+          "lineThreshold": 0.1169,
           "toneBands": "0.682/0.759/0.827",
           "hueSplit": true,
           "median": 3,
@@ -1508,9 +1508,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-1afef1ec15.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-8da7089111.webp",
       "attemptSrc": null,
-      "sha256": "fa346dea68a7268def696d7e1bd3b87aa65f32bd31e1fa6a4301d03dee7daa71",
+      "sha256": "99569e049955b64b4229635661be751a16cfec3d753916e91efa78b73cfb93bf",
       "width": 1600,
       "height": 800,
       "alt": "Схема коронарографии: катетер в устье левой коронарной артерии и стеноз на ангиограмме",
@@ -1569,43 +1569,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.7226,
-            "threshold": "0.45–0.9"
+            "value": 0.7532,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4465,
-            "threshold": "0.2–0.62"
+            "value": 0.3975,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0813,
+            "value": 0.0725,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1281,
+            "value": 0.1317,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9772,
+            "value": 0.9791,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.953,
+            "value": 0.9568,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9772 vs 0.6484 mirrored",
+            "value": "0.9791 vs 0.6573 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -1613,12 +1613,12 @@
       },
       "fallback": {
         "kind": "derivative",
-        "ref": "drv-cardiology-coronary-artery-disease-006a9092f3"
+        "ref": "drv-cardiology-coronary-artery-disease-d353a62134"
       },
-      "createdAt": "2026-10-22T09:15:44.969Z"
+      "createdAt": "2026-10-22T10:50:59.846Z"
     },
     {
-      "id": "drv-cardiology-coronary-artery-disease-006a9092f3",
+      "id": "drv-cardiology-coronary-artery-disease-d353a62134",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "coronary_artery_disease",
@@ -1669,7 +1669,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
@@ -1699,7 +1699,7 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-006a9092f3.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-coronary-artery-disease-d353a62134.webp",
       "attemptSrc": null,
       "sha256": "e34d6c895ab9f620dd2464a6c373b299ff1170f2a139ebcfc6e4e16a0a6455db",
       "width": 1600,
@@ -1761,13 +1761,13 @@
             "id": "negative_space",
             "pass": true,
             "value": 0.7239,
-            "threshold": "0.45–0.9"
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
             "value": 0.3845,
-            "threshold": "0.2–0.62"
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
@@ -1810,12 +1810,12 @@
       },
       "fallback": {
         "kind": "derivative",
-        "ref": "drv-cardiology-coronary-artery-disease-1afef1ec15"
+        "ref": "drv-cardiology-coronary-artery-disease-8da7089111"
       },
-      "createdAt": "2026-10-22T09:20:15.593Z"
+      "createdAt": "2026-10-22T10:51:00.224Z"
     },
     {
-      "id": "drv-cardiology-heart-chambers-valves-bd1569d419",
+      "id": "drv-cardiology-heart-chambers-valves-01e197d401",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "heart_chambers_valves",
@@ -1842,15 +1842,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 0.9333,
+          "scale": 0.88,
           "backgroundTolerance": 40,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1087,
-          "toneBands": "0.334/0.530/0.593",
+          "lineThreshold": 0.1094,
+          "toneBands": "0.335/0.530/0.593",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -1872,9 +1872,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-heart-chambers-valves-bd1569d419.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-heart-chambers-valves-01e197d401.webp",
       "attemptSrc": null,
-      "sha256": "1f3b0536953572042fb6ffaafc98f4696bdf09be9f2ef73c169dfe59faf8c36c",
+      "sha256": "5e194bf7aae0b8cb5c67aaae1593c8c0a7fb4ea8e13572e40985b67b754b2919",
       "width": 1600,
       "height": 800,
       "alt": "Сердце в четырёхкамерной проекции: предсердия, желудочки, клапаны и миокард",
@@ -1933,43 +1933,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.6437,
-            "threshold": "0.45–0.9"
+            "value": 0.6833,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4427,
-            "threshold": "0.2–0.62"
+            "value": 0.3935,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.1003,
+            "value": 0.0886,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1056,
+            "value": 0.1061,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9969,
+            "value": 0.9974,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9153,
+            "value": 0.909,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9969 vs 0.8469 mirrored",
+            "value": "0.9974 vs 0.8512 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -1979,10 +1979,10 @@
         "kind": "art",
         "ref": "echo"
       },
-      "createdAt": "2026-10-22T09:15:45.373Z"
+      "createdAt": "2026-10-22T10:51:00.716Z"
     },
     {
-      "id": "drv-cardiology-heart-anatomy-3cac03fe3d",
+      "id": "drv-cardiology-heart-anatomy-9f43c66d97",
       "status": "approved",
       "specialty": "cardiology",
       "subject": "heart_anatomy",
@@ -2014,15 +2014,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.2286,
+          "scale": 0.9429,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1699,
-          "toneBands": "0.186/0.288/0.485",
+          "lineThreshold": 0.1745,
+          "toneBands": "0.190/0.295/0.482",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -2044,9 +2044,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/cardiology/drv-cardiology-heart-anatomy-3cac03fe3d.webp",
+      "src": "/media/derived/cardiology/drv-cardiology-heart-anatomy-9f43c66d97.webp",
       "attemptSrc": null,
-      "sha256": "24b434c70dc69ef794094fdbe0085bdc61e26553e6f4a3f2d5a4ef302616373e",
+      "sha256": "02700d186cd477d685446c82386594d30786ccc37c3ba868c67c306f2ac5b6bf",
       "width": 1600,
       "height": 800,
       "alt": "Анатомическая иллюстрация сердца с коронарными сосудами",
@@ -2105,25 +2105,25 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.8519,
-            "threshold": "0.45–0.9"
+            "value": 0.9129,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.2066,
-            "threshold": "0.2–0.62"
+            "value": 0.1217,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0423,
+            "value": 0.0249,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1609,
+            "value": 0.1686,
             "threshold": "≤ 0.2"
           },
           {
@@ -2135,13 +2135,13 @@
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 1,
+            "value": 0.9985,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "1 vs 0.9246 mirrored",
+            "value": "1 vs 0.9272 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -2151,10 +2151,10 @@
         "kind": "art",
         "ref": "conduction"
       },
-      "createdAt": "2026-10-22T09:15:45.520Z"
+      "createdAt": "2026-10-22T10:51:00.953Z"
     },
     {
-      "id": "drv-cardiology-arterial-hypertension-2f2ee82ba2",
+      "id": "drv-cardiology-arterial-hypertension-2112931d52",
       "status": "rejected",
       "specialty": "cardiology",
       "subject": "arterial_hypertension",
@@ -2181,7 +2181,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {}
       },
@@ -2245,10 +2245,10 @@
         "kind": "art",
         "ref": "artery_pressure"
       },
-      "createdAt": "2026-10-22T09:15:45.532Z"
+      "createdAt": "2026-10-22T10:51:00.974Z"
     },
     {
-      "id": "drv-cardiology-coronary-artery-disease-0fddb2f2c5",
+      "id": "drv-cardiology-coronary-artery-disease-7e58daa7c8",
       "status": "rejected",
       "specialty": "cardiology",
       "subject": "coronary_artery_disease",
@@ -2275,7 +2275,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {}
       },
@@ -2337,12 +2337,12 @@
       },
       "fallback": {
         "kind": "derivative",
-        "ref": "drv-cardiology-coronary-artery-disease-1afef1ec15"
+        "ref": "drv-cardiology-coronary-artery-disease-8da7089111"
       },
-      "createdAt": "2026-10-22T09:15:45.541Z"
+      "createdAt": "2026-10-22T10:51:00.989Z"
     },
     {
-      "id": "drv-cardiology-myocardial-infarction-dffba16033",
+      "id": "drv-cardiology-myocardial-infarction-02d58d256e",
       "status": "rejected",
       "specialty": "cardiology",
       "subject": "myocardial_infarction",
@@ -2369,7 +2369,7 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {}
       },
@@ -2433,10 +2433,10 @@
         "kind": "art",
         "ref": "ventricle"
       },
-      "createdAt": "2026-10-22T09:15:45.546Z"
+      "createdAt": "2026-10-22T10:51:00.998Z"
     },
     {
-      "id": "drv-neurology-ischemic-stroke-258ef5d0fb",
+      "id": "drv-neurology-ischemic-stroke-e205a7842b",
       "status": "approved",
       "specialty": "neurology",
       "subject": "ischemic_stroke",
@@ -2468,15 +2468,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.075,
+          "scale": 0.825,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1512,
-          "toneBands": "0.539/0.720/0.840",
+          "lineThreshold": 0.1714,
+          "toneBands": "0.539/0.719/0.838",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -2498,9 +2498,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/neurology/drv-neurology-ischemic-stroke-258ef5d0fb.webp",
+      "src": "/media/derived/neurology/drv-neurology-ischemic-stroke-e205a7842b.webp",
       "attemptSrc": null,
-      "sha256": "a0cdc81a5975231238c4f6bb91c5f32bfb7d98750c61cf42c10c803bf9da92cf",
+      "sha256": "56301cfb2eaf0a015ef2a4d7828ad075aa13d81c59ce406ea25c85246d459e4e",
       "width": 1600,
       "height": 800,
       "alt": "Тромб, закупоривающий мозговую артерию, и полушарие мозга с артериями",
@@ -2559,43 +2559,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.8161,
-            "threshold": "0.45–0.9"
+            "value": 0.8916,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.2812,
-            "threshold": "0.2–0.62"
+            "value": 0.1666,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0523,
+            "value": 0.0314,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.079,
+            "value": 0.0833,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9972,
+            "value": 0.9971,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9277,
+            "value": 0.91,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9972 vs 0.5505 mirrored",
+            "value": "0.9971 vs 0.5793 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -2605,10 +2605,10 @@
         "kind": "art",
         "ref": "stroke"
       },
-      "createdAt": "2026-10-22T09:15:46.843Z"
+      "createdAt": "2026-10-22T10:51:03.445Z"
     },
     {
-      "id": "drv-neurology-multiple-sclerosis-90e5082a79",
+      "id": "drv-neurology-multiple-sclerosis-868ffbe5a1",
       "status": "approved",
       "specialty": "neurology",
       "subject": "multiple_sclerosis",
@@ -2640,15 +2640,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 2.0848,
+          "scale": 1.6,
           "backgroundTolerance": 100,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1987,
-          "toneBands": "0.345/0.447/0.592",
+          "lineThreshold": 0.2125,
+          "toneBands": "0.345/0.446/0.585",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -2670,9 +2670,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/neurology/drv-neurology-multiple-sclerosis-90e5082a79.webp",
+      "src": "/media/derived/neurology/drv-neurology-multiple-sclerosis-868ffbe5a1.webp",
       "attemptSrc": null,
-      "sha256": "6d1e40eb748eefcd5060b6b6bdddccfd71be342f4433d4a89b960b56540c7939",
+      "sha256": "9c29d38dd97ff0795820100abf3b549d48a3293acc0f884dd35f42ff16e4cdd4",
       "width": 1600,
       "height": 800,
       "alt": "Демиелинизация: иммунные клетки у аксона с разрушенной миелиновой оболочкой",
@@ -2731,25 +2731,25 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.8185,
-            "threshold": "0.45–0.9"
+            "value": 0.8949,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4956,
-            "threshold": "0.2–0.62"
+            "value": 0.2916,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0478,
+            "value": 0.0278,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.158,
+            "value": 0.1718,
             "threshold": "≤ 0.2"
           },
           {
@@ -2761,13 +2761,13 @@
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9759,
+            "value": 0.9666,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "1 vs 0.8154 mirrored",
+            "value": "1 vs 0.8325 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -2777,10 +2777,10 @@
         "kind": "art",
         "ref": "neuron"
       },
-      "createdAt": "2026-10-22T09:22:10.210Z"
+      "createdAt": "2026-10-22T10:51:03.783Z"
     },
     {
-      "id": "drv-neurology-multiple-sclerosis-424b7d4925",
+      "id": "drv-neurology-multiple-sclerosis-6e152124ba",
       "status": "rejected",
       "specialty": "neurology",
       "subject": "multiple_sclerosis",
@@ -2812,15 +2812,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 1.0269,
+          "scale": 0.7881,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.1268,
-          "toneBands": "0.742/0.842/0.940",
+          "lineThreshold": 0.1418,
+          "toneBands": "0.723/0.807/0.903",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -2843,8 +2843,8 @@
         ]
       },
       "src": null,
-      "attemptSrc": "/media/derived/neurology/attempt-drv-neurology-multiple-sclerosis-424b7d4925.webp",
-      "sha256": "ac9f9986cb20481ba6a423730d4fdd9e21284e42b30295fb1af0512abdd6d52a",
+      "attemptSrc": "/media/derived/neurology/attempt-drv-neurology-multiple-sclerosis-6e152124ba.webp",
+      "sha256": "23e67a104b85a1de4f51de3c7b5deea9a27e9e41a9f799036a53b2f79713f855",
       "width": 1600,
       "height": 800,
       "alt": "Центральная нервная система: головной и спинной мозг, периферические нервы",
@@ -2903,25 +2903,25 @@
           {
             "id": "negative_space",
             "pass": false,
-            "value": 0.9296,
-            "threshold": "0.45–0.9"
+            "value": 0.9658,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.2855,
-            "threshold": "0.2–0.62"
+            "value": 0.167,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0225,
+            "value": 0.012,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1545,
+            "value": 0.1768,
             "threshold": "≤ 0.2"
           },
           {
@@ -2933,13 +2933,13 @@
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9421,
+            "value": 0.9451,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "1 vs 0.6952 mirrored",
+            "value": "1 vs 0.7483 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -2947,12 +2947,12 @@
       },
       "fallback": {
         "kind": "derivative",
-        "ref": "drv-neurology-multiple-sclerosis-90e5082a79"
+        "ref": "drv-neurology-multiple-sclerosis-868ffbe5a1"
       },
-      "createdAt": "2026-10-22T09:21:40.740Z"
+      "createdAt": "2026-10-22T10:51:03.995Z"
     },
     {
-      "id": "drv-endocrinology-type2-diabetes-ca8ef9a82c",
+      "id": "drv-endocrinology-type2-diabetes-96b38dedac",
       "status": "approved",
       "specialty": "endocrinology",
       "subject": "type2_diabetes",
@@ -2984,15 +2984,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 0.9829,
+          "scale": 0.7543,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.105,
-          "toneBands": "0.220/0.573/0.727",
+          "lineThreshold": 0.132,
+          "toneBands": "0.224/0.571/0.727",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -3014,9 +3014,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/endocrinology/drv-endocrinology-type2-diabetes-ca8ef9a82c.webp",
+      "src": "/media/derived/endocrinology/drv-endocrinology-type2-diabetes-96b38dedac.webp",
       "attemptSrc": null,
-      "sha256": "502f3c88cd14bc3936705c9d830d2ac9fda026d229741d38460ae648658e4f18",
+      "sha256": "ba336e351f8e9a10dc59a7f07f30356b16c15908530712aaeb79e65cff63503a",
       "width": 1600,
       "height": 800,
       "alt": "Сахарный диабет 2 типа: поджелудочная железа и клеточная мембрана с инсулиновыми рецепторами и молекулами глюкозы",
@@ -3075,43 +3075,43 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.7138,
-            "threshold": "0.45–0.9"
+            "value": 0.8311,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.4841,
-            "threshold": "0.2–0.62"
+            "value": 0.2852,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0845,
+            "value": 0.0509,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.0794,
+            "value": 0.088,
             "threshold": "≤ 0.2"
           },
           {
             "id": "structure_precision",
             "pass": true,
-            "value": 0.9957,
+            "value": 0.9982,
             "threshold": "≥ 0.9"
           },
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9472,
+            "value": 0.9635,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "0.9957 vs 0.5964 mirrored",
+            "value": "0.9982 vs 0.6236 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -3121,10 +3121,10 @@
         "kind": "art",
         "ref": "glucose"
       },
-      "createdAt": "2026-10-22T09:15:47.234Z"
+      "createdAt": "2026-10-22T10:51:04.304Z"
     },
     {
-      "id": "drv-endocrinology-osteoporosis-104fcaf3e0",
+      "id": "drv-endocrinology-osteoporosis-93b24a34e1",
       "status": "approved",
       "specialty": "endocrinology",
       "subject": "osteoporosis",
@@ -3156,15 +3156,15 @@
       },
       "transformation": {
         "pipeline": "ds-tonal-redraw",
-        "version": "ds-tonal-redraw@1.0.0",
+        "version": "ds-tonal-redraw@1.1.0",
         "engine": "deterministic",
         "params": {
           "render": "tones",
-          "scale": 0.6812,
+          "scale": 0.5228,
           "backgroundTolerance": 48,
           "thinLinesRemovedPx": 0,
-          "lineThreshold": 0.2122,
-          "toneBands": "0.320/0.569/0.730",
+          "lineThreshold": 0.2287,
+          "toneBands": "0.319/0.571/0.732",
           "hueSplit": false,
           "median": 3,
           "blur": 1.2,
@@ -3186,9 +3186,9 @@
           "#FDABC1"
         ]
       },
-      "src": "/media/derived/endocrinology/drv-endocrinology-osteoporosis-104fcaf3e0.webp",
+      "src": "/media/derived/endocrinology/drv-endocrinology-osteoporosis-93b24a34e1.webp",
       "attemptSrc": null,
-      "sha256": "838832927d4dfd2c1fe651c768a5b11318ab1b04c666c930eea4fcb60bdbf0d7",
+      "sha256": "411bb2b173cc349e53f2979f63427e921d0be7975319aebdeb3d895fe91cfdbb",
       "width": 1600,
       "height": 800,
       "alt": "Остеопороз: нормальная осанка и кифоз, истончение кортикального слоя и разрежение трабекулярной кости",
@@ -3247,25 +3247,25 @@
           {
             "id": "negative_space",
             "pass": true,
-            "value": 0.8775,
-            "threshold": "0.45–0.9"
+            "value": 0.9278,
+            "threshold": "0.45–0.94"
           },
           {
             "id": "anchor_share",
             "pass": true,
-            "value": 0.2541,
-            "threshold": "0.2–0.62"
+            "value": 0.1492,
+            "threshold": "0.1–0.62"
           },
           {
             "id": "brand_attention",
             "pass": true,
-            "value": 0.0366,
+            "value": 0.0219,
             "threshold": "≤ 0.2"
           },
           {
             "id": "detail_level",
             "pass": true,
-            "value": 0.1504,
+            "value": 0.1625,
             "threshold": "≤ 0.2"
           },
           {
@@ -3277,13 +3277,13 @@
           {
             "id": "structure_recall",
             "pass": true,
-            "value": 0.9985,
+            "value": 0.9992,
             "threshold": "≥ 0.75"
           },
           {
             "id": "orientation",
             "pass": true,
-            "value": "1 vs 0.4323 mirrored",
+            "value": "1 vs 0.4528 mirrored",
             "threshold": "source ≥ mirrored"
           }
         ],
@@ -3293,7 +3293,7 @@
         "kind": "art",
         "ref": "bone"
       },
-      "createdAt": "2026-10-22T09:15:47.353Z"
+      "createdAt": "2026-10-22T10:51:04.501Z"
     }
   ]
 }

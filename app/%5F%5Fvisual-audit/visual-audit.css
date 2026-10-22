@@ -1,0 +1,6 @@
+/* Visual audit page: the components keep their own styles; this file only lays the samples out. */
+.va-root .ws-main { padding: 0; }
+.va-page .ws-page-head h1 { margin: 0; font-size: var(--font-size-heading-2); font-weight: var(--font-weight-bold); line-height: var(--ws-leading-heading-2); }
+.va-page .ws-page-head p { margin: var(--ws-space-4) 0 0; color: var(--ws-text-secondary); }
+.va-sample .pt-cards { display: block; }
+.va-sample .pt-composer { max-width: none; }

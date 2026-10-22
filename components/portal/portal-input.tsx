@@ -1,15 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowUp, Loader2, ShieldAlert, X } from "lucide-react";
+import { useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import { ArrowUp, Loader2, Mic, ShieldAlert, X } from "lucide-react";
 import { RISK_COPY } from "@/lib/agents/risk-rules";
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { ClarificationManifest, ClarificationOption, PlanPreview } from "@/lib/mesh/skills/types";
+import { DEFAULT_ANSWER_MODE, type AnswerMode } from "@/lib/portal/answer-mode";
 import { JOBS, type PortalJob } from "@/lib/portal/jobs";
 import { routePortalIntent } from "@/lib/portal/router";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
+import { AnswerModeControl } from "./answer-mode-control";
 import { JobIcon } from "./job-icon";
+import { Suggestions } from "./suggestions";
 
 /** Run creation answers in well under a second; this bound only catches a server that cannot start the work. */
 const ASK_TIMEOUT_MS = 20_000;
@@ -25,15 +28,25 @@ const WAITING: Record<PortalJob, string> = {
   materials: "Ищем в ваших материалах…",
 };
 
+export type ComposerState = "idle" | "focused" | "typing" | "submitting" | "disabled" | "error";
+
+type SpeechRecognitionLike = { lang: string; interimResults: boolean; maxAlternatives: number; start(): void; stop(): void; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
+type SpeechWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+
 /**
- * The portal's one primary entry. Deterministic routing is previewed in plain
- * language before submit; the physician never chooses an agent.
+ * The portal's one primary entry: a single input on its own surface, the
+ * answer mode under it, then prompt suggestions. Deterministic routing is
+ * previewed in plain language before submit; the physician never chooses an
+ * agent. The mode travels with the request into run metadata.
  */
-export function PortalInput({ specialty, job = null, examples = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId }: {
+export function PortalInput({ specialty, job = null, examples = [], suggestions = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId, answerMode = DEFAULT_ANSWER_MODE, showModes = false, forcedState = null }: {
   specialty: SpecialtyId;
   inputId?: string;
   job?: PortalJob | null;
+  /** Job-page examples: shown in the same suggestion row. */
   examples?: readonly string[];
+  /** Home suggestions: whole queries, never modes. */
+  suggestions?: readonly string[];
   label?: string;
   placeholder?: string;
   followup?: boolean;
@@ -41,13 +54,24 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
   initialText?: string;
   /** The open result this follow-up refines first (result as context). */
   contextRunId?: string;
+  /** Default depth for this request (the profile's default). */
+  answerMode?: AnswerMode;
+  /** Show the three-mode control under the input (home and job pages, not follow-ups). */
+  showModes?: boolean;
+  /** Visual-audit only: render one state without interaction. */
+  forcedState?: ComposerState | null;
 }) {
   const router = useRouter();
   const { command, notify, setPendingAction } = useWorkspace();
   const [text, setText] = useState(initialText.slice(0, 1200));
   const [lockedJob, setLockedJob] = useState<PortalJob | null>(job);
+  const [mode, setMode] = useState<AnswerMode>(answerMode);
   const [submitting, setSubmitting] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [listening, setListening] = useState(false);
+  // Dictation uses the browser's own speech recognition; the button exists only where it does (false on the server).
+  const dictation = useSyncExternalStore(() => () => undefined, () => { const speech = window as SpeechWindow; return Boolean(speech.SpeechRecognition ?? speech.webkitSpeechRecognition); }, () => false);
   // Busy only until the result page is on screen; the run itself continues there with durable status.
   const [navigating, startNavigation] = useTransition();
   const busy = submitting || navigating;
@@ -56,10 +80,12 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
   const [plan, setPlan] = useState<PlanPreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const recognition = useRef<SpeechRecognitionLike | null>(null);
 
   const route = useMemo(() => text.trim().length >= 3 ? routePortalIntent(text, specialty, { job: lockedJob }) : null, [lockedJob, specialty, text]);
   const blocked = Boolean(route?.risk.imageInterpretation || route?.risk.emergency);
   const target = route?.job ?? lockedJob;
+  const state: ComposerState = forcedState ?? (blocked ? "disabled" : busy ? "submitting" : failed ? "error" : focused && text.trim() ? "typing" : focused ? "focused" : "idle");
 
   async function submit(event?: FormEvent, override: { text?: string; optionId?: string | null; planConfirmed?: string } = {}) {
     event?.preventDefault();
@@ -78,6 +104,7 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
       ...(contextRunId ? { contextRunId } : {}),
       ...(answered ? { clarification: answered } : {}),
       ...(override.planConfirmed ? { planConfirmed: override.planConfirmed } : {}),
+      ...(showModes ? { answerMode: mode } : {}),
     }, { refresh: false, quiet: true, timeoutMs: ASK_TIMEOUT_MS });
     setSubmitting(false);
     if (result?.clarification) { setClarification(result.clarification); setPlan(null); return; }
@@ -114,17 +141,49 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
     void submit(undefined, { text: completed, optionId: option.id });
   }
 
-  return <form className="ws-composer pt-input" onSubmit={event => void submit(event)} aria-label={label} aria-busy={busy}>
-    <div className="ws-composer-box">
-      <label className="pt-input-label" htmlFor={inputId}>{label}</label>
-      <textarea ref={textarea} id={inputId} value={text} onChange={event => setText(event.target.value)} onKeyDown={onKeyDown} rows={2} maxLength={1200} autoFocus={autoFocus} placeholder={placeholder ?? (lockedJob ? JOBS[lockedJob].placeholder : "Препарат, рекомендация, диагноз, событие, тема")} />
-      <div className="ws-composer-bar">
-        <div className="ws-composer-tools">
+  function pick(value: string) {
+    setText(value);
+    setFailed(false);
+    requestAnimationFrame(() => { textarea.current?.focus(); textarea.current?.setSelectionRange(value.length, value.length); });
+  }
+
+  function toggleDictation() {
+    if (listening) { recognition.current?.stop(); return; }
+    const speech = window as SpeechWindow;
+    const Recognition = speech.SpeechRecognition ?? speech.webkitSpeechRecognition;
+    if (!Recognition) return;
+    const instance = new Recognition();
+    instance.lang = "ru-RU";
+    instance.interimResults = false;
+    instance.maxAlternatives = 1;
+    instance.onresult = event => {
+      const transcript = Array.from(event.results).map(result => result[0]?.transcript ?? "").join(" ").trim();
+      if (transcript) setText(current => `${current ? `${current} ` : ""}${transcript}`.slice(0, 1200));
+    };
+    instance.onend = () => setListening(false);
+    instance.onerror = () => setListening(false);
+    recognition.current = instance;
+    setListening(true);
+    instance.start();
+  }
+
+  const disabledSubmit = state === "submitting" || state === "disabled" || text.trim().length < 2;
+  const rowSuggestions = [...suggestions, ...examples];
+
+  return <form className="pt-composer pt-input" data-state={state} onSubmit={event => void submit(event)} aria-label={label} aria-busy={busy}>
+    <div className="pt-composer-surface">
+      <label className="pt-composer-label" htmlFor={inputId}>{label}</label>
+      <textarea ref={textarea} id={inputId} value={text} onChange={event => { setText(event.target.value); setFailed(false); }} onKeyDown={onKeyDown} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} rows={2} maxLength={1200} autoFocus={autoFocus} placeholder={placeholder ?? (lockedJob ? JOBS[lockedJob].placeholder : "Препарат, рекомендация, диагноз, событие, тема")} />
+      <div className="pt-composer-bar">
+        <div className="pt-composer-tools">
           {lockedJob && <span className="pt-job-chip"><JobIcon icon={JOBS[lockedJob].icon} size={14} />{JOBS[lockedJob].label}<button type="button" aria-label="Снять выбор задачи" onClick={() => setLockedJob(null)}><X size={14} /></button></span>}
         </div>
-        <button type="submit" className="ws-composer-run" disabled={busy || blocked || text.trim().length < 2} aria-label={busy ? "Ищем" : "Найти"} title={busy ? "Ищем" : "Найти"}>
-          {busy ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
-        </button>
+        <div className="pt-composer-actions">
+          {dictation && <button type="button" className={listening ? "pt-composer-mic is-listening" : "pt-composer-mic"} aria-pressed={listening} aria-label={listening ? "Остановить диктовку" : "Надиктовать вопрос"} title={listening ? "Остановить диктовку" : "Надиктовать вопрос"} onClick={toggleDictation}><Mic size={18} aria-hidden="true" /></button>}
+          <button type="submit" className="ws-composer-run" disabled={disabledSubmit} aria-label={busy ? "Ищем" : "Найти"} title={busy ? "Ищем" : "Найти"}>
+            {state === "submitting" ? <Loader2 size={18} className="ws-spin" aria-hidden="true" /> : <ArrowUp size={18} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
     </div>
     <div className="ws-composer-preview" aria-live="polite">
@@ -147,6 +206,7 @@ export function PortalInput({ specialty, job = null, examples = [], label = "Ч�
       <ol className="pt-plan-steps">{plan.steps.map(step => <li key={step}>{step}</li>)}</ol>
       <div className="pt-card-actions"><button type="button" className="ws-button" onClick={() => void submit(undefined, { planConfirmed: plan.id })}>Продолжить</button></div>
     </div>}
-    {!text && examples.length > 0 && <div className="ws-examples" aria-label="Примеры запросов">{examples.map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div>}
+    {showModes && <AnswerModeControl value={mode} onChange={setMode} disabled={state === "submitting"} />}
+    <Suggestions items={rowSuggestions} onPick={pick} />
   </form>;
 }

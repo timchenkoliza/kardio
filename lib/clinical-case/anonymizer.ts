@@ -19,20 +19,37 @@ const REVIEW_HINTS = [
   /(?<![\p{L}\p{N}_])(?:номер карты|медицинская карта|история болезни)(?![\p{L}\p{N}_])/iu,
 ];
 
+export type RedactionRuleId = "email" | "phone" | "snils" | "oms" | "passport" | "fio" | "address" | "birth_date";
+
+/** The rules in the order they run; the de-identification tool lets a physician switch them per preset. */
+export const REDACTION_RULE_IDS: readonly RedactionRuleId[] = REDACTION_RULES.map(rule => rule.label as RedactionRuleId);
+
 export interface LocalRedactionResult {
   redactedText: string;
   detectedMarkers: string[];
   status: CaseAnonymizationStatus;
+  /** Replacements made per rule (only rules that matched). */
+  counts: Partial<Record<RedactionRuleId, number>>;
+  /** Rules that ran on this text. */
+  rulesApplied: RedactionRuleId[];
 }
 
-export function redactDirectIdentifiers(text: string): LocalRedactionResult {
+export function redactDirectIdentifiers(text: string, options: { rules?: readonly RedactionRuleId[] } = {}): LocalRedactionResult {
   let redactedText = text;
   const detectedMarkers: string[] = [];
+  const counts: Partial<Record<RedactionRuleId, number>> = {};
+  const enabled = options.rules ? new Set(options.rules) : null;
+  const rulesApplied: RedactionRuleId[] = [];
 
   for (const rule of REDACTION_RULES) {
-    if (rule.pattern.test(redactedText)) {
+    const id = rule.label as RedactionRuleId;
+    if (enabled && !enabled.has(id)) continue;
+    rulesApplied.push(id);
+    const matches = redactedText.match(rule.pattern)?.length ?? 0;
+    rule.pattern.lastIndex = 0;
+    if (matches) {
       detectedMarkers.push(rule.label);
-      rule.pattern.lastIndex = 0;
+      counts[id] = matches;
       redactedText = redactedText.replace(rule.pattern, rule.replacement);
     }
     rule.pattern.lastIndex = 0;
@@ -43,6 +60,8 @@ export function redactDirectIdentifiers(text: string): LocalRedactionResult {
     redactedText,
     detectedMarkers,
     status: needsReview ? "needs_review" : "clean",
+    counts,
+    rulesApplied,
   };
 }
 

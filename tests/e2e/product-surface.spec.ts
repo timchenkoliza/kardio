@@ -165,7 +165,7 @@ test("agents gallery: nine agents with mascots launch their job in the same tab"
   // Motion is decorative and off under prefers-reduced-motion.
   const drug = page.locator('.pt-agent[data-agent="drug"]');
   await drug.hover();
-  expect(await drug.locator(".mc-figure").evaluate(node => getComputedStyle(node).animationName)).toBe("none");
+  expect(await drug.locator(".sm-figure").evaluate(node => getComputedStyle(node).animationName)).toBe("none");
   await drug.getByRole("link", { name: "Справка по препарату" }).click();
   await expect(page).toHaveURL(/\/neurology\/ask\?job=drug$/u);
   await expect(page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link", { name: "Агенты" })).toBeVisible();
@@ -233,7 +233,7 @@ test("shell: the footer stays at the bottom of a short page; profile is one clic
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/neurology");
-  await expect(page.getByRole("navigation", { name: "Разделы" }).getByRole("link")).toHaveText(["Главное", "Агенты", "Материалы", /Профиль/u]);
+  await expect(page.getByRole("navigation", { name: "Разделы" }).getByRole("link")).toHaveText(["Главное", "Агенты", "Материалы", "Обезличить", /Профиль/u]);
 });
 
 test("media audit (Preview/dev): every source shows SOURCE → TRANSFORMED → CARD", async ({ page }) => {

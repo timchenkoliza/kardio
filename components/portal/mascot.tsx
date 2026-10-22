@@ -1,80 +1,99 @@
-import type { ReactElement } from "react";
+import { useId, type ReactElement } from "react";
 import type { MascotVariant } from "@/lib/portal/agents-gallery";
 
 /**
- * Agent mascots: one family, one body, a prop per capability. Pure SVG with
- * token-backed CSS; a small wiggle on hover/focus of the parent card that is
- * switched off under prefers-reduced-motion. Decorative: the card text names
- * the capability, so the picture is hidden from assistive technology.
+ * «Смузи» — the one mascot of the product: a soft lavender blob with large
+ * dark eyes and a tiny mouth, drawn with volumetric shading and no contour.
+ * Every role is the same character plus a secondary prop (a card, a book,
+ * a magnifier, a calendar, a folder…). Motion presets are quiet by design:
+ * a 1–2° tilt and a 1–3 px lift on hover of the parent card, optional
+ * breathing; nothing under prefers-reduced-motion. Decorative: the card text
+ * names the capability, so the figure is hidden from assistive technology.
  */
 
+export type MascotMotion = "still" | "breathe";
+
 const PROPS: Record<MascotVariant, () => ReactElement> = {
-  drug: () => <g className="mc-prop-group" transform="rotate(-32 96 92)">
-    <rect className="mc-prop" x="78" y="84" width="38" height="18" rx="9" />
-    <path className="mc-prop-accent" d="M97 84 H 107 A 9 9 0 0 1 107 102 H 97 Z" />
-    <path className="mc-prop-line" d="M97 84 V 102" />
+  drug: () => <g className="sm-prop-group">
+    <rect className="sm-prop" x="80" y="70" width="32" height="42" rx="6" transform="rotate(-10 96 91)" />
+    <path className="sm-prop-line" d="M88 82 H 104 M88 90 H 104 M88 98 H 100" transform="rotate(-10 96 91)" />
+    <rect className="sm-prop-accent" x="84" y="74" width="10" height="4" rx="2" transform="rotate(-10 96 91)" />
   </g>,
-  guidelines: () => <g className="mc-prop-group">
-    <rect className="mc-prop" x="76" y="74" width="34" height="40" rx="4" />
-    <path className="mc-prop-accent" d="M76 78 A 4 4 0 0 1 80 74 H 86 V 114 H 80 A 4 4 0 0 1 76 110 Z" />
-    <path className="mc-prop-line" d="M91 86 H 104 M91 94 H 104 M91 102 H 100" />
+  guidelines: () => <g className="sm-prop-group">
+    <path className="sm-prop" d="M74 78 H 104 A 6 6 0 0 1 110 84 V 112 H 80 A 6 6 0 0 1 74 106 Z" />
+    <path className="sm-prop-accent" d="M74 78 H 84 V 112 H 80 A 6 6 0 0 1 74 106 Z" />
+    <path className="sm-prop-line" d="M90 88 H 104 M90 96 H 104 M90 104 H 100" />
   </g>,
-  research: () => <g className="mc-prop-group">
-    <circle className="mc-prop" cx="92" cy="88" r="13" />
-    <circle className="mc-prop-glass" cx="92" cy="88" r="8" />
-    <path className="mc-prop-handle" d="M101 98 L 112 110" />
+  research: () => <g className="sm-prop-group">
+    <circle className="sm-prop" cx="92" cy="86" r="14" />
+    <circle className="sm-prop-glass" cx="92" cy="86" r="9" />
+    <path className="sm-prop-line" d="M102 97 L 114 110" strokeWidth="5" />
   </g>,
-  consilium: () => <g className="mc-prop-group">
-    <path className="mc-prop" d="M74 72 H 104 A 6 6 0 0 1 110 78 V 92 A 6 6 0 0 1 104 98 H 88 L 80 106 V 98 H 74 A 6 6 0 0 1 68 92 V 78 A 6 6 0 0 1 74 72 Z" />
-    <path className="mc-prop-line" d="M78 82 H 100 M78 89 H 94" />
-    <circle className="mc-prop-accent" cx="108" cy="104" r="7" />
+  consilium: () => <g className="sm-prop-group">
+    <path className="sm-prop" d="M72 74 H 106 A 6 6 0 0 1 112 80 V 96 A 6 6 0 0 1 106 102 H 88 L 80 110 V 102 H 72 A 6 6 0 0 1 66 96 V 80 A 6 6 0 0 1 72 74 Z" />
+    <path className="sm-prop-line" d="M78 84 H 100 M78 92 H 94" />
   </g>,
-  calculators: () => <g className="mc-prop-group">
-    <rect className="mc-prop" x="78" y="72" width="30" height="40" rx="5" />
-    <rect className="mc-prop-accent" x="82" y="76" width="22" height="9" rx="2" />
-    <path className="mc-prop-line" d="M84 92 H 86 M92 92 H 94 M100 92 H 102 M84 100 H 86 M92 100 H 94 M100 100 H 102 M84 106 H 86 M92 106 H 94" />
+  calculators: () => <g className="sm-prop-group">
+    <rect className="sm-prop" x="78" y="72" width="30" height="40" rx="6" />
+    <rect className="sm-prop-accent" x="83" y="77" width="20" height="9" rx="2" />
+    <path className="sm-prop-line" d="M86 94 H 88 M92 94 H 94 M98 94 H 100 M86 102 H 88 M92 102 H 94 M98 102 H 100" />
   </g>,
-  events: () => <g className="mc-prop-group">
-    <rect className="mc-prop" x="76" y="76" width="34" height="34" rx="5" />
-    <path className="mc-prop-accent" d="M76 81 A 5 5 0 0 1 81 76 H 105 A 5 5 0 0 1 110 81 V 86 H 76 Z" />
-    <path className="mc-prop-line" d="M84 72 V 80 M102 72 V 80 M84 94 H 88 M92 94 H 96 M100 94 H 104 M84 102 H 88 M92 102 H 96" />
+  events: () => <g className="sm-prop-group">
+    <rect className="sm-prop" x="76" y="76" width="36" height="34" rx="6" />
+    <path className="sm-prop-accent" d="M76 82 A 6 6 0 0 1 82 76 H 106 A 6 6 0 0 1 112 82 V 88 H 76 Z" />
+    <path className="sm-prop-line" d="M86 72 V 80 M102 72 V 80 M84 96 H 88 M92 96 H 96 M100 96 H 104 M84 103 H 88 M92 103 H 96" />
   </g>,
-  materials: () => <g className="mc-prop-group">
-    <path className="mc-prop-accent" d="M74 80 A 4 4 0 0 1 78 76 H 88 L 92 81 H 108 A 4 4 0 0 1 112 85 V 88 H 74 Z" />
-    <rect className="mc-prop" x="74" y="84" width="38" height="26" rx="4" />
-    <path className="mc-prop-line" d="M82 96 H 104" />
+  materials: () => <g className="sm-prop-group">
+    <path className="sm-prop-accent" d="M72 82 A 5 5 0 0 1 77 77 H 89 L 94 82 H 109 A 5 5 0 0 1 114 87 V 90 H 72 Z" />
+    <rect className="sm-prop" x="72" y="86" width="42" height="26" rx="5" />
   </g>,
-  learning: () => <g className="mc-prop-group">
-    <path className="mc-prop-accent" d="M60 4 L 92 16 L 60 28 L 28 16 Z" />
-    <path className="mc-prop-line" d="M44 22 V 32 C 52 38, 68 38, 76 32 V 22 M92 16 V 30" />
+  learning: () => <g className="sm-prop-group">
+    <path className="sm-prop-accent" d="M60 8 L 94 20 L 60 32 L 26 20 Z" />
+    <path className="sm-prop-line" d="M42 26 V 36 C 50 42, 70 42, 78 36 V 26 M94 20 V 34" />
   </g>,
-  updates: () => <g className="mc-prop-group">
-    <path className="mc-prop-accent" d="M96 70 L 100 82 L 112 86 L 100 90 L 96 102 L 92 90 L 80 86 L 92 82 Z" />
-    <circle className="mc-prop-accent" cx="110" cy="104" r="4" />
+  updates: () => <g className="sm-prop-group">
+    <path className="sm-prop-accent" d="M96 68 L 100 80 L 112 84 L 100 88 L 96 100 L 92 88 L 80 84 L 92 80 Z" />
+    <circle className="sm-prop-accent" cx="112" cy="104" r="4" />
   </g>,
 };
 
-export function Mascot({ variant, size = 72, className }: { variant: MascotVariant; size?: number; className?: string }) {
-  const Prop = PROPS[variant];
-  return <svg className={className ? `mascot ${className}` : "mascot"} data-mascot={variant} viewBox="0 0 120 120" width={size} height={size} aria-hidden="true" focusable="false">
-    <ellipse className="mc-shadow" cx="60" cy="112" rx="34" ry="5" />
-    <g className="mc-figure">
-      <path className="mc-body" d="M60 20 C 89 20, 104 42, 104 68 C 104 94, 86 108, 60 108 C 34 108, 16 94, 16 68 C 16 42, 31 20, 60 20 Z" />
-      <path className="mc-body-shade" d="M24 84 C 30 100, 46 108, 60 108 C 80 108, 96 98, 102 82 C 92 96, 76 102, 60 102 C 44 102, 30 96, 24 84 Z" />
-      <ellipse className="mc-shine" cx="40" cy="38" rx="9" ry="5" transform="rotate(-24 40 38)" />
-      <g className="mc-eyes">
-        <ellipse className="mc-eye" cx="46" cy="60" rx="9" ry="10" />
-        <ellipse className="mc-eye" cx="74" cy="60" rx="9" ry="10" />
-        <circle className="mc-pupil" cx="47" cy="62" r="4.6" />
-        <circle className="mc-pupil" cx="75" cy="62" r="4.6" />
-        <circle className="mc-glint" cx="49" cy="59" r="1.6" />
-        <circle className="mc-glint" cx="77" cy="59" r="1.6" />
+/** The one base character; `variant` only adds its prop. */
+export function Mascot({ variant, size = 72, className, motion = "still" }: { variant: MascotVariant | "canonical"; size?: number; className?: string; motion?: MascotMotion }) {
+  const Prop = variant === "canonical" ? null : PROPS[variant];
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const gradient = `sm-body-${uid}`;
+  const soft = `sm-soft-${uid}`;
+  const blur = `url(#${soft})`;
+  return <svg className={className ? `mascot ${className}` : "mascot"} data-mascot={variant} data-motion={motion} viewBox="0 0 120 120" width={size} height={size} role="presentation" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id={gradient} cx="42%" cy="34%" r="70%">
+        <stop className="sm-body-stop-a" offset="0" />
+        <stop className="sm-body-stop-b" offset="1" />
+      </radialGradient>
+      <filter id={soft} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" /></filter>
+    </defs>
+    <ellipse className="sm-shadow" cx="60" cy="112" rx="30" ry="5" filter={blur} />
+    <g className="sm-figure">
+      {/* Limbs sit behind the body: slightly darker lavender, softly blurred edges. */}
+      <ellipse className="sm-limb" cx="22" cy="86" rx="9" ry="12" transform="rotate(18 22 86)" filter={blur} />
+      <ellipse className="sm-limb" cx="98" cy="86" rx="9" ry="12" transform="rotate(-18 98 86)" filter={blur} />
+      <ellipse className="sm-limb-deep" cx="44" cy="106" rx="11" ry="6" filter={blur} />
+      <ellipse className="sm-limb-deep" cx="76" cy="106" rx="11" ry="6" filter={blur} />
+      <path className="sm-body" fill={`url(#${gradient})`} d="M60 16 C 88 16, 106 38, 106 66 C 106 92, 88 108, 60 108 C 32 108, 14 92, 14 66 C 14 38, 32 16, 60 16 Z" />
+      <path className="sm-body-soft" d="M24 80 C 32 98, 46 106, 60 106 C 76 106, 92 98, 98 80 C 90 94, 76 100, 60 100 C 44 100, 30 94, 24 80 Z" filter={blur} />
+      <ellipse className="sm-highlight" cx="42" cy="34" rx="12" ry="6" transform="rotate(-22 42 34)" filter={blur} />
+      <g className="sm-eyes">
+        <ellipse className="sm-eye" cx="45" cy="60" rx="8" ry="10" />
+        <ellipse className="sm-eye" cx="75" cy="60" rx="8" ry="10" />
+        <circle className="sm-glint" cx="48" cy="56" r="2.6" />
+        <circle className="sm-glint" cx="78" cy="56" r="2.6" />
+        <circle className="sm-glint" cx="42.5" cy="63" r="1.2" />
+        <circle className="sm-glint" cx="72.5" cy="63" r="1.2" />
       </g>
-      <ellipse className="mc-cheek" cx="34" cy="74" rx="6" ry="3.5" />
-      <ellipse className="mc-cheek" cx="86" cy="74" rx="6" ry="3.5" />
-      <path className="mc-mouth" d="M53 77 Q 60 83, 67 77" />
-      <ellipse className="mc-arm" cx="20" cy="80" rx="6" ry="9" transform="rotate(20 20 80)" />
-      <Prop />
+      <ellipse className="sm-blush" cx="34" cy="72" rx="6" ry="3" filter={blur} />
+      <ellipse className="sm-blush" cx="86" cy="72" rx="6" ry="3" filter={blur} />
+      <path className="sm-mouth" d="M56 76 Q 60 79, 64 76" />
+      {Prop && <Prop />}
     </g>
   </svg>;
 }

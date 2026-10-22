@@ -60,6 +60,7 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
           {card.source.url && <TrackedLink className="ws-button is-small" href={card.source.url} external events={["source_opened"]}>Открыть первоисточник<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
         </div>
       </header>
+      {media && <CardMediaView media={media} className="pt-item-hero" eager />}
 
       <div className="pt-item-grid">
         <div className="pt-item-main">
@@ -96,7 +97,6 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
             </div>
           </details>}
         </div>
-        {media && <aside className="pt-item-aside"><CardMediaView media={media} className="pt-item-media" eager /></aside>}
       </div>
     </article>
     <p className="ws-muted pt-item-note">{nbsp(card.showcase

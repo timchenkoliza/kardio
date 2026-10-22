@@ -1,0 +1,95 @@
+{
+  "change_id": "CHG-2026-10-22-pixel-perfect-product-shell",
+  "cause": "code",
+  "status": "IN_PROGRESS",
+  "title": "Pixel-first physician product shell: composer with answer modes, one mascot, profile, materials and a separate de-identification tool",
+  "problem": {
+    "user_segment": "physicians across the six launch specialties",
+    "job": "ask one question, choose how deep the answer goes, launch a job, keep a personal library and de-identify a document — on one coherent shell",
+    "observed_failure": "The input reads as a plain textarea with example chips inside it; there is no answer mode in the model; quick agents and suggestions share one rail without hierarchy; nine mascots are line-art variants; the profile is a chip list without identity, source priorities or a default answer depth; de-identification exists as a library and server-side redaction but has no physician-facing tool; card media is stretched by the tablet column.",
+    "evidence": [
+      "components/portal/portal-input.tsx: textarea in a grey box, examples rendered inside the form",
+      "lib/agents/types.ts: no answer mode on AgentRun.input or UserProfile",
+      "components/portal/mascot.tsx: stroked line-art body with per-variant palettes",
+      "app/[specialty]/(workspace)/settings/page.tsx: InterestsSetup chip lists only",
+      "lib/clinical-case/anonymizer.ts used only by server-side risk.ts and the legacy case surface",
+      "app/styles/product-surface.css: .pt-card.has-media media column with min-height 100% and object-fit cover"
+    ]
+  },
+  "hypothesis": "If the shell follows the agreed references pixel-first — one composer surface, three answer modes carried into run metadata, a suggestion row, three quick jobs, one mascot, a profile that the personalization layer reads, a materials library and a separate de-identification tool, with deterministic media geometry — physicians recognise one product and return to it.",
+  "target_metric": { "name": "qualified_repeat_use_after_value_session", "desired_direction": "increase" },
+  "guardrails": [
+    { "name": "answer_mode_missing_in_run_metadata", "operator": "=", "threshold": 0 },
+    { "name": "suggestion_changes_answer_mode", "operator": "=", "threshold": 0 },
+    { "name": "quick_agent_changes_answer_mode", "operator": "=", "threshold": 0 },
+    { "name": "materials_renders_anonymizer_workflow", "operator": "=", "threshold": 0 },
+    { "name": "raw_source_image_on_card", "operator": "=", "threshold": 0 },
+    { "name": "horizontal_overflow_at_390_768_1440", "operator": "=", "threshold": 0 },
+    { "name": "touch_target_below_44px", "operator": "=", "threshold": 0 },
+    { "name": "unsupported_claims_shown", "operator": "=", "threshold": 0 }
+  ],
+  "semantic_triggers": ["product_surface", "composer", "answer_mode", "mascot", "profile", "materials", "anonymizer", "media_geometry"],
+  "expected_paths": [
+    "lib/portal/answer-mode.ts",
+    "lib/portal/suggestions.ts",
+    "lib/agents/types.ts",
+    "lib/agents/profile.ts",
+    "lib/portal/metrics.ts",
+    "lib/mesh/compiler.ts",
+    "lib/clinical-case/anonymizer.ts",
+    "lib/media/style.ts",
+    "server/agents/commands.ts",
+    "server/agents/context.ts",
+    "server/agents/supervisor.ts",
+    "server/agents/workspace.ts",
+    "server/portal/manager.ts",
+    "server/mesh/executor.ts",
+    "components/portal/**",
+    "components/workspace/**",
+    "app/[specialty]/(workspace)/**",
+    "app/%5F%5Fvisual-audit/**",
+    "app/layout.tsx",
+    "app/styles/**",
+    "data/media-derivatives.json",
+    "public/media/derived/**",
+    "tests/**",
+    "control-plane/changes/CHG-2026-10-22-pixel-perfect-product-shell.json"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "a suggestion or a quick agent changes the answer mode",
+    "a request is stored without its answer mode",
+    "the materials route renders the de-identification workflow or the reverse",
+    "a mascot is rendered as a different character or exposed to assistive technology",
+    "a source image or a rejected media attempt is rendered on a card",
+    "a control is cut off or overlaps text at 390, 768 or 1440",
+    "the mode control is simulated visually without reaching execution"
+  ],
+  "capability_delta": { "capabilities": ["answer_mode", "profile_identity", "deidentification_tool", "visual_audit"], "sources_added": [], "sources_removed": [], "operations": ["compose", "select_mode", "suggest", "launch_job", "edit_profile", "deidentify"] },
+  "changes": { "representation": true, "module_family": false, "ranking": false, "source_policy": false, "onboarding": false },
+  "does_not_change": { "navigation": false, "onboarding": true, "ranking": true, "source_policy": true, "safety_thresholds": true, "user_job": true },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "professional_home",
+    "secondary_jobs": ["reference_answer", "guideline_check", "research_review", "materials_retrieval"],
+    "impact_triggers": ["user_visible", "representation_change", "navigation_change"],
+    "capability_transition": "incremental",
+    "module": {
+      "strategy": "compose",
+      "allowed_modules": ["hero", "feed_card", "media_card", "key_takeaway", "evidence", "sources", "materials_library", "profile_entry", "next_actions", "notices"],
+      "forbidden_modules": []
+    },
+    "representation": {
+      "primary": "EDITORIAL_MEDIA_SURFACE",
+      "secondary": ["EVIDENCE_STACK", "SOURCE_TRAIL", "LIBRARY"],
+      "visualization": "required_when_informative",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": { "navigation_landmarks_unchanged": false, "action_semantics_unchanged": true, "factual_meaning_unchanged": true, "safety_thresholds_unchanged": true },
+    "personalization": { "mode": "specialty_and_session_context", "inferred_traits_expire": true, "sensitive_traits_forbidden": true },
+    "onboarding": { "meaningful_capability_transition": false, "required_when_relevant": false, "dismissal_respected": true, "mastery_suppresses_future_guides": true },
+    "cache": { "blueprint_cacheable": true, "invalidation_triggers": ["compiler_version_change", "editorial_policy_change", "media_policy_change"] }
+  }
+}

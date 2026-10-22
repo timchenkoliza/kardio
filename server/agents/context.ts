@@ -3,6 +3,7 @@ import type { AgentId, AgentRun, Material, RunExperience, UserProfile } from "@/
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { Strategy } from "@/lib/mesh/strategy";
+import type { AnswerMode } from "@/lib/portal/answer-mode";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import type { DrugLabelResult } from "./adapters/openfda";
@@ -28,6 +29,8 @@ export interface AgentContext {
   inputText: string | null;
   /** Physician job when the run was started from the portal. */
   job: PortalJob | null;
+  /** Depth asked for with the request (run metadata); null for background runs. */
+  answerMode?: AnswerMode | null;
   /** This physician's earlier runs in this specialty (newest first): real behaviour signals, never invented. */
   history: AgentRun[];
   /** Compiled intent when the run came from the portal input (mesh-executed jobs). */

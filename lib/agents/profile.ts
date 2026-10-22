@@ -1,6 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { AGENT_DEFINITIONS, AGENT_ORDER } from "./definitions";
-import type { AgentId, AgentPreference, AgentResult, AgentResultView, AgentSubscription, UserProfile } from "./types";
+import { DEFAULT_ANSWER_MODE, isAnswerMode } from "@/lib/portal/answer-mode";
+import type { AgentId, AgentPreference, AgentResult, AgentResultView, AgentSubscription, ProfileIdentity, UserProfile } from "./types";
 import { FREQUENCY_OPTIONS } from "./vocabulary";
 
 export function defaultSubscription(agentId: AgentId, now: string): AgentSubscription {
@@ -18,6 +19,8 @@ export function defaultProfile(specialty: SpecialtyId, now = new Date().toISOStr
     version: 1,
     specialty,
     interests: { topics: [], trustedSources: specialty === "cardiology" ? ["rko", "esc", "pubmed"] : ["pubmed"], excludedSources: [] },
+    answerMode: DEFAULT_ANSWER_MODE,
+    identity: { name: null, workplace: null, experienceYears: null },
     subscriptions,
     preferences,
     partnerContent: true,
@@ -52,6 +55,8 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     ...base,
     specialty,
     interests,
+    answerMode: isAnswerMode(value.answerMode) ? value.answerMode : base.answerMode,
+    identity: normalizeIdentity(value.identity),
     subscriptions,
     preferences,
     partnerContent: value.partnerContent !== false,
@@ -63,6 +68,13 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     firstValueAt: typeof value.firstValueAt === "string" ? value.firstValueAt : null,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
   };
+}
+
+const text = (value: unknown, max: number): string | null => typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
+
+export function normalizeIdentity(value: Partial<ProfileIdentity> | null | undefined): ProfileIdentity {
+  const years = typeof value?.experienceYears === "number" && Number.isFinite(value.experienceYears) ? Math.min(70, Math.max(0, Math.round(value.experienceYears))) : null;
+  return { name: text(value?.name, 80), workplace: text(value?.workplace, 120), experienceYears: years };
 }
 
 export interface EffectivePreference extends AgentPreference {

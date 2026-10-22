@@ -8,6 +8,7 @@
  * no runtime dependencies so they can be imported anywhere.
  */
 import type { SpecialtyId } from "@/lib/domain/types";
+import type { AnswerMode } from "@/lib/portal/answer-mode";
 import type { SourceStanding } from "./source-policy";
 
 export type AgentId = "reference" | "whats_new" | "guidelines" | "drugs" | "research" | "events" | "learning" | "materials";
@@ -218,6 +219,8 @@ export interface AgentRun {
      * Execution re-decides the strategy from these, deterministically.
      */
     context?: { entities: string[]; answered: { id: string; optionId: string | null } | null; planConfirmed: string | null } | null;
+    /** How deep the physician asked to go (request override or profile default); shapes execution. */
+    answerMode?: AnswerMode;
   };
   intent: string | null;
   plan: PlanStep[];
@@ -291,10 +294,20 @@ export interface UserInterests {
   excludedSources: string[];
 }
 
+/** The physician's own identity for the profile surface: optional, never patient data. */
+export interface ProfileIdentity {
+  name: string | null;
+  workplace: string | null;
+  experienceYears: number | null;
+}
+
 export interface UserProfile {
   version: 1;
   specialty: SpecialtyId;
   interests: UserInterests;
+  /** Default depth of an answer; a request may override it. */
+  answerMode: AnswerMode;
+  identity: ProfileIdentity;
   subscriptions: Record<AgentId, AgentSubscription>;
   preferences: Record<AgentId, AgentPreference>;
   partnerContent: boolean;

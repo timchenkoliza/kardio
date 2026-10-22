@@ -5,14 +5,13 @@ import { countLabel, formatDateRu } from "@/lib/agents/format";
 import { AGENT_ORDER } from "@/lib/agents/definitions";
 import { isRunDue } from "@/lib/agents/profile";
 import { topicsFor } from "@/lib/agents/vocabulary";
-import type { SpecialtyId } from "@/lib/domain/types";
-import { askHref, HOME_SHORTCUTS, JOBS } from "@/lib/portal/jobs";
-import { GALLERY } from "@/lib/portal/agents-gallery";
+import { askHref } from "@/lib/portal/jobs";
+import { homeSuggestions } from "@/lib/portal/suggestions";
 import { getSpecialty, isSpecialty } from "@/lib/specialty";
 import { CatchUpRunner } from "@/components/workspace/lifecycle";
 import { ForYouList } from "@/components/portal/for-you";
-import { Mascot } from "@/components/portal/mascot";
 import { PortalInput } from "@/components/portal/portal-input";
+import { QuickAgents } from "@/components/portal/quick-agents";
 import { TopicNudge } from "@/components/portal/topic-nudge";
 import { pageSession } from "@/server/agents/page-session";
 import { workspaceStore } from "@/server/agents/store";
@@ -38,15 +37,6 @@ const LEGACY_VIEW_TARGETS: Record<string, string> = {
   imaging: "/legacy?view=imaging",
 };
 
-const EXAMPLES: Record<SpecialtyId, string[]> = {
-  therapy: ["Длительность антибиотикотерапии при внебольничной пневмонии", "Аторвастатин: противопоказания", "Клинические рекомендации по ХОБЛ"],
-  pediatrics: ["Острый средний отит у детей: когда показаны антибиотики", "Ибупрофен у детей: дозирование", "Рекомендации по бронхиолиту"],
-  obgyn: ["Аспирин для профилактики преэклампсии", "Прогестерон при угрозе преждевременных родов", "Рекомендации по гестационному диабету"],
-  cardiology: ["Что изменилось в рекомендациях по ХСН", "Апиксабан: противопоказания и взаимодействия", "ПОАК при фибрилляции предсердий у пожилых"],
-  neurology: ["Профилактика мигрени у взрослых", "Леветирацетам при беременности", "Рекомендации по рассеянному склерозу"],
-  endocrinology: ["Метформин при сниженной функции почек", "Семаглутид: противопоказания", "Рекомендации по лечению гипотиреоза"],
-  oncology: ["Иммунотерапия рака лёгкого: систематические обзоры", "Поддерживающая терапия: что нового"],
-};
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -92,18 +82,8 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     <section className="pt-hero" aria-labelledby="pt-title">
       <h1 id="pt-title">{nbsp(`Ответы и обновления — ${adapter.audienceDative}`)}</h1>
       <p className="pt-lead">{nbsp("Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из рекомендаций, обзоров и официальных инструкций — у каждого утверждения есть источник и дата.")}</p>
-      <PortalInput specialty={specialty} examples={EXAMPLES[specialty]} />
-      <nav className="pt-shortcuts" aria-label="Частые задачи">
-        {HOME_SHORTCUTS.map(job => {
-          const agent = GALLERY.find(item => item.job === job);
-          return <Link key={job} className="pt-shortcut" href={askHref(specialty, { job })}>
-            <span className="pt-shortcut-copy"><strong>{JOBS[job].label}</strong><span>{JOBS[job].promise}</span></span>
-            {agent && <Mascot variant={agent.id} size={64} className="pt-shortcut-mascot" />}
-            <span className="pt-shortcut-tip" aria-hidden="true">{agent?.help}</span>
-          </Link>;
-        })}
-      </nav>
-      <p className="pt-hero-more"><Link className="ws-text-link" href={`/${specialty}/agents`}>Все агенты: консилиум, мероприятия, ваши материалы<ArrowRight size={15} aria-hidden="true" /></Link></p>
+      <PortalInput specialty={specialty} suggestions={homeSuggestions(specialty, profile.interests.topics)} answerMode={profile.answerMode} showModes />
+      <QuickAgents specialty={specialty} />
     </section>
 
     {pending > 0 && <Link className="ws-pending-banner" href={`/${specialty}/agents`}><BellRing size={18} aria-hidden="true" /><span>{countLabel(pending, ["действие ждёт", "действия ждут", "действий ждут"])} вашего подтверждения</span><ArrowRight size={16} aria-hidden="true" /></Link>}

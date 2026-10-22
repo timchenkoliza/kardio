@@ -3,29 +3,36 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { Bot, ChevronDown, FolderOpen, LayoutGrid } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, FolderOpen, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import type { ProfileIdentity } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { launchSpecialtyList, specialties } from "@/lib/specialty";
 import { WorkspaceProvider } from "./workspace-provider";
 import { ActionConfirmDialog } from "./action-confirm-dialog";
 import { ResearchJobWatcher } from "./research-job-watcher";
 
-export type WorkspaceSection = "home" | "agents" | "materials" | "settings" | "content";
+export type WorkspaceSection = "home" | "agents" | "materials" | "anonymizer" | "settings" | "content";
 
 /**
  * Primary navigation: the one input (Главное), the capabilities behind it as a
  * gallery (Агенты — discovery and shortcuts, never a required step), the
  * physician's own library, and the profile. Every entry is internal, same tab.
  */
-const NAV: Array<{ id: "home" | "agents" | "materials"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
+const NAV: Array<{ id: "home" | "agents" | "materials" | "anonymizer"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
   { id: "home", label: "Главное", short: "Главное", path: "", icon: LayoutGrid },
   { id: "agents", label: "Агенты", short: "Агенты", path: "/agents", icon: Bot },
   { id: "materials", label: "Мои материалы", short: "Материалы", path: "/materials", icon: FolderOpen },
+  { id: "anonymizer", label: "Обезличивание", short: "Обезличить", path: "/anonymizer", icon: ShieldCheck },
 ];
 
-/** Profile entry: no accounts — the workspace belongs to this browser; the profile is specialty, topics and sources. */
-function ProfileAvatar({ size = "regular" }: { size?: "regular" | "small" }) {
-  return <span className={size === "small" ? "ws-avatar is-small" : "ws-avatar"} aria-hidden="true">Вы</span>;
+function initials(name: string | null | undefined): string {
+  const parts = (name ?? "").trim().split(/\s+/u).filter(Boolean);
+  return parts.length ? parts.slice(0, 2).map(part => part[0]?.toLocaleUpperCase("ru-RU") ?? "").join("") : "Вы";
+}
+
+/** Profile entry: no accounts — the workspace belongs to this browser; the profile is identity, specialty, topics and sources. */
+function ProfileAvatar({ size = "regular", name }: { size?: "regular" | "small"; name?: string | null }) {
+  return <span className={size === "small" ? "ws-avatar is-small" : "ws-avatar"} aria-hidden="true">{initials(name)}</span>;
 }
 
 export function sectionFromPath(pathname: string, specialty: string): WorkspaceSection {
@@ -34,6 +41,7 @@ export function sectionFromPath(pathname: string, specialty: string): WorkspaceS
   if (rest.startsWith("/ask") || rest.startsWith("/item")) return "home";
   if (rest.startsWith("/tools")) return "agents";
   if (rest.startsWith("/materials")) return "materials";
+  if (rest.startsWith("/anonymizer")) return "anonymizer";
   if (rest.startsWith("/settings")) return "settings";
   if (rest.startsWith("/content")) return "content";
   return "home";
@@ -59,9 +67,10 @@ function SpecialtySelect({ specialty, sectionPath }: { specialty: SpecialtyId; s
   </label>;
 }
 
-export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { specialty: SpecialtyId; pendingActions?: number; children: ReactNode }) {
+export function WorkspaceFrame({ specialty, pendingActions = 0, identity = null, children }: { specialty: SpecialtyId; pendingActions?: number; identity?: ProfileIdentity | null; children: ReactNode }) {
   const section = sectionFromPath(usePathname() ?? `/${specialty}`, specialty);
-  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : section === "agents" ? "/agents" : "";
+  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : section === "agents" ? "/agents" : section === "anonymizer" ? "/anonymizer" : "";
+  const name = identity?.name ?? null;
 
   return <WorkspaceProvider specialty={specialty}>
     <div className="ws-app" data-specialty={specialty}>
@@ -69,7 +78,10 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
 
       {/* Desktop: 280px structural sidebar */}
       <aside className="ws-sidebar">
-        <BrandLockup specialty={specialty} />
+        <div className="ws-sidebar-head">
+          <BrandLockup specialty={specialty} />
+          <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-sidebar-gear is-active" : "ws-sidebar-gear"} aria-label="Настройки"><Settings size={18} aria-hidden="true" /></Link>
+        </div>
         <SpecialtySelect specialty={specialty} sectionPath={sectionPath} />
         <nav className="ws-nav" aria-label="Основная навигация">
           {NAV.map(item => <Link key={item.id} href={`/${specialty}${item.path}`} className={section === item.id ? "ws-nav-item is-active" : "ws-nav-item"} aria-current={section === item.id ? "page" : undefined}>
@@ -78,8 +90,9 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
           </Link>)}
         </nav>
         <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-profile-entry is-active" : "ws-profile-entry"} aria-current={section === "settings" ? "page" : undefined}>
-          <ProfileAvatar />
-          <span className="ws-profile-copy"><strong>Профиль и настройки</strong><span>{specialties[specialty].name} · темы и источники</span></span>
+          <ProfileAvatar name={name} />
+          <span className="ws-profile-copy"><strong>{name ?? "Профиль и настройки"}</strong><span>{name ? `Профиль и настройки · ${specialties[specialty].name}` : `${specialties[specialty].name} · темы и источники`}</span></span>
+          <ChevronRight size={16} aria-hidden="true" />
         </Link>
         <p className="ws-sidebar-note">Профессиональные источники и ваши материалы. Без данных пациентов.</p>
       </aside>
@@ -89,7 +102,7 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
         <header className="ws-topbar">
           <BrandLockup specialty={specialty} />
           <SpecialtySelect specialty={specialty} sectionPath={sectionPath} />
-          <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-icon-link is-active" : "ws-icon-link"} aria-label="Вы: профиль и настройки" aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" /></Link>
+          <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-icon-link is-active" : "ws-icon-link"} aria-label="Вы: профиль и настройки" aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" name={name} /></Link>
         </header>
         <main id="ws-main" className="ws-main" tabIndex={-1}>{children}</main>
         <footer className="pt-footer ws-footer"><p>© {new Date().getFullYear()} ООО «Яндекс»</p></footer>
@@ -100,7 +113,7 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, children }: { sp
           <item.icon size={20} aria-hidden="true" /><span>{item.short}</span>
           {item.id === "home" && pendingActions > 0 && <span className="ws-nav-badge">{pendingActions}</span>}
         </Link>)}
-        <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" /><span>Профиль</span></Link>
+        <Link href={`/${specialty}/settings#profile`} className={section === "settings" ? "ws-tab is-active" : "ws-tab"} aria-current={section === "settings" ? "page" : undefined}><ProfileAvatar size="small" name={name} /><span>Профиль</span></Link>
       </nav>
       <ResearchJobWatcher specialty={specialty} />
       <ActionConfirmDialog />

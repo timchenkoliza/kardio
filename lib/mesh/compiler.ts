@@ -1,3 +1,4 @@
+import { densityForMode, type AnswerMode } from "@/lib/portal/answer-mode";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { ClaimKind, EvidenceGraph, GraphDocument, NormalizedClaim } from "./evidence";
 import type { JobType } from "./jobs";
@@ -42,6 +43,8 @@ export interface CompileInput {
   moduleProps?: Partial<Record<ModuleFamily, Record<string, string | number | boolean | null | string[]>>>;
   /** How the result is executed (recorded in the manifest; ids are never rendered). */
   execution?: ManifestExecution | null;
+  /** Depth the physician asked for: «short» compiles compact, the claim count decides otherwise. */
+  answerMode?: AnswerMode | null;
   /** A refinement view already applied to the graph (recorded in the manifest). */
   view?: ManifestView | null;
 }
@@ -208,7 +211,7 @@ function actionsFor(graph: EvidenceGraph, modules: readonly ManifestModule[]): M
 
 function assemble(graph: EvidenceGraph, input: CompileInput, modules: ManifestModule[], args: { fallback: boolean; warnings: string[]; decisions: string[]; report?: PolicyReport }): ExperienceManifest {
   const claimCount = new Set(modules.flatMap(entry => entry.claimIds)).size;
-  const density = graph.family === "research" || claimCount > 10 ? "standard" : claimCount <= 6 ? "compact" : "standard";
+  const density = densityForMode(input.answerMode) ?? (graph.family === "research" || claimCount > 10 ? "standard" : claimCount <= 6 ? "compact" : "standard");
   return {
     schema: MANIFEST_SCHEMA,
     id: `manifest-${hash([graph.id, ...modules.map(entry => entry.id), String(args.fallback)])}`,

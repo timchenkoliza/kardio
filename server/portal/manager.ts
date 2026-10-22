@@ -1,5 +1,6 @@
 import type { ActionRequest, AgentId, AgentResult, AgentRun, UserProfile } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
+import type { AnswerMode } from "@/lib/portal/answer-mode";
 import { askHref, isPortalJob, JOBS, jobForRun, type PortalJob } from "@/lib/portal/jobs";
 import { lengthBucket } from "@/lib/portal/metrics";
 import { capabilityForJob } from "@/lib/mesh/capabilities";
@@ -53,6 +54,8 @@ export interface AskOptions {
   planConfirmed?: string | null;
   /** The open result a follow-up was typed on (result as context). */
   contextRunId?: string | null;
+  /** Depth asked for with this request; the profile default when absent. */
+  answerMode?: AnswerMode | null;
 }
 
 /** Decide how to execute one request: Skill fast path, one clarification, an explicit plan, or the dynamic path. */
@@ -87,7 +90,7 @@ export async function createAskRun(sessionId: string, specialty: SpecialtyId, te
   if (previous.some(run => run.input.text && jobForRun(run) === route.job)) await recordPortalEvent(sessionId, "repeat_job", { specialty, job: route.job });
 
   const profile = await loadProfile(sessionId, specialty);
-  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup, context: { entities: strategy.resolution?.entities ?? [], answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null } });
+  const run = await createRun(store, sessionId, { agentId: capability.host, specialty, profile, trigger: "composer", text, job: route.job, explicitJob: Boolean(options.job), followup: options.followup, context: { entities: strategy.resolution?.entities ?? [], answered: options.clarification ?? null, planConfirmed: options.planConfirmed ?? null }, answerMode: options.answerMode ?? null });
   return { run, job: route.job, agentId: capability.host, route: { job: route.job, confidence: route.confidence, reasons: route.reasons, vague: route.vague } };
 }
 
@@ -104,7 +107,7 @@ export async function executeAskRun(sessionId: string, specialty: SpecialtyId, r
   // The strategy is re-decided from the stored text and the context persisted at creation (never asks again).
   const strategy = decideStrategy({ text: run.input.text, specialty, job: run.input.explicitJob ? job : null, session: pinnedSession(run.input.context?.entities ?? [], new Date()), answered: run.input.context?.answered ?? { id: "execution", optionId: null }, planConfirmed: run.input.context?.planConfirmed ?? "execution" });
   const intent = strategy.intent;
-  const outcome = await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.job.family, intent, run });
+  const outcome = await executeRun(sessionId, specialty, run.agentId, { trigger: "composer", text: run.input.text, routed: intent.route.routed, job: intent.job.family, intent, run, answerMode: run.input.answerMode ?? null });
   if (intent.route.job === "research" && outcome.run.status !== "blocked" && outcome.run.resultIds.length) {
     await recordPortalEvent(sessionId, "research_result_completed", { specialty, job: intent.route.job, runId: outcome.run.id, count: outcome.run.resultIds.length });
   }

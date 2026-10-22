@@ -132,7 +132,7 @@ export const SOURCE_OPTIONS: readonly SourceOption[] = [
   { id: "aha", label: "AHA / ACC", matches: ["aha-meetings"], pubmedJournal: "Circulation" },
   { id: "regulators", label: "Регуляторы (Минздрав, FDA)", matches: ["regulatory-news"], pubmedJournal: null },
   { id: "nmo", label: "Портал НМО", matches: ["rnmo-rko"], pubmedJournal: null },
-  { id: "telegram", label: "Telegram-каналы", matches: ["telegram"], pubmedJournal: null },
+  { id: "telegram", label: "Телеграм-каналы", matches: ["telegram"], pubmedJournal: null },
 ];
 
 export const CONTENT_TYPE_OPTIONS: ReadonlyArray<{ id: ContentTypePref; label: string }> = [
