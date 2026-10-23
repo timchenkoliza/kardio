@@ -9,7 +9,7 @@ import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
-import { latinTermsIn } from "@/lib/portal/lexicon";
+import { DRUGS, latinTermsIn } from "@/lib/portal/lexicon";
 import { SUGGESTIONS } from "@/lib/portal/suggestions";
 import { runOutcome } from "@/lib/portal/run-outcome";
 import { unmatchedWords } from "@/lib/portal/unmatched";
@@ -199,6 +199,12 @@ function Section({ module: entry, ctx, children, className }: { module: Manifest
   </section>;
 }
 
+/** Societies whose own guideline snapshot answered («ESC»): their name in the question was used. */
+function societiesIn(graph: EvidenceGraph): Set<string> {
+  return new Set(graph.documents.flatMap(document => [document.attributes.society, document.publisher]).filter((name): name is string => typeof name === "string")
+    .flatMap(name => name.match(/[A-Za-z]{2,}/gu) ?? []).map(name => name.toLowerCase()));
+}
+
 function Gaps({ graph }: { graph: EvidenceGraph }) {
   const drugs = graph.context.drugs.length > 0;
   const guidelines = graph.family === "guidelines" || graph.documents.some(document => document.kind === "guideline");
@@ -230,15 +236,21 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
     ...(ctx.comparison ? ["что изменилось между версиями"] : []),
   ];
   const absent = asked.filter(group => !present.has(group));
-  if (!conditions.length) return null;
+  // One instruction is opened per answer: the other drugs of the question are named, never implied.
+  const instructions = ctx.graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label");
+  const opened = new Set(instructions.map(document => String(document.attributes.inn ?? document.attributes.genericName ?? "").toLowerCase()).filter(Boolean));
+  const notOpened = instructions.length ? ctx.graph.context.drugs.filter(inn => !opened.has(inn.toLowerCase())).map(inn => DRUGS.find(drug => drug.inn === inn)?.ru ?? inn) : [];
   const continuation = ctx.run.input.continuation;
   const question = continuation ? `${continuation.question} ${continuation.steps?.join(" ") ?? ""} ${continuation.followup}` : ctx.run.input.text ?? "";
   // Latin counts as searched only when PubMed ran, and only the words the home query takes (three letters and more).
   const pubmedRan = ctx.graph.sources.some(source => source.id === "pubmed" && source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
-  const missing = unmatchedWords(question, conditions, ctx.run.specialty, undefined, { latinSearched: pubmedRan, latinQueried: new Set(latinTermsIn(question)) });
+  const missing = unmatchedWords(question, conditions, ctx.run.specialty, undefined, { latinSearched: pubmedRan, latinQueried: new Set(latinTermsIn(question)), societies: societiesIn(ctx.graph) });
+  // Nothing recognised: the line still names the words the search did not use («AF» in «Management of AF in elderly»).
+  if (!conditions.length) return missing.length ? <p className="ws-muted pt-search-conditions" data-conditions={0} data-missing={missing.length}><strong>{nbsp(`Тему вопроса не распознали. Не учтено в поиске: ${missing.map(phrase => `«${phrase}»`).join(", ")}.`)}</strong></p> : null;
   return <p className="ws-muted pt-search-conditions" data-conditions={conditions.length} data-missing={missing.length || undefined}>
     {nbsp(`Искали по: ${conditions.join(" · ")}.`)}
     {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.map(phrase => `«${phrase}»`).join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
+    {notOpened.length > 0 && <> {nbsp(`Инструкция открыта только для препарата «${instructions[0].title.split(/[,(]/u)[0].trim()}»; ${notOpened.map(name => `«${name}»`).join(", ")} — смотрите ${notOpened.length > 1 ? "их инструкции" : "его инструкцию"} в ГРЛС.`)}</>}
     {absent.length > 0 && <> {nbsp(`${absent.length > 1 ? "Разделы" : "Раздел"} ${absent.map(group => `«${sectionLabel(group)}»`).join(" и ")} в этот ответ не ${absent.length > 1 ? "вошли" : "вошёл"} — смотрите полную инструкцию по ссылке ниже и в ГРЛС.`)}</>}
   </p>;
 }
@@ -288,8 +300,10 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
         const instruction = document.kind === "drug_instruction" || document.kind === "drug_label";
         const section = instruction ? DRUG_SECTION_TITLE[drugSectionGroup(chunk?.heading)] : null;
+        // Each instruction excerpt names its product: a dose rule of one anticoagulant is never read as another's.
+        const product = instruction ? document.title.split(/[,(]/u)[0].trim() : null;
         return <li key={claimId}>
-          <p className="pt-takeaway-source">{nbsp(`${section ? `${section} · ` : ""}${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} ctx={ctx} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
+          <p className="pt-takeaway-source">{nbsp(`${section ? `${section} · ` : ""}${product ? `${product} · ` : ""}${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} ctx={ctx} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
           <Claim claim={claim} ctx={ctx} named open={claim.kind === "review_conclusion"} />
           {instruction && chunk?.truncated && <p className="ws-muted" data-truncated="true">{nbsp("Раздел сокращён — полный текст в инструкции по ссылке ниже и в ГРЛС.")}</p>}
           {document.sourceId === "pubmed" && <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}

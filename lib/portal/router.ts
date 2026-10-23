@@ -44,13 +44,17 @@ interface Rule { job: PortalJob; weight: number; patterns: RegExp[]; once?: bool
 
 const RULES: readonly Rule[] = [
   { job: "materials", weight: 5, patterns: [word("мо(?:их|ем|и|ём) (?:материал|файл|документ|заметк)"), word("в сохран[её]нн"), word("загруженн"), word("мой (?:файл|документ)"), word("по моему (?:файлу|документу)")] },
-  { job: "events", weight: 4, patterns: [new RegExp(`(?<![${L}])(?<!(?:сосудист|неблагоприятн|коронарн|тромботическ|кардиоваскулярн|ишемическ|клиническ|больш|жизнеугрожающ|геморрагическ|тромбоэмболическ)${L}*\\s+)событи`, "iu"), word("конференц"), word("конгресс"), word("вебинар"), word("мероприят"), word("школ[аыуе](?![" + L + "])"), word("форум"), word("симпозиум"), word("зарегистрир"), word("в календар"), word("съезд")] },
+  { job: "events", weight: 4, patterns: [word("конференц"), word("конгресс"), word("вебинар"), word("мероприят"), word("школ[аыуе](?![" + L + "])"), word("форум"), word("симпозиум"), word("зарегистрир"), word("в календар"), word("съезд")] },
   { job: "learning", weight: 4, patterns: [word("обучени"), word("курс(?:ы|ов)? (?:по|для|повышени)"), word("учебн"), word("лекци"), word("нмо"), word("баллы"), word("аккредитац"), word("подготов" + `${L}*` + " к (?:экзамен|аккредитац|сертификац)"), word("хочу (?:разобраться|освежить|изучить|подтянуть)"), word("что почитать"), word("с чего начать изучени")] },
   { job: "guidelines", weight: 4, patterns: [word("клиническ" + `${L}*` + " рекомендац"), word("рекомендаци"), word("гайдлайн"), word("guideline"), word("клинреком"), word("кр(?![" + L + "])"), word("стандарт" + `${L}*` + " (?:медицинск|оказани)"), word("порядок оказани"), word("рубрикатор"), word("приказ" + `${L}*` + " минздрав"), re("\\b(?:ESC|AHA|ACC|NICE|ADA|EASD|GINA|GOLD|KDIGO|ACOG|FIGO|AAP|ILAE|EAN|EULAR|IDSA)\\b")] },
   { job: "research", weight: 3, once: true, patterns: [word("разб(?:ери|ерите|ор|рать)" + " (?:эт" + `${L}*` + " )?(?:исследовани|стать|публикаци|рки|испытани|метаанализ)"), word("что показали (?:исследовани|испытани|рки|метаанализ)"), re("(?<![\\p{L}])(?:исследовани|испытани)[еяюи]\\s+[A-Z0-9]{2,}(?:-[A-Z0-9]+)*(?:-[A-Z][a-z]+)?(?![A-Za-z0-9-])"), word("исследуй"), word("исследовани(?:я|й|ям|ях)"), word("доказательн"), word("доказательств"), word("метаанализ"), word("рки"), word("сравни"), word("обзор литератур"), word("что известно"), word("какие данные"), word("pubmed"), word("найди (?:данные|статьи|публикации)"), word("эффективн" + `${L}*` + " .{1,40} (?:vs|против|по сравнению)")] },
   { job: "updates", weight: 3, patterns: [word("что нового"), word("новост"), word("обновлени"), word("за (?:последн" + `${L}*` + " )?(?:неделю|месяц)"), word("свеж"), word("что появилось"), word("последние (?:публикаци|данные|исследовани)")] },
   { job: "answer", weight: 2, patterns: [word("что такое"), word("как (?:лечить|диагностир|вести|отличить|оценить)"), word("каки(?:е|х) (?:критери|показани|противопоказани)"), word("сколько"), word("когда (?:назнача|начина|показан)"), word("можно ли"), word("показани"), word("критери"), word("норм[аыу](?![" + L + "])"), word("первой линии|первая линия"), word("тактика"), word("алгоритм"), word("дифференциальн"), word("длительност")] },
 ];
+
+const EVENTS_WORD = re(`(?<![${L}])событи`);
+const CLINICAL_EVENTS = re(`(?:сосудист|неблагоприятн|нежелательн|коронарн|кардиальн|цереброваскулярн|аритмическ|почечн|тромботическ|тромбоэмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн)${L}*\\s+(?:${L}+\\s+)?событи|(?:риск|частот)${L}*\\s+(?:${L}+\\s+){0,2}событи`);
+const EVENTS_CUE = re(`(?<![${L}])(?:ближайш|предстоящ|профессиональн|главн|какие|календар|регистрац|недел|январ|феврал|март|апрел|ма[йя](?![${L}])|июн|июл|август|сентябр|октябр|ноябр|декабр|этом месяц|следующ|рко|esc|aha|acc|easd|ada)|20[0-9]{2}`);
 
 const PRIORITY: readonly PortalJob[] = ["materials", "events", "learning", "guidelines", "drug", "research", "updates", "answer"];
 
@@ -81,6 +85,9 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
     current.hits.push(hit);
     scores.set(job, current);
   };
+  // «события» is the events listing only with a listing cue («ближайшие», «в ноябре», «конгресс ESC 2026»)
+  // or with nothing clinical in the question; «нежелательные события при приёме апиксабана» is a clinical question.
+  if (EVENTS_WORD.test(value) && !CLINICAL_EVENTS.test(value) && (EVENTS_CUE.test(value) || (!drugs.length && !concepts.length))) add("events", 4, "событи");
   for (const rule of RULES) for (const pattern of rule.patterns) {
     const match = value.match(pattern) ?? text.match(pattern);
     if (!match) continue;

@@ -902,3 +902,41 @@ describe("Round 18: each path counts the Latin its own query took; compounds onl
     expect(home("Апиксабан, ривароксабан, дабигатран или эдоксабан у пожилых с ФП").unmatched).not.toContain("эдоксабан");
   });
 });
+
+describe("Round 19: «события» are the listing only with a listing cue; numbers, sections and Latin as searched", () => {
+  const home = (question: string, specialty = "cardiology", pubmedRan = true) => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: pubmedRan, latinQueried: new Set(latinTermsIn(question)) }) };
+  };
+  const ok = { tool: "searchPubmed", status: "ok", note: null };
+  const skipped = { tool: "searchPubmed", status: "ok", note: "PubMed пропущен" };
+  const rc = (text: string, use: unknown = ok, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [use], specialty } as unknown as AgentRun);
+  it("N19-1 (A) / N19-01 (B): clinical «события» are a question; a listing cue leads to the listing", () => {
+    for (const [question, specialty] of [["Нежелательные события при приёме апиксабана", "cardiology"], ["Цереброваскулярные события при ФП", "cardiology"], ["Сердечно-сосудистые и почечные события при СД 2 типа", "endocrinology"], ["Кардиальные события у пожилых", "cardiology"], ["Аритмические события при ХСН", "cardiology"], ["Частота событий при ХСН", "cardiology"], ["Серьёзные нежелательные события при терапии статинами", "cardiology"]] as const) expect(compileIntent(question, specialty).job.primary).not.toBe("event_search");
+    for (const question of ["Конференции по ХСН", "Мероприятия по ХСН", "События по кардиологии в ноябре", "Ближайшие события РКО", "Какие события по ХСН в этом месяце", "Главные события ESC 2026", "Большие события в кардиологии в 2026 году"]) expect(compileIntent(question, "cardiology").job.primary).toBe("event_search");
+  });
+  it("N19-4 (A) / N19-03, N19-04 (B): numbers the search used are used; a number goes with its lead word, not across punctuation", () => {
+    expect(home("Сахарный диабет 1 и 2 типа: статины", "therapy").unmatched).toEqual([]);
+    expect(home("Статины после 75 лет").unmatched).toEqual(["после 75 лет"]);
+    expect(home("ФВ ЛЖ менее 40% при ХСН").unmatched).toContain("менее 40%");
+    expect(home("ХСН у пожилых, 80 лет").unmatched).toEqual(["80 лет"]);
+    expect(home("Артериальная гипертензия: клинические рекомендации 2024").unmatched).toEqual(["2024"]);
+    expect(home("ЛПНП 3,0 ммоль/л у пожилых").unmatched).toEqual(["ЛПНП 3,0 ммоль/л"]);
+    expect(rc("Рекомендации ESC 2024 по ведению ФП").unmatched).toEqual([]);
+    expect(rc("Рекомендации ESC 2024 по ведению ФП", skipped).unmatched).toEqual(["ESC 2024"]);
+  });
+  it("N19-5 (A) / N19-09, N19-05, N19-07 (B): «предупреждения» is a section only as a heading; English service words; «теме»", () => {
+    expect(askedSections("Апиксабан для предупреждения инсульта при ФП")).not.toContain("safety");
+    expect(askedSections("Апиксабан: предупреждения и меры предосторожности")).toContain("safety");
+    expect(askedSections("Варфарин: предупреждение о кровотечении")).toContain("safety");
+    expect(home("In patients with heart failure").unmatched).toEqual([]);
+    expect(home("Тип A аортальной диссекции").unmatched).toContain("тип A");
+    expect(home("Что нового по теме «Фибрилляция предсердий»").unmatched).toEqual([]);
+  });
+  it("N19-6, N19-7, N19-8 (A) / N19-02 (B): a concept naming its topic, an abbreviation in brackets, a drug compound", () => {
+    expect(rc("Ведение беременности", skipped, "obgyn").unmatched).toEqual([]);
+    expect(rc("Антикоагулянты при ТЭЛА", skipped).unmatched).toContain("антикоагулянты");
+    expect(home("Атопический дерматит (АД) у детей: эмоленты", "pediatrics").unmatched).toEqual(["эмоленты"]);
+    expect(home("Аспиринорезистентность при ИБС").unmatched).toEqual(["аспиринорезистентность"]);
+  });
+});

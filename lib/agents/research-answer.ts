@@ -205,7 +205,9 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   // own term covers it («ХБП» in «Кардиоренальные связи»), not a broader topic («антикоагулянты» → «Фибрилляция предсердий»).
   const behindTopic = (concept: PubmedConcept) => (fold(question.normalize("NFKC")).match(new RegExp(concept.match.source, "gu")) ?? [])
     .some(text => topicsMentioned(run.specialty, text).some(id => questionTopics.includes(id)
-      && conceptParts(concept).some(part => fold(topicById(run.specialty, id)?.pubmed ?? "").includes(fold(part)))));
+      && (conceptParts(concept).some(part => fold(topicById(run.specialty, id)?.pubmed ?? "").includes(fold(part)))
+        // or the topic is named by the concept itself («беременность» → «Ведение беременности»).
+        || fold(topicById(run.specialty, id)?.label ?? "").split(/\s+/u).some(word => fold(concept.label).split(/\s+/u).some(own => own.length >= 6 && word.slice(0, own.length - 2) === own.slice(0, own.length - 2))))));
   // The run's query takes at most 4 concepts; the rest were not searched and are named.
   const searched = pubmedConceptsIn(question).filter(concept => !sameAsTopic(concept));
   const all = pubmedConceptsIn(question, Infinity).filter(concept => !sameAsTopic(concept));

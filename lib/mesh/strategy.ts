@@ -91,9 +91,10 @@ function withEntities(text: string, entities: readonly SessionEntity[]): string 
 
 function planPreviewFor(intent: NormalizedIntent, text: string): PlanPreview | null {
   if (intent.entities.drugs.length < PLAN_PREVIEW_DRUGS) return null;
-  const names = intent.entities.drugs.map(drug => drug.ru).join(", ");
+  const [first, ...rest] = intent.entities.drugs.map(drug => drug.ru);
   const steps = [
-    `Открою российские инструкции: ${names}`,
+    // One instruction is opened per answer; the rest are named for ГРЛС, not promised.
+    `Открою российскую инструкцию: ${first}${rest.length ? `; инструкции ${rest.join(", ")} — по ссылке на ГРЛС` : ""}`,
     intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях",
     "Подберу свежие сравнительные обзоры и метаанализы",
     "Покажу, где источники расходятся, с датами и ссылками",
