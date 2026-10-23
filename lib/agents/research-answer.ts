@@ -217,16 +217,25 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
   // Written as in «Искали по», so the two lists read alike.
   const used = (concept: PubmedConcept) => (!widened && searched.includes(concept)) || (pubmedUnused && behindTopic(concept));
-  // Named in the physician's own words when the concept's name is not theirs («апиксабан», not «антикоагулянты»).
+  // Named in the physician's own words when the concept's name is not theirs («апиксабан», not «антикоагулянты»):
+  // the words it matched, with an adjective written right before («катетерная аблация») and the words of the same
+  // phrase after it («изоляция лёгочных вен»), without an unpaired bracket («ТИА», not «ТИА)»).
   const written = (concept: PubmedConcept): string[] => {
     const source = question.normalize("NFKC");
     const words = fold(concept.label).split(/\s+/u).filter(word => word.length >= 4);
     if (words.some(word => fold(source).includes(word.slice(0, Math.max(4, word.length - 3))))) return [label(concept)];
-    const found = [...fold(source).matchAll(new RegExp(concept.match.source, "gu"))].map(match => {
-      // The whole words the concept matched, as written («хронической болезни почек», «Lp(a)»).
-      const start = match.index ?? 0;
-      const end = start + match[0].length + (source.slice(start + match[0].length).match(/^[\p{L}\p{N}()-]*/u)?.[0].length ?? 0);
-      const text = source.slice(start, end).replace(/[-(]+$/u, "");
+    const matches = [...fold(source).matchAll(new RegExp(concept.match.source, "gu")), ...(concept.cased ? [...source.matchAll(new RegExp(concept.cased.source, "gu"))] : [])];
+    const found = matches.map(match => {
+      let start = match.index ?? 0;
+      let end = start + match[0].length + (source.slice(start + match[0].length).match(/^[\p{L}\p{N}()-]*/u)?.[0].length ?? 0);
+      const before = source.slice(0, start).match(/(\p{L}+(?:ая|яя|ое|ее|ые|ие|ый|ий|ой|ых|их|ую|юю))\s+$/u);
+      if (before && !/^(?:старше|младше|моложе|[0-9])/u.test(fold(match[0]))) start -= before[0].length;
+      const after = source.slice(end).match(/^(?:\s+(?!(?:при|у|с|со|для|на|в|во|по|и|или|после|до|от|без|к|о|об|за)(?![\p{L}]))\p{Ll}{3,}){0,2}/u)?.[0] ?? "";
+      end += after.length;
+      let text = source.slice(start, end).replace(/[-(]+$/u, "");
+      // An unpaired bracket belongs to the sentence, not to the words («(ТИА):» → «ТИА»).
+      if ((text.match(/\)/gu) ?? []).length > (text.match(/\(/gu) ?? []).length) text = text.replace(/\)+$/u, "");
+      if ((text.match(/\(/gu) ?? []).length > (text.match(/\)/gu) ?? []).length) text = text.replace(/^\(+/u, "");
       return /[A-Za-z]|\p{Lu}.*\p{Lu}/u.test(text) ? text : text.toLocaleLowerCase("ru-RU");
     });
     return found.length ? [...new Set(found)] : [label(concept)];
@@ -248,7 +257,10 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
     // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
     return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => part.length >= 4 ? value.includes(part) : value === part);
   };
-  return { conditions, unmatched: [...dropped, ...unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused })] };
+  const named = unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused });
+  // A dropped concept already inside a named phrase («апиксабан» in «апиксабан 2,5 мг», «старше 75» in «старше 75 лет») is named once.
+  const inPhrase = (item: string) => named.some(phrase => ` ${fold(phrase)} `.includes(` ${fold(item)} `));
+  return { conditions, unmatched: [...dropped.filter(item => !inPhrase(item)), ...named] };
 }
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {

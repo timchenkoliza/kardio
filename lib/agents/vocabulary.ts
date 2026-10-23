@@ -237,7 +237,9 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
   concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
   concept("mi", "инфаркт миокарда (ИМ)", "инфаркт\\p{L}*\\s+миокард", "\"myocardial infarction\"[tiab]", "ИМ|ОИМ"),
-  concept("cabg", "АКШ", "акш|(?:аорто)?коронарн\\p{L}*\\s+шунтир|шунтирован", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
+  // Only coronary bypass: «шунтирование» alone is any shunt (hydrocephalus, gastric, portosystemic).
+  concept("cabg", "АКШ", "акш|(?:аорто)?коронарн\\p{L}*\\s+шунтир|шунтир\\p{L}*(?=[\\s\\S]*(?:ибс|коронар|инфаркт|стенокард|ишемическ\\p{L}*\\s+болезн))|(?:ибс|коронар|инфаркт|стенокард)[\\s\\S]*?шунтир", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
+  concept("pe", "ТЭЛА", "тэла|тромбоэмболи\\p{L}*\\s+легочн\\p{L}*(?:\\s+артери\\p{L}*)?", "\"pulmonary embolism\"[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
   concept("tavi", "TAVI", "tavi|тави|тавр|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
@@ -245,8 +247,10 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("dm1", "сахарный диабет 1 типа", "сд\\s*1(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+1(?:-?го)?\\s*тип\\p{L}*|1(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 1 diabetes\"[tiab]"),
   concept("dm2", "сахарный диабет 2 типа", "сд\\s*2(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+2(?:-?го)?\\s*тип\\p{L}*|2(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 2 diabetes\"[tiab]"),
   concept("diabetes", "сахарный диабет", "(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),
-  concept("hypoglycemia", "гипогликемия", "гипоглик", "hypoglyc*[tiab]"),
-  concept("insulin", "инсулинотерапия", "инсулинотерап|инсулин(?:а|у|ом|е|ы|ов)?(?![\\p{L}])", "insulin[tiab]"),
+  // «гипогликемические препараты» are glucose-lowering drugs, not hypoglycaemia.
+  concept("hypoglycemia", "гипогликемия", "гипогликеми(?!ческ\\p{L}*\\s+(?:препарат|средств|терапи|агент|лекарств))", "hypoglyc*[tiab]"),
+  concept("insulin", "инсулин", "инсулинотерап|инсулин(?:а|у|ом|е|ы|ов)?(?![\\p{L}])", "insulin[tiab]"),
+  concept("birth", "роды", "род(?:ы|ов|ах|ам|ами)(?![\\p{L}])|родоразрешени|послеродов", "delivery[tiab] OR childbirth[tiab] OR postpartum[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
   concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),

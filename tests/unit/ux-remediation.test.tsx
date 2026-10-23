@@ -558,7 +558,7 @@ describe("Round 11: no part of the question is lost silently", () => {
     const skipped = unmatched("Катетерная аблация при фибрилляции предсердий у пожилых", true);
     expect(skipped.conditions).toEqual(["фибрилляция предсердий"]);
     // Named as written: «аблация» (N23, the concept name is not the physician's word).
-    expect(skipped.unmatched).toEqual(expect.arrayContaining(["аблация", "пожилые пациенты"]));
+    expect(skipped.unmatched).toEqual(expect.arrayContaining(["катетерная аблация", "пожилые пациенты"]));
     expect(unmatched("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
   });
 });
@@ -1105,7 +1105,7 @@ describe("Round 22: a plan never below two steps; «события» by meaning 
     expect(home("Статины после 75 лет")).toEqual(["после 75 лет"]);
   });
   it("N21-05 (B): hypoglycaemia, insulin therapy, MI («ИМ», never the pronoun «им») and CABG are searched; a version is one word", () => {
-    expect(searchConditions(compileIntent("Гипогликемические события при инсулинотерапии", "endocrinology"))).toEqual(expect.arrayContaining(["гипогликемия", "инсулинотерапия"]));
+    expect(searchConditions(compileIntent("Гипогликемические события при инсулинотерапии", "endocrinology"))).toEqual(expect.arrayContaining(["гипогликемия", "инсулин"]));
     expect(searchConditions(compileIntent("Гипогликемические события после ИМ", "cardiology"))).toContain("инфаркт миокарда (ИМ)");
     expect(searchConditions(compileIntent("Можно ли им назначать статины", "cardiology"))).not.toContain("инфаркт миокарда (ИМ)");
     expect(searchConditions(compileIntent("События после АКШ", "cardiology"))).toContain("АКШ");
@@ -1172,5 +1172,52 @@ describe("Round 23: «события» by positive clinical signs, the way to th
   it("a dropped concept is named in the physician's words, not by its name («апиксабан», not «антикоагулянты»)", () => {
     const run = { input: { text: "Апиксабан, ривароксабан или дабигатран при ФП" }, plan: [], toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }], specialty: "cardiology" } as unknown as AgentRun;
     expect(researchConditions(run).unmatched).toEqual(["апиксабан", "ривароксабан", "дабигатран"]);
+  });
+});
+
+describe("Round 24: CABG only in a coronary context; field adjectives yield to a date; measures keep their head and unit", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  const listing = (question: string, specialty = "cardiology") => routePortalIntent(question, specialty as never).job === "events";
+  it("N24-02 (B): «шунтирование» is CABG only next to ИБС, coronary or MI; other shunts are not", () => {
+    for (const [question, specialty] of [["Шунтирование при нормотензивной гидроцефалии у пожилых", "neurology"], ["Шунтирование желудка при ожирении и СД 2 типа", "endocrinology"], ["Портосистемное шунтирование при циррозе", "therapy"], ["Шунтирование при ВПС у детей", "pediatrics"], ["Экстра-интракраниальное шунтирование при окклюзии ВСА", "neurology"]]) {
+      expect(searchConditions(compileIntent(question, specialty as never)), question).not.toContain("АКШ");
+      expect(researchConditions({ input: { text: question }, plan: [], toolsUsed: [], specialty } as unknown as AgentRun).conditions, question).not.toContain("АКШ");
+    }
+    for (const question of ["Шунтирование при ИБС", "Аортокоронарное шунтирование у пожилых", "Статины после АКШ", "Тромбоз шунта после АКШ"]) expect(searchConditions(compileIntent(question, "cardiology")), question).toContain("АКШ");
+  });
+  it("N24-05 (B): glucose-lowering drugs are not hypoglycaemia; insulin is named «инсулин»", () => {
+    expect(searchConditions(compileIntent("Пероральные гипогликемические препараты при ХБП", "endocrinology"))).not.toContain("гипогликемия");
+    expect(searchConditions(compileIntent("Уровень инсулина при ожирении", "endocrinology"))).toContain("инсулин");
+  });
+  it("N24-1 (A): verbs of sequence, «перед/накануне/во время» and a recognised disease after «события» make a question", () => {
+    for (const question of ["Какие события предшествуют инсульту", "Какие события сопровождают ФП", "События перед инсультом", "События накануне инсульта", "События ТЭЛА", "Какие события связаны с ХСН", "Какие события следуют за инфарктом"]) expect(listing(question), question).toBe(false);
+  });
+  it("N24-2 (A) / N24-01 (B): a field adjective with a date or another adjective is the listing; alone or with a turn, a question", () => {
+    for (const question of ["Ближайшие неврологические события", "Неврологические события в ноябре", "Главные неврологические события года", "Неврологические события 2026 года", "Региональные неврологические события"]) expect(listing(question, "neurology"), question).toBe(true);
+    for (const question of ["Неврологические события", "Неврологические события после инсульта", "Неврологические события у детей"]) expect(listing(question, "neurology"), question).toBe(false);
+    expect(listing("События ESC-2026")).toBe(true);
+    expect(listing("Острые события ноября в кардиологии")).toBe(true);
+    expect(listing("Нежелательные события в мае при вакцинации", "pediatrics")).toBe(false);
+  });
+  it("N24-3 (A) / N24-03 (B): «5 г» but not «2024 г.»; «ЛПНП до 1,8»; «от 30 до 60»; «во время операции»; no hanging «от»", () => {
+    expect(home("Соль менее 5 г в сутки при АГ")).toContain("соль менее 5 г");
+    expect(home("Масса тела менее 2500 г у новорождённых", "pediatrics")).toContain("масса тела менее 2500 г");
+    expect(home("ЛПНП до 1,8")).toEqual(["ЛПНП до 1,8"]);
+    expect(home("СКФ от 30 до 60")).toEqual(["СКФ от 30 до 60"]);
+    expect(home("ДАТТ от 6 до 12 месяцев")).toEqual(["ДАТТ от 6 до 12 месяцев"]);
+    expect(home("ФП во время операции")).toEqual(["во время операции"]);
+    expect(home("Переход от варфарина к апиксабану")).toEqual(["переход"]);
+    expect(home("Ближайшие события по ФП после 1 ноября")).toContain("после 1 ноября");
+  });
+  it("N24-04 (B) / N24-3 (A): a concept in the physician's words is named once, whole, without a stray bracket", () => {
+    const rc = (text: string) => researchConditions({ input: { text }, plan: [], toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }], specialty: "cardiology" } as unknown as AgentRun).unmatched;
+    expect(rc("Апиксабан 2,5 мг у пожилых")).toEqual(["пожилые пациенты", "апиксабан 2,5 мг"]);
+    expect(rc("Статины старше 75 лет").filter(item => item.includes("старше"))).toEqual(["старше 75 лет"]);
+    expect(rc("Изоляция лёгочных вен при ФП")).toContain("изоляция лёгочных вен");
+    expect(rc("Транзиторная ишемическая атака (ТИА): аспирин")).toContain("ТИА");
+    expect(rc("ИМ 2 типа")).toEqual(["ИМ 2 типа"]);
   });
 });

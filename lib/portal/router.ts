@@ -57,21 +57,26 @@ const EVENTS_WORD = re(`(?<![${L}])событи`);
  * Clinical adjectives of «события»: only these make the events clinical («мозговые», «нежелательные»);
  * any other adjective («грядущие», «очные», «акушерские») says nothing about it.
  */
-const CLINICAL_ADJECTIVES = "сосудист|неблагоприятн|нежелательн|побочн|коронарн|кардиальн|сердечн|цереброваскулярн|церебральн|мозгов|интракраниальн|внутричерепн|аритмическ|аритмогенн|почечн|тромботическ|тромбоэмболическ|эмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л|эпилептическ|пароксизмальн|судорожн|неврологическ|моторн|инфекционн|тератогенн|дыхательн|респираторн|метаболическ|перинатальн|неонатальн|материнск|первичн|вторичн|конечн|ранн|поздн|остр|желудочно-кишечн|гастроинтестинальн|печ[её]ночн|летальн|фатальн|смертельн|ятрогенн|интраоперационн|послеоперационн|периоперационн|перипроцедурн|гипертензивн|гипотензивн|аллергическ|синкопальн|вегетативн|венозн|артериальн";
+const CLINICAL_ADJECTIVES = "сосудист|неблагоприятн|нежелательн|побочн|коронарн|кардиальн|сердечн|цереброваскулярн|церебральн|мозгов|интракраниальн|внутричерепн|аритмическ|аритмогенн|почечн|тромботическ|тромбоэмболическ|эмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л|эпилептическ|пароксизмальн|судорожн|моторн|тератогенн|дыхательн|респираторн|метаболическ|первичн|вторичн|конечн|ранн|поздн|остр|желудочно-кишечн|гастроинтестинальн|печ[её]ночн|летальн|фатальн|смертельн|ятрогенн|интраоперационн|послеоперационн|периоперационн|перипроцедурн|гипертензивн|гипотензивн|аллергическ|синкопальн|вегетативн|венозн|артериальн";
 const CLINICAL_EVENTS = re(`(?<![${L}])(?:${CLINICAL_ADJECTIVES})${L}*(?:-${L}+)?\\s+(?:(?:и|или)\\s+${L}+\\s+|${L}+\\s+)?событи|(?<![${L}])(?:риск|частот|числ|количеств)${L}*\\s+(?:${L}+\\s+){0,2}событи`);
+/** Adjectives that name a field as well as a kind of events («неврологические», «перинатальные»): a date or another adjective makes them the listing. */
+const FIELD_EVENTS = re(`(?<![${L}])(?:неврологическ|инфекционн|перинатальн|неонатальн|материнск)${L}*\\s+(?:${L}+\\s+)?событи`);
+const FIELD_LISTING = re(`(?<![${L}])(?:${L}+(?:ые|ие)\\s+(?:неврологическ|инфекционн|перинатальн|неонатальн|материнск)|года(?![${L}])|20[0-9]{2})`);
 const MONTHS = `январ|феврал|март|апрел|ма[йяе](?![${L}])|июн|июл|август|сентябр|октябр|ноябр|декабр`;
 /**
  * The subject of a clinical question: a group of patients, a study, a trial or registry, the prognosis.
  * «события у детей с эпилепсией», «в регистре ХСН», «в группе плацебо» — never the listing.
  */
-const CLINICAL_SUBJECT = re(`(?<![${L}])(?:у\\s+(?:пациент|больн|пожил|дет|ребен|беременн|женщин|мужчин|подростк|новорожд|недоношенн|младенц|взросл|спортсмен|лиц|людей)|(?:в лечени|в исследовани|по данным|беременност|прогноз|характерн|предиктор|исход|чаще|реже|плацебо|пациенто-лет|рки|со стороны|конечн${L}*\\s+точк|предотвращ|снижа|уменьша|увеличива|повыша|вызыва|провоциру)${L}*|регистр(?:е|а|у|ы|ов|ом|ам|ах)?(?![${L}])|как\\s+событи|(?:считать|учитывать|регистрировать)\\s+событи|mace(?![${L}]))`);
+const CLINICAL_SUBJECT = re(`(?<![${L}])(?:у\\s+(?:пациент|больн|пожил|дет|ребен|беременн|женщин|мужчин|подростк|новорожд|недоношенн|младенц|взросл|спортсмен|лиц|людей)|(?:в лечени|в исследовани|по данным|беременност|прогноз|характерн|предиктор|исход|чаще|реже|плацебо|пациенто-лет|рки|со стороны|конечн${L}*\\s+точк|шкал|предотвращ|снижа|уменьша|увеличива|повыша|вызыва|провоциру|предшеству|сопровожда|сопутству|связан|привод|ведущ|следу(?:ют|ет)\\s+за)${L}*|регистр(?:е|а|у|ы|ов|ом|ам|ах)?(?![${L}])|как\\s+событи|(?:считать|учитывать|регистрировать)\\s+событи|mace(?![${L}]))`);
 /** A trial written as its acronym («DAPA-HF», «EMPEROR-Reduced»). */
-const TRIAL = /(?<![A-Za-z])[A-Z]{2,}[A-Z0-9]*-[A-Za-z0-9]+/u;
+const TRIAL = /(?<![A-Za-z])[A-Z]{2,}[A-Z0-9]*-[A-Za-z][A-Za-z0-9]*/u;
 /**
  * A clinical turn of the question: «события при ХСН», «после ЧКВ», «на фоне апиксабана».
  * «при поддержке», «после Нового года», «после 1 ноября», «в течение ноября» are dates and patrons, not turns.
  */
 const CLINICAL_TURN = re(`(?<![${L}])(?:при(?!\\s+(?:поддержк|участи|содействи|партн[её]рств))|после(?!\\s+(?:нового|новогодн|праздник|отпуск|выходн|конгресс|конференц|[0-9]))|на фоне|в течение(?!\\s+(?:${MONTHS}|эт|следующ|ближайш|текущ|недел|месяц|год))|следующ${L}*\\s+за)(?![${L}])`);
+/** Turns that need a recognised subject to make a question («перед инсультом», «накануне ИМ», «до инфаркта», «во время ЧКВ»). */
+const SUBJECT_TURN = new RegExp(`${CLINICAL_TURN.source}|(?<![${L}])(?:перед|накануне|во время|до(?!\\s*[0-9]))(?![${L}])`, "giu");
 /** Words that ask for the listing whatever else is said: «ближайшие события по СД 2 типа у детей» (not «в ближайшие 30 дней»). */
 const LISTING_STRONG = re(`(?<![${L}])(?:конференц|конгресс|вебинар|мероприят|календар|регистрац${L}*\\s+на|зарегистр|посетить|посещени|расписани|анонс|афиш|(?:ближайш|предстоящ|грядущ)${L}*\\s+(?:${L}+\\s+)?(?:событи|мероприят|конференц|конгресс))`);
 /** A month or a date, the audience, a patron: they keep the listing over a clinical turn («События при ФП в марте»). */
@@ -82,12 +87,15 @@ const SOCIETY = /(?<![A-Za-zА-ЯЁа-яё])(?:НМО|ВОЗ|РКО|РАЭ|РО�
 
 /** «События по беременности»: the topic after «по» is the listing's subject; «по данным» is not a topic. */
 function withoutTopic(text: string): string {
-  return text.replace(/(?<![\p{L}])по\s+(?!данн)[\s\S]*$/iu, "");
+  const events = text.search(/(?<![\p{L}])событи/iu);
+  const tail = events < 0 ? text : text.slice(events);
+  const cut = tail.search(/(?<![\p{L}])(?:по\s+(?!данн|шкал)|посвящ\p{L}*\s|(?:о|об|про)\s)/iu);
+  return cut < 0 ? text : text.slice(0, (events < 0 ? 0 : events) + cut);
 }
 
 /** The words a turn leads to name a disease, a procedure, a drug or a group («после ЧКВ», «при ФП», «после ИМ»). */
 function turnSubject(text: string, specialty: SpecialtyId): boolean {
-  for (const match of text.matchAll(new RegExp(CLINICAL_TURN.source, "giu"))) {
+  for (const match of text.matchAll(SUBJECT_TURN)) {
     const after = text.slice((match.index ?? 0) + match[0].length).trim().split(/\s+/u).slice(0, 3).join(" ");
     if (after && (drugsIn(after).length || topicsMentioned(specialty, after).length || conceptsIn(after, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept"))) return true;
   }
@@ -97,10 +105,13 @@ function turnSubject(text: string, specialty: SpecialtyId): boolean {
 /** «События ХСН», «События ОНМК»: a recognised disease right after «события», never any abbreviation («События ОССН»). */
 function namesDiseaseAfter(text: string, specialty: SpecialtyId): boolean {
   for (const match of text.matchAll(/(?<![\p{L}])событи\p{L}*\s+([\p{L}\p{N}-]+(?:\s+[\p{L}\p{N}-]+)?)/giu)) {
-    const [first] = match[1].split(/\s+/u);
-    // A field («События аритмологии», «…кардиологии») is the listing's subject, not a disease.
-    if (first.length < 2 || /^(?:по|для|на|в|во|с|со|за|от|до|и|или)$/iu.test(first) || /логи[яиюей]$/iu.test(first) || SOCIETY.test(first)) continue;
-    if (topicsMentioned(specialty, first).length || conceptsIn(first, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept")) return true;
+    // The first two words: «События ТЭЛА», «События при … » is a turn, not a disease.
+    for (const word of match[1].split(/\s+/u)) {
+      if (/^(?:по|для|на|в|во|с|со|за|от|до|и|или|при|после|у|о|об|про)$/iu.test(word)) break;
+      // A field («События аритмологии», «…кардиологии») or a society is the listing's subject, not a disease.
+      if (word.length < 2 || /логи[яиюей]$/iu.test(word) || SOCIETY.test(word)) continue;
+      if (topicsMentioned(specialty, word).length || conceptsIn(word, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept")) return true;
+    }
   }
   return false;
 }
@@ -113,24 +124,36 @@ export function namesListing(text: string): boolean {
 
 /**
  * «события» are the events listing unless the question is clinical, by positive signs only:
- * 1. a drug or a clinical adjective («мозговые», «нежелательные») — a question;
- * 2. «ближайшие события», «конференции», «расписание», «календарь» — the listing;
- * 3. outside the topic after «по»: a group of patients, a study or registry, the prognosis — a question;
- *    a recognised disease right after «события» — a question unless a month, the audience or a patron is named;
- *    a turn to a recognised subject («после ЧКВ», «при ФП») — a question unless a month, the audience or a patron is named;
+ * 1. a drug — a question;
+ * 2. a clinical adjective («мозговые», «нежелательные») — a question, unless the request asks for conferences, or names
+ *    only a month, the audience or a society with no clinical turn («Острые события ноября в кардиологии»);
+ * 3. «ближайшие события», «конференции», «расписание», «календарь» — the listing;
+ * 4. a field adjective («неврологические», «перинатальные») — a question, unless a date or another adjective names the
+ *    field's listing («Ближайшие/Главные неврологические события», «…в ноябре»);
+ * 5. outside the topic after «по», «о», «про», «посвящённые»: a group of patients, a study, a trial, a scale, placebo,
+ *    an endpoint, a registry, the prognosis, a verb of effect or sequence («предшествуют», «связаны») — a question;
+ *    a recognised disease within two words after «события», or a turn to a recognised subject («после ЧКВ»,
+ *    «перед инсультом») — a question unless a month, the audience or a patron is named;
  *    a bare turn («при», «после») — a question unless the request names the listing in any way;
- * 4. anything else — the listing.
+ * 6. anything else — the listing.
  */
 export function eventsAreListing(text: string, specialty: SpecialtyId): boolean {
   const value = normalizeQuery(text);
   if (!EVENTS_WORD.test(value) || drugsIn(text).length) return false;
-  if (CLINICAL_EVENTS.test(value)) return false;
-  if (LISTING_STRONG.test(value)) return true;
   const scoped = withoutTopic(text);
   const scopedValue = normalizeQuery(scoped);
-  if (CLINICAL_SUBJECT.test(scopedValue) || TRIAL.test(scoped)) return false;
+  const subject = CLINICAL_SUBJECT.test(scopedValue) || TRIAL.test(scoped);
+  const turn = turnSubject(scoped, specialty);
   const dated = LISTING_DATE.test(value);
-  if (namesDiseaseAfter(scoped, specialty) || turnSubject(scoped, specialty)) return dated;
+  // A clinical adjective makes a question unless the request asks for conferences, or names only a date or a society
+  // («Острые события ноября в кардиологии», «Сердечные события РКО в ноябре»).
+  const turned = turn || CLINICAL_TURN.test(scopedValue);
+  if (CLINICAL_EVENTS.test(value)) return LISTING_STRONG.test(value) || ((dated || SOCIETY.test(text)) && !subject && !turned);
+  if (LISTING_STRONG.test(value)) return true;
+  // «Неврологические события»: a question, unless a date or another adjective makes it the field's listing.
+  if (FIELD_EVENTS.test(value)) return (dated || LISTING_NEAR.test(value) || FIELD_LISTING.test(value)) && !subject && !turned;
+  if (subject) return false;
+  if (namesDiseaseAfter(scoped, specialty) || turn) return dated;
   return !CLINICAL_TURN.test(scopedValue) || namesListing(text);
 }
 
@@ -141,7 +164,7 @@ export function eventsAreListing(text: string, specialty: SpecialtyId): boolean 
 export function eventsBridge(text: string, specialty: SpecialtyId): "top" | "bottom" | null {
   const value = normalizeQuery(text);
   if (!EVENTS_WORD.test(value)) return null;
-  const clinical = CLINICAL_TURN.test(value) || CLINICAL_SUBJECT.test(value) || CLINICAL_EVENTS.test(value) || TRIAL.test(text) || namesDiseaseAfter(text, specialty);
+  const clinical = CLINICAL_TURN.test(value) || CLINICAL_SUBJECT.test(value) || CLINICAL_EVENTS.test(value) || FIELD_EVENTS.test(value) || TRIAL.test(text) || namesDiseaseAfter(text, specialty) || turnSubject(text, specialty);
   if (!namesListing(text) || clinical) return "top";
   return topicsMentioned(specialty, text).length || conceptsIn(text, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept") ? "bottom" : null;
 }
