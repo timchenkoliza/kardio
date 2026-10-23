@@ -59,7 +59,12 @@ const COVERED_QUALIFIERS: ReadonlyArray<[RegExp, readonly string[]]> = [
 ];
 
 /** A number with its fraction, range and unit («1,4 ммоль/л», «8–60», «5 мг»), not a word starting with a digit («2Б»). */
-const NUMBER = "[0-9]+(?:[.,/][0-9]+)?(?:\\s?[-–—]\\s?[0-9]+(?:[.,][0-9]+)?)?(?:-(?:го|й|е|я|х|м|му|ми|ти|летию|летия|летний|летних|летнего))?(?:\\s?(?:%|мг/кг|мг/дл|мг|мкг/л|мкг|мл/кг|мл/мин|мл|ммоль/моль|ммоль/л|мкмоль/л|пг/мл|нг/мл|нг/л|уд\\.?/мин|мм рт\\.? ?ст\\.?|мм|см|ЕД|ед|лет|года|год|мес|месяц[\\p{L}]*|недел[\\p{L}]*|дней|дня|сут[\\p{L}]*|мс|кг|г))?(?![\\p{L}\\p{N}])";
+const NUMBER = "[0-9]+(?:[.,/][0-9]+)?(?:\\s?[-–—]\\s?[0-9]+(?:[.,][0-9]+)?)?(?:-(?:го|й|е|я|х|м|му|ми|ти|летию|летия|летний|летних|летнего))?(?:\\s?(?:%|мг/кг|мг/дл|мг|мкг/л|мкг|мл/кг|мл/мин|мл|ммоль/моль|ммоль/л|мкмоль/л|пг/мл|нг/мл|нг/л|уд\\.?/мин|мм рт\\.? ?ст\\.?|мм|см|ЕД|ед|лет|года|год|мес|месяц[\\p{L}]*|недел[\\p{L}]*|дней|дня|сут[\\p{L}]*|час(?:ов|а)?|минут[\\p{L}]*|мс|кг/м2|кг/м²|кг|г/л|г/дл|г/кг|г/сут))?(?![\\p{L}\\p{N}])";
+
+/** An age or a duration («80 лет», «48 часов», «8–60 дней»). */
+const DURATION = /(?:лет|года?|мес|месяц\p{L}*|недел\p{L}*|дней|дня|сут\p{L}*|час(?:ов|а)?|минут\p{L}*)$/u;
+/** Lead words of a time or an age: they never take a searched abbreviation before them («ФП после 1 ноября» → «после 1 ноября»). */
+const TIME_LEAD = new Set(["до", "после", "от", "старше", "младше", "моложе"]);
 
 /** Words that carry the number after them («после 75 лет», «менее 40%»). */
 const NUMBER_LEAD = new Set(["до", "после", "старше", "младше", "моложе", "выше", "ниже", "менее", "более", "свыше", "от", "больше", "меньше"]);
@@ -228,7 +233,8 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     dropNumber(number);
   };
   // Any letters count, Greek included («β-блокаторы»); a number keeps its fraction and range («1,4», «8–60»).
-  const tokens = [...question.matchAll(new RegExp(`${NUMBER}|[\\p{L}\\p{N}-]+`, "gu"))];
+  // A version is one word («v2.0»), not a word and a stray «0».
+  const tokens = [...question.matchAll(new RegExp(`${NUMBER}|\\p{L}[\\p{L}\\p{N}-]*[0-9](?:\\.[0-9]+)+(?![\\p{L}\\p{N}])|[\\p{L}\\p{N}-]+`, "gu"))];
   // Words of a section named across two words («особые указания», «способ применения»).
   const sectionPairs = new Set<number>();
   for (let index = 0; index + 1 < tokens.length; index += 1) {
@@ -249,9 +255,11 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   let previousWord: string | null = null;
   // The phrase a lead word follows: a run of abbreviations («ФВ ЛЖ») or a Latin measure, with a named word written
   // right before the run («систолическое АД»), or the phrase just named («тропонин», «гликированный гемоглобин»).
-  const leadPhrase = (): string | null => {
+  const leadPhrase = (time = false): string | null => {
     if (!leadHead) return null;
     if (ABBREVIATION.test(leadHead) || /[A-Za-z]/u.test(leadHead)) {
+      // A date or a duration is not a value of the abbreviation before it («ФП более 48 часов» → «более 48 часов»).
+      if (time) return null;
       const fromRun = measureRun.length > 0 && measureRun[measureRun.length - 1] === leadHead;
       const run = fromRun ? measureRun : [leadHead];
       const head = run.map(shown).join(" ");
@@ -268,11 +276,11 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     if (!number) return;
     const lead = isLead(previousWord);
     // An age or a duration reads on its own («8–60 дней», «80 лет»); a value belongs to its measure («ЛПНП 3,0 ммоль/л»).
-    if (/(?:лет|года?|мес|месяц\p{L}*|недел\p{L}*|дней|дня|сут\p{L}*)$/u.test(number) && !lead) { phrases.push(number); return; }
+    if (DURATION.test(number) && !lead) { phrases.push(number); return; }
     // Only a measure, or a word the search did not take, keeps its lead word («ЛПНП менее 1,4», «возраст не старше 65 лет»);
     // a searched ordinary word does not («статины после 75 лет» → «после 75 лет»).
     if (lead) {
-      const head = leadPhrase();
+      const head = leadPhrase(DURATION.test(number) || TIME_LEAD.has(previousWord!.toLocaleLowerCase("ru-RU").split(" ").at(-1)!));
       phrases.push(`${head ? `${head} ` : ""}${previousWord!.toLocaleLowerCase("ru-RU")} ${number}`);
     } else if (previousWord) phrases.push(`${shown(previousWord)} ${number}`);
     // A number the search did not take is named even on its own («ЛПНП при ИБС: 1,4»).
@@ -291,7 +299,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     return phrases.findLastIndex(phrase => endsWithNumber(phrase, before!));
   };
   // A lead word leads a value written after it, possibly after a sign («ниже 1,8», «не более 130/80»).
-  const leadsNumber = (at: number) => isNumber(tokens[at + 1]?.[0]);
+  const leadsNumber = (at: number) => isNumber(tokens[at + 1]?.[0]) && !/[:;,.!?()]|\s[—–-]\s/u.test(question.slice(tokens[at].index + tokens[at][0].length, tokens[at + 1].index));
   const lead = (at: number, word: string) => {
     // «старше или моложе»: the second lead word joins the first; «не более»: the negation is part of it.
     if (previousWord && / (?:и|или|либо)$/u.test(previousWord) && isLead(previousWord.replace(/ (?:и|или|либо)$/u, ""))) { previousWord = `${previousWord} ${word}`; return; }
@@ -321,8 +329,9 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     const abbreviationBefore = lastNamedAbbreviation;
     lastNamedAbbreviation = null;
     // Punctuation separates conditions («ЛАГ: риоцигуат»); a number after it does not belong to the word before.
-    const separated = /[:;,.!?()]/u.test(question.slice(end, match.index));
-    if (separated) { close(); previousWord = null; latinBefore = false; }
+    // A dash between spaces separates like a comma («старше 80 лет — 2,5 мг»).
+    const separated = /[:;,.!?()]|\s[—–-]\s/u.test(question.slice(end, match.index));
+    if (separated) { close(); previousWord = null; latinBefore = false; chainLead = null; }
     end = match.index + token.length;
     // A lone dash separates too («ФП - кардиоверсия»).
     if (!/[\p{L}\p{N}]/u.test(token)) { close(); continue; }
@@ -397,6 +406,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     }
     // «ниже», «выше» lead a value like «менее» («ЛПНП ниже 1,8»); without a value they are words («ниже целевого уровня»).
     if (NUMBER_LEAD.has(lower) && (leadsNumber(index) || chainHost(index) >= 0)) { dropNumber(number); close(); lead(index, lower); continue; }
+    // Without a value «выше», «ниже» are a comparison («риск выше у пожилых»): not a condition, unless a noun follows
+    // («ниже целевого уровня»).
+    const following = tokens[index + 1]?.[0] ?? "";
+    if (NUMBER_LEAD.has(lower) && (!/^\p{Ll}{4,}$/u.test(following) || STOP.has(following))) { dropNumber(number); close(); previousWord = null; continue; }
+    // «во время приёма»: «время» belongs to the drug's context.
+    if (lower === "время" && tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") === "во") { dropNumber(number); close(); continue; }
     // A Latin word counts as searched when the PubMed query took it as typed («ST при ИБС»; not «Витамин D»).
     if (latin && ((latinSearched && latinQueried.has(lower)) || societies.has(lower))) { dropNumber(number); close(); previousWord = token; latinBefore = true; continue; }
     // A single capital letter names a type of what precedes it («тип A», «гепатит A»).
@@ -424,6 +439,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     if (/^при[её]м/u.test(lower) && /(?:^|\s)(?:на фоне|без|после|до|во время|при|отмены|начала)$/u.test(before)) { dropNumber(number); close(); continue; }
     // A word with a digit or a hyphen («Омега-3», «ИЛ-6», «сердечно-лёгочная») is a word like any other.
     if (token.length < 4 && !/[0-9-]/u.test(token) && !latin) {
+      // Without a value «до», «от» stay in the phrase as written («48 часов до операции», «отказ от курения»).
+      if (NUMBER_LEAD.has(lower) && !leadsNumber(index) && (current.length || number) && /^\p{Ll}{4,}$/u.test(tokens[index + 1]?.[0] ?? "")) {
+        if (number) current.push({ word: number, abbreviated: false });
+        current.push({ word: lower, abbreviated: false });
+        continue;
+      }
       if (number && current.length) current.push({ word: number, abbreviated: false }); else dropNumber(number);
       // A lead word starts the number's own phrase («детей до 3 лет»); «тип» heads a type inside a phrase («аорты тип A»).
       if (NUMBER_LEAD.has(lower) && leadsNumber(index)) { close(); lead(index, lower); continue; }
@@ -445,9 +466,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
       if (number) {
         // «тропонин выше 99-го перцентиля»: the lead word stays with its value, and with the measure before it.
         if (isLead(previousWord) && !current.length) {
-          const head = leadPhrase();
+          const head = leadPhrase(DURATION.test(number) || TIME_LEAD.has(previousWord!.toLocaleLowerCase("ru-RU").split(" ").at(-1)!));
           if (head) current.push({ word: head, abbreviated: false });
           current.push({ word: previousWord!.toLocaleLowerCase("ru-RU"), abbreviated: false });
+        } else if (typeWord && !current.length && chainHead && previousWord === chainHead && ABBREVIATION.test(chainHead)) {
+          // «ИМ 2 типа» with myocardial infarction searched: the type is named with what it is a type of.
+          current.push({ word: shown(chainHead), abbreviated: false });
         }
         current.push({ word: number, abbreviated: false });
       }

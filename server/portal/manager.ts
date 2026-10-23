@@ -217,8 +217,14 @@ export async function respondToAsk(sessionId: string, specialty: SpecialtyId, ty
     return { kind: "clarification", clarification: strategy.clarification };
   }
   if (strategy.planPreview) {
-    await recordMeshEvent(sessionId, "plan_preview_shown", { specialty, reason: strategy.planPreview.reason, signature: strategy.signature, count: strategy.planPreview.steps.length });
-    return { kind: "plan", plan: strategy.planPreview };
+    // The plan names only what will run: with PubMed excluded in the profile, no reviews are promised.
+    const profile = await loadProfile(sessionId, specialty);
+    const steps = profile.interests.excludedSources.includes("pubmed") ? strategy.planPreview.steps.filter(step => !/обзоры и метаанализы/u.test(step)) : strategy.planPreview.steps;
+    if (steps.length >= 2) {
+      const plan = { ...strategy.planPreview, steps };
+      await recordMeshEvent(sessionId, "plan_preview_shown", { specialty, reason: plan.reason, signature: strategy.signature, count: plan.steps.length });
+      return { kind: "plan", plan };
+    }
   }
   return { kind: "run", ...(await startRun(sessionId, specialty, text, options, strategy)) };
 }

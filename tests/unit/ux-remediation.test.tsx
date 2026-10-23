@@ -39,7 +39,7 @@ import { buildResearchExport, researchSourceBuckets } from "@/lib/agents/researc
 import { pubmedConceptsIn, specificTopicTerms, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
 import { decideStrategy } from "@/lib/mesh/strategy";
-import { routePortalIntent } from "@/lib/portal/router";
+import { eventsBridge, routePortalIntent } from "@/lib/portal/router";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { recentQuestions } from "@/components/portal/recent-questions";
 import { JobResult } from "@/components/portal/job-results";
@@ -557,7 +557,8 @@ describe("Round 11: no part of the question is lost silently", () => {
   it("N11-3: a skipped PubMed names the concepts it did not search", () => {
     const skipped = unmatched("Катетерная аблация при фибрилляции предсердий у пожилых", true);
     expect(skipped.conditions).toEqual(["фибрилляция предсердий"]);
-    expect(skipped.unmatched).toEqual(expect.arrayContaining(["абляция", "пожилые пациенты"]));
+    // Named as written: «аблация» (N23, the concept name is not the physician's word).
+    expect(skipped.unmatched).toEqual(expect.arrayContaining(["аблация", "пожилые пациенты"]));
     expect(unmatched("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
   });
 });
@@ -797,7 +798,7 @@ describe("Round 16: a word counts as used only when the search used it", () => {
     expect(rc("Инфаркт миокарда 2 типа").unmatched).toEqual(["2 типа"]);
     expect(rc("Витамин D при ХСН").unmatched).toEqual(["витамин D"]);
     expect(rc("Lp(a) при ИБС").unmatched).toEqual([]);
-    expect(rc("Lp(a) при ИБС", skipped).unmatched).toEqual(["липопротеин(а)"]);
+    expect(rc("Lp(a) при ИБС", skipped).unmatched).toEqual(["Lp(a)"]);
     expect(rc("Профилактика инсульта у пациентов с сердечно-сосудистыми заболеваниями").unmatched).toEqual([]);
   });
   it("N16-3 (A): sources excluded in the profile are the one reason, without a request to name a disease", () => {
@@ -820,7 +821,8 @@ describe("Round 17: compounds, sections and short Latin as the search used them"
     expect(home("Lp(a) при ИБС").unmatched).toEqual([]);
     expect(home("ХСН NYHA II–III: дапаглифлозин").unmatched).toEqual([]);
     expect(home("Витамин D при ХСН").unmatched).toEqual(["витамин D"]);
-    expect(home("Инсулинотерапия при СД 2 типа", "endocrinology").unmatched).toEqual(["инсулинотерапия"]);
+    // Insulin therapy is a searched concept since N21-05.
+    expect(home("Инсулинотерапия при СД 2 типа", "endocrinology").unmatched).toEqual([]);
     expect(rc("Тромбоз артерии при АГ").unmatched).toEqual(["тромбоз артерии"]);
     for (const specialty of Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>) for (const question of SUGGESTIONS[specialty]) {
       const { conditions, unmatched } = home(question, specialty);
@@ -854,7 +856,7 @@ describe("Round 17: compounds, sections and short Latin as the search used them"
     expect(rc("ФП - кардиоверсия").unmatched).toEqual(["кардиоверсия"]);
   });
   it("N17-4 (A): abbreviations keep their case in «Искали по» and «Не учтено» alike", () => {
-    expect(rc("Дапаглифлозин при хронической болезни почек", skipped).unmatched).toEqual(["иНГЛТ-2", "ХБП"]);
+    expect(rc("Дапаглифлозин при хронической болезни почек", skipped).unmatched).toEqual(["дапаглифлозин", "хронической болезни почек"]);
     expect(home("Эмпаглифлозин при ХСН: дозировка").conditions).toContain("иНГЛТ-2");
   });
 });
@@ -1102,6 +1104,14 @@ describe("Round 22: a plan never below two steps; «события» by meaning 
     expect(home("Систолическое АД выше 140")).toEqual(["систолическое АД выше 140"]);
     expect(home("Статины после 75 лет")).toEqual(["после 75 лет"]);
   });
+  it("N21-05 (B): hypoglycaemia, insulin therapy, MI («ИМ», never the pronoun «им») and CABG are searched; a version is one word", () => {
+    expect(searchConditions(compileIntent("Гипогликемические события при инсулинотерапии", "endocrinology"))).toEqual(expect.arrayContaining(["гипогликемия", "инсулинотерапия"]));
+    expect(searchConditions(compileIntent("Гипогликемические события после ИМ", "cardiology"))).toContain("инфаркт миокарда (ИМ)");
+    expect(searchConditions(compileIntent("Можно ли им назначать статины", "cardiology"))).not.toContain("инфаркт миокарда (ИМ)");
+    expect(searchConditions(compileIntent("События после АКШ", "cardiology"))).toContain("АКШ");
+    expect(home("ИМ 2 типа")).toEqual(["ИМ 2 типа"]);
+    expect(home("Рекомендации ESC v2.0")).toEqual(["v2.0"]);
+  });
   it("N22-04 (B): «приёма» after «на фоне» and «без» is the drug's context; «время приёма» is named", () => {
     expect(home("Кровотечения на фоне приёма апиксабана")).toEqual([]);
     expect(home("Инсульт без приёма антикоагулянтов при ФП")).toEqual([]);
@@ -1114,5 +1124,53 @@ describe("Round 22: a plan never below two steps; «события» by meaning 
   it("N22-08 (B): «История» keeps the answer and the listing of the same words apart", () => {
     const run = (id: string, job: string, startedAt: string) => ({ id, trigger: "composer", status: "completed", intent: job, specialty: "cardiology", input: { text: "События после ЧКВ" }, startedAt } as unknown as AgentRun);
     expect(recentQuestions([run("a", "events", "2026-10-23T10:00:00Z"), run("b", "answer", "2026-10-23T10:01:00Z"), run("c", "events", "2026-10-23T10:02:00Z")]).map(item => item.id)).toEqual(["c", "b"]);
+  });
+});
+
+describe("Round 23: «события» by positive clinical signs, the way to the answer on top of any clinical listing; measures as written", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  const specialties = ["cardiology", "therapy", "endocrinology", "neurology", "pediatrics", "obgyn"];
+  const listing = (question: string, specialty: string) => routePortalIntent(question, specialty as never).job === "events";
+  it("N23-1 (A): a clinical question is an answer, or a listing with «Ответ по источникам» first", () => {
+    for (const question of ["Какие события при ФП учитывает ESC", "События в ближайший год после инфаркта", "Ближайшие события после ЧКВ", "Ближайшие события после ЧКВ: тромбоз стента", "События в ближайший месяц после инсульта", "События в ближайший месяц после родов", "Регистрация событий при ФП", "События после ТАВИ в 2025 году", "События при преэклампсии по ACOG"]) {
+      for (const specialty of specialties) expect(!listing(question, specialty) || eventsBridge(question, specialty as never) === "top", `${specialty}: ${question}`).toBe(true);
+    }
+    for (const question of ["Какие события при ФП учитывает ESC", "События в ближайший год после инфаркта", "События после ТАВИ в 2025 году"]) expect(listing(question, "cardiology"), question).toBe(false);
+    for (const question of ["Ближайшие события по ХСН", "Ближайшие события по СД 2 типа у детей", "Ближайшие события после Нового года", "Ближайшие события по ФП после 1 ноября", "События по ХСН в течение ноября", "События по кардиологии при поддержке РКО"]) expect(listing(question, "cardiology"), question).toBe(true);
+  });
+  it("N23-2 (A), N23-01 (B): any adjective, a schedule, a society or a field keeps the listing", () => {
+    for (const question of ["Грядущие события по ХСН", "Ближайшие очные события по ХСН", "Значимые события по АГ", "Аккредитованные события по ХСН", "Расписание событий по ХСН", "Посещение событий по ХСН", "События ОССН по ХСН", "События НМИЦ кардиологии", "События аритмологии", "События по беременности и родам", "Какие события по СД у детей", "События ХСН в ноябре", "Акушерские события", "Онлайн-события по ХСН"]) {
+      for (const specialty of specialties) expect(listing(question, specialty), `${specialty}: ${question}`).toBe(true);
+    }
+  });
+  it("N23-02 (B): clinical adjectives, trials, placebo and endpoints make a question", () => {
+    for (const question of ["Мозговые события у пожилых", "Инфекционные события", "Тератогенные события", "Моторные события во сне", "События в группе плацебо", "События на 1000 пациенто-лет", "События в РКИ по ХСН", "Конечные точки и события в DAPA-HF", "События ОНМК", "Сколько событий предотвращает статин"]) {
+      expect(listing(question, "cardiology"), question).toBe(false);
+    }
+  });
+  it("N23-3 (A), N23-03…N23-06 (B): «г/л», no lone «выше», «до/от» as written, «во время», a dash separates, a searched disease stays out of a date", () => {
+    expect(home("Гемоглобин менее 100 г/л при ХСН")).toEqual(["гемоглобин менее 100 г/л"]);
+    expect(home("Риск выше у пожилых с ФП")).toEqual([]);
+    expect(home("ЛПНП ниже целевого уровня")).toEqual(["ниже целевого уровня"]);
+    expect(home("Отмена апиксабана за 48 часов до операции")).toContain("48 часов до операции");
+    expect(home("Отказ от курения при ИБС")).toEqual(["отказ от курения"]);
+    expect(home("Во время приёма статинов")).toEqual([]);
+    expect(home("Детям старше 12 лет — по 10 мг один раз в сутки").join(" | ")).not.toContain("старше 10 мг");
+    expect(home("При массе тела 60 кг и менее — 2,5 мг")).toEqual(["массе тела 60 кг и менее", "2,5 мг"]);
+    expect(home("Ближайшие события по ФП после 1 ноября")).toContain("после 1 ноября");
+    expect(home("ИМТ 30 кг/м2 и выше")).toEqual(["ИМТ 30 кг/м2 и выше"]);
+  });
+  it("N23-4 (A) / N23-07 (B): no verified listing is said as it is, without «Повторить»; an excluded source is named under «ничего не найдено»", () => {
+    const listingRun = { status: "completed", plan: [], resultIds: [], experience: null, error: null, toolsUsed: [{ tool: "searchEvents", status: "unavailable", note: "Для этой специальности нет проверенной афиши событий" }, { tool: "matchPartnerContent", status: "ok", note: null }] };
+    expect(runOutcome(listingRun as never)).toMatchObject({ kind: "not_run", label: "Проверенной афиши пока нет" });
+    const excluded = { status: "completed", plan: [], resultIds: [], experience: null, error: null, toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }, { tool: "searchCatalog", status: "ok", note: null }] };
+    expect(runOutcome(excluded as never).note).toContain("PubMed исключён в вашем профиле");
+  });
+  it("a dropped concept is named in the physician's words, not by its name («апиксабан», not «антикоагулянты»)", () => {
+    const run = { input: { text: "Апиксабан, ривароксабан или дабигатран при ФП" }, plan: [], toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }], specialty: "cardiology" } as unknown as AgentRun;
+    expect(researchConditions(run).unmatched).toEqual(["апиксабан", "ривароксабан", "дабигатран"]);
   });
 });

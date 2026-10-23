@@ -10,7 +10,7 @@ import { diffManifests, isEmptyPatch } from "@/lib/mesh/patch";
 import { pinnedSession } from "@/lib/mesh/session-context";
 import { decideStrategy } from "@/lib/mesh/strategy";
 import type { PortalJob } from "@/lib/portal/jobs";
-import { EXCLUDED_IN_PROFILE } from "@/lib/portal/run-outcome";
+import { EXCLUDED_IN_PROFILE, NOT_FOR_SPECIALTY } from "@/lib/portal/run-outcome";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
@@ -437,8 +437,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     await deps.store.upsertResults(deps.sessionId, merged.results);
   }
   // The status reflects the executor's own sources; what the finishing step could read is reported per record.
-  // A source the physician excluded did not fail: the answer from the rest is complete.
-  run.status = executed.toolsUsed.some(use => (use.status === "unavailable" || use.status === "failed") && !EXCLUDED_IN_PROFILE.test(use.note ?? "")) ? "partial" : "completed";
+  // A source the physician excluded, or one that does not exist for the specialty yet, did not fail.
+  run.status = executed.toolsUsed.some(use => (use.status === "unavailable" || use.status === "failed") && !EXCLUDED_IN_PROFILE.test(use.note ?? "") && !NOT_FOR_SPECIALTY.test(use.note ?? "")) ? "partial" : "completed";
   run.completedAt = new Date().toISOString();
   run.durationMs = Date.now() - started;
   if (closed) {

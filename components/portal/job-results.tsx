@@ -7,9 +7,8 @@ import { stateForOrigin } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { researchOptionsForAnswerMode, type ResearchMode } from "@/lib/agents/research-options";
 import { hasStudyIdentifiers, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
-import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { SpecialtyId } from "@/lib/domain/types";
-import { namesListing } from "@/lib/portal/router";
+import { eventsBridge } from "@/lib/portal/router";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultList } from "@/components/workspace/result-card";
 import { StateBadge } from "./for-you";
@@ -167,19 +166,17 @@ export function JobResult({ job, run, results, partner, specialty, adapter, rese
 
   if (job === "events") {
     const covered = adapter.catalog;
-    // «события» may have meant outcomes, not conferences: the answer is one click away. Without a word of the
-    // listing itself (a date, «ближайшие», «конференции») the bridge comes first; with one, after the listing,
-    // and only when the request names a topic to answer about.
+    // «события» may have meant outcomes, not conferences: the answer is one click away — first when the request names
+    // no word of the listing or has a clinical sign, after the listing when it names the listing and a topic.
     const text = run.input.text?.trim() ?? "";
-    const events = /(?<![\p{L}])событи/iu.test(text);
-    const listing = namesListing(text);
+    const place = eventsBridge(text, specialty as SpecialtyId);
     const bridge = (place: "top" | "bottom") => <section className="pt-next" aria-labelledby={`pt-next-events-${place}`} data-bridge={place}>
       <h2 id={`pt-next-events-${place}`} className="pt-subtitle">Искали не мероприятия?</h2>
       <div className="pt-card-actions"><FollowupJobButton text={text} job="answer" label="Ответ по источникам" /></div>
     </section>;
     return <>
       {notices}
-      {events && !listing && bridge("top")}
+      {place === "top" && bridge("top")}
       <Synthesis text={run.synthesis} />
       {results.length > 0 && <>
         <p className="ws-muted">Даты, город и формат — как указано на странице организатора (снимок афиш от {formatDateRu(results[0].source.retrievedAt, { day: "numeric", month: "long" }) ?? ""}). Регистрация и календарь — только после вашего подтверждения; зарегистрировать вас продукт не может.</p>
@@ -187,7 +184,7 @@ export function JobResult({ job, run, results, partner, specialty, adapter, rese
       </>}
       {partner.length > 0 && <Section id="pt-partner" title="Партнёрский материал"><Cards results={partner} specialty={specialty} /></Section>}
       <Handoffs adapter={adapter} title={covered && results.length ? "Где ещё смотреть события" : "Календари организаторов"} />
-      {events && listing && topicsMentioned(specialty as SpecialtyId, text).length > 0 && bridge("bottom")}
+      {place === "bottom" && bridge("bottom")}
     </>;
   }
 

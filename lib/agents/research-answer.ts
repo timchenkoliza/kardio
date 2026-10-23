@@ -217,7 +217,21 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
   // Written as in «Искали по», so the two lists read alike.
   const used = (concept: PubmedConcept) => (!widened && searched.includes(concept)) || (pubmedUnused && behindTopic(concept));
-  const dropped = all.filter(concept => !used(concept)).map(label).filter(item => !conditions.some(condition => fold(condition) === fold(item)));
+  // Named in the physician's own words when the concept's name is not theirs («апиксабан», not «антикоагулянты»).
+  const written = (concept: PubmedConcept): string[] => {
+    const source = question.normalize("NFKC");
+    const words = fold(concept.label).split(/\s+/u).filter(word => word.length >= 4);
+    if (words.some(word => fold(source).includes(word.slice(0, Math.max(4, word.length - 3))))) return [label(concept)];
+    const found = [...fold(source).matchAll(new RegExp(concept.match.source, "gu"))].map(match => {
+      // The whole words the concept matched, as written («хронической болезни почек», «Lp(a)»).
+      const start = match.index ?? 0;
+      const end = start + match[0].length + (source.slice(start + match[0].length).match(/^[\p{L}\p{N}()-]*/u)?.[0].length ?? 0);
+      const text = source.slice(start, end).replace(/[-(]+$/u, "");
+      return /[A-Za-z]|\p{Lu}.*\p{Lu}/u.test(text) ? text : text.toLocaleLowerCase("ru-RU");
+    });
+    return found.length ? [...new Set(found)] : [label(concept)];
+  };
+  const dropped = all.filter(concept => !used(concept)).flatMap(written).filter(item => !conditions.some(condition => fold(condition) === fold(item)));
   // A word is known when the review accounts for it: its topics and the concepts it searched or names above, including
   // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
   const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");

@@ -189,7 +189,7 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
       push({ id: `${id}:${topic.id}`, label: topic.label, term: topic.pubmed, kind: "topic" });
     }
   }
-  for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value)) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });
+  for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value) || concept.cased?.test(text.normalize("NFKC"))) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });
   for (const drug of drugsIn(text)) push({ id: `drug:${drug.inn}`, label: drug.ru, term: `"${drug.inn}"[tiab]`, kind: "drug" });
   for (const qualifier of QUALIFIERS) if (qualifier.match.test(value) && concepts.length) push({ id: `concept:${qualifier.id}`, label: qualifier.label, term: qualifier.term, kind: "concept" });
   for (const population of POPULATIONS) if (population.match.test(value)) push({ id: `population:${population.id}`, label: population.label, term: population.term, kind: "population", ...(population.exclude ? { exclude: population.exclude } : {}) });

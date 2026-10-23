@@ -214,10 +214,12 @@ export interface PubmedConcept {
   label: string;
   match: RegExp;
   term: string;
+  /** An abbreviation that counts only as written in capitals («ИМ», not the pronoun «им»). */
+  cased?: RegExp;
 }
 
 const START = "(?<![\\p{L}\\p{N}])";
-const concept = (id: string, label: string, stems: string, term: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term });
+const concept = (id: string, label: string, stems: string, term: string, cased?: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term, ...(cased ? { cased: new RegExp(`${START}(?:${cased})(?![\\p{L}\\p{N}])`, "u") } : {}) });
 
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
@@ -234,13 +236,17 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("aldosterone_synthase", "ингибиторы альдостеронсинтазы", "баксдростат|лорундростат|альдостеронсинтаз", "baxdrostat[tiab] OR lorundrostat[tiab] OR \"aldosterone synthase\"[tiab]"),
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
   concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
+  concept("mi", "инфаркт миокарда (ИМ)", "инфаркт\\p{L}*\\s+миокард", "\"myocardial infarction\"[tiab]", "ИМ|ОИМ"),
+  concept("cabg", "АКШ", "акш|(?:аорто)?коронарн\\p{L}*\\s+шунтир|шунтирован", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
-  concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
+  concept("tavi", "TAVI", "tavi|тави|тавр|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
   concept("ckd", "ХБП", "хбп|почечн|рскф|(?:хроническ\\p{L}*\\s+)?болезн\\p{L}*\\s+почек", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
   concept("dm1", "сахарный диабет 1 типа", "сд\\s*1(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+1(?:-?го)?\\s*тип\\p{L}*|1(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 1 diabetes\"[tiab]"),
   concept("dm2", "сахарный диабет 2 типа", "сд\\s*2(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+2(?:-?го)?\\s*тип\\p{L}*|2(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 2 diabetes\"[tiab]"),
   concept("diabetes", "сахарный диабет", "(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),
+  concept("hypoglycemia", "гипогликемия", "гипоглик", "hypoglyc*[tiab]"),
+  concept("insulin", "инсулинотерапия", "инсулинотерап|инсулин(?:а|у|ом|е|ы|ов)?(?![\\p{L}])", "insulin[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
   concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),
@@ -253,7 +259,7 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
 /** At most `limit` concepts go into one PubMed query (the research run's limit is 4). */
 export function pubmedConceptsIn(text: string, limit = 4): PubmedConcept[] {
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
-  const found = PUBMED_CONCEPTS.filter(item => item.match.test(normalized));
+  const found = PUBMED_CONCEPTS.filter(item => item.match.test(normalized) || Boolean(item.cased?.test(text.normalize("NFKC"))));
   // A stated diabetes type replaces the general concept: «type 1 diabetes», not any diabetes.
   const typed = found.some(item => item.id === "dm1" || item.id === "dm2");
   return found.filter(item => !(typed && item.id === "diabetes")).slice(0, limit);

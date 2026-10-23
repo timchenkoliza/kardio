@@ -53,40 +53,54 @@ const RULES: readonly Rule[] = [
 ];
 
 const EVENTS_WORD = re(`(?<![${L}])событи`);
-const CLINICAL_EVENTS = re(`(?:сосудист|неблагоприятн|нежелательн|коронарн|кардиальн|цереброваскулярн|аритмическ|почечн|тромботическ|тромбоэмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л)${L}*\\s+(?:${L}+\\s+)?событи|(?:риск|частот|числ)${L}*\\s+(?:${L}+\\s+){0,2}событи`);
+/**
+ * Clinical adjectives of «события»: only these make the events clinical («мозговые», «нежелательные»);
+ * any other adjective («грядущие», «очные», «акушерские») says nothing about it.
+ */
+const CLINICAL_ADJECTIVES = "сосудист|неблагоприятн|нежелательн|побочн|коронарн|кардиальн|сердечн|цереброваскулярн|церебральн|мозгов|интракраниальн|внутричерепн|аритмическ|аритмогенн|почечн|тромботическ|тромбоэмболическ|эмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л|эпилептическ|пароксизмальн|судорожн|неврологическ|моторн|инфекционн|тератогенн|дыхательн|респираторн|метаболическ|перинатальн|неонатальн|материнск|первичн|вторичн|конечн|ранн|поздн|остр|желудочно-кишечн|гастроинтестинальн|печ[её]ночн|летальн|фатальн|смертельн|ятрогенн|интраоперационн|послеоперационн|периоперационн|перипроцедурн|гипертензивн|гипотензивн|аллергическ|синкопальн|вегетативн|венозн|артериальн";
+const CLINICAL_EVENTS = re(`(?<![${L}])(?:${CLINICAL_ADJECTIVES})${L}*(?:-${L}+)?\\s+(?:(?:и|или)\\s+${L}+\\s+|${L}+\\s+)?событи|(?<![${L}])(?:риск|частот|числ|количеств)${L}*\\s+(?:${L}+\\s+){0,2}событи`);
 const MONTHS = `январ|феврал|март|апрел|ма[йяе](?![${L}])|июн|июл|август|сентябр|октябр|ноябр|декабр`;
 /**
- * The subject of a clinical question: a group of patients, a study or registry, the prognosis.
- * «события у детей с эпилепсией», «в регистре ХСН», «определяющие прогноз» — never the listing.
+ * The subject of a clinical question: a group of patients, a study, a trial or registry, the prognosis.
+ * «события у детей с эпилепсией», «в регистре ХСН», «в группе плацебо» — never the listing.
  */
-const CLINICAL_SUBJECT = re(`(?<![${L}])(?:у\\s+(?:пациент|больн|пожил|дет|ребен|беременн|женщин|мужчин|подростк|новорожд|недоношенн|младенц|взросл|спортсмен|лиц|людей)|(?:в лечени|в исследовани|по данным|беременност|прогноз|характерн|предиктор|исход|чаще|реже)${L}*|регистр(?:е|а|у|ы|ов|ом|ам|ах)?(?![${L}])|как\\s+событи|mace(?![${L}]))`);
+const CLINICAL_SUBJECT = re(`(?<![${L}])(?:у\\s+(?:пациент|больн|пожил|дет|ребен|беременн|женщин|мужчин|подростк|новорожд|недоношенн|младенц|взросл|спортсмен|лиц|людей)|(?:в лечени|в исследовани|по данным|беременност|прогноз|характерн|предиктор|исход|чаще|реже|плацебо|пациенто-лет|рки|со стороны|конечн${L}*\\s+точк|предотвращ|снижа|уменьша|увеличива|повыша|вызыва|провоциру)${L}*|регистр(?:е|а|у|ы|ов|ом|ам|ах)?(?![${L}])|как\\s+событи|(?:считать|учитывать|регистрировать)\\s+событи|mace(?![${L}]))`);
+/** A trial written as its acronym («DAPA-HF», «EMPEROR-Reduced»). */
+const TRIAL = /(?<![A-Za-z])[A-Z]{2,}[A-Z0-9]*-[A-Za-z0-9]+/u;
 /**
  * A clinical turn of the question: «события при ХСН», «после ЧКВ», «на фоне апиксабана».
- * A weak cue: a word of the listing itself (a month, «для кардиологов», «при поддержке РКО») outweighs it.
+ * «при поддержке», «после Нового года», «после 1 ноября», «в течение ноября» are dates and patrons, not turns.
  */
-const CLINICAL_TURN = re(`(?<![${L}])(?:при(?!\\s+(?:поддержк|участи|содействи|партн[её]рств))|после(?!\\s+(?:нового|новогодн|праздник|отпуск|конгресс|конференц))|на фоне|в течение(?!\\s+(?:${MONTHS}|эт|следующ|ближайш|текущ|недел|месяц|год))|следующ${L}*\\s+за)(?![${L}])`);
+const CLINICAL_TURN = re(`(?<![${L}])(?:при(?!\\s+(?:поддержк|участи|содействи|партн[её]рств))|после(?!\\s+(?:нового|новогодн|праздник|отпуск|выходн|конгресс|конференц|[0-9]))|на фоне|в течение(?!\\s+(?:${MONTHS}|эт|следующ|ближайш|текущ|недел|месяц|год))|следующ${L}*\\s+за)(?![${L}])`);
 /** Words that ask for the listing whatever else is said: «ближайшие события по СД 2 типа у детей» (not «в ближайшие 30 дней»). */
-const LISTING_STRONG = re(`(?<![${L}])(?:конференц|конгресс|вебинар|мероприят|календар|регистрац|зарегистр|посетить|афиш|(?:ближайш|предстоящ)${L}*\\s+(?:${L}+\\s+)?(?:событи|мероприят|конференц|конгресс))`);
-/** Words of the listing itself: a month or a near date, the audience, a supporting society. */
-const LISTING_CUE = re(`(?<![${L}])(?:${MONTHS}|(?:на|в)\\s+(?:эт|следующ|ближайш)${L}*\\s+(?:недел|месяц|год)|в\\s+20[0-9]{2}\\s+год|для\\s+(?:кардиолог|эндокринолог|невролог|терапевт|педиатр|гинеколог|акушер|врач|специалист|ординатор|студент|молод)|при\\s+(?:поддержк|участи|содействи|партн[её]рств))`);
-const SOCIETY = /(?<![A-Za-zА-ЯЁа-яё])(?:НМО|ВОЗ|РКО|РАЭ|РОАГ|РМОАГ|РНМОТ|ВНОК|РОНК|ESC|AHA|ACC|ADA|EASD|EHRA|HRS|EAN|ESH|EAS|ACOG|AAP)(?![A-Za-zА-ЯЁа-яё])/u;
-/** Adjectives that name the listing, its audience or nothing: «ближайшие события», «кардиологические события», «какие события». */
-const LISTING_ADJECTIVE = /^(?:подходящ|ближайш|предстоящ|главн|основн|важн|ключев|крупн|больш|интересн|ежегодн|международн|российск|всероссийск|региональн|научн|образовательн|медицинск|профессиональн|майск|весенн|осенн|летн|зимн|новогодн|онлайн|нов|свеж|последн|будущ|текущ|прошедш|прошл|следующ|кардиологическ|эндокринологическ|неврологическ|педиатрическ|терапевтическ|акушерск|гинекологическ|как|так|эт|те|все|люб|котор|ин|друг|сам|ваш|наш|мо|тво|чь|ваш)/u;
-const ADJECTIVE_ENDING = /(?:ые|ие|ых|их|ое|ее|ая|яя|ой|ей|ий|ый|ую|юю|ым|им|ыми|ими)$/u;
+const LISTING_STRONG = re(`(?<![${L}])(?:конференц|конгресс|вебинар|мероприят|календар|регистрац${L}*\\s+на|зарегистр|посетить|посещени|расписани|анонс|афиш|(?:ближайш|предстоящ|грядущ)${L}*\\s+(?:${L}+\\s+)?(?:событи|мероприят|конференц|конгресс))`);
+/** A month or a date, the audience, a patron: they keep the listing over a clinical turn («События при ФП в марте»). */
+const LISTING_DATE = re(`(?<![${L}])(?:${MONTHS}|для\\s+(?:кардиолог|эндокринолог|невролог|терапевт|педиатр|гинеколог|акушер|врач|специалист|ординатор|студент|молод)|при\\s+(?:поддержк|участи|содействи|партн[её]рств))`);
+/** Near dates («на этой неделе», «в 2026 году»): the listing's words unless a clinical turn names its subject («в ближайший год после инфаркта»). */
+const LISTING_NEAR = re(`(?<![${L}])(?:(?:на|в)\\s+(?:эт|следующ|ближайш)${L}*\\s+(?:недел|месяц|год)|в\\s+20[0-9]{2}\\s+год)`);
+const SOCIETY = /(?<![A-Za-zА-ЯЁа-яё])(?:НМО|ВОЗ|РКО|РАЭ|РОАГ|РМОАГ|РНМОТ|ВНОК|РОНК|ОССН|ЕОК|НМИЦ|ВНОА|ESC|AHA|ACC|ADA|EASD|EHRA|HRS|EAN|ESH|EAS|ACOG|AAP|ISTH)(?![A-Za-zА-ЯЁа-яё])/u;
 
-/**
- * «Церебральные события», «События ХСН»: an adjective of the events or a disease right after them
- * makes the question clinical; «Ближайшие события», «События по ХСН», «События ESC» do not.
- */
-function clinicalAdjective(value: string): boolean {
-  return [...value.matchAll(new RegExp(`(?<![${L}])(${L}+)\\s+событи`, "gu"))].some(match => ADJECTIVE_ENDING.test(match[1]) && !LISTING_ADJECTIVE.test(match[1]));
+/** «События по беременности»: the topic after «по» is the listing's subject; «по данным» is not a topic. */
+function withoutTopic(text: string): string {
+  return text.replace(/(?<![\p{L}])по\s+(?!данн)[\s\S]*$/iu, "");
 }
 
+/** The words a turn leads to name a disease, a procedure, a drug or a group («после ЧКВ», «при ФП», «после ИМ»). */
+function turnSubject(text: string, specialty: SpecialtyId): boolean {
+  for (const match of text.matchAll(new RegExp(CLINICAL_TURN.source, "giu"))) {
+    const after = text.slice((match.index ?? 0) + match[0].length).trim().split(/\s+/u).slice(0, 3).join(" ");
+    if (after && (drugsIn(after).length || topicsMentioned(specialty, after).length || conceptsIn(after, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept"))) return true;
+  }
+  return false;
+}
+
+/** «События ХСН», «События ОНМК»: a recognised disease right after «события», never any abbreviation («События ОССН»). */
 function namesDiseaseAfter(text: string, specialty: SpecialtyId): boolean {
   for (const match of text.matchAll(/(?<![\p{L}])событи\p{L}*\s+([\p{L}\p{N}-]+(?:\s+[\p{L}\p{N}-]+)?)/giu)) {
     const [first] = match[1].split(/\s+/u);
-    if (/^[А-ЯЁ]{2,6}[0-9]*$/u.test(first) && !SOCIETY.test(first)) return true;
-    if (/^\p{Ll}/u.test(first) && first.length > 3 && (topicsMentioned(specialty, match[1]).length || conceptsIn(match[1], specialty).length)) return true;
+    // A field («События аритмологии», «…кардиологии») is the listing's subject, not a disease.
+    if (first.length < 2 || /^(?:по|для|на|в|во|с|со|за|от|до|и|или)$/iu.test(first) || /логи[яиюей]$/iu.test(first) || SOCIETY.test(first)) continue;
+    if (topicsMentioned(specialty, first).length || conceptsIn(first, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept")) return true;
   }
   return false;
 }
@@ -94,22 +108,42 @@ function namesDiseaseAfter(text: string, specialty: SpecialtyId): boolean {
 /** The request names the listing itself: a date, «ближайшие», the audience, a supporting society. */
 export function namesListing(text: string): boolean {
   const value = normalizeQuery(text);
-  return LISTING_STRONG.test(value) || LISTING_CUE.test(value) || SOCIETY.test(text);
+  return LISTING_STRONG.test(value) || LISTING_DATE.test(value) || LISTING_NEAR.test(value) || SOCIETY.test(text);
 }
 
 /**
- * «события» are the events listing unless the question is clinical. A drug or a clinical adjective make it a
- * question; «ближайшие», «конференции», «календарь» make it the listing; then a group of patients, a registry or
- * a disease named right after «события» make it a question; «при/после/в течение» do too, unless the request
- * also names the listing (a month, the audience, a supporting society).
+ * «события» are the events listing unless the question is clinical, by positive signs only:
+ * 1. a drug or a clinical adjective («мозговые», «нежелательные») — a question;
+ * 2. «ближайшие события», «конференции», «расписание», «календарь» — the listing;
+ * 3. outside the topic after «по»: a group of patients, a study or registry, the prognosis — a question;
+ *    a recognised disease right after «события» — a question unless a month, the audience or a patron is named;
+ *    a turn to a recognised subject («после ЧКВ», «при ФП») — a question unless a month, the audience or a patron is named;
+ *    a bare turn («при», «после») — a question unless the request names the listing in any way;
+ * 4. anything else — the listing.
  */
 export function eventsAreListing(text: string, specialty: SpecialtyId): boolean {
   const value = normalizeQuery(text);
   if (!EVENTS_WORD.test(value) || drugsIn(text).length) return false;
-  if (CLINICAL_EVENTS.test(value) || clinicalAdjective(value)) return false;
+  if (CLINICAL_EVENTS.test(value)) return false;
   if (LISTING_STRONG.test(value)) return true;
-  if (CLINICAL_SUBJECT.test(value) || namesDiseaseAfter(text, specialty)) return false;
-  return !CLINICAL_TURN.test(value) || namesListing(text);
+  const scoped = withoutTopic(text);
+  const scopedValue = normalizeQuery(scoped);
+  if (CLINICAL_SUBJECT.test(scopedValue) || TRIAL.test(scoped)) return false;
+  const dated = LISTING_DATE.test(value);
+  if (namesDiseaseAfter(scoped, specialty) || turnSubject(scoped, specialty)) return dated;
+  return !CLINICAL_TURN.test(scopedValue) || namesListing(text);
+}
+
+/**
+ * Where the listing shows «Искали не мероприятия? → Ответ по источникам»: first when the request names no word of
+ * the listing or has any clinical sign; after the listing when it names the listing and a topic; otherwise nowhere.
+ */
+export function eventsBridge(text: string, specialty: SpecialtyId): "top" | "bottom" | null {
+  const value = normalizeQuery(text);
+  if (!EVENTS_WORD.test(value)) return null;
+  const clinical = CLINICAL_TURN.test(value) || CLINICAL_SUBJECT.test(value) || CLINICAL_EVENTS.test(value) || TRIAL.test(text) || namesDiseaseAfter(text, specialty);
+  if (!namesListing(text) || clinical) return "top";
+  return topicsMentioned(specialty, text).length || conceptsIn(text, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept") ? "bottom" : null;
 }
 
 const PRIORITY: readonly PortalJob[] = ["materials", "events", "learning", "guidelines", "drug", "research", "updates", "answer"];
