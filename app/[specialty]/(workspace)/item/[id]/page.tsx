@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { isRussian } from "@/lib/presentation/physician";
-import { isSpecialty, specialties } from "@/lib/specialty";
+import { isSpecialty } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
 import { CardMediaView, dateLabel, renderableMedia, TrustBadge } from "@/components/portal/for-you";
 import { SaveResultButton } from "@/components/portal/result-actions";
