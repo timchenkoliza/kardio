@@ -29,8 +29,14 @@ const ABBREVIATIONS: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/кардиоренал/u, ["поч"]],
 ];
 
-/** Russian adjective endings («катетерная», «сниженной», «внебольничных»). */
-const ADJECTIVE = /(?:ая|яя|ый|ий|ой|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ых|их|ую|юю)$/u;
+/**
+ * Qualifiers a searched concept already covers: «ablation[tiab]» finds catheter ablation, so «катетерная»
+ * before «абляция» is not a lost condition. A short explicit list — any other qualifier («пароксизмальная»,
+ * «резистентная», «интенсивное») is a condition of its own and is named when the search did not use it.
+ */
+const COVERED_QUALIFIERS: ReadonlyArray<[RegExp, readonly string[]]> = [
+  [/абляц/u, ["катетерн"]],
+];
 
 const stem = (word: string) => word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").slice(0, 5);
 
@@ -44,23 +50,21 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   const joined = conditions.join(" ").toLocaleLowerCase("ru-RU");
   const expanded = ABBREVIATIONS.filter(([pattern]) => pattern.test(joined)).flatMap(([, prefixes]) => prefixes);
   const viaAbbreviation = (word: string) => expanded.some(prefix => word.toLocaleLowerCase("ru-RU").startsWith(prefix));
+  const qualifiers = COVERED_QUALIFIERS.filter(([pattern]) => pattern.test(joined)).flatMap(([, prefixes]) => prefixes);
+  const qualifierCovered = (word: string) => qualifiers.some(prefix => word.startsWith(prefix));
   const phrases: string[] = [];
   // A run of unused words is one phrase; a phrase an abbreviation stands for («сниженной функцией почек» ↔ «ХБП») is used.
   let current: Array<{ word: string; abbreviated: boolean }> = [];
-  // An adjective right before a word the search used («катетерная аблация» → «абляция») qualifies it, it is not a lost condition.
-  const close = (beforeUsedWord = false) => {
-    const adjectivesOnly = current.length > 0 && current.every(item => ADJECTIVE.test(item.word));
-    if (current.length && !current.some(item => item.abbreviated) && !(beforeUsedWord && adjectivesOnly)) phrases.push(current.map(item => item.word).join(" "));
-    current = [];
-  };
+  const close = () => { if (current.length && !current.some(item => item.abbreviated)) phrases.push(current.map(item => item.word).join(" ")); current = []; };
   for (const [token] of question.matchAll(/[А-Яа-яЁёA-Za-z0-9-]+/gu)) {
     // Short words («и», «с», «по») neither start nor break a phrase.
     if (token.length < 4) continue;
     const lower = token.toLocaleLowerCase("ru-RU");
     // An abbreviation typed in capitals («ПОАК», «ХБП») and Latin words are resolved by the lexicon or searched as typed.
     const content = /^[А-Яа-яЁё]+$/u.test(token) && token !== token.toLocaleUpperCase("ru-RU") && !STOP.has(lower);
-    if (content && !covered.has(stem(token)) && !recognised(token, specialty)) current.push({ word: lower, abbreviated: viaAbbreviation(token) });
-    else close(content);
+    // A qualifier the searched concept already covers («катетерная» for «абляция») is used, like the concept itself.
+    if (content && !covered.has(stem(token)) && !recognised(token, specialty) && !qualifierCovered(lower)) current.push({ word: lower, abbreviated: viaAbbreviation(token) });
+    else close();
   }
   close();
   return [...new Set(phrases)].slice(0, 4);

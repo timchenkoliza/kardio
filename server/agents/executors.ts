@@ -1,4 +1,4 @@
-import { countLabel, matchedSource, outsideApprovedList } from "@/lib/agents/format";
+import { countLabel, matchedSource, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
@@ -287,7 +287,8 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const describeArticles = (items: unknown[]) => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + (concepts.length ? ` · запрос: ${concepts.map(item => item.label).join(", ")}` : "");
   let articles = builder.record("Искали публикации в PubMed", await tools.searchPubmed(ctx, { term, retmax: 6, journals }), describeArticles);
   let conceptMatched = concepts.length > 0;
-  if (!articles.length && conceptTerm && broadTerm && builder.toolsUsed.at(-1)?.status === "ok") {
+  // A PubMed skipped by the review's own filters («Только РФ») is not widened: there was no search to widen.
+  if (!articles.length && conceptTerm && broadTerm && builder.toolsUsed.at(-1)?.status === "ok" && !/PubMed пропущен/u.test(builder.toolsUsed.at(-1)?.note ?? "")) {
     articles = builder.record("Расширили поиск в PubMed до тем вопроса", await tools.searchPubmed(ctx, { term: broadTerm, retmax: 6, journals }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
     conceptMatched = false;
   }
@@ -328,7 +329,11 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);
   // Every record whose citation or text matched, with the check it still needs (the journal outside the physicians' list).
-  const keyFacts = drafts.filter(draft => draft.evidence.some(item => matchedSource(item.verificationStatus, [item]))).slice(0, 8).map(draft => `— ${truncate(draft.title, 120)} (${draft.source.source})${outsideApprovedList(draft.evidence) ? " · журнал вне списка врачей" : ""}`);
+  // Every record whose citation or text matched, each with the check its label names on screen («версию сверьте», «журнал вне списка врачей»).
+  const keyFacts = drafts.filter(draft => draft.evidence.some(item => matchedSource(item.verificationStatus, [item]))).map(draft => {
+    const checks = verificationLabelFor(weakestVerification(draft.evidence.map(item => item.verificationStatus)), draft.evidence).label.split(" · ").slice(1);
+    return `— ${truncate(draft.title, 120)} (${draft.source.source})${checks.length ? ` · ${checks.join(" · ")}` : ""}`;
+  });
   const synthesis = drafts.length
     ? [`По вопросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `Источник сверен:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
     : `По вопросу «${truncate(question, 120)}» в доверенных источниках ничего не найдено. Чего не хватает: ${gaps.join("; ")}.`;

@@ -58,7 +58,7 @@ const PROCEDURAL: ReadonlyArray<[RegExp, string]> = [
 ];
 
 /** Reasons that do say the statement and the source differ, or could only be compared in part. */
-const MISMATCH = /не полностью|не совпад|на разных языках|не содержит/iu;
+const MISMATCH = /совпадает с источником не полностью|не совпад|на разных языках|не содержит/iu;
 
 function reasonsOf(evidence: readonly { verificationNote?: string | null }[]): string[] {
   return evidence.flatMap(item => (item.verificationNote ?? "").split(/\.\s+/u).map(part => part.trim()).filter(Boolean));

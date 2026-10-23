@@ -31,6 +31,7 @@ import { conceptsForIntent, createPubmedAdapter } from "@/server/mesh/sources/pu
 import { resultCard, scenariosFor } from "@/server/portal/for-you";
 import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/topic-match";
 import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-answer";
+import { buildResearchExport, researchSourceBuckets } from "@/lib/agents/research-citations";
 import { specificTopicTerms } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
 import { ResearchComparison } from "@/components/workspace/research-comparison";
@@ -483,7 +484,7 @@ describe("Round 9: every place of the review says the same, by the reason a reco
   it("N8-1: the comparison, the run summary and the export count a matched citation as matched", () => {
     const citation = { claim: "Опубликовано: «Trial» — Eur Heart J", verificationStatus: "PARTIALLY_SUPPORTED" as const, verificationNote: "Не в белом списке врачей: PubMed — Каталог статей, не знак качества" };
     expect(matchedSource(citation.verificationStatus, [citation])).toBe(true);
-    expect(verificationSummary([{ evidence: [citation] } as unknown as Parameters<typeof verificationSummary>[0][number]])).toMatch(/^1 совпадают с источником \(у 1 — сверить версию, журнал или первоисточник\)$/u);
+    expect(verificationSummary([{ evidence: [citation] } as unknown as Parameters<typeof verificationSummary>[0][number]])).toBe("сверены данные публикации — 1; нужна сверка — журнал вне списка врачей: 1");
     const result = { id: "r", rank: 1, createdAt: "2026-10-23T00:00:00.000Z", title: "Trial", observedAt: "2026", attributes: {}, partner: null, kind: "research_finding", source: { publisher: "Eur Heart J", source: "PubMed", publishedAt: "2026" }, evidence: [{ ...citation, evidenceLevel: "peer_reviewed", confidence: 1 }], actions: [] } as unknown as Parameters<typeof ResearchComparison>[0]["results"][number];
     const html = renderToStaticMarkup(<ResearchComparison results={[result, { ...result, id: "r2", title: "Trial 2" }]} />);
     expect(html).toContain("Сверены данные публикации · журнал вне списка врачей");
@@ -493,5 +494,38 @@ describe("Round 9: every place of the review says the same, by the reason a reco
   it("N9-4: an adjective before a searched word is not a lost condition; a widened search names what it dropped", () => {
     expect(researchConditions({ input: { text: "Катетерная аблация при фибрилляции предсердий у пожилых" }, plan: [], specialty: "cardiology" } as unknown as AgentRun).unmatched).toEqual([]);
     expect(researchConditions({ input: { text: "ПОАК у пожилых с фибрилляцией предсердий" }, plan: [{ label: "Расширили поиск в PubMed до тем вопроса" }], specialty: "cardiology" } as unknown as AgentRun).unmatched).toEqual(expect.arrayContaining(["пожилые пациенты"]));
+  });
+});
+
+describe("Round 10: a qualifier is lost unless the concept covers it; the export names every matched record", () => {
+  it("N10-1: «пароксизмальная», «резистентная», «интенсивное снижение» are named; «катетерная» before «аблация» is not", () => {
+    const unmatched = (text: string) => researchConditions({ input: { text }, plan: [], specialty: "cardiology" } as unknown as AgentRun).unmatched;
+    expect(unmatched("Пароксизмальная фибрилляция предсердий")).toContain("пароксизмальная");
+    expect(unmatched("Резистентная артериальная гипертензия у пожилых")).toContain("резистентная");
+    expect(unmatched("Интенсивное снижение давления у пожилых").join(" ")).toMatch(/интенсивное снижение/u);
+    expect(unmatched("Катетерная аблация при фибрилляции предсердий у пожилых")).toEqual([]);
+  });
+
+  it("N8-1: every matched record is «used in the synthesis», whatever check it still needs", () => {
+    const record = (id: string, note: string | null) => ({ id, rank: Number(id.slice(1)), createdAt: "2026-10-23T00:00:00.000Z", evidence: [{ claim: `Опубликовано: «${id}» — J`, verificationStatus: note ? "PARTIALLY_SUPPORTED" : "SUPPORTED", verificationNote: note }] });
+    const results = [record("r1", null), record("r2", "Не в белом списке врачей: PubMed"), record("r3", "Актуальность версии требует проверки"), record("r4", null), record("r5", "Не в белом списке врачей: PubMed"), record("r6", null)] as unknown as Parameters<typeof researchSourceBuckets>[0];
+    const buckets = researchSourceBuckets(results, "brief");
+    expect(buckets.used).toHaveLength(6);
+    expect(buckets.additional).toHaveLength(0);
+  });
+});
+
+describe("Round 10 (IA): the export and the trace repeat the labels; a partial date is not a mismatch", () => {
+  it("N10-03: «Дата указана не полностью» is a check, not «частично»", () => {
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", [{ claim: "ESC 2026", verificationNote: "Вторичный источник; сверьте в первоисточнике: ESC. Дата указана не полностью" }]).label).toBe("Совпадает с источником · сверьте в первоисточнике · дата указана не полностью");
+  });
+
+  it("N10-01: each exported record carries its on-screen check; catalog cards from one page stay separate", () => {
+    const card = (id: string, title: string) => ({ id, rank: Number(id.slice(1)), createdAt: "2026-10-23T00:00:00.000Z", title, summary: "Рекомендации РКО", attributes: {}, source: { source: "Рекомендации РКО", sourceUrl: "https://scardio.ru/rekomendacii/rekomendacii_rko", retrievedAt: "2026-10-23T00:00:00.000Z" }, evidence: [{ claim: "Официальный материал РКО.", verificationStatus: "PARTIALLY_SUPPORTED", verificationNote: "Актуальность версии требует проверки" }] });
+    const run = { id: "run", input: { text: "ПОАК у пожилых" }, synthesis: null, completedAt: "2026-10-23T00:00:00.000Z", startedAt: "2026-10-23T00:00:00.000Z" } as unknown as AgentRun;
+    const text = buildResearchExport({ run, results: [card("r1", "Фибрилляция и трепетание предсердий"), card("r2", "Контроль безопасности антикоагулянтной терапии при ФП")] as unknown as Parameters<typeof buildResearchExport>[0]["results"], mode: "articles", citationStyle: "gost", bibliographyOrder: "appearance", includeBibliography: true, format: "markdown" });
+    expect(text).toContain("Проверка: Совпадает с источником · версию сверьте");
+    expect(text).toContain("Фибрилляция и трепетание предсердий");
+    expect(text.match(/Контроль безопасности антикоагулянтной терапии при ФП/gu)?.length).toBeGreaterThanOrEqual(2);
   });
 });

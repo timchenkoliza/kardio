@@ -59,7 +59,8 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
       return [{
         resultId: result.id,
         title: result.title,
-        source: result.source.publisher ?? result.source.source,
+        // The journal the check is about («European heart journal»), PubMed being only the way to it.
+        source: (typeof result.attributes.journal === "string" && result.attributes.journal) || result.source.publisher || result.source.source,
         date: result.observedAt ?? result.source.publishedAt,
         evidenceLevel: evidence.evidenceLevel,
         verificationStatus: evidence.verificationStatus,

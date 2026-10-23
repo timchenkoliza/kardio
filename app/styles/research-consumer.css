@@ -197,8 +197,9 @@
 .ws-research-table td strong a:hover { color: var(--ws-accent-ink); text-decoration: underline; }
 /* A verification label names its check («· журнал вне списка врачей»): it wraps inside its cell, never clipped. */
 .ws-research-table .ws-verify { white-space: normal; height: auto; padding-block: 2px; }
+.ws-verify svg { flex: none; }
 /* The type and check columns break between words («многоцентровое»), not inside them. */
-.ws-research-table td[data-label="Тип"], .ws-research-table td[data-label="Проверка"] { overflow-wrap: normal; hyphens: manual; }
+.ws-research-table td[data-label="Тип"], .ws-research-table td[data-label="Проверка"], .ws-research-table td[data-label="Источник"] { overflow-wrap: break-word; word-break: normal; hyphens: manual; }
 .ws-research-table td > span:not(.ws-verify) { display: block; margin-top: var(--ws-space-4); color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 
 @media (min-width: 760px) {
@@ -211,7 +212,10 @@
   .ws-research-filters label,
   .ws-research-filters select,
   .ws-research-filters .ws-text-link { width: 100%; }
+}
 
+/* The four-column table needs room: below a desktop width each record is a card with labelled fields (types and checks never squeeze into 87 px). */
+@media (max-width: 1023px) {
   .ws-research-table,
   .ws-research-table tbody,
   .ws-research-table tr,
