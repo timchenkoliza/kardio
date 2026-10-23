@@ -31,12 +31,14 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function DrugSinceLastVisit({ results, lastSeenAt, unchecked = [] }: { results: AgentResultView[]; lastSeenAt: string | null; unchecked?: readonly string[] }) {
-  // First view: everything found counts; afterwards only what is new since the last view (and the total is said too).
-  const fresh = lastSeenAt ? results.filter(result => result.newSinceLastSeen) : results;
+function DrugSinceLastVisit({ results, lastSeenAt, unchecked = [], firstCheck = false }: { results: AgentResultView[]; lastSeenAt: string | null; unchecked?: readonly string[]; firstCheck?: boolean }) {
+  // The first check counts everything it found (opening the page before it ran is not a «previous view»);
+  // afterwards only what is new since the last view, with the total said too.
+  const first = firstCheck || !lastSeenAt;
+  const fresh = first ? results : results.filter(result => result.newSinceLastSeen);
   return <section className="ws-since" aria-labelledby="ws-since-title">
-    <h2 id="ws-since-title">{lastSeenAt ? `С прошлого просмотра · ${formatRelativeRu(lastSeenAt)}` : "Первый просмотр: изменения за выбранный период"}</h2>
-    {lastSeenAt && results.length > 0 && <p className="ws-muted" data-total={results.length}>{nbsp(`${fresh.length ? "Новое ниже" : "Новых изменений нет"} · всего в последней проверке: ${results.length}`)}</p>}
+    <h2 id="ws-since-title">{first ? "Первая проверка: изменения за выбранный период" : `С прошлого просмотра · ${formatRelativeRu(lastSeenAt!)}`}</h2>
+    {!first && results.length > 0 && <p className="ws-muted" data-total={results.length}>{nbsp(`${fresh.length ? "Новое ниже" : "Новых изменений нет"} · всего в последней проверке: ${results.length}`)}</p>}
     <ul>{DRUG_CHANGE_TYPES.map(type => {
       // A category the check did not search (no topics) is «не проверялось», never a zero that reads as «изменений нет».
       if (unchecked.includes(type)) return <li key={type} data-unchecked="true"><strong>—</strong><span>{DRUG_CHANGE_LABEL[type].title} · не проверялось</span></li>;
@@ -78,6 +80,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const fromText = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? (await workspaceStore().getRun(sessionId, fromRunId))?.input.text ?? "" : "";
   const initialQuestion = fromText || first(query.q) || "";
   const monitoringOutcome = !onDemand && selectedRun ? runOutcome(selectedRun, { monitoring: tracksNew }) : null;
+  const firstCheck = !onDemand && runs.filter(run => run.trigger !== "composer").length <= 1;
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
     {sessionId && <SeenMarker agentId={agentId} />}
@@ -92,7 +95,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           : <>
             <p className="ws-agent-job">{definition.job}</p>
             <p className="ws-muted">{definition.description}</p>
-            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускался"} · {card.headline}</p>
+            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускалась"} · {firstCheck && selectedRun && results.length ? `Первая проверка: ${countLabel(results.length, ["находка", "находки", "находок"])}` : card.headline}</p>
           </>}
       </div>
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
@@ -110,12 +113,12 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       <span className="ws-run-status" data-tone={monitoringOutcome.tone}>{monitoringOutcome.label}</span>
       {monitoringOutcome.note && <p>{monitoringOutcome.note}</p>}
     </div>}
-    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) ? ["IMPORTANT_NEW_STUDY"] : []} />}
+    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} firstCheck={firstCheck} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) ? ["IMPORTANT_NEW_STUDY"] : []} />}
 
     <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
-        {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
+        {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? <>Выберите темы в профиле — проверка запустится по ним. <Link className="ws-text-link" href={`/${specialty}/settings#topics`}>Выбрать темы</Link></> : "Проверка ещё не запускалась. Нажмите «Запустить сейчас»."}</p>) : <>
           {onDemand && <ResearchAnswerView run={selectedRun} results={researchResults} mode={researchView.mode} />}
           {onDemand && <ResearchMore run={selectedRun} results={researchResults} specialty={specialty} mode={researchView.mode} />}
 

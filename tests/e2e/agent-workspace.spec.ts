@@ -49,7 +49,7 @@ test("configuring topics runs the background checks behind «Для вас»", a
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {
   await setupInterests(page, ["Артериальная гипертензия", "Кардиомиопатии"]);
   await page.goto("/cardiology/agents/drugs");
-  await expect(page.getByRole("heading", { level: 2, name: /Первый просмотр|С прошлого просмотра/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /Первая проверка|С прошлого просмотра/ })).toBeVisible();
   const registration = page.locator(".ws-result").filter({ hasText: "Баксдростат зарегистрирован в России" });
   await expect(registration).toBeVisible();
   await registration.getByText(/Утверждения и источники/).click();
@@ -57,8 +57,9 @@ test("drug agent shows since-last-visit change detection with evidence", async (
   await expect(registration.getByRole("link", { name: /Коммерсантъ/ }).first()).toHaveAttribute("href", "https://www.kommersant.ru/doc/8956362");
   await page.waitForTimeout(2000);
   await page.reload();
-  await expect(page.getByRole("heading", { level: 2, name: /С прошлого просмотра/ })).toBeVisible();
-  await expect(page.locator(".ws-since li.has-items")).toHaveCount(0);
+  // Until a second check runs, the counts describe the first check: never «0» next to the registration listed below (D-5).
+  await expect(page.getByRole("heading", { level: 2, name: /Первая проверка/ })).toBeVisible();
+  await expect(page.locator(".ws-since li.has-items").first()).toBeVisible();
 });
 
 test("events agent: discovery → relevance → confirmed calendar file", async ({ page }) => {

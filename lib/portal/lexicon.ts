@@ -144,7 +144,7 @@ const MODIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term:
   { id: "prevention", label: "профилактика", match: /(?<![\p{L}])(?:профилакт|предупрежд\p{L}* развити)/u, term: "prevention[tiab] OR preventive[tiab] OR prophyla*[tiab]" },
   { id: "screening", label: "скрининг", match: /(?<![\p{L}])скрининг/u, term: "screening[tiab]" },
   { id: "diagnosis", label: "диагностика", match: /(?<![\p{L}])(?:диагности|критери\p{L}* диагноз|дифференциальн)/u, term: "diagnosis[tiab] OR diagnostic[tiab]" },
-  { id: "safety", label: "безопасность", match: /(?<![\p{L}])(?:безопасност|побочн|нежелательн|осложнени)/u, term: "safety[tiab] OR adverse[tiab]" },
+  { id: "safety", label: "безопасность", match: /(?<![\p{L}])(?:безопас|побочн|нежелательн|осложнени)/u, term: "safety[tiab] OR adverse[tiab]" },
   { id: "interactions", label: "взаимодействия", match: /(?<![\p{L}])взаимодейств/u, term: "interaction*[tiab]" },
   { id: "dose", label: "дозирование", match: /(?<![\p{L}])(?:дозир|доз[аыуеой]?(?![\p{L}]))/u, term: "dose[tiab] OR dosing[tiab] OR dosage[tiab]" },
   { id: "non_severe", label: "нетяжёлое течение", match: /(?<![\p{L}])(?:нетяж[её]л|не\s+тяж[её]л|л[её]гк\p{L}*\s+(?:течени|степен|форм))/u, term: "mild[tiab] OR \"non-severe\"[tiab] OR nonsevere[tiab] OR \"low-risk\"[tiab] OR outpatient*[tiab]" },

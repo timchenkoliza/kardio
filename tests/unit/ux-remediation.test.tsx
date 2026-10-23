@@ -79,7 +79,7 @@ describe("UX-03 the question's conditions reach the search", () => {
   });
   it("what was asked is kept as whole phrases, so a generic word never stands for it", () => {
     const groups = askedTerms(compileIntent(CAP, "therapy"));
-    expect(groups).toContainEqual(["duration", "short-course", "short course"]);
+    expect(groups.some(group => ["duration", "short-course", "short course", "shorter"].every(word => group.includes(word)))).toBe(true);
     expect(groups.flat()).not.toContain("course");
   });
   it("a widened search drops what was asked, never the population", () => {

@@ -89,11 +89,20 @@ export function topicTerms(intent: NormalizedIntent): string[] {
  * What the question asks about its topic («длительность», «нетяжёлое течение»), one word group per
  * modifier: a conclusion that speaks about it answers the question more directly than one that does not.
  */
+/** How conclusions word what was asked, beyond the search term itself. */
+const ASKED_FORMS: Record<string, readonly string[]> = {
+  "modifier:duration": ["shorter", "short course", " days", "-day", "длительн", " дней"],
+  "modifier:dose": ["dosing", "dosage", " mg"],
+  "modifier:safety": ["harm", "bleeding", "tolerab", "safe"],
+  "modifier:diagnosis": ["accuracy", "sensitivity", "specificity"],
+};
+
 export function askedTerms(intent: NormalizedIntent): string[][] {
   // Quoted phrases stay whole («short course»), so a generic word («course») never stands for the modifier.
   const words = (term: string) => [...term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z-]*)/gu)].map(match => (match[1] ?? match[2]).toLowerCase()).filter(word => word.length >= 4);
   // Only what is asked («длительность»), not the context it is asked in («антибиотики»): the context is already in the search.
-  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set(words(concept.term))]).filter(group => group.length);
+  // A conclusion says it in its own words («a shorter course», «5 days»), so each asked group also accepts those forms.
+  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set([...words(concept.term), ...(ASKED_FORMS[concept.id] ?? [])])]).filter(group => group.length);
 }
 
 /** The conditions the search actually used, in the physician's words (shown above the answer). */

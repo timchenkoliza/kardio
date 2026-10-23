@@ -7,5 +7,6 @@ const SHORT_WORD = /(^|[\s(«„])([A-Za-zА-Яа-яЁё]{1,3}) (?=\S)/gu;
 
 export function nbsp(text: string): string {
   // Run twice: consecutive short words («и в», «of the») overlap in one pass.
-  return text.replace(SHORT_WORD, "$1$2 ").replace(SHORT_WORD, "$1$2 ").replace(/ (—|–)/gu, " $1");
+  // A number keeps its unit or word on the same line («31 августа», «2026 года», «5 мг»).
+  return text.replace(SHORT_WORD, "$1$2 ").replace(SHORT_WORD, "$1$2 ").replace(/ (—|–)/gu, " $1").replace(/(\d) (?=[А-Яа-яЁёA-Za-z%°])/gu, "$1 ");
 }

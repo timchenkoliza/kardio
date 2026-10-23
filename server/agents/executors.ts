@@ -179,7 +179,7 @@ async function drugs(ctx: AgentContext): Promise<ExecutorResult> {
   const articles = builder.record("Искали новые рандомизированные исследования", await tools.searchPubmed(ctx, { term, ...window, retmax: 4, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
   const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(ctx), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
   const drafts = await finishWithChecks(builder, ctx, [...changes, ...drugStudyDrafts(ctx, articles), ...partner]);
-  builder.notices.push("Агент сообщает об изменениях и не подбирает терапию.");
+  builder.notices.push("Здесь только сообщения об изменениях: терапия не подбирается.");
   return { intent: "track_drugs", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
 }
 

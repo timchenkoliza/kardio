@@ -211,7 +211,7 @@ export function createPubmedAdapter(): SourceAdapter {
     if (!failure && !articles.length && broad) {
       const broader = await search(broad);
       if (broader.length) notes.push("совпадения всех терминов нет — показаны обзоры по части вопроса");
-      add(broader, "partial", [...modifiers.map(concept => concept.label), "часть темы вопроса"]);
+      add(broader, "partial", modifiers.map(concept => concept.label));
     }
     if (failure && !articles.length) {
       return emptyResult(request, { sourceId: "pubmed", outcome: /недоступ|unavailable/iu.test(failure) ? "unavailable" : "failed", status: report.status, execution: "api", started, errorCode: "pubmed_error", note: `PubMed: ${failure}` });

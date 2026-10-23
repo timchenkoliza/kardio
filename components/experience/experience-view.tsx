@@ -214,18 +214,29 @@ function Gaps({ graph }: { graph: EvidenceGraph }) {
  * a dropped condition is named, never left for the physician to work out.
  */
 function SearchConditions({ ctx }: { ctx: Ctx }) {
+  // Asked instruction sections count as conditions only where the instruction has them; missing ones are said.
+  const present = new Set(ctx.graph.claims.flatMap(claim => {
+    const document = ctx.index.document.get(claim.documentId);
+    if (!document || (document.kind !== "drug_instruction" && document.kind !== "drug_label")) return [];
+    return [drugSectionGroup(claim.chunkId ? ctx.index.chunk.get(claim.chunkId)?.heading : undefined)];
+  }));
+  const asked = ctx.askedSections.filter((group): group is DrugSectionGroup => (DRUG_SECTION_ORDER as readonly string[]).includes(group));
+  const base = ctx.graph.context.conditions ?? [];
+  const sectionLabel = (group: DrugSectionGroup) => DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU");
   const conditions = [
-    ...(ctx.graph.context.conditions ?? []),
-    ...ctx.askedSections.filter((group): group is DrugSectionGroup => (DRUG_SECTION_ORDER as readonly string[]).includes(group)).map(group => `раздел «${DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU")}»`),
+    ...base,
+    ...asked.filter(group => present.has(group) && !base.includes(sectionLabel(group))).map(group => `раздел «${sectionLabel(group)}»`),
     ...(ctx.comparison ? ["что изменилось между версиями"] : []),
   ];
+  const absent = asked.filter(group => !present.has(group));
   if (!conditions.length) return null;
   const continuation = ctx.run.input.continuation;
   const question = continuation ? `${continuation.question} ${continuation.steps?.join(" ") ?? ""} ${continuation.followup}` : ctx.run.input.text ?? "";
-  const missing = unmatchedWords(question, conditions);
+  const missing = unmatchedWords(question, conditions, ctx.run.specialty);
   return <p className="ws-muted pt-search-conditions" data-conditions={conditions.length} data-missing={missing.length || undefined}>
     {nbsp(`Искали по: ${conditions.join(" · ")}.`)}
-    {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
+    {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.map(phrase => `«${phrase}»`).join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
+    {absent.length > 0 && <> {nbsp(`В копии инструкции нет раздела ${absent.map(group => `«${sectionLabel(group)}»`).join(", ")} — полный текст в ГРЛС.`)}</>}
   </p>;
 }
 
@@ -282,7 +293,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         </li>;
       })}
     </ol>
-    {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — из расширенного поиска${unmatched ? ` без условия «${unmatched}»` : ""}: они ниже, в разделе «Шире вопроса», и в этот вывод не вошли.`)}</p>}
+    {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — из расширенного поиска${unmatched ? ` без условия «${unmatched}»` : ""}: они ниже, в «Шире вопроса», и в этот вывод не вошли.`)}</p>}
     <Gaps graph={ctx.graph} />
   </section>;
 }
@@ -531,10 +542,12 @@ function Sources({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
         const outcomes = rows.filter(row => row.id === source.id).map(row => row.outcome);
         const outcome = outcomes.includes("ok") ? "ok" : outcomes[0];
         const count = ctx.graph.documents.filter(document => document.sourceId === source.id).length;
+        // A page that changed its structure is not «временно недоступен»: a repeat will not help until it is fixed.
+        const changed = (outcome === "failed" || outcome === "unavailable") && ctx.graph.gaps.some(gap => gap.includes(source.name.split(" (")[0]) && /изменилась/iu.test(gap));
         return <li key={source.id}>
           <span>{source.name}</span>
           <span className="ws-mode pt-state" data-state={source.status === "LIMITED" ? "LIVE" : source.status}>{STATUS_LABEL[source.status]}</span>
-          <span className="ws-muted">{OUTCOME_LABEL[outcome]}{outcome === "ok" && count ? `: ${count}` : ""}</span>
+          <span className="ws-muted">{changed ? "страница изменилась — сейчас не читается" : OUTCOME_LABEL[outcome]}{outcome === "ok" && count ? `: ${count}` : ""}</span>
         </li>;
       })}
     </ul>

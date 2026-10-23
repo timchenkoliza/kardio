@@ -22,6 +22,6 @@ export default async function ToolsPage({ params }: { params: Promise<{ specialt
     </header>
     {specialty === "cardiology"
       ? <CardiologyCalculators />
-      : <p className="ws-empty">{nbsp(`Калькуляторы для специальности «${specialties[specialty].name}» готовим. Пока задайте вопрос на главной — агенты найдут рекомендации и инструкции по теме.`)}</p>}
+      : <p className="ws-empty">{nbsp(`Калькуляторы для специальности «${specialties[specialty].name}» готовим. Пока задайте вопрос на главной — найдём рекомендации и инструкции по теме.`)}</p>}
   </div>;
 }

@@ -300,7 +300,9 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
   const isNew = (result: AgentResult) => Boolean(previousVisitAt) && result.createdAt > (previousVisitAt as string);
   const live = (result: AgentResult) => result.kind !== "event" || typeof result.attributes.endDate !== "string" || new Date(`${result.attributes.endDate}T23:59:59Z`).getTime() >= now.getTime();
 
-  const organic = withNewFlags(FEED_AGENTS.flatMap(agentId => currentResults(args.results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null)), profile)
+  // A switched-off check («Выключить проверку») contributes nothing to «Для вас».
+  const enabled = (agentId: AgentId) => profile.subscriptions[agentId]?.enabled !== false;
+  const organic = withNewFlags(FEED_AGENTS.filter(enabled).flatMap(agentId => currentResults(args.results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null)), profile)
     .filter(result => !result.partner && !result.dismissed && live(result) && result.category !== "needs_check");
   const seen = new Set<string>();
   const unique = organic.filter(result => {
@@ -320,7 +322,8 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
     .slice(0, 1)
     .map(result => resultCard(result, specialty, isNew(result), { used }));
 
-  const learningRun = args.runs.find(run => run.agentId === "learning" && run.status !== "running");
+  // The feed's learning step is the background check's, not an answer to a learning question (N-08).
+  const learningRun = enabled("learning") ? args.runs.find(run => run.agentId === "learning" && run.status !== "running" && run.trigger !== "composer") : undefined;
   // The learning step should add something: skip a reading already shown as an update card.
   const shownUrls = new Set(updates.map(card => card.source.url).filter(Boolean));
   const learning = learningRun ? currentResults(args.results.filter(result => result.agentId === "learning"), learningRun).filter(result => result.attributes.done !== true && !shownUrls.has(result.source.sourceUrl)).sort((a, b) => a.rank - b.rank)[0] : undefined;

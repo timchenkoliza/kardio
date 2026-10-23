@@ -170,7 +170,8 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null } };
     }
     case "recommendation_delta": {
-      const docs = graph.documents.filter(document => document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication").sort(byDate);
+      // A guideline publication from a widened search is not a version of the asked guideline: it goes to «Шире вопроса».
+      const docs = graph.documents.filter(document => (document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication") && document.attributes.questionMatch !== "partial").sort(byDate);
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       // Russian guideline: every statement about it; society summaries: the three most on-topic assertions (the rest is one click away).
@@ -194,7 +195,7 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
     }
     case "evidence": {
-      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
+      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && (graph.family !== "guidelines" || document.attributes.questionMatch === "partial"))).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       return { ...base, documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "review_conclusion").map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { language: "en" } };
