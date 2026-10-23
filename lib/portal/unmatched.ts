@@ -29,6 +29,9 @@ const ABBREVIATIONS: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/кардиоренал/u, ["поч"]],
 ];
 
+/** Russian adjective endings («катетерная», «сниженной», «внебольничных»). */
+const ADJECTIVE = /(?:ая|яя|ый|ий|ой|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ых|их|ую|юю)$/u;
+
 const stem = (word: string) => word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").slice(0, 5);
 
 function recognised(word: string, specialty: SpecialtyId): boolean {
@@ -44,7 +47,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   const phrases: string[] = [];
   // A run of unused words is one phrase; a phrase an abbreviation stands for («сниженной функцией почек» ↔ «ХБП») is used.
   let current: Array<{ word: string; abbreviated: boolean }> = [];
-  const close = () => { if (current.length && !current.some(item => item.abbreviated)) phrases.push(current.map(item => item.word).join(" ")); current = []; };
+  // An adjective right before a word the search used («катетерная аблация» → «абляция») qualifies it, it is not a lost condition.
+  const close = (beforeUsedWord = false) => {
+    const adjectivesOnly = current.length > 0 && current.every(item => ADJECTIVE.test(item.word));
+    if (current.length && !current.some(item => item.abbreviated) && !(beforeUsedWord && adjectivesOnly)) phrases.push(current.map(item => item.word).join(" "));
+    current = [];
+  };
   for (const [token] of question.matchAll(/[А-Яа-яЁёA-Za-z0-9-]+/gu)) {
     // Short words («и», «с», «по») neither start nor break a phrase.
     if (token.length < 4) continue;
@@ -52,7 +60,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     // An abbreviation typed in capitals («ПОАК», «ХБП») and Latin words are resolved by the lexicon or searched as typed.
     const content = /^[А-Яа-яЁё]+$/u.test(token) && token !== token.toLocaleUpperCase("ru-RU") && !STOP.has(lower);
     if (content && !covered.has(stem(token)) && !recognised(token, specialty)) current.push({ word: lower, abbreviated: viaAbbreviation(token) });
-    else close();
+    else close(content);
   }
   close();
   return [...new Set(phrases)].slice(0, 4);

@@ -1,3 +1,4 @@
+import { matchedSource } from "./format";
 import type { AgentResult, AgentRun, VerificationStatus } from "./types";
 import type { ResearchMode } from "./research-options";
 
@@ -16,7 +17,8 @@ export interface ResearchSourceBuckets {
 }
 
 function isDirectlyUsedInSynthesis(result: AgentResult): boolean {
-  return result.evidence.some(item => item.verificationStatus === "SUPPORTED");
+  // A citation that matched its source counts, whatever check it still needs (journal, version): that is said on the record.
+  return result.evidence.some(item => matchedSource(item.verificationStatus, [item]));
 }
 
 /**

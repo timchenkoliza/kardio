@@ -195,6 +195,10 @@
 .ws-research-table td strong { display: block; font-weight: var(--font-weight-semibold); }
 .ws-research-table td strong a { display: inline-flex; align-items: center; gap: 3px; color: var(--ws-text); text-decoration: none; }
 .ws-research-table td strong a:hover { color: var(--ws-accent-ink); text-decoration: underline; }
+/* A verification label names its check («· журнал вне списка врачей»): it wraps inside its cell, never clipped. */
+.ws-research-table .ws-verify { white-space: normal; height: auto; padding-block: 2px; }
+/* The type and check columns break between words («многоцентровое»), not inside them. */
+.ws-research-table td[data-label="Тип"], .ws-research-table td[data-label="Проверка"] { overflow-wrap: normal; hyphens: manual; }
 .ws-research-table td > span:not(.ws-verify) { display: block; margin-top: var(--ws-space-4); color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 
 @media (min-width: 760px) {

@@ -1,4 +1,4 @@
-import { countLabel } from "@/lib/agents/format";
+import { countLabel, matchedSource, outsideApprovedList } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
@@ -327,9 +327,10 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     "Полные тексты статей не загружались — выводы исследований не пересказываются",
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);
-  const keyFacts = drafts.filter(draft => draft.evidence.some(item => item.verificationStatus === "SUPPORTED")).slice(0, 4).map(draft => `— ${truncate(draft.title, 120)} (${draft.source.source})`);
+  // Every record whose citation or text matched, with the check it still needs (the journal outside the physicians' list).
+  const keyFacts = drafts.filter(draft => draft.evidence.some(item => matchedSource(item.verificationStatus, [item]))).slice(0, 8).map(draft => `— ${truncate(draft.title, 120)} (${draft.source.source})${outsideApprovedList(draft.evidence) ? " · журнал вне списка врачей" : ""}`);
   const synthesis = drafts.length
-    ? [`По вопросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `С подтверждённым источником:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
+    ? [`По вопросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `Источник сверен:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
     : `По вопросу «${truncate(question, 120)}» в доверенных источниках ничего не найдено. Чего не хватает: ${gaps.join("; ")}.`;
   builder.note("Собрали проверяемый обзор", "Только найденное, с источниками; без выводов сверх них");
   return { intent: "research_question", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };

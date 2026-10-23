@@ -44,22 +44,47 @@ export function outsideApprovedList(evidence: readonly { verificationNote?: stri
 }
 
 /**
+ * Why a record that matched its source was still marked «частично», in the fact check's own reasons
+ * (server/agents/services/fact-check.ts). None of these says the text differs from the source.
+ */
+const PROCEDURAL: ReadonlyArray<[RegExp, string]> = [
+  [/^Карточка составлена по документу/u, "карточка по документу — сверьте с полным текстом"],
+  [/^Есть более новая версия документа/u, "есть более новая версия"],
+  [/^Актуальность версии требует проверки/u, "версию сверьте"],
+  [/^Архивный материал/u, "архивный материал"],
+  [/^Дата указана не полностью/u, "дата указана не полностью"],
+  [/^Вторичный источник/u, "сверьте в первоисточнике"],
+  [/^Не в белом списке врачей/u, "журнал вне списка врачей"],
+];
+
+/** Reasons that do say the statement and the source differ, or could only be compared in part. */
+const MISMATCH = /не полностью|не совпад|на разных языках|не содержит/iu;
+
+function reasonsOf(evidence: readonly { verificationNote?: string | null }[]): string[] {
+  return evidence.flatMap(item => (item.verificationNote ?? "").split(/\.\s+/u).map(part => part.trim()).filter(Boolean));
+}
+
+/**
  * The verification label for what was actually checked. When only the
  * citation was compared with PubMed, the label says so, never «Совпадает с
- * текстом источника» — no text was read. A journal outside the physicians'
- * list is said as such, not as data that «совпадают частично».
+ * текстом источника» — no text was read. When the text matched but the record
+ * still needs a check (its version, the journal's standing, the primary
+ * source), the label says that check, never that the data «совпадают частично».
  */
 export function verificationLabelFor(status: VerificationStatus, evidence: readonly { claim: string; verificationNote?: string | null }[]): { label: string; tone: "supported" | "partial" | "unsupported" | "unknown" } {
-  if (isBibliographicOnly(evidence)) {
-    if (status === "SUPPORTED") return { label: "Сверены данные публикации", tone: "supported" };
-    if (status === "PARTIALLY_SUPPORTED") {
-      const mismatch = evidence.some(item => /не полностью|не совпад/iu.test(item.verificationNote ?? ""));
-      return outsideApprovedList(evidence) && !mismatch
-        ? { label: "Сверены данные публикации · журнал вне списка врачей", tone: "partial" }
-        : { label: "Данные публикации совпадают частично", tone: "partial" };
-    }
-  }
+  const reasons = reasonsOf(evidence);
+  const mismatch = reasons.some(reason => MISMATCH.test(reason));
+  const checks = [...new Set(reasons.flatMap(reason => PROCEDURAL.find(([pattern]) => pattern.test(reason))?.[1] ?? []))];
+  const base = isBibliographicOnly(evidence) ? "Сверены данные публикации" : "Совпадает с источником";
+  if (status === "SUPPORTED") return isBibliographicOnly(evidence) ? { label: base, tone: "supported" } : VERIFICATION_LABEL.SUPPORTED;
+  if (status === "PARTIALLY_SUPPORTED" && !mismatch && checks.length) return { label: `${base} · ${checks.slice(0, 2).join(" · ")}`, tone: "partial" };
+  if (status === "PARTIALLY_SUPPORTED" && isBibliographicOnly(evidence)) return { label: "Данные публикации совпадают частично", tone: "partial" };
   return VERIFICATION_LABEL[status];
+}
+
+/** A record whose text or citation matched its source, whatever procedural check it still needs. */
+export function matchedSource(status: VerificationStatus, evidence: readonly { claim: string; verificationNote?: string | null }[]): boolean {
+  return status === "SUPPORTED" || (status === "PARTIALLY_SUPPORTED" && !reasonsOf(evidence).some(reason => MISMATCH.test(reason)) && verificationLabelFor(status, evidence).label !== VERIFICATION_LABEL.PARTIALLY_SUPPORTED.label);
 }
 
 const VERIFICATION_ORDER: Record<VerificationStatus, number> = { SUPPORTED: 3, PARTIALLY_SUPPORTED: 2, UNKNOWN: 1, UNSUPPORTED: 0 };

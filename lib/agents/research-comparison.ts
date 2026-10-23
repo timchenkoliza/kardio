@@ -16,6 +16,8 @@ export interface ResearchComparisonColumn {
   date: string | null;
   evidenceLevel: string;
   verificationStatus: VerificationStatus;
+  /** The fact check's reasons, so the label says what was checked (citation, journal, version). */
+  verificationNote: string | null;
   claim: string;
   structured: ResearchStructuredEvidence | null;
   structuredCompleteness: number;
@@ -61,6 +63,7 @@ export function buildResearchComparison(results: readonly AgentResult[], limit =
         date: result.observedAt ?? result.source.publishedAt,
         evidenceLevel: evidence.evidenceLevel,
         verificationStatus: evidence.verificationStatus,
+        verificationNote: evidence.verificationNote ?? null,
         claim: evidence.claim,
         structured,
         structuredCompleteness: structuredEvidenceCompleteness(structured),

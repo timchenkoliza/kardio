@@ -1,5 +1,5 @@
 import { unmatchedWords } from "@/lib/portal/unmatched";
-import { countLabel, isBibliographicOnly, outsideApprovedList, verificationLabelFor } from "./format";
+import { countLabel, isBibliographicOnly, matchedSource, outsideApprovedList, verificationLabelFor } from "./format";
 import { pubmedConceptsIn, topicLabels, topicsMentioned } from "./vocabulary";
 import { researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
 import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "./study-identifiers";
@@ -181,9 +181,12 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const question = run.input.text ?? "";
   if (!question.trim()) return { conditions: [], unmatched: [] };
   const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label));
-  const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : pubmedConceptsIn(question).map(concept => concept.label))];
+  const concepts = pubmedConceptsIn(question).map(concept => concept.label.toLocaleLowerCase("ru-RU"));
+  const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : concepts)];
   const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
-  return { conditions, unmatched: conditions.length ? unmatchedWords(question, conditions, run.specialty) : [] };
+  // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
+  const dropped = widened ? concepts.filter(concept => !conditions.includes(concept)) : [];
+  return { conditions, unmatched: [...dropped, ...(conditions.length ? unmatchedWords(question, conditions, run.specialty) : [])] };
 }
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
@@ -212,7 +215,12 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const citationChecked = citationOnly.filter(result => verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).label.startsWith("Сверены данные публикации")).length;
   const outsideList = organic.filter(result => outsideApprovedList(result.evidence)).length;
   const quoted = withEvidence.filter(result => !isBibliographicOnly(result.evidence));
-  const quotedSupported = quoted.filter(result => result.evidence.every(item => item.verificationStatus === "SUPPORTED")).length;
+  const quotedLabel = (result: AgentResultView) => verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence);
+  const quotedMatched = quoted.filter(result => matchedSource(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence)).length;
+  // The checks still needed, as the labels name them («версию сверьте — 3», «карточка по документу — сверьте с полным текстом — 2»).
+  const checkCounts = new Map<string, number>();
+  for (const result of quoted) for (const check of quotedLabel(result).label.split(" · ").slice(1)) checkCounts.set(check, (checkCounts.get(check) ?? 0) + 1);
+  const quotedChecks = [...checkCounts.entries()].map(([check, count]) => `${check} — ${count}`);
   const designCounts = new Map<string, number>();
   for (const study of digests) {
     const design = primaryDesign(study.design);
@@ -225,7 +233,8 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     read.length ? `Прочитано: ${fullText ? `полный текст — ${fullText}` : ""}${fullText && read.length - fullText ? ", " : ""}${read.length - fullText ? `только аннотация — ${read.length - fullText}` : ""}.${withEffect ? " Цифры эффекта взяты из этого текста, у каждой есть цитата." : ""}` : null,
     // What was checked, in its own terms: citations against PubMed, quotes against the text; the journal's standing is said apart.
     citationOnly.length ? `Данные публикации сверены с PubMed — ${citationChecked} из ${citationOnly.length}${outsideList ? `; журнал вне списка, одобренного врачами, — ${outsideList}` : ""}.` : null,
-    quoted.length ? `Цитаты сверены с текстом источника: полностью — ${quotedSupported} из ${quoted.length}. Это сверка ссылок и цитат, а не оценка качества исследования.` : citationOnly.length ? "Это сверка ссылок, а не оценка качества исследования." : null,
+    quoted.length ? `Тексты и цитаты совпадают с источником — ${quotedMatched} из ${quoted.length}${quotedChecks.length ? `; ${quotedChecks.join(", ")}` : ""}.` : null,
+    citationOnly.length || quoted.length ? "Это сверка ссылок и текста, а не оценка качества исследования." : null,
   ].filter((value): value is string => Boolean(value));
 
   const limitations = [
@@ -233,7 +242,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
     digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
-    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
+    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами${outsideList ? ", и журналами источников из вашего профиля (приоритет в настройках — они помечены «журнал вне списка врачей»)" : ""}, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
     read.length ? "Выводы авторов приводятся на языке оригинала, перевода нет." : null,
   ].filter((value): value is string => Boolean(value));
 
@@ -265,7 +274,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   }
   const headline = [
     `Нашли ${countLabel(organic.length, ["публикацию", "публикации", "публикаций"])} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
-    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : "Тексты публикаций не читались — ниже только данные PubMed и каталога.",
+    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : (organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
   ].join(" ");
   return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched };
 }

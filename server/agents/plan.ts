@@ -1,4 +1,4 @@
-import { countLabel } from "@/lib/agents/format";
+import { countLabel, matchedSource } from "@/lib/agents/format";
 import type { PlanStep, RunExperience, ToolUse } from "@/lib/agents/types";
 import { topicLabels } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
@@ -43,11 +43,13 @@ export class PlanBuilder {
 
 export function verificationSummary(drafts: readonly ResultDraft[]): string {
   const evidence = drafts.flatMap(draft => draft.evidence);
-  const supported = evidence.filter(item => item.verificationStatus === "SUPPORTED").length;
-  const partial = evidence.filter(item => item.verificationStatus === "PARTIALLY_SUPPORTED").length;
+  // A record that matched its source but still needs a check (version, journal, primary source) is not «частично».
+  const matched = evidence.filter(item => matchedSource(item.verificationStatus, [item]));
+  const toCheck = matched.filter(item => item.verificationStatus !== "SUPPORTED").length;
+  const partial = evidence.filter(item => item.verificationStatus === "PARTIALLY_SUPPORTED" && !matched.includes(item)).length;
   const unknown = evidence.filter(item => item.verificationStatus === "UNKNOWN").length;
   const unsupported = evidence.filter(item => item.verificationStatus === "UNSUPPORTED").length;
-  return [`${supported} подтверждено`, partial ? `${partial} частично` : null, unknown ? `${unknown} не удалось проверить` : null, unsupported ? `${unsupported} не подтверждено` : null].filter(Boolean).join(", ");
+  return [`${matched.length} совпадают с источником${toCheck ? ` (у ${toCheck} — сверить версию, журнал или первоисточник)` : ""}`, partial ? `${partial} частично` : null, unknown ? `${unknown} не удалось проверить` : null, unsupported ? `${unsupported} не подтверждено` : null].filter(Boolean).join(", ");
 }
 
 export async function finishWithChecks(builder: PlanBuilder, ctx: AgentContext, drafts: ResultDraft[]): Promise<ResultDraft[]> {

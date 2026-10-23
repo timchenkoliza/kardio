@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
-import { VERIFICATION_LABEL, verificationLabelFor } from "@/lib/agents/format";
+import { matchedSource, VERIFICATION_LABEL, verificationLabelFor } from "@/lib/agents/format";
 import { defaultProfile, isRunDue } from "@/lib/agents/profile";
 import type { AgentRun } from "@/lib/agents/types";
 import { compileExperience } from "@/lib/mesh/compiler";
@@ -33,6 +33,8 @@ import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/topic-match"
 import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-answer";
 import { specificTopicTerms } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
+import { ResearchComparison } from "@/components/workspace/research-comparison";
+import { verificationSummary } from "@/server/agents/plan";
 import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
 import type { PageSnapshot } from "@/server/mesh/browser/drivers";
 import { respondToAsk } from "@/server/portal/manager";
@@ -467,5 +469,29 @@ describe("Round 8: labels say what was checked, the review names what it did not
   it("N8-4: the review table shows the design PubMed states", () => {
     const html = renderToStaticMarkup(<ResearchResultsTable results={[{ id: "r", title: "ARISTOTLE", summary: "Eur Heart J", kind: "research_finding", category: "publication", attributes: { publicationTypes: "Journal Article, Randomized Controlled Trial" }, evidence: [], source: { source: "PubMed" }, actions: [] } as unknown as Parameters<typeof ResearchResultsTable>[0]["results"][number]]} />);
     expect(html).toContain(">РКИ<");
+  });
+});
+
+describe("Round 9: every place of the review says the same, by the reason a record was marked", () => {
+  it("N9-1: a catalog card lowered only for its version reads «Совпадает с источником · версию сверьте»", () => {
+    const card = [{ claim: "Официальный материал РКО.", verificationNote: "Актуальность версии требует проверки" }];
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", card).label).toBe("Совпадает с источником · версию сверьте");
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", [{ claim: "Рекомендация", verificationNote: "Карточка составлена по документу — сверьте с полным текстом" }]).label).toMatch(/^Совпадает с источником · карточка по документу/u);
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", [{ claim: "Рекомендация", verificationNote: "Утверждение совпадает с источником не полностью" }]).label).toBe("Совпадает с источником частично");
+  });
+
+  it("N8-1: the comparison, the run summary and the export count a matched citation as matched", () => {
+    const citation = { claim: "Опубликовано: «Trial» — Eur Heart J", verificationStatus: "PARTIALLY_SUPPORTED" as const, verificationNote: "Не в белом списке врачей: PubMed — Каталог статей, не знак качества" };
+    expect(matchedSource(citation.verificationStatus, [citation])).toBe(true);
+    expect(verificationSummary([{ evidence: [citation] } as unknown as Parameters<typeof verificationSummary>[0][number]])).toMatch(/^1 совпадают с источником \(у 1 — сверить версию, журнал или первоисточник\)$/u);
+    const result = { id: "r", rank: 1, createdAt: "2026-10-23T00:00:00.000Z", title: "Trial", observedAt: "2026", attributes: {}, partner: null, kind: "research_finding", source: { publisher: "Eur Heart J", source: "PubMed", publishedAt: "2026" }, evidence: [{ ...citation, evidenceLevel: "peer_reviewed", confidence: 1 }], actions: [] } as unknown as Parameters<typeof ResearchComparison>[0]["results"][number];
+    const html = renderToStaticMarkup(<ResearchComparison results={[result, { ...result, id: "r2", title: "Trial 2" }]} />);
+    expect(html).toContain("Сверены данные публикации · журнал вне списка врачей");
+    expect(html).not.toContain("совпадают частично");
+  });
+
+  it("N9-4: an adjective before a searched word is not a lost condition; a widened search names what it dropped", () => {
+    expect(researchConditions({ input: { text: "Катетерная аблация при фибрилляции предсердий у пожилых" }, plan: [], specialty: "cardiology" } as unknown as AgentRun).unmatched).toEqual([]);
+    expect(researchConditions({ input: { text: "ПОАК у пожилых с фибрилляцией предсердий" }, plan: [{ label: "Расширили поиск в PubMed до тем вопроса" }], specialty: "cardiology" } as unknown as AgentRun).unmatched).toEqual(expect.arrayContaining(["пожилые пациенты"]));
   });
 });

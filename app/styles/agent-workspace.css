@@ -227,6 +227,8 @@
   line-height: var(--ws-leading-metadata);
   white-space: nowrap;
 }
+/* A verification label with its check («Сверены данные публикации · журнал вне списка врачей») wraps on a phone instead of leaving the card. */
+.ws-result-meta .ws-verify, .ws-evidence-item .ws-verify { white-space: normal; max-width: 100%; height: auto; }
 .ws-new,
 .ws-state-fresh { background: var(--ws-canvas); border: 1px solid var(--ws-accent-soft); color: var(--ws-accent-ink); }
 .ws-state-needs_setup { background: var(--ws-warning-soft); color: var(--ws-warning); }
