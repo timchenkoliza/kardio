@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { latinTermsIn } from "@/lib/portal/lexicon";
 import { SUGGESTIONS } from "@/lib/portal/suggestions";
 import { detectDomain } from "@/lib/mesh/domain-graph";
 import { ResearchAnswerView } from "@/components/workspace/research-answer";
@@ -850,5 +851,54 @@ describe("Round 17: compounds, sections and short Latin as the search used them"
   it("N17-4 (A): abbreviations keep their case in «Искали по» and «Не учтено» alike", () => {
     expect(rc("Дапаглифлозин при хронической болезни почек", skipped).unmatched).toEqual(["иНГЛТ-2", "ХБП"]);
     expect(home("Эмпаглифлозин при ХСН: дозировка").conditions).toContain("иНГЛТ-2");
+  });
+});
+
+describe("Round 18: each path counts the Latin its own query took; compounds only of «-терапия»; clinical «события» are a question", () => {
+  // As the home answer's SearchConditions does: the home query's Latin, and only when PubMed ran.
+  const home = (question: string, specialty = "cardiology", pubmedRan = true) => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: pubmedRan, latinQueried: new Set(latinTermsIn(question)) }) };
+  };
+  const ok = { tool: "searchPubmed", status: "ok", note: null };
+  const skipped = { tool: "searchPubmed", status: "ok", note: "PubMed пропущен" };
+  const rc = (text: string, use: unknown = ok, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [use], specialty } as unknown as AgentRun);
+  it("N18-1 (A) / N18-01 (B): the home answer names short Latin its query did not take", () => {
+    for (const pubmedRan of [true, false]) {
+      expect(home("Удлинение QT при ФП", "cardiology", pubmedRan).unmatched).toEqual(["удлинение QT"]);
+      expect(home("Фактор Xa при ФП", "cardiology", pubmedRan).unmatched).toEqual(["фактор Xa"]);
+      expect(home("AF у пожилых", "cardiology", pubmedRan).unmatched).toEqual(["AF"]);
+      expect(home("Витамин D3 при ХСН", "cardiology", pubmedRan).unmatched).toEqual(["витамин D3"]);
+      expect(home("Депрессия сегмента ST при ИБС", "cardiology", pubmedRan).unmatched).toEqual(["депрессия сегмента ST"]);
+    }
+    expect(home("ХСН NYHA II–III: дапаглифлозин").unmatched).toEqual(["NYHA II"]);
+    expect(home("Beta blockers in heart failure").unmatched).toEqual([]);
+    expect(home("Lp(a) при ИБС").unmatched).toEqual([]);
+    // The review's query takes «QT», «ST».
+    expect(rc("Депрессия сегмента ST при ИБС").unmatched).toEqual(["депрессия сегмента"]);
+  });
+  it("N18-2 (A) / N18-02 (B): only «-терапия» compounds a searched word; hyphenated words are not compounds", () => {
+    expect(home("Длительность антибиотикотерапии при внебольничной пневмонии", "therapy").unmatched).toEqual([]);
+    expect(home("Антибиотикорезистентность при внебольничной пневмонии", "therapy").unmatched).toEqual(["антибиотикорезистентность"]);
+    expect(home("Антибиотикопрофилактика инфекционного эндокардита", "therapy").unmatched).toEqual(["антибиотикопрофилактика"]);
+    expect(home("Сердечно-сосудистый риск при ХСН", "therapy").unmatched).toEqual(["сердечно-сосудистый"]);
+  });
+  it("N18-3 (A): «сердечно-сосудистые события» is a clinical question, not the events listing", () => {
+    for (const question of ["Сердечно-сосудистые события при ХСН", "Большие сердечно-сосудистые события при СД 2 типа", "Риск сердечно-сосудистых событий у пожилых", "Неблагоприятные сердечно-сосудистые события после ЧКВ"]) expect(compileIntent(question, "cardiology").job.primary).not.toBe("event_search");
+    expect(compileIntent("Конференции по ХСН", "cardiology").job.primary).toBe("event_search");
+  });
+  it("N18-4 (A) / N18-03 (B): a value after a searched term is named with it; ordinals stay whole", () => {
+    expect(home("ЛПНП 3,0 ммоль/л у пожилых").unmatched).toEqual(["ЛПНП 3,0 ммоль/л"]);
+    expect(home("Апиксабан 2,5 мг при ХБП").unmatched).toEqual(["апиксабан 2,5 мг"]);
+    expect(rc("СД 2-го типа у пожилых").unmatched).toEqual([]);
+    expect(rc("АВ-блокада 2-й степени").unmatched).toEqual(["АВ-блокада 2-й степени"]);
+  });
+  it("N18-5, N18-6 (A), N18-04…N18-06 (B): «A» is a word; «предупреждение инсульта» is not a section; a broader topic does not hide a concept", () => {
+    expect(rc("Расслоение аорты типа A").unmatched.join(" ")).toContain("A");
+    expect(home("Предупреждение инсульта при ФП: апиксабан").unmatched).toEqual(["предупреждение"]);
+    expect(rc("Антикоагулянты при ТЭЛА", skipped).unmatched).toContain("антикоагулянты");
+    expect(rc("ХБП при АГ", skipped).unmatched).toEqual([]);
+    // N18-05 (B): the home query takes «эдоксабан» through «антикоагулянты» (edoxaban[tiab]), so it is used.
+    expect(home("Апиксабан, ривароксабан, дабигатран или эдоксабан у пожилых с ФП").unmatched).not.toContain("эдоксабан");
   });
 });

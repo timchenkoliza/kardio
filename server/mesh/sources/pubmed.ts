@@ -164,7 +164,7 @@ export function createPubmedAdapter(): SourceAdapter {
     const report = await status();
     const { ctx, intent } = request;
     if (report.status === "UNAVAILABLE" || ctx.preference.excludedSources.includes("pubmed")) {
-      return emptyResult(request, { sourceId: "pubmed", outcome: "unavailable", status: "UNAVAILABLE", execution: "api", started, note: report.status === "UNAVAILABLE" ? report.reason : "PubMed исключён в ваших источниках" });
+      return emptyResult(request, { sourceId: "pubmed", outcome: "unavailable", status: "UNAVAILABLE", execution: "api", started, note: report.status === "UNAVAILABLE" ? report.reason : "PubMed исключён в вашем профиле" });
     }
     const concepts = conceptsForIntent(intent);
     const latin = intent.entities.latin;

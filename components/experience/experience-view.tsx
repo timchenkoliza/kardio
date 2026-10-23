@@ -9,6 +9,7 @@ import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
+import { latinTermsIn } from "@/lib/portal/lexicon";
 import { SUGGESTIONS } from "@/lib/portal/suggestions";
 import { runOutcome } from "@/lib/portal/run-outcome";
 import { unmatchedWords } from "@/lib/portal/unmatched";
@@ -232,7 +233,9 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
   if (!conditions.length) return null;
   const continuation = ctx.run.input.continuation;
   const question = continuation ? `${continuation.question} ${continuation.steps?.join(" ") ?? ""} ${continuation.followup}` : ctx.run.input.text ?? "";
-  const missing = unmatchedWords(question, conditions, ctx.run.specialty);
+  // Latin counts as searched only when PubMed ran, and only the words the home query takes (three letters and more).
+  const pubmedRan = ctx.graph.sources.some(source => source.id === "pubmed" && source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
+  const missing = unmatchedWords(question, conditions, ctx.run.specialty, undefined, { latinSearched: pubmedRan, latinQueried: new Set(latinTermsIn(question)) });
   return <p className="ws-muted pt-search-conditions" data-conditions={conditions.length} data-missing={missing.length || undefined}>
     {nbsp(`Искали по: ${conditions.join(" · ")}.`)}
     {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.map(phrase => `«${phrase}»`).join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
@@ -593,7 +596,7 @@ function Notices({ ctx }: { ctx: Ctx }) {
   // The question named a disease, drug or topic: asking to name one would contradict it.
   const named = (ctx.graph.context.conditions ?? []).length > 0;
   return <div className="pt-synthesis" data-module="notices">
-    {!ctx.graph.documents.length && !excluded && <p>{nbsp(named ? "Подходящих источников не нашлось." : `${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
+    {!ctx.graph.documents.length && !excluded && outcome.kind !== "source_error" && <p>{nbsp(named ? "Подходящих источников не нашлось." : `${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
     <Gaps graph={ctx.graph} />
   </div>;
 }

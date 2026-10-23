@@ -151,7 +151,7 @@ export type AskedSection = "contraindications" | "indications" | "dosing" | "int
 const ASKED_SECTIONS: ReadonlyArray<{ id: AskedSection; pattern: RegExp }> = [
   { id: "contraindications", pattern: new RegExp(`${L}противопоказ`, "u") },
   { id: "indications", pattern: new RegExp(`${L}показани`, "u") },
-  { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* приём)`, "u") },
+  { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* при[её]м)`, "u") },
   { id: "interactions", pattern: new RegExp(`${L}взаимодейств`, "u") },
   { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|предупрежден|особ\\p{L}* указани|передозир)`, "u") },
   { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|почк|почек|печёночн|печеночн|печен|пожил|дет(?:и|ей|ям|ск))`, "u") },
