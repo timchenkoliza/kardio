@@ -353,8 +353,11 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   // The last step says what actually happened: an answer, nothing found, sources that did not answer, or no search at all.
   const searched = graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
   const broken = graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"));
+  const excludedSources = [...new Set(plan.rejected.filter(item => /исключ[её]н в ваших источниках/u.test(item.reason)).map(item => registry[item.sourceId]?.name ?? item.sourceId))];
   const final: PlanStep = graph.documents.length
     ? { id: "", label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] }
+    : !intent.vague && !searched && !broken && excludedSources.length
+      ? { id: "", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: `Подходящие источники исключены в ваших источниках: ${excludedSources.join(", ")}. Включите их в профиле, чтобы проверить`, connectorIds: [] }
     : intent.vague || !searched && !broken
       ? { id: "", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "В вопросе не распознаны заболевание, препарат или тема — искать было нечего", connectorIds: [] }
       : broken && !searched

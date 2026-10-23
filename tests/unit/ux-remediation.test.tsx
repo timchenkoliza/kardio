@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { detectDomain } from "@/lib/mesh/domain-graph";
 import { ResearchAnswerView } from "@/components/workspace/research-answer";
 
 vi.mock("next/navigation", () => ({
@@ -629,8 +630,8 @@ describe("Round 14: the diabetes type is searched or named; written-out forms of
   it("N14-01 (B): hyphenated drugs, tests and phenotypes are named; understood compound terms are not", () => {
     expect(rc("Бета-блокаторы при ФП")).toEqual({ conditions: ["фибрилляция предсердий"], unmatched: ["бета-блокаторы"] });
     expect(rc("Бета-блокаторы при ХСН у пожилых").unmatched).toEqual(["бета-блокаторы"]);
-    expect(rc("Д-димер при ФП").unmatched).toEqual(["д-димер"]);
-    expect(rc("Стресс-ЭхоКГ при ИБС").unmatched).toEqual(["стресс-эхокг"]);
+    expect(rc("Д-димер при ФП").unmatched).toEqual(["Д-димер"]);
+    expect(rc("Стресс-ЭхоКГ при ИБС").unmatched).toEqual(["стресс-ЭхоКГ"]);
     expect(rc("ХСН-сФВ у пожилых")).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["ХСН-сФВ"] });
     expect(rc("Сердечно-сосудистый риск у пожилых", "therapy").unmatched).toEqual(["сердечно-сосудистый"]);
     expect(rc("Сердечно-сосудистый риск при СД2", "endocrinology").unmatched).toEqual(["сердечно-сосудистый"]);
@@ -655,5 +656,99 @@ describe("Round 14: the diabetes type is searched or named; written-out forms of
   });
   it("N13-04 rest (B): «АД» is arterial hypertension in therapy too", () => {
     expect(rc("Целевое АД у пожилых", "therapy")).toEqual({ conditions: ["артериальная гипертензия", "пожилые пациенты"], unmatched: ["целевое"] });
+  });
+});
+
+describe("Round 15: every written form of a word is a question word; what the review searched is what it says", () => {
+  const ok = { tool: "searchPubmed", connectorIds: ["pubmed"], modes: [], status: "ok", itemCount: 3, durationMs: 1, note: null };
+  const skipped = { ...ok, itemCount: 0, note: "PubMed пропущен: выбраны только источники РФ" };
+  const down = { ...ok, status: "unavailable", itemCount: 0 };
+  const rc = (text: string, use: unknown = ok, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [use], specialty } as unknown as AgentRun);
+  it("N15-01: Greek, digits and Latin are named when the search did not use them", () => {
+    for (const use of [ok, skipped, down]) {
+      expect(rc("β-блокаторы при ФП", use).unmatched).toEqual(["β-блокаторы"]);
+      expect(rc("Омега-3 при ИБС", use).unmatched).toEqual(["омега-3"]);
+      expect(rc("ИЛ-6 при ИБС", use).unmatched).toEqual(["ИЛ-6"]);
+      expect(rc("Тропонин-I при ИБС", use).unmatched).toEqual(["тропонин-I"]);
+      expect(rc("Ковид-19 и миокардит", use).unmatched).toContain("ковид-19");
+    }
+    expect(rc("арГПП-1 при ХСН").conditions).toContain("гпп-1");
+    expect(rc("Ингибиторы ПЦСК9 при ИБС").unmatched).toEqual([]);
+    // Latin words are searched as typed only by PubMed.
+    expect(rc("Dapagliflozin при ХСН").unmatched).toEqual([]);
+    expect(rc("NT-proBNP при ХСН").unmatched).toEqual([]);
+    expect(rc("Dapagliflozin при ХСН", skipped).unmatched).toEqual(["Dapagliflozin"]);
+    expect(rc("NT-proBNP при ХСН", down).unmatched).toEqual(["NT-proBNP"]);
+    expect(rc("иНГЛТ-2 при ХСН").unmatched).toEqual([]);
+    expect(rc("SCORE2 у пожилых").unmatched).toEqual([]);
+  });
+  it("N15-02: words the search understands are not named", () => {
+    expect(rc("Сердечно-сосудистая профилактика у пожилых").unmatched).toEqual([]);
+    expect(rc("Хроническая болезнь почек при ХСН").unmatched).toEqual([]);
+    expect(rc("Хроническая болезнь почек при АГ", skipped, "therapy")).toEqual({ conditions: ["артериальная гипертензия", "хроническая болезнь почек"], unmatched: [] });
+    expect(rc("Хроническая болезнь почек при АГ", ok, "therapy").conditions).toEqual(["артериальная гипертензия", "хроническая болезнь почек"]);
+    expect(rc("Ишемическая болезнь сердца у пожилых").unmatched).toEqual([]);
+    expect(rc("Гипертоническая болезнь у пожилых", ok, "therapy").unmatched).toEqual([]);
+  });
+  it("N15-03: «2» and «тип» alone are not type 2 diabetes", () => {
+    expect(topicsMentioned("therapy", "АВ-блокада 2 степени: тип Мобиц")).toEqual([]);
+    expect(topicsMentioned("therapy", "Пациенты 72 лет: тип телосложения")).toEqual([]);
+    expect(topicsMentioned("therapy", "Сахарный диабет 2 типа у пожилых")).toContain("dm2");
+  });
+  it("N15-04: a named concept is not repeated, and a concept cut by the query limit is named", () => {
+    expect(rc("Контроль АД при СД 2 типа", skipped).unmatched).toEqual(["сахарный диабет 2 типа", "контроль"]);
+    expect(rc("иАПФ или БРА при АГ с сахарным диабетом", skipped, "therapy").unmatched).toEqual(["сахарный диабет", "иАПФ", "БРА"]);
+    expect(rc("Пожилые с СД 2 типа, ХБП, ожирением на иНГЛТ-2 и статинах").unmatched).toContain("сахарный диабет 2 типа");
+  });
+  it("IA-3 (B, round 15): with PubMed down and nothing in the catalog, the screen still says by what the catalog was searched", () => {
+    const answer = buildResearchAnswer({ input: { text: "Бета-блокаторы при ФП" }, plan: [], toolsUsed: [down], specialty: "cardiology", status: "done", riskNotices: [] } as unknown as AgentRun, []);
+    expect(answer.kind).toBe("unavailable");
+    expect(answer).toMatchObject({ conditions: ["фибрилляция предсердий"], unmatched: ["бета-блокаторы"] });
+  });
+  it("N15-05: abbreviations keep their case; numbers and service words split phrases", () => {
+    expect(rc("КТ-ангиография при стабильной стенокардии").unmatched).toEqual(["КТ-ангиография", "стабильной"]);
+    expect(rc("АВ-блокада 2 степени: тип Мобиц", ok, "therapy").unmatched).toEqual(["АВ-блокада", "степени", "мобиц"]);
+  });
+});
+
+describe("Round 15 (A): understood words are never «не учтено»; ЛАГ is not АГ on the home answer", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never) };
+  };
+  const rc = (text: string, plan: unknown[] = []) => researchConditions({ input: { text }, plan, toolsUsed: [{ tool: "searchPubmed", status: "ok", note: null }], specialty: "cardiology" } as unknown as AgentRun);
+  it("N15-1: a word differing from a condition only by suffix is used; a different word sharing six letters is not", () => {
+    for (const question of ["Эмпаглифлозин при ХСН: дозировка", "Дозировки бисопролола при ХСН", "Безопасен ли апиксабан у пожилых", "Критерии диагноза ХСН"]) expect(home(question).unmatched).toEqual([]);
+    expect(rc("Дапаглифлозин при хронической болезни почек")).toEqual({ conditions: ["инглт-2", "хбп"], unmatched: [] });
+    expect(rc("Бета-блокаторы при ХСН").unmatched).toEqual(["бета-блокаторы"]);
+    expect(rc("Гипертрофия миокарда при АГ").unmatched).toEqual(["гипертрофия миокарда"]);
+    expect(home("Апиксабан у пожилых со сниженной функцией почек").unmatched).toEqual(["сниженной функцией почек"]);
+  });
+  it("N14-2 rest: the home answer does not take «лёгочная артериальная гипертензия» for arterial hypertension", () => {
+    expect(detectDomain("Лёгочная артериальная гипертензия у пожилых", "cardiology").nosology).toBeNull();
+    expect(detectDomain("Артериальная гипертензия у пожилых", "cardiology").nosology?.id).toBe("cardiology/arterial_hypertension");
+    expect(home("Лёгочная артериальная гипертензия у пожилых")).toEqual({ conditions: ["лёгочная гипертензия", "пожилые пациенты"], unmatched: [] });
+  });
+  it("N15-2: a phenotype the search narrowed to and the words of a searched term are used", () => {
+    expect(home("Эмпаглифлозин при ХСН-сФВ").unmatched).toEqual([]);
+    expect(home("Сердечно-сосудистый риск у пожилых").unmatched).toEqual([]);
+    expect(home("Сердечно-сосудистые заболевания и ХБП").unmatched).toEqual([]);
+  });
+  it("N15-3: a widened search names the dropped concepts once, without fragments", () => {
+    expect(rc("Статины при сахарном диабете 1 типа", [{ label: "Расширили поиск в PubMed до тем вопроса" }]).unmatched).toEqual(["статины", "сахарный диабет 1 типа"]);
+  });
+  it("N15-4: no unused phrase is cut silently", () => {
+    expect(rc("Бисопролол, карведилол или небиволол при ХСН, ФП и ХОБЛ: что безопаснее?").unmatched).toContain("безопаснее");
+  });
+  it("N15-7: «АД» next to «атопический» is not arterial hypertension", () => {
+    expect(home("Атопический дерматит (АД) у детей: эмоленты", "pediatrics").conditions).not.toContain("артериальная гипертензия");
+    expect(topicsMentioned("cardiology", "Целевое АД у пожилых")).toContain("ah");
+  });
+  it("N15-6: sources excluded in the profile are named as the reason no search ran", () => {
+    const step = { id: "step-3", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "Подходящие источники исключены в ваших источниках: PubMed. Включите их в профиле, чтобы проверить", connectorIds: [] };
+    const outcome = runOutcome({ status: "done", plan: [step], toolsUsed: [], resultIds: [], experience: null, error: null } as never);
+    expect(outcome.kind).toBe("not_run");
+    expect(outcome.note).toMatch(/исключены в ваших источниках: PubMed/u);
+    expect(outcome.note).not.toMatch(/не распознаны/u);
   });
 });

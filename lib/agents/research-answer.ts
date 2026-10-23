@@ -1,6 +1,6 @@
 import { unmatchedWords } from "@/lib/portal/unmatched";
 import { countLabel, isBibliographicOnly, matchedSource, outsideApprovedList, verificationLabelFor } from "./format";
-import { pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "./vocabulary";
+import { type PubmedConcept, pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "./vocabulary";
 import { researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
 import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "./study-identifiers";
 import type { AgentResultView, AgentRun, ResultAttributeValue, VerificationStatus } from "./types";
@@ -186,31 +186,39 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const question = run.input.text ?? "";
   if (!question.trim()) return { conditions: [], unmatched: [] };
   // A widened search and a skipped PubMed («Только РФ», «Только клинрекомендации») did not use the concepts: the catalog is searched by topic.
-  // PubMed skipped, excluded or down: the catalog is searched by topic, so the concepts were not used either.
-  const widened = (run.plan ?? []).some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
-  const concepts = pubmedConceptsIn(question).map(concept => concept.label.toLocaleLowerCase("ru-RU"));
-  const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : concepts)];
-  const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
+  // PubMed skipped, excluded or down: the catalog is searched by topic, so the concepts were not used either, nor were Latin words.
+  const pubmedUnused = (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
+  const widened = pubmedUnused || (run.plan ?? []).some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label));
+  const questionTopics = topicsMentioned(run.specialty, question);
+  const topicTerms = questionTopics.map(id => topicById(run.specialty, id)?.pubmed ?? "");
+  // A concept that is a question topic under another name («ХБП» and the topic «Хроническая болезнь почек») is that topic.
+  const sameAsTopic = (concept: PubmedConcept) => concept.term.split(" OR ").some(part => topicTerms.some(term => term.includes(part.trim())));
+  // The run's query takes at most 4 concepts; the rest were not searched and are named.
+  const searched = pubmedConceptsIn(question).filter(concept => !sameAsTopic(concept));
+  const all = pubmedConceptsIn(question, Infinity).filter(concept => !sameAsTopic(concept));
+  const label = (concept: PubmedConcept) => concept.label.toLocaleLowerCase("ru-RU");
+  const labels = [...topicLabels(run.specialty, questionTopics), ...(widened ? [] : searched.map(label))];
+  const conditions = [...new Set(labels.map(item => item.toLocaleLowerCase("ru-RU")))];
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
-  const dropped = widened ? concepts.filter(concept => !conditions.includes(concept)) : [];
-  // A word is known only when the review's own search understands it: its topics and PubMed concepts, including
+  // Named as written in the vocabulary («иНГЛТ-2», «ХБП»), not lower-cased.
+  const dropped = all.filter(concept => widened || !searched.includes(concept)).filter(concept => !conditions.includes(label(concept))).map(concept => concept.label);
+  // A word is known when the review accounts for it: its topics and the concepts it searched or names above, including
   // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
   const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
-  const questionTopics = topicsMentioned(run.specialty, question);
   const matchedParts = [
     // Only the keys that matched the question («митральн», not «аортальн стеноз» of the same topic).
     ...questionTopics.flatMap(id => topicById(run.specialty, id)?.keywords ?? [])
       .map(keyword => keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").split(" "))
       .filter(parts => parts.every(part => normalized.includes(part)))
       .flat(),
-    ...pubmedConceptsIn(question).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
+    ...pubmedConceptsIn(question, Infinity).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
   ].filter(part => part.length >= 4);
   const known = (word: string) => {
     const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
     // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
     return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => value.includes(part));
   };
-  return { conditions, unmatched: [...dropped, ...unmatchedWords(question, conditions, run.specialty, known)] };
+  return { conditions, unmatched: [...dropped, ...unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused })] };
 }
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
@@ -279,7 +287,8 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     const headline = excluded
       ? "PubMed исключён в источниках вашего профиля, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
       : `PubMed не ответил${note ? ` (${note.replace(/\.$/u, "")})` : ""}, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`;
-    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0 };
+    // The catalog was still searched by the question's topics: say by what.
+    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0, ...(named ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
   if (named) {
     const asked = describeStudyIdentifiers(identifiers);

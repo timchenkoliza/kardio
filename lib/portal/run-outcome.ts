@@ -42,6 +42,8 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   // The executor's own last step says «no search» explicitly; older runs only have the tool note.
   const planNotRun = run.plan.some(step => step.status === "skipped" && NOTHING_TO_SEARCH.test(`${step.label} ${step.detail ?? ""}`));
   const nothingToSearch = planNotRun || (run.toolsUsed.some(tool => NOTHING_TO_SEARCH.test(tool.note ?? "")) && !searched);
+  // The executor names sources the physician excluded when they were the only ones that could answer.
+  const excludedStep = run.plan.find(step => step.status === "skipped" && /исключены в ваших источниках/u.test(step.detail ?? ""));
 
   // Name what did not answer: «часть источников» does not tell the physician what is missing from the answer.
   const silent = graph ? [...new Set(graph.sources.filter(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable")).map(source => source.name))] : [];
@@ -52,6 +54,7 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
       ? { kind: "partial", label: "Готово частично", note: `${missing} — показано то, что дали остальные источники.${structural ? " Страница источника изменилась — повтор не поможет, пока это не исправят." : " Можно повторить позже."}`, tone: "warning", retryable: !structural }
       : { kind: "found", label: "Готово", note: null, tone: "ok" };
   }
+  if (excludedStep && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${excludedStep.detail}.`, tone: "warning" };
   if (nothingToSearch) return { kind: "not_run", label: "Проверка не выполнялась", note: options.monitoring ? "Не выбраны темы, по которым проверять. Выберите темы в настройках — проверка запустится." : "В запросе не распознаны заболевание, препарат или тема — искать было нечего.", tone: "warning" };
   if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger", retryable: !structural };
   if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning", retryable: !structural };
