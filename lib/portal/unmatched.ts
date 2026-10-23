@@ -43,9 +43,9 @@ const ABBREVIATIONS: ReadonlyArray<{ pattern: RegExp; words: readonly string[]; 
 const COVERED_QUALIFIERS: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/абляц/u, ["катетерн"]],
   // «"cardiovascular prevention"[tiab]» is the prevention topic's own term.
-  [/профилакт/u, ["сердечно-сосудист"]],
+  [/профилакт/u, ["сердечно-сосудист", "заболеван"]],
   [/pcsk9/u, ["ингибитор"]],
-  [/диагност/u, ["критери"]],
+  [/диагност/u, ["критери", "диагноз"]],
   // «Кардиоренальные связи» is searched as chronic kidney disease AND cardiovascular.
   [/кардиоренал/u, ["сердечно-сосудист", "заболеван"]],
 ];
@@ -56,7 +56,7 @@ const ABBREVIATION = /^[А-ЯЁ]{2,6}[0-9]*$/u;
 /** A word is named as typed for its abbreviations («Д-димер», «стресс-ЭхоКГ», «NT-proBNP»), in lower case otherwise («бета-блокаторы»). */
 function shown(token: string): string {
   if (/[A-Za-z]/u.test(token) && !/[А-Яа-яЁё]/u.test(token)) return token;
-  return token.split("-").map(part => /\p{Lu}.*\p{Lu}/u.test(part) || /^\p{Lu}$/u.test(part) ? part : part.toLocaleLowerCase("ru-RU")).join("-");
+  return token.split("-").map(part => /\p{Lu}.*\p{Lu}/u.test(part) || /^\p{Lu}$/u.test(part) || /[0-9]/u.test(part) ? part : part.toLocaleLowerCase("ru-RU")).join("-");
 }
 
 /** Heart-failure phenotypes: the topic «ХСН» finds them, but not narrowed to the phenotype. */
@@ -64,17 +64,46 @@ const PHENOTYPE = /^х?сн(?:н|с|ун|п|сн|р)?фв$/u;
 
 const fold = (word: string) => word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
 
+/** «профилактический» is the adjective of «профилактика», «кардиологический» of «кардиология». */
+const adjectiveAsNoun = (word: string) => word.replace(/ическ\p{L}*$/u, "ик");
+
 /**
- * A condition word covers words that differ from it only by ending and suffix («дозирование» → «дозировка»,
- * «безопасность» → «безопасен», «недостаточность» → «недостаточностью»): they share all but the last four letters
- * of the shorter one, and at least five. «Гипертензия» does not cover «гипертрофия»: they share six letters of eleven.
+ * A condition word covers its own forms («недостаточность» → «недостаточностью», «острый» → «острая»,
+ * «дозирование» → «дозировка», «профилактика» → «профилактические»): the shared stem covers all of the longer
+ * word but its last four letters, and at least five. A different word sharing a short stem is not covered:
+ * «артериальная» does not cover «артерии», «контрацепция» does not cover «контроль», «гипертензия» not «гипертрофия».
  */
 function sameStem(word: string, condition: string): boolean {
-  if (condition.length < 5 || word.length < 5) return word === condition;
+  if (word === condition) return true;
+  const [a, b] = [adjectiveAsNoun(word), adjectiveAsNoun(condition)];
   let common = 0;
-  while (common < word.length && common < condition.length && word[common] === condition[common]) common += 1;
-  return common >= Math.max(5, Math.min(word.length, condition.length) - 4);
+  while (common < a.length && common < b.length && a[common] === b[common]) common += 1;
+  const longer = Math.max(a.length, b.length);
+  // A short adjective or noun changes only its ending («острая» / «острый», «риск» / «риска»).
+  if (longer <= 7 && common >= 4 && common >= longer - 2) return true;
+  if (a.length < 5 || b.length < 5) return false;
+  return common >= Math.max(5, longer - 4);
 }
+
+/**
+ * Words of a drug-instruction section the search used («доза» for «дозирование», «побочные эффекты» for
+ * «безопасность»). A noun after a section word («эффекты», «явления», «действие») belongs to it.
+ */
+const SECTION_WORDS: ReadonlyArray<[RegExp, RegExp]> = [
+  [/^доз/u, /дозир/u],
+  [/^(?:побочн|нежелательн|безопас)/u, /безопасн/u],
+  [/^противопоказ/u, /противопоказ/u],
+  [/^взаимодейств/u, /взаимодейств/u],
+  [/^показани/u, /показани/u],
+];
+const SECTION_NOUN = /^(?:эффект|явлени|действи|реакци)/u;
+
+/** Which written form of a heart-failure phenotype a searched subtype covers. */
+const PHENOTYPE_SUBTYPE: ReadonlyArray<[RegExp, RegExp]> = [
+  [/^х?снсфв$/u, /сохраненн/u],
+  [/^х?сн(?:сн)?нфв$/u, /(?<!умеренно )сниженн/u],
+  [/^х?сн(?:ун|п)фв$/u, /умеренно сниженн|промежуточн/u],
+];
 
 /**
  * Words of a multi-word topic key found in the whole question, for the topics among the conditions:
@@ -118,7 +147,9 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   const phrases: string[] = [];
   // A run of unused words is one phrase; a phrase an abbreviation stands for («сниженной функцией почек» ↔ «ХБП») is used.
   let current: Array<{ word: string; abbreviated: boolean }> = [];
-  const close = () => { if (current.length && !current.some(item => item.abbreviated)) phrases.push(current.map(item => item.word).join(" ")); current = []; };
+  // A number belongs to the word after it («АВ-блокада 2 степени», «2 типа»).
+  let pendingNumber: string | null = null;
+  const close = () => { if (current.length && !current.some(item => item.abbreviated)) phrases.push(current.map(item => item.word).join(" ")); current = []; pendingNumber = null; };
   // Any letters count, Greek included («β-блокаторы»).
   const tokens = [...question.matchAll(/[\p{L}\p{N}-]+/gu)];
   // A disease-name word stands for the abbreviation only next to another word of the name or an abbreviation
@@ -126,6 +157,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   const nameNear = (index: number) => [tokens[index - 1]?.[0], tokens[index + 1]?.[0]]
     .some(near => near !== undefined && (inName(near.toLocaleLowerCase("ru-RU")) || ABBREVIATION.test(near)));
   let end = 0;
+  let afterSection = false;
   for (const [index, match] of tokens.entries()) {
     const token = match[0];
     const lower = token.toLocaleLowerCase("ru-RU");
@@ -134,7 +166,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     end = match.index + token.length;
     // An abbreviation typed in capitals («ИКД», «СРТ») is a condition of its own unless the lexicon or the conditions know it («ПОАК», «ХСН»).
     // A heart-failure phenotype («СНсФВ», «СНнФВ») finds heart failure, but the search does not narrow it to the phenotype: it is named.
-    if (PHENOTYPE.test(lower.replace(/-/gu, ""))) { close(); if (!/фракци/u.test(joined)) phrases.push(token); continue; }
+    if (PHENOTYPE.test(lower.replace(/-/gu, ""))) {
+      close();
+      const written = fold(lower.replace(/-/gu, ""));
+      if (!PHENOTYPE_SUBTYPE.some(([form, subtype]) => form.test(written) && subtype.test(fold(joined)))) phrases.push(token);
+      continue;
+    }
     if (ABBREVIATION.test(token)) {
       close();
       if (!STOP.has(lower) && !covered.has(token) && !joined.split(/[^а-яё0-9]+/u).includes(lower) && !understood(token)) phrases.push(token);
@@ -142,14 +179,24 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     }
     // A number, a conjunction or a service word («при», «для») separates two conditions («регургитация и стеноз», «АВ-блокада 2 степени»);
     // other short words («с», «по») neither start nor break a phrase.
-    if (/^[0-9-]+$/u.test(token) || /^(?:и|или|либо)$/u.test(lower) || STOP.has(lower)) { close(); continue; }
+    if (/^[0-9-]+$/u.test(token)) { pendingNumber = token; continue; }
+    const number = pendingNumber;
+    pendingNumber = null;
+    if (/^(?:и|или|либо)$/u.test(lower) || STOP.has(lower)) { close(); continue; }
     const latin = /[A-Za-z]/u.test(token) && !/[А-Яа-яЁё]/u.test(token);
-    if (latin && latinSearched) { close(); continue; }
+    // The PubMed query takes Latin words of three letters and more («Витамин D»: «D» is not in it).
+    if (latin && latinSearched && token.length >= 3) { close(); continue; }
+    // «доза» when the search used «дозирование», «побочные эффекты» when it used «безопасность».
+    const section: boolean = SECTION_WORDS.some(([form, condition]) => form.test(lower) && condition.test(joined)) || (afterSection && SECTION_NOUN.test(lower));
+    afterSection = section && !SECTION_NOUN.test(lower);
+    if (section) { close(); continue; }
     // A word with a digit or a hyphen («Омега-3», «ИЛ-6», «сердечно-лёгочная») is a word like any other.
-    if (token.length < 4 && !/[0-9-]/u.test(token) && !latin) continue;
+    if (token.length < 4 && !/[0-9-]/u.test(token) && !latin) { if (number && current.length) current.push({ word: number, abbreviated: false }); continue; }
     // A qualifier the searched concept already covers («катетерная» for «абляция») and the words of an abbreviated disease name are used.
-    if (!covered.has(token) && !understood(token) && !qualifierCovered(lower) && !(inName(lower) && nameNear(index))) current.push({ word: shown(token), abbreviated: viaAbbreviation(lower) });
-    else close();
+    if (!covered.has(token) && !understood(token) && !qualifierCovered(lower) && !(inName(lower) && nameNear(index))) {
+      if (number) current.push({ word: number, abbreviated: false });
+      current.push({ word: shown(token), abbreviated: viaAbbreviation(lower) });
+    } else close();
   }
   close();
   return [...new Set(phrases)];

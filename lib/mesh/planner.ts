@@ -113,7 +113,7 @@ export function planSources(args: {
       if (!operation) continue;
       if (!servesSpecialty(source, intent.context.specialty)) { rejected.push({ sourceId: source.id, requirement, reason: "источник не для этой специальности" }); continue; }
       if (!source.jobs.includes(intent.job.primary)) { rejected.push({ sourceId: source.id, requirement, reason: "источник не подходит для этой задачи" }); continue; }
-      if (excluded.has(source.connectorId) || excluded.has(source.id)) { rejected.push({ sourceId: source.id, requirement, reason: "исключён в ваших источниках" }); continue; }
+      if (excluded.has(source.connectorId) || excluded.has(source.id)) { rejected.push({ sourceId: source.id, requirement, reason: "исключён в вашем профиле" }); continue; }
       const status = args.statuses[source.id]?.status;
       if (status === "UNAVAILABLE") { rejected.push({ sourceId: source.id, requirement, reason: args.statuses[source.id]?.reason ?? "источник недоступен" }); continue; }
       pool.push({ source, operation });
@@ -142,7 +142,9 @@ export function planSources(args: {
       return;
     }
     if (!executable.length && !handoffs.length) {
-      if (required) unmet.push({ requirement, reason: `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
+      // A source the physician excluded is named as excluded, not as missing.
+      const excludedHere = rejected.some(item => item.requirement === requirement && item.reason === "исключён в вашем профиле");
+      if (required) unmet.push({ requirement, reason: `${excludedHere ? "источник исключён в вашем профиле" : "нет подключённого источника"}: ${REQUIREMENT_LABEL[requirement]}` });
       return;
     }
     // Optional evidence is added only when it is cheap, or is an official hand-off.

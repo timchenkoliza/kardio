@@ -99,7 +99,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
 
         <section className="pt-profile-card ws-validation" aria-labelledby="ws-validation-title">
           <h2 id="ws-validation-title">{nbsp("Источники, проверенные врачами")}</h2>
-          <p>{nbsp(`Список обновлён ${formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».`)}</p>
+          <p>{nbsp(`Список обновлён ${(formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt).replace(/\.$/u, "")}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».`)}</p>
           {(["approved", "conditional", "reviewed_not_whitelisted", "rejected"] as const).map(standing => <details key={standing} open={standing === "approved"}>
             <summary>{STANDING_GROUP_TITLE[standing]} · {validation[standing].length}</summary>
             <ul>{validation[standing].map(row => <li key={`${row.host}-${row.brand}`}><strong>{row.brand}</strong><span>{row.host}{row.condition ? ` · ${row.condition}` : ""}</span>{row.note && <span>{row.note}</span>}</li>)}</ul>

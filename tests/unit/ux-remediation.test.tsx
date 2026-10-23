@@ -707,7 +707,7 @@ describe("Round 15: every written form of a word is a question word; what the re
   });
   it("N15-05: abbreviations keep their case; numbers and service words split phrases", () => {
     expect(rc("КТ-ангиография при стабильной стенокардии").unmatched).toEqual(["КТ-ангиография", "стабильной"]);
-    expect(rc("АВ-блокада 2 степени: тип Мобиц", ok, "therapy").unmatched).toEqual(["АВ-блокада", "степени", "мобиц"]);
+    expect(rc("АВ-блокада 2 степени: тип Мобиц", ok, "therapy").unmatched).toEqual(["АВ-блокада 2 степени", "мобиц"]);
   });
 });
 
@@ -745,10 +745,56 @@ describe("Round 15 (A): understood words are never «не учтено»; ЛАГ
     expect(topicsMentioned("cardiology", "Целевое АД у пожилых")).toContain("ah");
   });
   it("N15-6: sources excluded in the profile are named as the reason no search ran", () => {
-    const step = { id: "step-3", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "Подходящие источники исключены в ваших источниках: PubMed. Включите их в профиле, чтобы проверить", connectorIds: [] };
+    const step = { id: "step-3", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "Подходящие источники исключены в вашем профиле: PubMed. Включите их, чтобы проверить", connectorIds: [] };
     const outcome = runOutcome({ status: "done", plan: [step], toolsUsed: [], resultIds: [], experience: null, error: null } as never);
     expect(outcome.kind).toBe("not_run");
-    expect(outcome.note).toMatch(/исключены в ваших источниках: PubMed/u);
+    expect(outcome.note).toMatch(/исключены в вашем профиле: PubMed/u);
     expect(outcome.note).not.toMatch(/не распознаны/u);
+  });
+});
+
+describe("Round 16: a word counts as used only when the search used it", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never) };
+  };
+  const ok = { tool: "searchPubmed", status: "ok", note: null };
+  const skipped = { tool: "searchPubmed", status: "ok", note: "PubMed пропущен" };
+  const rc = (text: string, use: unknown = ok) => researchConditions({ input: { text }, plan: [], toolsUsed: [use], specialty: "cardiology" } as unknown as AgentRun);
+  it("N16-1 (A): only the phenotype the search narrowed to is used; the other is named", () => {
+    expect(home("СНсФВ и СНнФВ: различия в лечении").unmatched).toEqual(["СНнФВ", "различия"]);
+    expect(home("ХСН-сФВ или ХСН-нФВ: дапаглифлозин").unmatched).toEqual(["ХСН-нФВ"]);
+    expect(home("Эмпаглифлозин при ХСН-сФВ").unmatched).toEqual([]);
+    expect(home("СНсФВ у пожилых: дапаглифлозин").unmatched).toEqual([]);
+  });
+  it("N16-2 (A): words of a drug-instruction section the search used are used", () => {
+    for (const question of ["Амиодарон: побочные эффекты", "Апиксабан: доза при ХБП", "Аторвастатин: дозы", "Бисопролол: доза у пожилых", "Профилактические дозы эноксапарина", "Амиодарон: нежелательные явления", "Апиксабан: побочное действие"]) expect(home(question).unmatched).toEqual([]);
+    expect(home("Острая сердечная недостаточность: диуретики").unmatched).toEqual(["диуретики"]);
+    expect(home("Бета-блокаторы при ХСН").unmatched).toEqual(["бета-блокаторы"]);
+    // On the review, where no section was searched, the same words are named.
+    expect(rc("Профиль безопасности статинов при ИБС").unmatched).toEqual(["профиль безопасности"]);
+  });
+  it("N16-01 (B) / N16-5 (A): a different word sharing a short stem is not covered", () => {
+    expect(rc("Гипертензия в лёгочной артерии").unmatched).toEqual(["артерии"]);
+    expect(rc("Стеноз почечной артерии при АГ").unmatched).toEqual(["стеноз", "артерии"]);
+    expect(rc("Контроль АД на фоне контрацепции").unmatched).toContain("контроль");
+    expect(rc("Тромбоз артерии при АГ").unmatched).toEqual(["тромбоз артерии"]);
+    expect(home("Эмпаглифлозин при ХСН: дозировка").unmatched).toEqual([]);
+    expect(home("Безопасен ли апиксабан у пожилых").unmatched).toEqual([]);
+  });
+  it("N16-4 (A): «ХБП» is not hidden behind the compound topic «Кардиоренальные связи»", () => {
+    expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("хбп");
+    expect(researchConditions({ input: { text: "Хроническая болезнь почек при АГ" }, plan: [], toolsUsed: [ok], specialty: "therapy" } as unknown as AgentRun).conditions).toEqual(["артериальная гипертензия", "хроническая болезнь почек"]);
+  });
+  it("N16-5 (A) / N16-02, N16-03 (B): a number stays with its word; a short Latin word not in the query is named", () => {
+    expect(rc("Инфаркт миокарда 2 типа").unmatched).toEqual(["2 типа"]);
+    expect(rc("Витамин D при ХСН").unmatched).toEqual(["витамин D"]);
+    expect(rc("Lp(a) при ИБС").unmatched).toEqual([]);
+    expect(rc("Lp(a) при ИБС", skipped).unmatched).toEqual(["липопротеин(а)"]);
+    expect(rc("Профилактика инсульта у пациентов с сердечно-сосудистыми заболеваниями").unmatched).toEqual([]);
+  });
+  it("N16-3 (A): sources excluded in the profile are the one reason, without a request to name a disease", () => {
+    const step = { id: "step-3", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "Подходящие источники исключены в вашем профиле: PubMed. Включите их, чтобы проверить", connectorIds: [] };
+    expect(runOutcome({ status: "done", plan: [step], toolsUsed: [], resultIds: [], experience: null, error: null } as never).note).toMatch(/^Подходящие источники исключены в вашем профиле: PubMed/u);
   });
 });

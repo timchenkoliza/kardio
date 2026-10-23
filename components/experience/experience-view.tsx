@@ -586,9 +586,12 @@ function NextActions({ ctx }: { ctx: Ctx }) {
 function Notices({ ctx }: { ctx: Ctx }) {
   const examples = SUGGESTIONS[ctx.run.specialty].slice(0, 2).map(item => `«${item}»`).join(" или ");
   // When nothing was searched, the state above says so; this line only helps to ask again (never «не нашлось»).
-  const searched = runOutcome(ctx.run).kind !== "not_run";
+  const outcome = runOutcome(ctx.run);
+  const searched = outcome.kind !== "not_run";
+  // Sources excluded in the profile are the whole reason: asking to name a disease would contradict it.
+  const excluded = outcome.kind === "not_run" && /исключены в вашем профиле/u.test(outcome.note ?? "");
   return <div className="pt-synthesis" data-module="notices">
-    {!ctx.graph.documents.length && <p>{nbsp(`${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
+    {!ctx.graph.documents.length && !excluded && <p>{nbsp(`${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
     <Gaps graph={ctx.graph} />
   </div>;
 }

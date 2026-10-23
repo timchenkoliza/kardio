@@ -43,7 +43,7 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const planNotRun = run.plan.some(step => step.status === "skipped" && NOTHING_TO_SEARCH.test(`${step.label} ${step.detail ?? ""}`));
   const nothingToSearch = planNotRun || (run.toolsUsed.some(tool => NOTHING_TO_SEARCH.test(tool.note ?? "")) && !searched);
   // The executor names sources the physician excluded when they were the only ones that could answer.
-  const excludedStep = run.plan.find(step => step.status === "skipped" && /исключены в ваших источниках/u.test(step.detail ?? ""));
+  const excludedStep = run.plan.find(step => step.status === "skipped" && /исключены в вашем профиле/u.test(step.detail ?? ""));
 
   // Name what did not answer: «часть источников» does not tell the physician what is missing from the answer.
   const silent = graph ? [...new Set(graph.sources.filter(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable")).map(source => source.name))] : [];

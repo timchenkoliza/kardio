@@ -191,8 +191,10 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const widened = pubmedUnused || (run.plan ?? []).some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label));
   const questionTopics = topicsMentioned(run.specialty, question);
   const topicTerms = questionTopics.map(id => topicById(run.specialty, id)?.pubmed ?? "");
-  // A concept that is a question topic under another name («ХБП» and the topic «Хроническая болезнь почек») is that topic.
-  const sameAsTopic = (concept: PubmedConcept) => concept.term.split(" OR ").some(part => topicTerms.some(term => term.includes(part.trim())));
+  // A concept that is a question topic under another name («ХБП» and the topic «Хроническая болезнь почек») is that topic;
+  // a compound topic («Кардиоренальные связи»: CKD AND cardiovascular) is not.
+  const conceptParts = (concept: PubmedConcept) => concept.term.split(" OR ").map(part => part.trim());
+  const sameAsTopic = (concept: PubmedConcept) => topicTerms.some(term => term && !/ AND /u.test(term) && term.split(" OR ").every(part => conceptParts(concept).includes(part.trim())));
   // The run's query takes at most 4 concepts; the rest were not searched and are named.
   const searched = pubmedConceptsIn(question).filter(concept => !sameAsTopic(concept));
   const all = pubmedConceptsIn(question, Infinity).filter(concept => !sameAsTopic(concept));
@@ -200,8 +202,8 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const labels = [...topicLabels(run.specialty, questionTopics), ...(widened ? [] : searched.map(label))];
   const conditions = [...new Set(labels.map(item => item.toLocaleLowerCase("ru-RU")))];
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
-  // Named as written in the vocabulary («иНГЛТ-2», «ХБП»), not lower-cased.
-  const dropped = all.filter(concept => widened || !searched.includes(concept)).filter(concept => !conditions.includes(label(concept))).map(concept => concept.label);
+  // Written as in «Искали по», so the two lists read alike.
+  const dropped = all.filter(concept => widened || !searched.includes(concept)).map(label).filter(item => !conditions.includes(item));
   // A word is known when the review accounts for it: its topics and the concepts it searched or names above, including
   // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
   const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
@@ -212,11 +214,11 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
       .filter(parts => parts.every(part => normalized.includes(part)))
       .flat(),
     ...pubmedConceptsIn(question, Infinity).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
-  ].filter(part => part.length >= 4);
+  ].filter(part => part.length >= 4 || /^[a-z]+$/u.test(part));
   const known = (word: string) => {
     const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
     // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
-    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => value.includes(part));
+    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => part.length >= 4 ? value.includes(part) : value === part);
   };
   return { conditions, unmatched: [...dropped, ...unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused })] };
 }
