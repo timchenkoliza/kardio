@@ -918,7 +918,7 @@ describe("Round 19: «события» are the listing only with a listing cue; 
   it("N19-4 (A) / N19-03, N19-04 (B): numbers the search used are used; a number goes with its lead word, not across punctuation", () => {
     expect(home("Сахарный диабет 1 и 2 типа: статины", "therapy").unmatched).toEqual([]);
     expect(home("Статины после 75 лет").unmatched).toEqual(["после 75 лет"]);
-    expect(home("ФВ ЛЖ менее 40% при ХСН").unmatched).toContain("менее 40%");
+    expect(home("ФВ ЛЖ менее 40% при ХСН").unmatched).toContain("ЛЖ менее 40%");
     expect(home("ХСН у пожилых, 80 лет").unmatched).toEqual(["80 лет"]);
     expect(home("Артериальная гипертензия: клинические рекомендации 2024").unmatched).toEqual(["2024"]);
     expect(home("ЛПНП 3,0 ммоль/л у пожилых").unmatched).toEqual(["ЛПНП 3,0 ммоль/л"]);
@@ -938,5 +938,61 @@ describe("Round 19: «события» are the listing only with a listing cue; 
     expect(rc("Антикоагулянты при ТЭЛА", skipped).unmatched).toContain("антикоагулянты");
     expect(home("Атопический дерматит (АД) у детей: эмоленты", "pediatrics").unmatched).toEqual(["эмоленты"]);
     expect(home("Аспиринорезистентность при ИБС").unmatched).toEqual(["аспиринорезистентность"]);
+  });
+});
+
+describe("Round 20: a drug or concept outweighs a general listing cue; no number is dropped", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) }) };
+  };
+  const ok = { tool: "searchPubmed", status: "ok", note: null };
+  const rc = (text: string, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [ok], specialty } as unknown as AgentRun);
+  it("N20-01 (B): clinical context outweighs «какие», «ближайшие», a week or a year; a month, «предстоящие», a society keep the listing", () => {
+    for (const [question, specialty] of [["Какие события нужно регистрировать при приёме апиксабана", "cardiology"], ["Гипогликемические события при инсулинотерапии", "endocrinology"], ["Какие события считаются MACE при ИБС", "cardiology"], ["События при ХСН у пожилых в 2025 году", "cardiology"], ["События, следующие за инфарктом миокарда", "cardiology"], ["События у пациентов после ЧКВ в ближайшие 30 дней", "cardiology"], ["События в течение недели после ИМ", "cardiology"], ["Отдалённые события после АКШ", "cardiology"], ["Число событий в исследовании PARADIGM-HF", "cardiology"]] as const) expect(compileIntent(question, specialty).job.primary).not.toBe("event_search");
+    for (const [question, specialty] of [["События по ХСН в мае", "cardiology"], ["Предстоящие события по АГ", "cardiology"], ["События РКО по АГ", "cardiology"], ["События для эндокринологов в декабре", "endocrinology"], ["Ближайшие события по кардиологии", "cardiology"], ["Главные события ESC 2026", "cardiology"]] as const) expect(compileIntent(question, specialty).job.primary).toBe("event_search");
+  });
+  it("N20-02 (B): a number the search did not take is named, after punctuation too; a type missing from the conditions is named", () => {
+    expect(home("ЛПНП при ИБС: 1,4").unmatched).toEqual(["1,4"]);
+    expect(home("ХСН у пожилых, 85").unmatched).toEqual(["85"]);
+    expect(home("Ривароксабан при ФП: 15 или 20 мг").unmatched).toEqual(["15", "20 мг"]);
+    expect(home("СД 1 и 2 типа", "therapy").unmatched).toEqual(["СД 2 типа"]);
+    expect(home("Сахарный диабет 1 и 2 типа", "endocrinology").unmatched).toEqual([]);
+    expect(home("Статины после 75 лет").unmatched).toEqual(["после 75 лет"]);
+  });
+  it("N20-03…N20-05, N20-08 (B): «старше 75 лет» is «пожилые»; no «null»; used hyphenated parts; «до 3 лет», «тип A»", () => {
+    expect(rc("ИБС у пациентов старше 75 лет").unmatched).toEqual([]);
+    expect(home("SGLT2, HF у пожилых").unmatched.join(" ")).not.toContain("null");
+    expect(home("Сакубитрил-валсартан при ХСН").unmatched).toEqual([]);
+    expect(home("Бета-блокаторы при ХСН").unmatched).toEqual(["бета-блокаторы"]);
+    expect(rc("Эпилепсия у детей до 3 лет", "neurology").unmatched).toContain("детей до 3 лет");
+    expect(home("Расслоение аорты тип A").unmatched).toEqual(["расслоение аорты тип A"]);
+  });
+});
+
+describe("Round 20 (A): a chain of numbers keeps its word; a measure keeps its lead word; «предупреждения» by its role", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  it("N20-2: the type missing from the conditions is named with its abbreviation", () => {
+    expect(home("СД 1 и 2 типа: статины")).toEqual(["СД 2 типа"]);
+    expect(home("СД 2 и 1 типа у детей", "pediatrics")).toEqual(["СД 1 типа"]);
+    expect(home("Сахарный диабет 1 и 2 типа: статины", "endocrinology")).toEqual([]);
+  });
+  it("N20-3, N20-6: no «null»; «ЛПНП менее 1,4», «СКФ менее 30 мл/мин», «QRS 150 мс» are one phrase each", () => {
+    expect(home("Удлинение QTc (QT) при ФП")).toEqual(["удлинение", "QT"]);
+    expect(home("ЛПНП менее 1,4")).toEqual(["ЛПНП менее 1,4"]);
+    expect(home("СКФ менее 30 мл/мин")).toEqual(["СКФ менее 30 мл/мин"]);
+    expect(home("QRS 150 мс CRT")).toEqual(["QRS 150 мс"]);
+    expect(home("Статины после 75 лет")).toEqual(["после 75 лет"]);
+  });
+  it("N20-7: «особые предупреждения», «предупреждение в рамке», warnings of a drug are the section; «предупреждение и лечение» is not", () => {
+    for (const question of ["Особые предупреждения апиксабана", "Предупреждения апиксабан", "Предупреждение в рамке", "Апиксабан: предупреждение в рамке и программа REMS"]) expect(askedSections(question)).toContain("safety");
+    for (const question of ["Апиксабан для предупреждения и лечения ТГВ", "Предупреждение и лечение тромбоэмболий: апиксабан"]) expect(askedSections(question)).not.toContain("safety");
+  });
+  it("«AT» is antithrombin, not «at»; «при приёме» is not a condition", () => {
+    expect(home("Дефицит AT III при тромбозах").join(" ")).toContain("AT");
+    expect(home("Нежелательные события при приёме апиксабана")).not.toContain("приёме");
   });
 });

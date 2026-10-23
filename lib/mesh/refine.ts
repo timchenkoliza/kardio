@@ -1,4 +1,4 @@
-import { normalizeQuery } from "@/lib/portal/lexicon";
+import { DRUGS, normalizeQuery } from "@/lib/portal/lexicon";
 import type { ClaimKind, EvidenceGraph, GraphDocument } from "./evidence";
 import type { EvidenceRequirement } from "./jobs";
 import type { ExperienceManifest, ManifestView, ModuleFamily } from "./manifest";
@@ -154,14 +154,16 @@ const ASKED_SECTIONS: ReadonlyArray<{ id: AskedSection; pattern: RegExp }> = [
   { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* при[её]м)`, "u") },
   { id: "interactions", pattern: new RegExp(`${L}взаимодейств`, "u") },
   // «предупреждения», «предупреждения и …», «… о кровотечениях» — the section; «предупреждение инсульта» — prevention.
-  { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|предупрежден\\p{L}*(?=\\s*(?:$|[,.:;!?)]|(?:и|о|об|у|при|по|для|к)(?![\\p{L}])))|особ\\p{L}* указани|передозир)`, "u") },
+  { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|особ\\p{L}* (?:указани|предупрежден)|предупрежден\\p{L}* в рамке|предупрежден\\p{L}*(?=\\s*(?:$|[,.:;!?)]|(?:о|об|у|при|по|для|к)(?![\\p{L}])|и(?![\\p{L}])(?!\\s+(?:лечени|профилактик|терапи))))|передозир)`, "u") },
   { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|почк|почек|печёночн|печеночн|печен|пожил|дет(?:и|ей|ям|ск))`, "u") },
 ];
 
 /** Sections of the instruction a drug question names («Аторвастатин: противопоказания»), in the order asked. */
 export function askedSections(text: string): AskedSection[] {
   const value = normalizeQuery(text);
-  return ASKED_SECTIONS.filter(item => item.pattern.test(value)).map(item => item.id);
+  // «предупреждения апиксабана» names the drug's section; «предупреждение инсульта» is prevention.
+  const drugWarnings = new RegExp(`предупрежден\\p{L}*\\s+(?:${DRUGS.flatMap(drug => drug.stems).join("|")})`, "u").test(value);
+  return ASKED_SECTIONS.filter(item => item.pattern.test(value) || (item.id === "safety" && drugWarnings)).map(item => item.id);
 }
 
 export function focusKinds(focus: string): ClaimKind[] {

@@ -201,7 +201,7 @@ function Section({ module: entry, ctx, children, className }: { module: Manifest
 
 /** Societies whose own guideline snapshot answered («ESC»): their name in the question was used. */
 function societiesIn(graph: EvidenceGraph): Set<string> {
-  return new Set(graph.documents.flatMap(document => [document.attributes.society, document.publisher]).filter((name): name is string => typeof name === "string")
+  return new Set(graph.documents.map(document => document.attributes.society).filter((name): name is string => typeof name === "string")
     .flatMap(name => name.match(/[A-Za-z]{2,}/gu) ?? []).map(name => name.toLowerCase()));
 }
 

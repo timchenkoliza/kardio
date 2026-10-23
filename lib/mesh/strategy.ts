@@ -95,10 +95,11 @@ function planPreviewFor(intent: NormalizedIntent, text: string): PlanPreview | n
   const steps = [
     // One instruction is opened per answer; the rest are named for ГРЛС, not promised.
     `Открою российскую инструкцию: ${first}${rest.length ? `; инструкции ${rest.join(", ")} — по ссылке на ГРЛС` : ""}`,
-    intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях",
-    "Подберу свежие сравнительные обзоры и метаанализы",
-    "Покажу, где источники расходятся, с датами и ссылками",
-  ];
+    // Only what the planned sources do: guidelines when the job asks for them, reviews when PubMed may answer.
+    intent.requirements.some(item => /guideline/u.test(item)) ? (intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях") : null,
+    [...intent.requirements, ...intent.optional].includes("current_research") ? "Подберу свежие сравнительные обзоры и метаанализы, если они включены в ваших источниках" : null,
+    "Если источники расходятся — покажу где, с датами и ссылками",
+  ].filter((step): step is string => Boolean(step));
   return planPreviewSchema.parse({ schema: "kardio.plan-preview/0.1", id: `plan-${requestSignature(intent).replace(/[^a-z0-9|_-]/giu, "")}-${intent.entities.drugs.length}`.slice(0, 80), title: "Я проверю", steps, reason: "multi_entity_comparison", original: { text, specialty: intent.context.specialty } });
 }
 
