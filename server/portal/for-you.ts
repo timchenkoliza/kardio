@@ -1,7 +1,7 @@
 import { DRUG_CHANGE_LABEL, formatDateRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { AgentId, AgentResult, AgentRun, DrugChangeType, Material, UserProfile } from "@/lib/agents/types";
-import { topicLabels } from "@/lib/agents/vocabulary";
+import { topicById, topicLabels } from "@/lib/agents/vocabulary";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { mediaKey, selectCardMedia } from "@/lib/media/derivatives";
 import { stateForOrigin, type ForYouCard, type ForYouKind } from "@/lib/portal/cards";
@@ -132,7 +132,8 @@ export function scenariosFor(kind: ForYouKind, topic: string): ForYouCard["scena
 
 export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean }, specialty: SpecialtyId, isNew: boolean, options: { used?: Set<string> } = {}): ForYouCard {
   const kind = kindFor(result);
-  const topicAttr = typeof result.attributes.topic === "string" ? result.attributes.topic : null;
+  // A topic stored by its vocabulary id («ah») is shown by its name.
+  const topicAttr = typeof result.attributes.topic === "string" ? topicById(specialty, result.attributes.topic)?.label ?? result.attributes.topic : null;
   const label = kind === "publication" && typeof result.attributes.studyType === "string" ? result.attributes.studyType : result.kind === "drug_change" && result.category && result.category in DRUG_CHANGE_LABEL ? DRUG_CHANGE_LABEL[result.category as DrugChangeType].title : LABEL[kind];
   // Only a topic the result states names its subject: the specialty is not what an unrecognised document is about.
   const localized = localizeItem({ title: result.title, summary: result.summary, typeLabel: label, topic: topicAttr, tags: topicAttr ? [topicAttr] : [] });

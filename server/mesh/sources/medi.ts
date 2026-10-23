@@ -182,6 +182,19 @@ export interface InstructionPage {
   indications: Array<{ heading: string | null; text: string }>;
 }
 
+/** What a question about a population looks for inside a long section: renal, hepatic, age and weight adjustments. */
+const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?![\p{L}])|рСКФ|пожил|старше\s*\d|печен|масс\p{L}* тела/iu;
+
+/** A verbatim excerpt that starts at the first sentence the question is about, when the section opens with something else. */
+function focusedExcerpt(text: string, focus: RegExp | null): { text: string; truncated: boolean } {
+  if (focus) {
+    const at = sentences(text).find(sentence => focus.test(sentence));
+    const from = at ? text.indexOf(at) : -1;
+    if (from > 0) return { text: excerpt(text.slice(from), MAX_EXCERPT).text, truncated: true };
+  }
+  return excerpt(text, MAX_EXCERPT);
+}
+
 /** Populations a question names: «беременность» may be recognised as a search concept rather than a population. */
 export function populationsNamed(intent: NormalizedIntent): string[] {
   const fromConcepts = intent.entities.concepts.filter(concept => concept.id === "concept:pregnancy").map(() => "pregnancy");
@@ -194,7 +207,7 @@ const SECTIONS_ASKED: Readonly<Record<string, readonly string[]>> = {
   indications: ["indications"],
   dosing: ["dosing"],
   interactions: ["interactions"],
-  safety: ["warnings", "caution", "adverse", "overdose"],
+  safety: ["warnings", "caution", "adverse"],
   // Renal, hepatic and age adjustments are stated under dosing and «С осторожностью»; pregnancy and children
   // sections are kept only when the question names that population.
   populations: ["dosing", "caution"],
@@ -391,7 +404,9 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
   const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", adverse: "warning", overdose: "warning", dosing: "dosing", pregnancy: "warning", children: "warning" };
   raw.sections.forEach((section, index) => {
     if (section.id === "indications" || !wanted.has(section.id)) return;
-    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: excerpt(section.text, MAX_EXCERPT).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
+    // A population question reads dosing and «С осторожностью» from the sentence about that population, not from the section's first line.
+    const focus = args.sections?.includes("populations") && (section.id === "dosing" || section.id === "caution") ? POPULATION_FOCUS : null;
+    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: focusedExcerpt(section.text, focus).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
   });
   const nosologyRef = args.nosology ? nosologyEntity(args.nosology.id) : null;
   return {

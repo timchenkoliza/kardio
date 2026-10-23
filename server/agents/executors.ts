@@ -2,7 +2,7 @@ import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
-import { pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, topicById, topicLabels, topicsFor, topicsMentioned } from "@/lib/agents/vocabulary";
 import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
 import { entrezDate, type PubmedArticle } from "./adapters/pubmed";
@@ -111,13 +111,25 @@ export function studyTypeLabel(types: readonly string[]): string | null {
   return null;
 }
 
-/** Does a title contain what a topic's PubMed term looks for («hypertension», «"chronic kidney disease"», «diabet*»)? */
-function titleNamesTopic(title: string, term: string): boolean {
+/** Phrases a topic's PubMed term looks for («hypertension», «chronic kidney disease», «diabet» as a prefix). */
+function termPhrases(term: string): Array<{ phrase: string; prefix: boolean }> {
+  return [...term.matchAll(/"([^"]+)"\[[a-z]+\]|([A-Za-z0-9-]+)(\*?)\[[a-z]+\]/giu)].map(match => ({ phrase: (match[1] ?? match[2]).toLowerCase(), prefix: Boolean(match[3]) }));
+}
+
+function phraseIn(value: string, { phrase, prefix }: { phrase: string; prefix: boolean }): boolean {
+  return new RegExp(`(?<![a-z])${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}${prefix ? "" : "(?![a-z])"}`, "u").test(value);
+}
+
+/**
+ * Does a title name the topic? Not when the words belong to a more specific
+ * topic of the same vocabulary: «pulmonary hypertension» is not «hypertension».
+ */
+export function titleNamesTopic(title: string, term: string, others: readonly string[] = []): boolean {
   const value = title.toLowerCase();
-  return [...term.matchAll(/"([^"]+)"\[[a-z]+\]|([A-Za-z0-9-]+)(\*?)\[[a-z]+\]/giu)].some(match => {
-    const phrase = (match[1] ?? match[2]).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(?<![a-z])${phrase}${match[3] ? "" : "(?![a-z])"}`, "u").test(value);
-  });
+  const own = termPhrases(term).filter(item => phraseIn(value, item));
+  if (!own.length) return false;
+  const specific = others.flatMap(termPhrases).filter(item => phraseIn(value, item));
+  return own.some(item => !specific.some(other => other.phrase !== item.phrase && other.phrase.includes(item.phrase)));
 }
 
 /**
@@ -146,15 +158,20 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
   const articles = builder.record("Искали опубликованные рекомендации в PubMed", await tools.searchPubmed(ctx, { term, minDate, maxDate: entrezDate(ctx.now), retmax: question ? 6 : 4, publicationTypes: GUIDELINE_PUBLICATION_TYPES, sort: question ? "relevance" : "pub_date" }), items => countLabel(items.length, ["документ", "документа", "документов"]) + ` за ${years} ${years === 2 ? "года" : "лет"}`);
   const conclusions = question && articles.length ? builder.record("Прочитали рефераты рекомендаций", await tools.readAbstracts(ctx, articles.slice(0, 4).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
   const byPmid = new Map(conclusions.map(item => [item.pmid, item]));
+  const otherTopicTerms = topicsFor(ctx.specialty).map(topic => topic.pubmed).filter(Boolean);
+  // A document whose title names only a more specific topic than the chosen ones («pulmonary hypertension» for АГ) is not «по вашей теме».
+  const onTopic = (title: string) => !topicTerm || ctx.preference.topics.some(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? "", otherTopicTerms));
   // The reason names the topics this document's title matches, not every topic in the profile.
   const scopeReason = (title: string) => {
     if (questionTerm) return `По вопросу: ${concepts.map(item => item.label).join(", ")}`;
     if (!topicTerm) return `Специальность: ${specialties[ctx.specialty].name}`;
-    const matched = ctx.preference.topics.filter(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? ""));
+    const matched = ctx.preference.topics.filter(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? "", otherTopicTerms));
     const labels = topicLabels(ctx.specialty, matched.length ? matched : ctx.preference.topics);
     return `${labels.length > 1 ? "Темы" : "Тема"}: ${labels.join(", ")}`;
   };
-  const publications: ResultDraft[] = articles.map(article => {
+  const offTopic = articles.filter(article => !onTopic(article.title));
+  if (offTopic.length) builder.note("Отложили документы о другой теме", `${countLabel(offTopic.length, ["документ", "документа", "документов"])}: в названии более узкая тема, чем выбранная`);
+  const publications: ResultDraft[] = articles.filter(article => onTopic(article.title)).map(article => {
     const abstract = byPmid.get(article.pmid);
     const bibliographic = factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso));
     const quote = abstract?.conclusion ? factCheckEvidence({ ...evidenceFromQuote({ connectorId: "pubmed", sourceName: `${article.journal} · ${article.sortDate?.slice(0, 4) ?? ""}`.trim(), sourceUrl: article.url, publisher: article.journalFull ?? article.journal, retrievedAt: ctx.nowIso, publishedAt: article.sortDate, claim: abstract.conclusion, quote: abstract.sections.find(section => section.label === abstract.conclusionLabel)?.text ?? abstract.conclusion, quoteLanguage: "en", quoteKind: "verbatim", level: "guideline", secondary: false, verifyIn: null, dataOrigin: "runtime_api" }), provenance: { ...pubmedProvenance(article, ctx.nowIso), journal: article.journal } }) : null;

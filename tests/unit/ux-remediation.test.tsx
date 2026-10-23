@@ -29,6 +29,7 @@ import { createRun } from "@/server/agents/supervisor";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
 import { conceptsForIntent, createPubmedAdapter } from "@/server/mesh/sources/pubmed";
 import { resultCard, scenariosFor } from "@/server/portal/for-you";
+import { titleNamesTopic } from "@/server/agents/executors";
 import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
 import type { PageSnapshot } from "@/server/mesh/browser/drivers";
 import { respondToAsk } from "@/server/portal/manager";
@@ -361,5 +362,41 @@ describe("Round 6: a population question is answered from that population's sect
   });
   it("pregnancy: the pregnancy section", () => {
     expect(headingsFor("Апиксабан при беременности")).toContain("Применение при беременности и в период грудного вскармливания");
+  });
+});
+
+describe("Round 7: section labels, population excerpts and feed topics stay truthful", () => {
+  it("N7-1: «Передозировка» is a safety section, never «Дозирование»", () => {
+    expect(drugSectionGroup("Передозировка")).toBe("safety");
+    expect(drugSectionGroup("Способ применения и дозы")).toBe("dosing");
+  });
+
+  it("N7-2: a population question quotes dosing from the sentence about that population", () => {
+    const intent = compileIntent("Апиксабан у пожилых с фибрилляцией предсердий при ХБП", "cardiology");
+    const raw: InstructionPage = {
+      title: "Эликвис", inn: "апиксабан", registration: null, officialNote: null, prescription: null, indications: [],
+      sections: [{ id: "dosing", heading: "Способ применения и дозы", text: "Препарат принимают внутрь независимо от приема пищи. Таблетку можно измельчить. Пациенты с нарушением функции почек: при клиренсе креатинина 15–29 мл/мин доза 2,5 мг 2 раза в сутки.", html: "" }],
+    };
+    const page = { requestedUrl: "https://medi.ru/instrukciya/eliquis/", finalUrl: "https://medi.ru/instrukciya/eliquis/", status: 200, html: "", fetchedAt: "2026-10-23T00:00:00.000Z", driver: "http", durationMs: 1 } as unknown as PageSnapshot;
+    const document = normalizeInstruction(raw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary, sections: intent.sections, populations: populationsNamed(intent) });
+    expect(document.claims[0]?.quote).toMatch(/^Пациенты с нарушением функции почек/u);
+  });
+
+  it("R7-02: a title about a more specific topic does not count for the broader one", () => {
+    const others = ['"pulmonary hypertension"[tiab]', "hypertension[tiab]"];
+    expect(titleNamesTopic("Brazilian Thoracic Society recommendations for the treatment of pulmonary hypertension", "hypertension[tiab]", others)).toBe(false);
+    expect(titleNamesTopic("2026 ISH guideline on the management of hypertension in Africa", "hypertension[tiab]", others)).toBe(true);
+    expect(titleNamesTopic("Pulmonary hypertension: 2026 update", '"pulmonary hypertension"[tiab]', others)).toBe(true);
+  });
+
+  it("R7-03: a learning card shows the topic's name, not its vocabulary id", () => {
+    const card = resultCard({
+      id: "r", key: "k", agentId: "learning", specialty: "cardiology", kind: "learning_module", category: null,
+      title: "Артериальная гипертензия: клинические рекомендации 2024", summary: "Рекомендации РКО", reasonShown: [],
+      observedAt: "2026-10-01", evidence: [], source: { connectorId: "catalog", sourceName: "Каталог", sourceUrl: "https://example.org/", dataOrigin: "curated_snapshot", retrievedAt: "2026-10-23T00:00:00.000Z" },
+      actions: [], attributes: { topic: "ah", step: "guideline" }, partner: null, rank: 0, createdAt: "2026-10-23T00:00:00.000Z", runId: "run",
+    } as unknown as Parameters<typeof resultCard>[0], "cardiology", false);
+    expect(card.tags).toContain("Артериальная гипертензия");
+    expect(card.tags).not.toContain("ah");
   });
 });

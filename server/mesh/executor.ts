@@ -270,6 +270,9 @@ export interface EvidenceAnswerResult extends ExecutorResult {
   shadow: (() => Promise<ShadowComparison | null>) | null;
 }
 
+/** Instruction excerpts that may lead «Коротко» for a question naming sections. */
+const ASKED_TAKEAWAY_MAX = 3;
+
 export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerResult> {
   const question = ctx.inputText?.trim() ?? "";
   if (!question) {
@@ -311,10 +314,12 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   // Safety is also answered by contraindications; a population by the dosing section, where renal, hepatic and age adjustments are stated.
   const asked = [...named, ...(named.includes("safety") && !named.includes("contraindications") ? ["contraindications" as const] : []), ...(named.includes("populations") && !named.includes("dosing") ? ["dosing" as const] : [])];
   const directives = opening ? viewDirectives(graph, null, opening, graph) : { moduleProps: {}, priorityClaims: [] as string[] };
-  const askedClaims = asked.length ? graph.claims.filter(claim => {
-    const chunk = claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId) : undefined;
-    return (asked as readonly string[]).includes(drugSectionGroup(chunk?.heading));
-  }).map(claim => claim.id) : [];
+  // At most three instruction excerpts lead «Коротко», the named sections first: the rest of the instruction is in its card below,
+  // and the studies on the question keep their place near the top.
+  const groupOf = (claim: (typeof graph.claims)[number]) => drugSectionGroup(claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId)?.heading : undefined);
+  // A named population is the most specific part of the question: its sections lead.
+  const leading: readonly string[] = named.includes("populations") ? ["populations", "dosing", ...asked.filter(group => group !== "populations" && group !== "dosing")] : asked;
+  const askedClaims = leading.flatMap(group => graph.claims.find(claim => groupOf(claim) === group)?.id ?? []).slice(0, ASKED_TAKEAWAY_MAX);
   const shaping = { moduleProps: { ...directives.moduleProps, ...(asked.length ? { drug_reference: { ...(directives.moduleProps.drug_reference ?? {}), asked } } : {}) }, priorityClaims: [...askedClaims, ...directives.priorityClaims], view: opening };
   let output: CompileOutput;
   let flow: FlowRun | null = null;

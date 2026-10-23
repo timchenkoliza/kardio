@@ -141,7 +141,7 @@ test("guideline result: version titles in Russian, sources and Russian status ha
   test.setTimeout(150_000);
   await ask(page, "cardiology", "Что изменилось в рекомендациях по ХСН");
   await expect(page.getByRole("heading", { level: 1, name: "Клинические рекомендации" })).toBeVisible();
-  for (const title of await page.locator(".pt-version-title").allInnerTexts()) expect(title).toMatch(/[А-Яа-яЁё]/u);
+  for (const title of await page.locator(".pt-version-title").allTextContents()) expect(title).toMatch(/[А-Яа-яЁё]/u);
   await expect(page.getByRole("complementary", { name: "Статус рекомендаций в России" })).toContainText("не подключён");
   await expectRussianFirst(page);
 });

@@ -308,6 +308,8 @@ export function drugSectionGroup(heading: string | null | undefined): DrugSectio
   // «Противопоказания» contains «показания»: it is matched first.
   if (/противопоказ|contraindicat/.test(value)) return "contraindications";
   if (/показан|indication/.test(value)) return "indications";
+  // «Передозировка» contains «доз»: it is a safety section, matched before dosing.
+  if (/передозир|overdos/.test(value)) return "safety";
   if (/дозир|способ применения|доз|dosage|administration/.test(value)) return "dosing";
   if (/взаимодейств|interaction/.test(value)) return "interactions";
   // «Особые указания» are the label's warnings, not a section about special populations.
