@@ -275,7 +275,8 @@ export function topicsMentioned(specialty: SpecialtyId, text: string): string[] 
       const parts = keyword.split(" ");
       return parts.every(part => {
         if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(normalized);
-        return normalized.includes(part);
+        // A key inside a word counts («дислипидемия» → «липид»), but not after a negating «не»: «неклапанная» is not «клапан».
+        return (normalized.match(/\p{L}+/gu) ?? []).some(word => word.includes(part) && !word.startsWith(`не${part}`));
       });
     }))
     .map(topic => topic.id);

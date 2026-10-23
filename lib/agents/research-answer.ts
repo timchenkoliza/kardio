@@ -39,6 +39,9 @@ export interface StudyDigest {
   conclusion: { text: string; label: string } | null;
   links: StudyLink[];
   verification: VerificationStatus | null;
+  /** The same check label as in the table and the export («Совпадает с источником · версию сверьте»). */
+  verificationLabel: string | null;
+  verificationTone: "supported" | "partial" | "unsupported" | "unknown" | null;
   outsideApprovedList: boolean;
   internalHref: string | null;
 }
@@ -153,6 +156,8 @@ export function studyDigest(result: AgentResultView): StudyDigest {
     conclusion: conclusionText ? { text: conclusionText, label: text(result.attributes["authorsConclusion.label"]) ?? "Вывод авторов" } : null,
     links: linksFor(result),
     verification: weakest(result.evidence.map(item => item.verificationStatus)),
+    verificationLabel: result.evidence.length ? verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).label : null,
+    verificationTone: result.evidence.length ? verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).tone : null,
     outsideApprovedList: result.attributes.journalOutsideApprovedList === true,
     internalHref: internal,
   };
@@ -180,7 +185,8 @@ function practiceFor(read: number): string {
 export function researchConditions(run: AgentRun): { conditions: string[]; unmatched: string[] } {
   const question = run.input.text ?? "";
   if (!question.trim()) return { conditions: [], unmatched: [] };
-  const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label));
+  // A widened search and a skipped PubMed («Только РФ», «Только клинрекомендации») did not use the concepts: the catalog is searched by topic.
+  const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && /PubMed пропущен/u.test(use.note ?? ""));
   const concepts = pubmedConceptsIn(question).map(concept => concept.label.toLocaleLowerCase("ru-RU"));
   const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : concepts)];
   const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
@@ -207,6 +213,8 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
 
   const read = digests.filter(study => study.access === "full_text" || study.access === "abstract");
   const search = named ? { conditions: [], unmatched: [] } : researchConditions(run);
+  const pubmedCount = organic.filter(result => result.source.connectorId === "pubmed").length;
+  const catalogCount = organic.length - pubmedCount;
   const fullText = read.filter(study => study.access === "full_text").length;
   const withEffect = digests.filter(study => study.effect).length;
   const withEvidence = organic.filter(result => result.evidence.length);
@@ -234,7 +242,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     // What was checked, in its own terms: citations against PubMed, quotes against the text; the journal's standing is said apart.
     citationOnly.length ? `Данные публикации сверены с PubMed — ${citationChecked} из ${citationOnly.length}${outsideList ? `; журнал вне списка, одобренного врачами, — ${outsideList}` : ""}.` : null,
     quoted.length ? `Текст совпадает с источником — ${quotedMatched} из ${quoted.length}${quotedChecks.length ? `; ${quotedChecks.join("; ")}` : ""}.` : null,
-    quoted.length ? "Это сверка ссылок и текста, а не оценка качества исследования." : citationOnly.length ? "Это сверка ссылок, а не оценка качества исследования." : null,
+    citationOnly.length && quoted.length ? "Это сверка ссылок и текста, а не оценка качества исследования." : citationOnly.length ? "Это сверка ссылок, а не оценка качества исследования." : quoted.length ? "Это сверка текста с источником, а не оценка качества исследования." : null,
   ].filter((value): value is string => Boolean(value));
 
   const limitations = [
@@ -273,7 +281,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0 };
   }
   const headline = [
-    `Нашли ${countLabel(organic.length, ["публикацию", "публикации", "публикаций"])} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
+    `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
     read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : (!organic.some(result => result.source.connectorId === "pubmed") ? "Ниже только материалы каталога специальности." : organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
   ].join(" ");
   return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched };

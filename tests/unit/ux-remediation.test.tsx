@@ -529,3 +529,26 @@ describe("Round 10 (IA): the export and the trace repeat the labels; a partial d
     expect(text.match(/Контроль безопасности антикоагулянтной терапии при ФП/gu)?.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("Round 11: no part of the question is lost silently", () => {
+  const unmatched = (text: string, skipped = false) => researchConditions({ input: { text }, plan: [], toolsUsed: skipped ? [{ tool: "searchPubmed", note: "PubMed пропущен: выбран поиск только по источникам РФ" }] : [], specialty: "cardiology" } as unknown as AgentRun);
+  it("N11-1: words beside an abbreviated disease name are their own condition; unknown capitals are named", () => {
+    expect(unmatched("Сердечная недостаточность с сохранённой фракцией выброса у пожилых").unmatched).toContain("сохранённой фракцией выброса");
+    expect(unmatched("Острая сердечная недостаточность у пожилых").unmatched).toContain("острая");
+    expect(unmatched("ИКД при ХСН у пожилых").unmatched).toContain("ИКД");
+    expect(unmatched("Хроническая сердечная недостаточность у пожилых").unmatched).toEqual([]);
+    expect(unmatchedWords("Апиксабан у пожилых с фибрилляцией предсердий и сниженной функцией почек. Уточнение: А при ХБП?", ["фибрилляция предсердий", "кардиоренальные связи", "антикоагулянты", "пожилые пациенты", "апиксабан", "безопасность"], "cardiology")).toEqual([]);
+  });
+  it("N11-2: a negated key («неклапанная», «неишемическая») does not bring the opposite topic", () => {
+    expect(unmatched("Неклапанная фибрилляция предсердий и антикоагулянты").conditions).not.toContain("клапанные пороки");
+    expect(unmatched("Клапанная фибрилляция предсердий и антикоагулянты").conditions).toContain("клапанные пороки");
+    expect(unmatched("Неишемическая кардиомиопатия и ИКД").conditions).not.toContain("ибс");
+    expect(unmatched("Дислипидемия у пожилых").conditions).toContain("липидология");
+  });
+  it("N11-3: a skipped PubMed names the concepts it did not search", () => {
+    const skipped = unmatched("Катетерная аблация при фибрилляции предсердий у пожилых", true);
+    expect(skipped.conditions).toEqual(["фибрилляция предсердий"]);
+    expect(skipped.unmatched).toEqual(expect.arrayContaining(["абляция", "пожилые пациенты"]));
+    expect(unmatched("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
+  });
+});

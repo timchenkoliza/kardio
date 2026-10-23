@@ -17,16 +17,21 @@ const STOP = new Set([
   "рекомендации", "рекомендациях", "рекомендаций", "исследования", "исследований", "показало", "показали", "лучше", "хуже",
   "пациентов", "пациентам", "пациенты", "больных", "лечение", "лечения", "лечении", "лечению", "лечением", "терапия", "терапии", "терапией", "течение", "течении",
   "насколько", "старше", "младше", "моложе", "года", "годы", "лет", "сколько", "стоит", "надо", "ведение", "ведения", "риск", "риска",
+  "выбор", "выбора", "выборе",
 ]);
 
-/** An abbreviation in the conditions covers the words it stands for («ХБП» → «почек», «почечной»). */
-const ABBREVIATIONS: ReadonlyArray<[RegExp, readonly string[]]> = [
-  [/(?<![\p{L}])хбп(?![\p{L}])/u, ["поч"]],
-  [/(?<![\p{L}])хсн(?![\p{L}])/u, ["сердеч", "недост"]],
-  [/(?<![\p{L}])(?:аг|ag)(?![\p{L}])/u, ["гиперт", "давлен"]],
-  [/(?<![\p{L}])фп(?![\p{L}])/u, ["фибрил", "предсерд"]],
+/**
+ * An abbreviation in the conditions covers the words it stands for. For «ХБП» the whole phrase is its meaning
+ * («сниженной функцией почек»); for a disease name («ХСН», «АГ», «ФП») only the words of the name are used,
+ * and the rest of the phrase («с сохранённой фракцией выброса», «острая») is a condition of its own.
+ */
+const ABBREVIATIONS: ReadonlyArray<{ pattern: RegExp; words: readonly string[]; wholePhrase: boolean }> = [
+  { pattern: /(?<![\p{L}])хбп(?![\p{L}])/u, words: ["поч"], wholePhrase: true },
+  { pattern: /(?<![\p{L}])хсн(?![\p{L}])/u, words: ["сердеч", "недост", "хрон"], wholePhrase: false },
+  { pattern: /(?<![\p{L}])(?:аг|ag)(?![\p{L}])/u, words: ["гиперт", "давлен", "артериал"], wholePhrase: false },
+  { pattern: /(?<![\p{L}])фп(?![\p{L}])/u, words: ["фибрил", "предсерд"], wholePhrase: false },
   // «Кардиоренальные связи» is searched as chronic kidney disease AND cardiovascular.
-  [/кардиоренал/u, ["поч"]],
+  { pattern: /кардиоренал/u, words: ["поч"], wholePhrase: true },
 ];
 
 /**
@@ -48,8 +53,11 @@ function recognised(word: string, specialty: SpecialtyId): boolean {
 export function unmatchedWords(question: string, conditions: readonly string[], specialty: SpecialtyId): string[] {
   const covered = new Set(conditions.flatMap(condition => condition.split(/[^А-Яа-яЁёA-Za-z0-9]+/u)).filter(word => word.length >= 3).map(stem));
   const joined = conditions.join(" ").toLocaleLowerCase("ru-RU");
-  const expanded = ABBREVIATIONS.filter(([pattern]) => pattern.test(joined)).flatMap(([, prefixes]) => prefixes);
-  const viaAbbreviation = (word: string) => expanded.some(prefix => word.toLocaleLowerCase("ru-RU").startsWith(prefix));
+  const active = ABBREVIATIONS.filter(entry => entry.pattern.test(joined));
+  const phraseWords = active.filter(entry => entry.wholePhrase).flatMap(entry => entry.words);
+  const nameWords = active.filter(entry => !entry.wholePhrase).flatMap(entry => entry.words);
+  const viaAbbreviation = (word: string) => phraseWords.some(prefix => word.startsWith(prefix));
+  const inName = (word: string) => nameWords.some(prefix => word.startsWith(prefix));
   const qualifiers = COVERED_QUALIFIERS.filter(([pattern]) => pattern.test(joined)).flatMap(([, prefixes]) => prefixes);
   const qualifierCovered = (word: string) => qualifiers.some(prefix => word.startsWith(prefix));
   const phrases: string[] = [];
@@ -57,13 +65,19 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   let current: Array<{ word: string; abbreviated: boolean }> = [];
   const close = () => { if (current.length && !current.some(item => item.abbreviated)) phrases.push(current.map(item => item.word).join(" ")); current = []; };
   for (const [token] of question.matchAll(/[А-Яа-яЁёA-Za-z0-9-]+/gu)) {
-    // Short words («и», «с», «по») neither start nor break a phrase.
-    if (token.length < 4) continue;
     const lower = token.toLocaleLowerCase("ru-RU");
-    // An abbreviation typed in capitals («ПОАК», «ХБП») and Latin words are resolved by the lexicon or searched as typed.
-    const content = /^[А-Яа-яЁё]+$/u.test(token) && token !== token.toLocaleUpperCase("ru-RU") && !STOP.has(lower);
-    // A qualifier the searched concept already covers («катетерная» for «абляция») is used, like the concept itself.
-    if (content && !covered.has(stem(token)) && !recognised(token, specialty) && !qualifierCovered(lower)) current.push({ word: lower, abbreviated: viaAbbreviation(token) });
+    // An abbreviation typed in capitals («ИКД», «СРТ») is a condition of its own unless the lexicon or the conditions know it («ПОАК», «ХСН»).
+    if (/^[А-ЯЁ]{2,5}$/u.test(token)) {
+      close();
+      if (!covered.has(stem(token)) && !joined.split(/[^а-яё0-9]+/u).includes(lower) && !recognised(token, specialty)) phrases.push(token);
+      continue;
+    }
+    // Other short words («и», «с», «по») neither start nor break a phrase.
+    if (token.length < 4) continue;
+    // Latin words are searched as typed.
+    const content = /^[А-Яа-яЁё]+$/u.test(token) && !STOP.has(lower);
+    // A qualifier the searched concept already covers («катетерная» for «абляция») and the words of an abbreviated disease name are used.
+    if (content && !covered.has(stem(token)) && !recognised(token, specialty) && !qualifierCovered(lower) && !inName(lower)) current.push({ word: lower, abbreviated: viaAbbreviation(lower) });
     else close();
   }
   close();

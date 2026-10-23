@@ -32,6 +32,7 @@ function Study({ study, first }: { study: StudyDigest; first: boolean }) {
       ? <Link href={study.internalHref}>{study.title}</Link>
       : primary ? <a href={primary.href} target="_blank" rel="noreferrer">{study.title}</a> : study.title}</h3>
     <p className="ws-ra-meta">{meta}</p>
+    {study.verificationLabel && <p className="ws-ra-check"><span className={`ws-verify ws-verify-${study.verificationTone ?? "unknown"}`}>{study.verificationLabel}</span></p>}
     {(study.effect || study.endpoint || study.population || study.followUp) && <dl className="ws-ra-facts">
       {study.effect && <div data-fact="effect"><dt>Результат</dt><dd>{study.effect}</dd></div>}
       {study.endpoint && <div data-fact="endpoint"><dt>Конечная точка</dt><dd lang="en">{study.endpoint}</dd></div>}

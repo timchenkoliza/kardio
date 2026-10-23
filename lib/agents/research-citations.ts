@@ -41,7 +41,9 @@ function yearFrom(result: AgentResult): string | null {
 }
 
 function sourceName(result: AgentResult): string {
-  return result.source.publisher ?? result.source.source ?? "Источник";
+  // A PubMed record is cited by its journal; PubMed is only the way to it (its URL).
+  const journal = typeof result.attributes.journal === "string" ? result.attributes.journal.trim() : "";
+  return journal || result.source.publisher || result.source.source || "Источник";
 }
 
 function accessedDate(iso: string): string {
