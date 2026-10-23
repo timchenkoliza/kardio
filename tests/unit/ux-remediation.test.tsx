@@ -583,3 +583,28 @@ describe("Round 12 (IA): no dead topic key in any specialty", () => {
     expect(dead).toEqual([]);
   });
 });
+
+describe("Round 13: phenotype forms are named; «лёгочных вен» is not pulmonary hypertension; multi-word keys are used", () => {
+  const rc = (text: string) => researchConditions({ input: { text }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun);
+  it("N13-1: every written form of an HF phenotype finds ХСН and is named in its own case", () => {
+    for (const form of ["СНсФВ", "ХСНсФВ", "ХСНунФВ", "СНнФВ", "ХСНнФВ"]) expect(rc(`${form} у пожилых`)).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: [form] });
+  });
+  it("N13-2: «лёгочных вен», «лёгочной артерии», «сердечно-лёгочная» do not bring «Лёгочная гипертензия»", () => {
+    expect(topicsMentioned("cardiology", "Изоляция лёгочных вен при ФП у пожилых")).not.toContain("ph");
+    expect(topicsMentioned("cardiology", "Тромбоэмболия лёгочной артерии у пожилых")).not.toContain("ph");
+    expect(topicsMentioned("cardiology", "Сердечно-лёгочная реанимация у пожилых")).not.toContain("ph");
+    expect(topicsMentioned("cardiology", "Лёгочная гипертензия у пожилых")).toContain("ph");
+  });
+  it("N13-3: the words of a multi-word key or concept are used, not «не учтено»", () => {
+    for (const question of ["Искусственный интеллект в кардиологии", "Антагонисты минералокортикоидных рецепторов при ХСН", "Аортальный стеноз у пожилых", "Инфаркт миокарда у пожилых", "Изоляция лёгочных вен при ФП у пожилых"]) expect(rc(question).unmatched).toEqual([]);
+  });
+});
+
+describe("Round 13 (after): a narrower multi-word topic is not also the broader one", () => {
+  it("«лёгочная гипертензия» is pulmonary hypertension, not arterial hypertension, in every specialty", () => {
+    expect(topicsMentioned("cardiology", "Лёгочная гипертензия у пожилых")).toEqual(["ph"]);
+    expect(topicsMentioned("therapy", "Лёгочная гипертензия у пожилых")).not.toContain("ah");
+    expect(topicsMentioned("cardiology", "Лёгочная гипертензия и артериальная гипертензия")).toEqual(expect.arrayContaining(["ah", "ph"]));
+    expect(topicsMentioned("cardiology", "Артериальная гипертензия у пожилых")).toEqual(["ah"]);
+  });
+});

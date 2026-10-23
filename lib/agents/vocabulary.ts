@@ -22,15 +22,15 @@ export interface TopicOption {
 
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
   cardiology: [
-    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард"] },
-    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сн", "снсфв", "снунфв", "снпфв", "снфв", "снснфв", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
-    { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
+    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард", "инфаркт миокард"] },
+    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сн", "снсфв", "сннфв", "снунфв", "снпфв", "снфв", "снснфв", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
+    { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен", "ад"] },
     { id: "af", label: "Фибрилляция предсердий", catalogTopics: ["atrial_fibrillation"], pubmed: "\"atrial fibrillation\"[tiab]", keywords: ["фп", "фибрилляц", "трепетан", "антикоагул"] },
     { id: "lipids", label: "Липидология", catalogTopics: [], pubmed: "dyslipidemia[tiab] OR \"lipoprotein(a)\"[tiab] OR LDL[tiab]", keywords: ["липид", "холестер", "лпнп", "статин", "дислипид"] },
     { id: "arrhythmia", label: "Нарушения ритма", catalogTopics: ["ventricular_arrhythmias", "bradyarrhythmias", "supraventricular_tachycardia"], pubmed: "arrhythmia[tiab] OR tachycardia[tiab]", keywords: ["аритм", "тахикард", "брадикард", "ритм"] },
-    { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид"] },
+    { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид", "аортальн стеноз"] },
     { id: "cardiomyopathy", label: "Кардиомиопатии", catalogTopics: ["hypertrophic_cardiomyopathy", "myocarditis"], pubmed: "cardiomyopathy[tiab] OR myocarditis[tiab]", keywords: ["кардиомиопат", "гкмп", "миокардит", "амилоид"] },
-    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "лёгочн", "лаг", "хтэлг"] },
+    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "лаг", "хтэлг"] },
     { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"], specialtyBound: true },
     { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"], specialtyBound: true },
     { id: "endocarditis", label: "Инфекционный эндокардит", catalogTopics: ["infective_endocarditis"], pubmed: "endocarditis[tiab]", keywords: ["эндокардит"] },
@@ -230,7 +230,7 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("statin", "статины", "статин|аторвастатин|розувастатин", "statin*[tiab] OR atorvastatin[tiab] OR rosuvastatin[tiab]"),
   concept("pcsk9", "PCSK9 и инклисиран", "pcsk9|инклисиран|эволокумаб|алирокумаб", "PCSK9[tiab] OR inclisiran[tiab]"),
   concept("lpa", "липопротеин(а)", "липопротеин\\s*\\(?а|lp\\(a", "\"lipoprotein(a)\"[tiab]"),
-  concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
+  concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт\\p{L}*(?:\\s+рецептор)?", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
   concept("aldosterone_synthase", "ингибиторы альдостеронсинтазы", "баксдростат|лорундростат|альдостеронсинтаз", "baxdrostat[tiab] OR lorundrostat[tiab] OR \"aldosterone synthase\"[tiab]"),
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
   concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
@@ -238,7 +238,7 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
   concept("ckd", "ХБП", "хбп|почечн|рскф", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
-  concept("diabetes", "сахарный диабет", "диабет|сд2", "diabet*[tiab]"),
+  concept("diabetes", "сахарный диабет", "диабет|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
   concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),
@@ -267,18 +267,37 @@ export function sourceLabels(ids: readonly string[]): string[] {
   return ids.map(id => sourceById(id)?.label).filter((label): label is string => Boolean(label));
 }
 
-/** Map arbitrary Russian/English text to topic ids using keyword stems. */
+/**
+ * Map arbitrary Russian/English text to topic ids using keyword stems. A key inside a word counts
+ * («дислипидемия» → «липид»), but not after a negating «не» («неклапанная» is not «клапан»). A topic whose
+ * matched words all belong to a multi-word key of another found topic is that narrower topic, not its own:
+ * «лёгочная гипертензия» is pulmonary hypertension, not arterial hypertension through «гипертенз».
+ */
 export function topicsMentioned(specialty: SpecialtyId, text: string): string[] {
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
-  return TOPICS[specialty]
-    .filter(topic => topic.keywords.some(keyword => {
-      // Keys are compared the way the text is normalised («лёгочн» → «легочн»).
+  const words = normalized.match(/[\p{L}\p{N}-]+/gu) ?? [];
+  const hitsWord = (part: string, word: string) => part.length <= 3 ? new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(word) : word.includes(part) && !word.startsWith(`не${part}`);
+  const at = (part: string): number[] => words.flatMap((word, index) => hitsWord(part, word) ? [index] : []);
+  const match = (topic: TopicOption) => {
+    // Keys are compared the way the text is normalised («лёгочн» → «легочн»).
+    const found = topic.keywords.flatMap(keyword => {
       const parts = keyword.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").split(" ");
-      return parts.every(part => {
-        if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(normalized);
-        // A key inside a word counts («дислипидемия» → «липид»), but not after a negating «не»: «неклапанная» is not «клапан».
-        return (normalized.match(/[\p{L}\p{N}-]+/gu) ?? []).some(word => word.includes(part) && !word.startsWith(`не${part}`));
-      });
-    }))
-    .map(topic => topic.id);
+      const positions = parts.map(at);
+      if (!positions.every(list => list.length)) return [];
+      // A multi-word key also records where its words stand together («лёгочная гипертензия»): only that phrase is the narrower topic.
+      const phrase = parts.length > 1 ? positions[0].filter(start => parts.every((part, offset) => start + offset < words.length && hitsWord(part, words[start + offset]))).flatMap(start => parts.map((_, offset) => start + offset)) : [];
+      return [{ words: positions.flat(), phrase: new Set(phrase) }];
+    });
+    return found.length ? { id: topic.id, words: new Set(found.flatMap(item => item.words)), phrases: found.map(item => item.phrase).filter(phrase => phrase.size) } : null;
+  };
+  const own = TOPICS[specialty].flatMap(topic => match(topic) ?? []);
+  // Narrower phrases of any specialty («легочн гипертенз» in cardiology) also stop a broader key in a specialty without that topic.
+  const narrower = (Object.keys(TOPICS) as SpecialtyId[]).flatMap(id => TOPICS[id].flatMap(topic => match(topic) ?? [])).flatMap(hit => hit.phrases.map(phrase => ({ id: hit.id, phrase })));
+  return own
+    .filter(hit => !narrower.some(other => other.id !== hit.id && phraseCovers(other.phrase, hit.words)))
+    .map(hit => hit.id);
+}
+
+function phraseCovers(phrase: ReadonlySet<number>, words: ReadonlySet<number>): boolean {
+  return phrase.size > words.size && [...words].every(index => phrase.has(index));
 }

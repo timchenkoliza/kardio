@@ -1,6 +1,6 @@
 import { unmatchedWords } from "@/lib/portal/unmatched";
 import { countLabel, isBibliographicOnly, matchedSource, outsideApprovedList, verificationLabelFor } from "./format";
-import { pubmedConceptsIn, topicLabels, topicsMentioned } from "./vocabulary";
+import { pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "./vocabulary";
 import { researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
 import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "./study-identifiers";
 import type { AgentResultView, AgentRun, ResultAttributeValue, VerificationStatus } from "./types";
@@ -193,8 +193,17 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
   const dropped = widened ? concepts.filter(concept => !conditions.includes(concept)) : [];
-  // A word is known only when the review's own search understands it: its topics and PubMed concepts.
-  const known = (word: string) => topicsMentioned(run.specialty, word).length > 0 || pubmedConceptsIn(word).length > 0;
+  // A word is known only when the review's own search understands it: its topics and PubMed concepts, including
+  // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
+  const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+  const matchedParts = [
+    ...topicsMentioned(run.specialty, question).flatMap(id => topicById(run.specialty, id)?.keywords ?? []).flatMap(keyword => keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").split(" ")),
+    ...pubmedConceptsIn(question).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
+  ].filter(part => part.length >= 4);
+  const known = (word: string) => {
+    const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+    return topicsMentioned(run.specialty, word).length > 0 || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => value.includes(part));
+  };
   return { conditions, unmatched: [...dropped, ...unmatchedWords(question, conditions, run.specialty, known)] };
 }
 
@@ -249,7 +258,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   ].filter((value): value is string => Boolean(value));
 
   const limitations = [
-    pubmedDown ? `PubMed: ${pubmedUse?.note ?? "недоступен во время запуска"}.` : null,
+    pubmedDown ? `PubMed: ${(pubmedUse?.note ?? "недоступен во время запуска").replace(/^PubMed\s+/u, "")}.` : null,
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
     digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
