@@ -593,10 +593,15 @@ function Handoff({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
 function NextActions({ ctx }: { ctx: Ctx }) {
   const text = ctx.run.input.text?.trim();
   const actions = (ctx.run.experience?.manifest.actions ?? []).filter(action => (action.kind === "follow_up" || action.kind === "investigate_deeper") && action.job);
-  if (!text || !actions.length) return null;
+  // A question about «события» may have meant the events listing: it is one click away, with the same words.
+  const events = Boolean(text && /(?<![\p{L}])событи/iu.test(text));
+  if (!text || (!actions.length && !events)) return null;
   return <section className="pt-next" aria-labelledby="pt-next-title" data-module="next_actions">
     <h2 id="pt-next-title" className="pt-subtitle">Что дальше</h2>
-    <div className="pt-card-actions">{actions.slice(0, 3).map(action => <FollowupJobButton key={action.id} text={text} job={action.job as PortalJob} label={action.label} />)}</div>
+    <div className="pt-card-actions">
+      {actions.slice(0, 3).map(action => <FollowupJobButton key={action.id} text={text} job={action.job as PortalJob} label={action.label} />)}
+      {events && <FollowupJobButton text={text} job="events" label="Мероприятия по теме" />}
+    </div>
   </section>;
 }
 

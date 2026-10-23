@@ -149,7 +149,9 @@ describe("execution strategy: Skill fast path, shadow first, dynamic otherwise",
     const text = "Сравни апиксабан, ривароксабан и дабигатран при ФП";
     const first = decideStrategy({ text, specialty: "cardiology" });
     expect(first.executionClass).toBe("dynamic");
-    expect(first.planPreview?.steps.length).toBeGreaterThanOrEqual(3);
+    // Only what the planned sources do (N20-4, N21 A): reviews and their discrepancies, no instruction the comparison does not open.
+    expect(first.planPreview?.steps.length).toBeGreaterThanOrEqual(2);
+    expect(first.planPreview?.steps.join(" ")).not.toMatch(/инструкц/iu);
     expect(first.planPreview?.steps.join(" ")).not.toMatch(/skill|pubmed|medi|агент/iu);
     expect(decideStrategy({ text, specialty: "cardiology", planConfirmed: first.planPreview!.id }).planPreview).toBeNull();
   });

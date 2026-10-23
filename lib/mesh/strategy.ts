@@ -94,7 +94,7 @@ function planPreviewFor(intent: NormalizedIntent, text: string): PlanPreview | n
   const [first, ...rest] = intent.entities.drugs.map(drug => drug.ru);
   const steps = [
     // One instruction is opened per answer; the rest are named for ГРЛС, not promised.
-    `Открою российскую инструкцию: ${first}${rest.length ? `; инструкции ${rest.join(", ")} — по ссылке на ГРЛС` : ""}`,
+    [...intent.requirements, ...intent.optional].includes("russian_drug_reference") ? `Открою российскую инструкцию: ${first}${rest.length ? `; инструкции ${rest.join(", ")} — по ссылке на ГРЛС` : ""}` : null,
     // Only what the planned sources do: guidelines when the job asks for them, reviews when PubMed may answer.
     intent.requirements.some(item => /guideline/u.test(item)) ? (intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях") : null,
     [...intent.requirements, ...intent.optional].includes("current_research") ? "Подберу свежие сравнительные обзоры и метаанализы, если они включены в ваших источниках" : null,

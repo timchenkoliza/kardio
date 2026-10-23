@@ -173,6 +173,11 @@ export function JobResult({ job, run, results, partner, specialty, adapter, rese
       </>}
       {partner.length > 0 && <Section id="pt-partner" title="Партнёрский материал"><Cards results={partner} specialty={specialty} /></Section>}
       <Handoffs adapter={adapter} title={covered && results.length ? "Где ещё смотреть события" : "Календари организаторов"} />
+      {/* A clinical question about «события» (adverse events, MACE) reached the listing: its answer is one click away. */}
+      {run.input.text && <section className="pt-next" aria-labelledby="pt-next-events-title">
+        <h2 id="pt-next-events-title" className="pt-subtitle">Искали не мероприятия?</h2>
+        <div className="pt-card-actions"><FollowupJobButton text={run.input.text} job="answer" label="Ответ по источникам" /></div>
+      </section>}
     </>;
   }
 

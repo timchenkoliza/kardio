@@ -53,9 +53,12 @@ const RULES: readonly Rule[] = [
 ];
 
 const EVENTS_WORD = re(`(?<![${L}])событи`);
-const CLINICAL_EVENTS = re(`(?:сосудист|неблагоприятн|нежелательн|коронарн|кардиальн|цереброваскулярн|аритмическ|почечн|тромботическ|тромбоэмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л)${L}*\\s+(?:${L}+\\s+)?событи|(?:риск|частот|числ)${L}*\\s+(?:${L}+\\s+){0,2}событи|событи${L}*\\s+(?:${L}+\\s+){0,4}(?:после|у пациентов|у больных|на фоне)\\s`);
-/** A listing cue that holds even in a clinical question: a month, «предстоящие», a society, an audience («для эндокринологов»). */
-const EVENTS_STRONG_CUE = re(`(?<![${L}])(?:предстоящ|профессиональн|календар|январ|феврал|март|апрел|ма[йяе](?![${L}])|июн|июл|август|сентябр|октябр|ноябр|декабр|этом месяц|следующем месяц|рко|esc|aha|acc|easd|ada|для ${L}+(?:логов|апевтов|иатров|ологов))`);
+const CLINICAL_EVENTS = re(`(?:сосудист|неблагоприятн|нежелательн|коронарн|кардиальн|цереброваскулярн|аритмическ|почечн|тромботическ|тромбоэмболическ|кардиоваскулярн|ишемическ|геморрагическ|жизнеугрожающ|серь[её]зн|повторн|гипогликемическ|отдал[её]нн|тяж[её]л)${L}*\\s+(?:${L}+\\s+)?событи|(?:риск|частот|числ)${L}*\\s+(?:${L}+\\s+){0,2}событи`);
+/**
+ * A clinical turn of the question: «события при ХСН», «после ЧКВ», «на фоне апиксабана», «у пациентов с ФП».
+ * «события по ХСН» names the listing's subject, not a clinical question.
+ */
+export const CLINICAL_TURN = new RegExp(`(?<![${L}])(?:при|после(?!\\s+(?:нового|новогодн|праздник|отпуск|конгресс|конференц))|на фоне|в течение|(?:у пациент|у больн|у пожил|в лечени|в исследовани)${L}*|следующ${L}*\\s+за)(?![${L}])|(?<![${L}])mace(?![${L}])`, "iu");
 
 const PRIORITY: readonly PortalJob[] = ["materials", "events", "learning", "guidelines", "drug", "research", "updates", "answer"];
 
@@ -86,10 +89,9 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
     current.hits.push(hit);
     scores.set(job, current);
   };
-  // «события» is the events listing with nothing clinical in the question, or with a strong listing cue («в ноябре»,
-  // «конгресс ESC 2026»); «нежелательные события при приёме апиксабана» is a clinical question.
-  // A drug or a clinical concept outweighs a general cue («какие», «ближайшие», a year); only a strong cue keeps the listing.
-  if (EVENTS_WORD.test(value) && !CLINICAL_EVENTS.test(value) && (EVENTS_STRONG_CUE.test(value) || (!drugs.length && !concepts.length))) add("events", 4, "событи");
+  // «события» is the events listing unless the question is clinical: «нежелательные события при приёме апиксабана».
+  // «события по ХСН», «ближайшие события» — the listing; a drug, a clinical adjective or a clinical turn makes it a question.
+  if (EVENTS_WORD.test(value) && !CLINICAL_EVENTS.test(value) && !CLINICAL_TURN.test(value) && !drugs.length) add("events", 4, "событи");
   for (const rule of RULES) for (const pattern of rule.patterns) {
     const match = value.match(pattern) ?? text.match(pattern);
     if (!match) continue;

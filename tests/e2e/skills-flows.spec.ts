@@ -99,9 +99,10 @@ test("a large comparison shows the plan first; «Продолжить» runs it"
   const plan = page.locator("[data-plan]");
   await expect(plan).toBeVisible({ timeout: 15_000 });
   await expect(plan.getByText("Я проверю:")).toBeVisible();
-  // The plan names only what the planned sources do (N20-4): one instruction, reviews, discrepancies.
-  await expect(plan.locator("li")).toHaveCount(3);
-  await expect(plan.locator("li").first()).toContainText("Открою российскую инструкцию: апиксабан");
+  // The plan names only what the planned sources do (N20-4, N21 A): a comparison reads reviews, not instructions.
+  await expect(plan.locator("li")).toHaveCount(2);
+  await expect(plan.locator("li").first()).toContainText("обзоры");
+  await expect(plan).not.toContainText("инструкц");
   await plan.getByRole("button", { name: "Продолжить" }).click();
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=run-/u, { timeout: 15_000 });
 });

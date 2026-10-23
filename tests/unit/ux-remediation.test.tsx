@@ -842,7 +842,7 @@ describe("Round 17: compounds, sections and short Latin as the search used them"
     expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("ХБП");
   });
   it("N17-3 (A) / N17-04 (B): numbers keep their fraction, range and unit; a lone dash separates", () => {
-    expect(home("Целевой ЛПНП ниже 1,4 ммоль/л").unmatched).toContain("ниже 1,4 ммоль/л");
+    expect(home("Целевой ЛПНП ниже 1,4 ммоль/л").unmatched).toContain("ЛПНП ниже 1,4 ммоль/л");
     expect(home("Лихорадка у младенцев 8–60 дней", "pediatrics").unmatched).toEqual(["8–60 дней"]);
     expect(rc("Омега 3 при ИБС").unmatched).toEqual(["омега 3"]);
     expect(rc("ИЛ 6 при ИБС").unmatched).toEqual(["ИЛ 6"]);
@@ -918,7 +918,7 @@ describe("Round 19: «события» are the listing only with a listing cue; 
   it("N19-4 (A) / N19-03, N19-04 (B): numbers the search used are used; a number goes with its lead word, not across punctuation", () => {
     expect(home("Сахарный диабет 1 и 2 типа: статины", "therapy").unmatched).toEqual([]);
     expect(home("Статины после 75 лет").unmatched).toEqual(["после 75 лет"]);
-    expect(home("ФВ ЛЖ менее 40% при ХСН").unmatched).toContain("ЛЖ менее 40%");
+    expect(home("ФВ ЛЖ менее 40% при ХСН").unmatched).toEqual(["ФВ ЛЖ менее 40%"]);
     expect(home("ХСН у пожилых, 80 лет").unmatched).toEqual(["80 лет"]);
     expect(home("Артериальная гипертензия: клинические рекомендации 2024").unmatched).toEqual(["2024"]);
     expect(home("ЛПНП 3,0 ммоль/л у пожилых").unmatched).toEqual(["ЛПНП 3,0 ммоль/л"]);
@@ -994,5 +994,42 @@ describe("Round 20 (A): a chain of numbers keeps its word; a measure keeps its l
   it("«AT» is antithrombin, not «at»; «при приёме» is not a condition", () => {
     expect(home("Дефицит AT III при тромбозах").join(" ")).toContain("AT");
     expect(home("Нежелательные события при приёме апиксабана")).not.toContain("приёме");
+  });
+});
+
+describe("Round 21: «события по <теме>» are the listing; a clinical turn makes them a question; measures and units whole", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  it("N21-01 (B): the topic after «по» is the listing's subject; «при», «после», «у пациентов», a drug make a clinical question", () => {
+    for (const question of ["Ближайшие события по ХСН", "Какие события по АГ на этой неделе", "События по ХСН в 2026 году", "События по ФП на следующей неделе", "Какие события по ХСН стоит посетить", "События по ХСН", "Ближайшие события после Нового года", "Какие события по ХСН в этом месяце", "Предстоящие события по АГ"]) expect(compileIntent(question, "cardiology").job.primary).toBe("event_search");
+    for (const question of ["События у пациентов с ФП", "События после ЧКВ", "События в ноябре у пациентов с ХСН", "Нежелательные события при приёме апиксабана", "Какие события чаще на фоне апиксабана", "Какие события входят в MACE", "Сердечно-сосудистые события при ХСН"]) expect(compileIntent(question, "cardiology").job.primary).not.toBe("event_search");
+  });
+  it("N21-02…N21-04, N21-06 (B): «ФВ ЛЖ менее 40%», units, signs, «IN», «режим приёма», «предупреждение и снижение»", () => {
+    expect(home("ФВ ЛЖ более 50% при ХСН")).toEqual(["ФВ ЛЖ более 50%"]);
+    expect(home("ЛПНП < 1,4 у пожилых")).toEqual(["ЛПНП менее 1,4"]);
+    expect(home("Lp(a) более 50 мг/дл").join(" ")).toContain("50 мг/дл");
+    expect(home("Apixaban vs warfarin IN elderly").join(" ")).not.toContain("IN");
+    expect(home("Время приёма статинов").join(" ")).toContain("время приёма");
+    expect(askedSections("Предупреждение и снижение риска инсульта апиксабаном")).not.toContain("safety");
+    expect(askedSections("Варфарин: предупреждения и противопоказания")).toContain("safety");
+  });
+});
+
+describe("Round 21 (A): a number takes only a type word after it; «ниже/выше» hold the measure; heading words of the section", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  it("N21-3, N21-4: «менее 60 кг», «дозы 5 мг», «ЛПНП ниже 1,8», «АД выше 140/90»", () => {
+    expect(home("Вес менее 60 кг апиксабан").join(" ")).not.toContain("апиксабан");
+    expect(home("ЛПНП ниже 1,8 у пациентов с СД")).toContain("ЛПНП ниже 1,8");
+    expect(home("АД выше 140/90 у пожилых")).toContain("АД выше 140/90");
+    expect(home("Statins OR placebo in elderly").join(" ")).not.toContain("OR");
+  });
+  it("«особые», «рамке», «меры предосторожности» belong to the safety section; «предупреждение ривароксабаном» does not", () => {
+    expect(askedSections("Апиксабан: меры предосторожности")).toContain("safety");
+    expect(askedSections("Предупреждение ривароксабаном тромбоза")).not.toContain("safety");
   });
 });

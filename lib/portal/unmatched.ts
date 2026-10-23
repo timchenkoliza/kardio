@@ -26,7 +26,7 @@ const STOP = new Set([
   "показаны", "показан", "показана", "показано",
   // English service words of an English question are not conditions («Beta blockers in heart failure»).
   "in", "of", "vs", "versus", "and", "or", "the", "for", "with", "at", "on", "to", "a", "an", "by", "from", "is", "are", "was", "were", "be",
-  "теме", "теми", "приеме", "приёме", "приема", "приёма", "фоне",
+  "теме", "теми", "приеме", "приёме", "фоне",
 ]);
 
 /**
@@ -59,10 +59,10 @@ const COVERED_QUALIFIERS: ReadonlyArray<[RegExp, readonly string[]]> = [
 ];
 
 /** A number with its fraction, range and unit («1,4 ммоль/л», «8–60», «5 мг»), not a word starting with a digit («2Б»). */
-const NUMBER = "[0-9]+(?:[.,/][0-9]+)?(?:\\s?[-–—]\\s?[0-9]+(?:[.,][0-9]+)?)?(?:-(?:го|й|е|я|х|м|му|ми|ти|летию|летия|летний|летних|летнего))?(?:\\s?(?:%|мг/кг|мг|мкг|мл/кг|мл/мин|мл|ммоль/л|мкмоль/л|лет|года|год|мес|месяц[\\p{L}]*|недел[\\p{L}]*|дней|дня|сут[\\p{L}]*|мс|кг))?(?![\\p{L}\\p{N}])";
+const NUMBER = "[0-9]+(?:[.,/][0-9]+)?(?:\\s?[-–—]\\s?[0-9]+(?:[.,][0-9]+)?)?(?:-(?:го|й|е|я|х|м|му|ми|ти|летию|летия|летний|летних|летнего))?(?:\\s?(?:%|мг/кг|мг/дл|мг|мкг/л|мкг|мл/кг|мл/мин|мл|ммоль/моль|ммоль/л|мкмоль/л|пг/мл|нг/мл|нг/л|мм рт\\.? ?ст\\.?|мм|см|ЕД|ед|лет|года|год|мес|месяц[\\p{L}]*|недел[\\p{L}]*|дней|дня|сут[\\p{L}]*|мс|кг))?(?![\\p{L}\\p{N}])";
 
 /** Words that carry the number after them («после 75 лет», «менее 40%»). */
-const NUMBER_LEAD = new Set(["до", "после", "старше", "младше", "моложе", "выше", "ниже", "менее", "более", "свыше", "от", "больше", "меньше"]);
+const NUMBER_LEAD = new Set(["не более", "не менее", "до", "после", "старше", "младше", "моложе", "выше", "ниже", "менее", "более", "свыше", "от", "больше", "меньше"]);
 
 /** An abbreviation typed in capitals, possibly with a number («ИКД», «ПЦСК9»). */
 const ABBREVIATION = /^[А-ЯЁ]{2,6}[0-9]*$/u;
@@ -237,6 +237,8 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   let lastNamedAbbreviation: number | null = null;
   // The word before a lead word («ЛПНП» in «ЛПНП менее 1,4») and before a chain of numbers («СД» in «СД 1 и 2 типа»).
   let leadHead: string | null = null;
+  // Abbreviations written one after another («ФВ ЛЖ») name one measure.
+  let measureRun: string[] = [];
   let chainHead: string | null = null;
   let lastWasNumber = false;
   // A number with no word after it belongs to the word before it, even a searched one («ЛПНП 3,0 ммоль/л»: the value was not searched).
@@ -249,10 +251,10 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     // Only a measure keeps its lead word («ЛПНП менее 1,4»); an ordinary word does not («статины после 75 лет» → «после 75 лет»).
     const measure = leadHead && (ABBREVIATION.test(leadHead) || /[A-Za-z]/u.test(leadHead) || phrases.includes(shown(leadHead)));
     if (lead && measure && leadHead) {
-      // «ЛПНП менее 1,4», «СКФ менее 30 мл/мин»: the measure, the lead word and the value are one phrase.
-      const head = shown(leadHead);
-      const alone = phrases.lastIndexOf(head);
-      if (alone >= 0) phrases.splice(alone, 1);
+      // «ЛПНП менее 1,4», «ФВ ЛЖ менее 40%»: the measure (a run of abbreviations), the lead word and the value are one phrase.
+      const run = measureRun.length && measureRun[measureRun.length - 1] === leadHead ? measureRun : [leadHead];
+      const head = run.map(shown).join(" ");
+      for (const part of run) { const alone = phrases.lastIndexOf(shown(part)); if (alone >= 0) phrases.splice(alone, 1); }
       phrases.push(`${head} ${previousWord!.toLocaleLowerCase("ru-RU")} ${number}`);
     } else if (previousWord) phrases.push(`${lead ? previousWord.toLocaleLowerCase("ru-RU") : shown(previousWord)} ${number}`);
     // A number the search did not take is named even on its own («ЛПНП при ИБС: 1,4»).
@@ -293,6 +295,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     const initials = index >= 2 && question.slice(end - token.length - 1, end - token.length) === "(" ? `${tokens[index - 2][0][0]}${tokens[index - 1][0][0]}`.toLocaleUpperCase("ru-RU") : "";
     if (ABBREVIATION.test(token) && initials === token) { close(); continue; }
     if (ABBREVIATION.test(token)) {
+      measureRun = ABBREVIATION.test(tokens[index - 1]?.[0] ?? "") && measureRun.length ? [...measureRun, token] : [token];
       const number = pendingNumber;
       pendingNumber = null;
       close();
@@ -308,6 +311,12 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     // A number after a word belongs to it («омега 3», «ниже 1,4»), otherwise to the word after it («2 типа»).
     if (new RegExp(`^${NUMBER}$`, "u").test(token)) {
       lastWasNumber = true;
+      // «ЛПНП < 1,4», «ФВ ≥ 50%»: the sign reads as its words.
+      const sign = /[<>≤≥]\s*$/u.exec(question.slice(Math.max(0, match.index - 3), match.index))?.[0].trim();
+      if (sign && !current.length && previousWord && !NUMBER_LEAD.has(previousWord.toLocaleLowerCase("ru-RU"))) {
+        leadHead = previousWord;
+        previousWord = { "<": "менее", ">": "более", "≤": "не более", "≥": "не менее" }[sign] ?? previousWord;
+      }
       // The first number of a chain names its word («СД 1 и 2 типа»); later numbers keep it.
       if (!numberBefore && !(/^(?:и|или|либо)$/u.test(tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") ?? "") && chainHead)) chainHead = previousWord;
       // «2-го» inside «СД 2-го типа» is part of the searched concept; «1 и 2 типа» when the conditions name both types;
@@ -323,7 +332,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     pendingNumber = null;
     const latin = /[A-Za-z]/u.test(token) && !/[А-Яа-яЁё]/u.test(token);
     // An English service word is written in lower case; «типа A», «витамин A» name a type and a vitamin.
-    if (/^(?:и|или|либо)$/u.test(lower) || (STOP.has(lower) && (!latin || token === lower || /^[A-Z][a-z]+$/u.test(token)))) {
+    if (/^(?:и|или|либо)$/u.test(lower) || (STOP.has(lower) && (!latin || token === lower || /^[A-Z][a-z]+$/u.test(token) || /^(?:IN|OF|AND|THE|FOR|WITH|VS|OR|ON|TO|BY|FROM|IS|ARE)$/u.test(token)))) {
       dropNumber(number);
       close();
       // «СД 1 и 2 типа»: after a number, a conjunction keeps the word the numbers belong to.
@@ -332,6 +341,8 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
       else if (!(conjunction && numberBefore)) previousWord = null;
       continue;
     }
+    // «ниже», «выше» lead a value like «менее» («ЛПНП ниже 1,8»).
+    if (NUMBER_LEAD.has(lower)) { dropNumber(number); close(); leadHead = previousWord; previousWord = token; continue; }
     // A Latin word counts as searched when the PubMed query took it as typed («ST при ИБС»; not «Витамин D»).
     if (latin && ((latinSearched && latinQueried.has(lower)) || societies.has(lower))) { dropNumber(number); close(); previousWord = token; latinBefore = true; continue; }
     // A single capital letter names a type of what precedes it («тип A», «гепатит A»).
@@ -344,10 +355,13 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     // «предупреждение инсульта» — prevention.
     const next = tokens[index + 1]?.[0].toLocaleLowerCase("ru-RU") ?? "";
     const heading = !/^предупрежд/u.test(lower) || clauseEnd || /^(?:о|об|у|при|по|для|к|в)$/u.test(next)
-      || (next === "и" && !/^(?:лечени|профилактик|терапи)/u.test(tokens[index + 2]?.[0].toLocaleLowerCase("ru-RU") ?? ""))
+      // «предупреждения и противопоказания» — sections; «предупреждение и снижение риска» — prevention.
+      || (next === "и" && /^(?:противопоказ|мер|особ|взаимодейств|побочн|нежелательн|передозир)/u.test(tokens[index + 2]?.[0].toLocaleLowerCase("ru-RU") ?? ""))
       || /^особ/u.test(tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") ?? "") || askedSections(`${token} ${next}`).includes("safety");
     const sectionWord = (heading && askedSections(token).some(id => SECTION_CONDITION[id].test(fold(joined)))) || (/^безопас/u.test(lower) && /безопасн/u.test(joined)) || sectionPairs.has(index);
-    const section = sectionWord || (wasAfterSection && SECTION_NOUN.test(lower));
+    // «особые предупреждения», «предупреждение в рамке»: the words of the section heading.
+    const headingWord = (/^особ/u.test(lower) && /^предупрежд/u.test(next)) || (/^рамк/u.test(lower) && /предупрежд\p{L}*\s+в\s+рамк/u.test(fold(question)));
+    const section = sectionWord || (wasAfterSection && SECTION_NOUN.test(lower)) || (headingWord && /безопасн/u.test(joined));
     afterSection = sectionWord && /^(?:побочн|нежелательн)/u.test(lower);
     if (section) { dropNumber(number); close(); previousWord = token; continue; }
     // A word with a digit or a hyphen («Омега-3», «ИЛ-6», «сердечно-лёгочная») is a word like any other.
@@ -363,11 +377,11 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     if (!covered.has(token) && !understood(token) && !qualifierCovered(lower) && !(inName(lower) && nameNear(index))) {
       if (number) current.push({ word: number, abbreviated: false });
       current.push({ word: shown(token), abbreviated: viaAbbreviation(lower) });
-    } else if (number) {
+    } else if (number && /^(?:тип|стади|степен|фк|класс|линии)/u.test(lower)) {
       // The number was not searched though its word was («СД 1 и 2 типа» with only type 1 among the conditions).
       close();
       phrases.push(`${chainHead ? `${shown(chainHead)} ` : ""}${number} ${shown(token)}`);
-    } else close();
+    } else { dropNumber(number); close(); }
     previousWord = token;
   }
   close();
