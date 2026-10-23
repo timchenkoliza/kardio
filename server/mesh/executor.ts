@@ -229,6 +229,23 @@ interface SourceEnv {
   statuses: Record<SourceId, SourceStatusReport>;
 }
 
+/**
+ * Key of the evidence a request may reuse from an earlier one (REUSE_MS,
+ * shared by every session of the instance). `intent.id` names the interpreted
+ * intent only — specialty, job, nosology, subtype, drugs and populations — so
+ * «Длительность ДАТТ после ЧКВ» and «Гипертрофическая кардиомиопатия: лечение»
+ * had the same id and the second question was answered with the first one's
+ * publications. The key also carries what the sources actually search with:
+ * the recognised concepts and Latin terms that build the PubMed query, and the
+ * physician's excluded sources. Order and duplicates do not matter.
+ */
+export function evidenceReuseKey(intent: NormalizedIntent, excludedSources: readonly string[]): string {
+  const concepts = [...new Set(intent.entities.concepts.map(concept => concept.id))].sort();
+  const latin = [...new Set(intent.entities.latin.map(term => term.toLowerCase()))].sort();
+  const excluded = [...new Set(excludedSources)].sort();
+  return `${intent.id}|${fingerprint(JSON.stringify({ concepts, latin, excluded }))}`;
+}
+
 /** intent → plan → sources (progressive when a sink is given) → evidence graph. */
 async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedIntent, args: { progressive: boolean; extras?: Partial<CompileInput>; record: boolean; knowledge: boolean }): Promise<PlannedRun> {
   const started = Date.now();
@@ -236,7 +253,7 @@ async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedInten
   const sessionId = ctx.sessionId ?? null;
   if (args.record) await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
   const store = knowledgeStore();
-  const key = `${intent.id}|${fingerprint(ctx.preference.excludedSources.join(","))}`;
+  const key = evidenceReuseKey(intent, ctx.preference.excludedSources);
   const reusable = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
   let results: SourceResult[];
   let skipped: string[] = [];
