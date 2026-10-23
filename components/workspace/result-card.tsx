@@ -7,6 +7,7 @@ import { SavedLink } from "@/components/portal/result-actions";
 import { DRUG_CHANGE_LABEL, formatDateRu, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
+import { physicianSafe } from "@/lib/presentation/physician";
 import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
 import { FeedArt } from "./feed-art";
 import { ModeBadge } from "./mode-badge";
@@ -77,7 +78,8 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
       {item.provenance.version && <span> · {item.provenance.version}</span>}
       {item.provenance.standing && <> · <SourceStandingNote standing={item.provenance.standing} note={item.provenance.standingNote} /></>}
     </p>
-    {item.verificationNote && <p className="ws-evidence-note">{item.verificationNote}</p>}
+    {/* Internal policy notes («Не в белом списке…», connector states) never reach the physician. */}
+    {physicianSafe(item.verificationNote) && <p className="ws-evidence-note">{physicianSafe(item.verificationNote)}</p>}
   </li>;
 }
 

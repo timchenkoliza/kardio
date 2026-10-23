@@ -1,7 +1,7 @@
 import { countLabel, formatDateRu } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentRun, Evidence } from "@/lib/agents/types";
-import { topicById, topicLabels } from "@/lib/agents/vocabulary";
+import { specificTopicTerms, topicById, topicLabels } from "@/lib/agents/vocabulary";
 import { conceptsIn, type QueryConcept } from "@/lib/portal/lexicon";
 import { jobForRun } from "@/lib/portal/jobs";
 import { specialties } from "@/lib/specialty";
@@ -14,6 +14,7 @@ import { factCheck } from "./services/fact-check";
 import { generateLearningPlan } from "./services/learning";
 import { approvedJournals } from "./services/source-policy";
 import * as tools from "./tools";
+import { titleNamesTopic } from "./topic-match";
 
 /**
  * Learning next best action.
@@ -106,7 +107,9 @@ export async function learning(ctx: AgentContext): Promise<ExecutorResult> {
 
   // A recent review or guideline to read next — live, for every specialty.
   // Cold start reads systematic reviews and guidelines whose title is about the specialty.
-  const term = signal.concept?.term ?? tools.specialtyScopeTerm(ctx);
+  // A review is a step «по теме», only when its title names the topic (not a more specific one): an abstract that
+  // mentions hypertension does not make a schistosomiasis review a step in the hypertension route.
+  const term = signal.concept ? signal.concept.term.replace(/\[tiab\]/g, "[ti]") : tools.specialtyScopeTerm(ctx);
   const types = signal.concept ? REVIEW_TYPES : ["Systematic Review", "Practice Guideline", "Guideline"];
   const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - 3, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
   const maxDate = entrezDate(ctx.now);
@@ -114,6 +117,12 @@ export async function learning(ctx: AgentContext): Promise<ExecutorResult> {
   let reviews = builder.record("Искали свежие обзоры в журналах, одобренных врачами", await tools.searchPubmed(ctx, { term, minDate, maxDate, retmax: 3, journals: approvedJournals(), publicationTypes: types, sort }), items => countLabel(items.length, ["обзор", "обзора", "обзоров"]));
   if (!reviews.length && builder.toolsUsed.at(-1)?.status === "ok") {
     reviews = builder.record("Расширили поиск обзоров на все журналы", await tools.searchPubmed(ctx, { term, minDate, maxDate, retmax: 3, publicationTypes: types, sort }), items => countLabel(items.length, ["обзор", "обзора", "обзоров"]));
+  }
+  if (signal.concept) {
+    const concept = signal.concept;
+    const offTopic = reviews.filter(article => !titleNamesTopic(article.title, concept.term, specificTopicTerms(ctx.specialty)));
+    if (offTopic.length) builder.note("Отложили обзоры о другой теме", `${countLabel(offTopic.length, ["обзор", "обзора", "обзоров"])} — в названии нет темы «${concept.label}» или в нём более узкая тема: ${offTopic.slice(0, 2).map(article => `«${truncate(article.title, 90)}»`).join("; ")}`);
+    reviews = reviews.filter(article => !offTopic.includes(article));
   }
   const abstracts = reviews.length ? builder.record("Прочитали, о чём обзор", await tools.readAbstracts(ctx, reviews.slice(0, 2).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
   const firstSignalAt = signal.evidenceDates[0] ?? null;

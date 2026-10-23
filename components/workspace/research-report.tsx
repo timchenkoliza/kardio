@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { verificationLabelFor, weakestVerification } from "@/lib/agents/format";
+import { designLabel } from "@/lib/agents/research-answer";
 import type { AgentResultView, AgentRun, VerificationStatus } from "@/lib/agents/types";
 import type { PhysicianResearchMode, PhysicianResearchViewOptions } from "@/lib/ui/physician-research-view";
 
@@ -72,7 +73,10 @@ function resultVerification(result: AgentResultView): VerificationStatus | null 
 
 /** The type in the physician's words: the study design PubMed states, never an internal category («publication»). */
 function typeLabel(result: AgentResultView): string {
+  const design = designLabel(typeof result.attributes.publicationTypes === "string" ? result.attributes.publicationTypes : null);
+  if (design) return design[0].toLocaleUpperCase("ru-RU") + design.slice(1);
   if (typeof result.attributes.studyType === "string" && result.attributes.studyType) return result.attributes.studyType;
+  if (result.category === "guideline") return "Клинические рекомендации";
   return result.category === "publication" ? "Публикация" : result.kind === "guideline_change" ? "Рекомендации" : "Материал";
 }
 

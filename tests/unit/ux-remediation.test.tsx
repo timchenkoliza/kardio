@@ -29,8 +29,10 @@ import { createRun } from "@/server/agents/supervisor";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
 import { conceptsForIntent, createPubmedAdapter } from "@/server/mesh/sources/pubmed";
 import { resultCard, scenariosFor } from "@/server/portal/for-you";
-import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/executors";
-import { buildResearchAnswer } from "@/lib/agents/research-answer";
+import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/topic-match";
+import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-answer";
+import { specificTopicTerms } from "@/lib/agents/vocabulary";
+import { ResearchResultsTable } from "@/components/workspace/research-report";
 import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
 import type { PageSnapshot } from "@/server/mesh/browser/drivers";
 import { respondToAsk } from "@/server/portal/manager";
@@ -427,5 +429,43 @@ describe("D-7: the research review says what was checked and puts the asked popu
     const answer = buildResearchAnswer(run, [result]);
     expect(answer.practice).not.toMatch(/если тексты статей прочитаны/u);
     expect(answer.practice).toMatch(/Тексты статей не читались/u);
+  });
+});
+
+describe("Round 8: labels say what was checked, the review names what it did not search, topics are named in titles", () => {
+  it("N8-1: a citation from a journal outside the physicians' list is checked, and says the journal's standing apart", () => {
+    const evidence = [{ claim: "Опубликовано: «Switching from warfarin to DOACs in frail elderly patients» — Eur Heart J", verificationNote: "Не в белом списке врачей: PubMed — Каталог статей, не знак качества" }];
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", evidence).label).toBe("Сверены данные публикации · журнал вне списка врачей");
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", [{ claim: evidence[0].claim, verificationNote: "Текст совпадает с источником не полностью" }]).label).toBe("Данные публикации совпадают частично");
+  });
+
+  it("N8-2: the review names the words of the question it did not search, and does not call the result «по вопросу»", () => {
+    const run = { id: "run", agentId: "research", specialty: "cardiology", status: "completed", input: { text: "Кардиоверсия у пожилых с фибрилляцией предсердий" }, toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: [], status: "ok", itemCount: 1, durationMs: 1, note: null }], plan: [], resultIds: [] } as unknown as AgentRun;
+    expect(researchConditions(run).unmatched).toContain("кардиоверсия");
+    const result = { id: "r1", rank: 1, partner: null, kind: "research_finding", category: "publication", title: "Atrial fibrillation in older adults", summary: "Eur Heart J · 2026", attributes: {}, evidence: [{ claim: "Опубликовано: «Atrial fibrillation in older adults» — Eur Heart J", verificationStatus: "SUPPORTED", evidenceLevel: "peer_reviewed" }], source: { source: "PubMed", connectorId: "pubmed" }, actions: [] } as unknown as Parameters<typeof buildResearchAnswer>[1][number];
+    const answer = buildResearchAnswer(run, [result]);
+    expect(answer.headline).toMatch(/по условиям поиска — не по всему вопросу/u);
+    expect(answer.unmatched).toContain("кардиоверсия");
+  });
+
+  it("N8-3: a population word counts only in a title on the question's topic", () => {
+    const terms = conceptsIn("Катетерная аблация при фибрилляции предсердий у пожилых", "cardiology").filter(concept => concept.kind === "concept").map(concept => concept.term);
+    const ordered = byQuestionInTitle([
+      { title: "Prevalence of heart failure in Portugal in people aged ≥50 years (PORTHOS)" },
+      { title: "Pulmonary vein isolation versus sham procedure in atrial fibrillation: the PVI-SHAM-AF trial of catheter ablation" },
+    ], terms, ['"atrial fibrillation"[tiab]']);
+    expect(ordered[0].title).toMatch(/PVI-SHAM-AF/u);
+  });
+
+  it("N8-01 / R7-02: a review or guideline counts for a topic only when its title names it, not a narrower condition", () => {
+    expect(titleNamesTopic("Human schistosomiasis", "hypertension[tiab]", specificTopicTerms("therapy"))).toBe(false);
+    expect(titleNamesTopic("Recommendations for the treatment of pulmonary hypertension", "hypertension[tiab]", specificTopicTerms("therapy"))).toBe(false);
+    expect(titleNamesTopic("Pulmonary arterial hypertension: 2026 update", "hypertension[tiab]", specificTopicTerms("cardiology"))).toBe(false);
+    expect(titleNamesTopic("2026 guideline on the management of hypertension in adults", "hypertension[tiab]", specificTopicTerms("therapy"))).toBe(true);
+  });
+
+  it("N8-4: the review table shows the design PubMed states", () => {
+    const html = renderToStaticMarkup(<ResearchResultsTable results={[{ id: "r", title: "ARISTOTLE", summary: "Eur Heart J", kind: "research_finding", category: "publication", attributes: { publicationTypes: "Journal Article, Randomized Controlled Trial" }, evidence: [], source: { source: "PubMed" }, actions: [] } as unknown as Parameters<typeof ResearchResultsTable>[0]["results"][number]]} />);
+    expect(html).toContain(">РКИ<");
   });
 });

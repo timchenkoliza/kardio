@@ -190,7 +190,12 @@ function focusedExcerpt(text: string, focus: RegExp | null): { text: string; tru
   if (focus) {
     const at = sentences(text).find(sentence => focus.test(sentence));
     const from = at ? text.indexOf(at) : -1;
-    if (from > 0) return { text: excerpt(text.slice(from), MAX_EXCERPT).text, truncated: true };
+    if (from > 0) {
+      // It stops before the next numbered indication («3. Лечение тромбоза…»): that text is about another condition.
+      const rest = text.slice(from);
+      const next = rest.slice(1).search(/\s\d{1,2}\.\s+[А-ЯЁ]/u);
+      return { text: excerpt(next > 0 ? rest.slice(0, next + 1).trim() : rest, MAX_EXCERPT).text, truncated: true };
+    }
   }
   return excerpt(text, MAX_EXCERPT);
 }

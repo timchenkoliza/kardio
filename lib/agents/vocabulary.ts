@@ -178,6 +178,20 @@ export const GOAL_OPTIONS: ReadonlyArray<{ id: LearningGoal; label: string }> = 
   { id: "exam_prep", label: "Подготовка к аккредитации" },
 ];
 
+/** Narrower conditions named with a broader topic's word, whichever specialty is asking: «pulmonary hypertension» is not «hypertension». */
+const NARROWER_TERMS: readonly string[] = [
+  '"pulmonary arterial hypertension"[tiab]',
+  '"pulmonary hypertension"[tiab]',
+  '"portal hypertension"[tiab]',
+  '"intracranial hypertension"[tiab]',
+  '"ocular hypertension"[tiab]',
+];
+
+/** The specialty's topic terms plus the narrower forms: a title about a more specific condition does not count for a broader topic. */
+export function specificTopicTerms(specialty: SpecialtyId): string[] {
+  return [...new Set([...TOPICS[specialty].map(topic => topic.pubmed), ...NARROWER_TERMS].filter(Boolean))];
+}
+
 export function topicsFor(specialty: SpecialtyId): readonly TopicOption[] {
   return TOPICS[specialty];
 }
@@ -219,7 +233,7 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
   concept("aldosterone_synthase", "ингибиторы альдостеронсинтазы", "баксдростат|лорундростат|альдостеронсинтаз", "baxdrostat[tiab] OR lorundrostat[tiab] OR \"aldosterone synthase\"[tiab]"),
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
-  concept("ablation", "абляция", "абляц|изоляц.{0,12}легочн", "ablation[tiab]"),
+  concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
   concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),

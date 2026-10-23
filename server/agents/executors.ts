@@ -2,7 +2,7 @@ import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
-import { pubmedConceptsIn, topicById, topicLabels, topicsFor, topicsMentioned } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, specificTopicTerms, topicById, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
 import { entrezDate, type PubmedArticle } from "./adapters/pubmed";
@@ -15,6 +15,7 @@ import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
 import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
+import { byQuestionInTitle, titleNamesTopic } from "./topic-match";
 import { finishWithChecks, PlanBuilder, topicsDetail, type ExecutorResult } from "./plan";
 import { evidenceAnswer } from "@/server/mesh/executor";
 import { learning } from "./executor-learning";
@@ -111,35 +112,6 @@ export function studyTypeLabel(types: readonly string[]): string | null {
   return null;
 }
 
-/** Articles ordered by how many of the question's concepts their title names; a stable sort keeps PubMed's order otherwise. */
-export function byQuestionInTitle<T extends { title: string }>(articles: readonly T[], terms: readonly string[]): T[] {
-  const groups = terms.map(termPhrases).filter(group => group.length);
-  if (!groups.length) return [...articles];
-  const score = (title: string) => groups.filter(group => group.some(item => phraseIn(title.toLowerCase(), item))).length;
-  return articles.map((article, index) => ({ article, index, score: score(article.title) })).sort((a, b) => b.score - a.score || a.index - b.index).map(item => item.article);
-}
-
-/** Phrases a topic's PubMed term looks for («hypertension», «chronic kidney disease», «diabet» as a prefix). */
-function termPhrases(term: string): Array<{ phrase: string; prefix: boolean }> {
-  return [...term.matchAll(/"([^"]+)"\[[a-z]+\]|([A-Za-z0-9-]+)(\*?)\[[a-z]+\]/giu)].map(match => ({ phrase: (match[1] ?? match[2]).toLowerCase(), prefix: Boolean(match[3]) }));
-}
-
-function phraseIn(value: string, { phrase, prefix }: { phrase: string; prefix: boolean }): boolean {
-  return new RegExp(`(?<![a-z])${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}${prefix ? "" : "(?![a-z])"}`, "u").test(value);
-}
-
-/**
- * Does a title name the topic? Not when the words belong to a more specific
- * topic of the same vocabulary: «pulmonary hypertension» is not «hypertension».
- */
-export function titleNamesTopic(title: string, term: string, others: readonly string[] = []): boolean {
-  const value = title.toLowerCase();
-  const own = termPhrases(term).filter(item => phraseIn(value, item));
-  if (!own.length) return false;
-  const specific = others.flatMap(termPhrases).filter(item => phraseIn(value, item));
-  return own.some(item => !specific.some(other => other.phrase !== item.phrase && other.phrase.includes(item.phrase)));
-}
-
 /**
  * Guidelines job. Cardiology adds the canonical catalog version chains and the
  * ESC snapshot; every specialty gets recently published guidelines from
@@ -166,7 +138,7 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
   const articles = builder.record("Искали опубликованные рекомендации в PubMed", await tools.searchPubmed(ctx, { term, minDate, maxDate: entrezDate(ctx.now), retmax: question ? 6 : 4, publicationTypes: GUIDELINE_PUBLICATION_TYPES, sort: question ? "relevance" : "pub_date" }), items => countLabel(items.length, ["документ", "документа", "документов"]) + ` за ${years} ${years === 2 ? "года" : "лет"}`);
   const conclusions = question && articles.length ? builder.record("Прочитали рефераты рекомендаций", await tools.readAbstracts(ctx, articles.slice(0, 4).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
   const byPmid = new Map(conclusions.map(item => [item.pmid, item]));
-  const otherTopicTerms = topicsFor(ctx.specialty).map(topic => topic.pubmed).filter(Boolean);
+  const otherTopicTerms = specificTopicTerms(ctx.specialty);
   // A document whose title names only a more specific topic than the chosen ones («pulmonary hypertension» for АГ) is not «по вашей теме».
   const onTopic = (title: string) => !topicTerm || ctx.preference.topics.some(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? "", otherTopicTerms));
   // The reason names the topics this document's title matches, not every topic in the profile.
@@ -178,7 +150,7 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
     return `${labels.length > 1 ? "Темы" : "Тема"}: ${labels.join(", ")}`;
   };
   const offTopic = articles.filter(article => !onTopic(article.title));
-  if (offTopic.length) builder.note("Отложили документы о другой теме", `${countLabel(offTopic.length, ["документ", "документа", "документов"])}: в названии более узкая тема, чем выбранная`);
+  if (offTopic.length) builder.note("Отложили документы о другой теме", `${countLabel(offTopic.length, ["документ", "документа", "документов"])} — в названии более узкая тема, чем выбранная: ${offTopic.slice(0, 3).map(article => `«${truncate(article.title, 90)}»`).join("; ")}`);
   const publications: ResultDraft[] = articles.filter(article => onTopic(article.title)).map(article => {
     const abstract = byPmid.get(article.pmid);
     const bibliographic = factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso));
@@ -343,7 +315,11 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const checked = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
   // After the ranking by source strength, a title that names more of the question («пожилые», «антикоагулянты») comes first;
   // the strength ranking breaks ties.
-  const organicDrafts = byQuestionInTitle(checked.filter(draft => !draft.partner).sort((a, b) => a.rank - b.rank), concepts.map(item => item.term)).map((draft, index) => ({ ...draft, rank: index + 1 }));
+  // Only PubMed records move, within their own places: catalog records (РКО) keep the place their source strength gives them.
+  const ranked = checked.filter(draft => !draft.partner).sort((a, b) => a.rank - b.rank);
+  const reordered = byQuestionInTitle(ranked.filter(draft => draft.source.connectorId === "pubmed"), concepts.map(item => item.term), questionTopics.map(id => topicById(ctx.specialty, id)?.pubmed ?? "").filter(Boolean));
+  let next = 0;
+  const organicDrafts = ranked.map(draft => draft.source.connectorId === "pubmed" ? reordered[next++] : draft).map((draft, index) => ({ ...draft, rank: index + 1 }));
   const drafts = [...organicDrafts, ...checked.filter(draft => draft.partner)];
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [

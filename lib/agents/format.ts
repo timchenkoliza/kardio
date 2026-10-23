@@ -36,14 +36,29 @@ export function isBibliographicOnly(evidence: readonly { claim: string }[]): boo
   return evidence.length > 0 && evidence.every(item => /^Опубликовано: «/u.test(item.claim));
 }
 
+/** The fact check lowers a record whose journal is not on the physicians' list; that is the journal's standing, not a mismatch. */
+const OUTSIDE_LIST = /Не в белом списке врачей/u;
+
+export function outsideApprovedList(evidence: readonly { verificationNote?: string | null }[]): boolean {
+  return evidence.some(item => OUTSIDE_LIST.test(item.verificationNote ?? ""));
+}
+
 /**
  * The verification label for what was actually checked. When only the
  * citation was compared with PubMed, the label says so, never «Совпадает с
- * текстом источника» — no text was read.
+ * текстом источника» — no text was read. A journal outside the physicians'
+ * list is said as such, not as data that «совпадают частично».
  */
-export function verificationLabelFor(status: VerificationStatus, evidence: readonly { claim: string }[]): { label: string; tone: "supported" | "partial" | "unsupported" | "unknown" } {
-  if (isBibliographicOnly(evidence) && status === "SUPPORTED") return { label: "Сверены данные публикации", tone: "supported" };
-  if (isBibliographicOnly(evidence) && status === "PARTIALLY_SUPPORTED") return { label: "Данные публикации совпадают частично", tone: "partial" };
+export function verificationLabelFor(status: VerificationStatus, evidence: readonly { claim: string; verificationNote?: string | null }[]): { label: string; tone: "supported" | "partial" | "unsupported" | "unknown" } {
+  if (isBibliographicOnly(evidence)) {
+    if (status === "SUPPORTED") return { label: "Сверены данные публикации", tone: "supported" };
+    if (status === "PARTIALLY_SUPPORTED") {
+      const mismatch = evidence.some(item => /не полностью|не совпад/iu.test(item.verificationNote ?? ""));
+      return outsideApprovedList(evidence) && !mismatch
+        ? { label: "Сверены данные публикации · журнал вне списка врачей", tone: "partial" }
+        : { label: "Данные публикации совпадают частично", tone: "partial" };
+    }
+  }
   return VERIFICATION_LABEL[status];
 }
 

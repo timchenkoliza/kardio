@@ -10,6 +10,7 @@ import { PendingActions } from "@/components/workspace/pending-actions";
 import { ResearchComposer } from "@/components/workspace/research-composer";
 import { ResearchJobStatus } from "@/components/workspace/research-job-status";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
+import { researchModeLabel, researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
 import { agentIdFromSlug } from "@/lib/agents/definitions";
@@ -60,12 +61,17 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const onDemand = agentId === "research";
   const requestedJobId = onDemand ? first(query.job) : undefined;
   const researchJob = onDemand && sessionId && requestedJobId ? await getResearchJob(sessionId, specialty, requestedJobId) : null;
-  const researchView = researchJob?.options ?? requestedResearchView;
   const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) ?? researchJob?.runId ?? null });
   const { definition, card, results, partner, runs, profile } = detail;
   // The research scenario opens on an empty question unless a run is asked for: a shortcut never lands on an old answer.
   const requestedRun = Boolean(first(query.run) ?? researchJob?.runId);
   const selectedRun = onDemand && !requestedRun ? null : detail.selectedRun;
+  // «Повторить с другими источниками»: the question comes from the stored run (`?from=`), never as text in the URL.
+  const fromRunId = onDemand ? first(query.from) : undefined;
+  const fromRun = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? await workspaceStore().getRun(sessionId, fromRunId) : null;
+  // A shown or repeated review keeps the «Что получить» it was asked in, unless the link names another.
+  const runMode = (selectedRun ?? fromRun)?.input.answerMode;
+  const researchView = researchJob?.options ?? (onDemand && !first(query.mode) && runMode ? { ...requestedResearchView, mode: researchOptionsForAnswerMode(runMode).mode } : requestedResearchView);
   const now = new Date().toISOString();
   const lastSeenAt = profile.subscriptions[agentId].lastSeenAt;
   const fresh = results.filter(result => result.newSinceLastSeen);
@@ -75,9 +81,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
   const researchQuery = researchViewQuery(researchView);
   const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
-  // «Повторить с другими источниками»: the question comes from the stored run (`?from=`), never as text in the URL.
-  const fromRunId = onDemand ? first(query.from) : undefined;
-  const fromText = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? (await workspaceStore().getRun(sessionId, fromRunId))?.input.text ?? "" : "";
+  const fromText = fromRun?.input.text ?? "";
   const initialQuestion = fromText || first(query.q) || "";
   const monitoringOutcome = !onDemand && selectedRun ? runOutcome(selectedRun, { monitoring: tracksNew }) : null;
   const firstCheck = !onDemand && runs.filter(run => run.trigger !== "composer").length <= 1;
@@ -91,7 +95,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         <h1>{definition.name}</h1>
         {onDemand && selectedRun
           // With a result, the header names the question being answered; the description is on the empty scenario page.
-          ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p></>
+          ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p><p className="ws-muted"><span className="pt-mode-chip" data-answer-mode={selectedRun.input.answerMode ?? undefined}>{`Что получить: ${researchModeLabel(researchView.mode)}`}</span></p></>
           : <>
             <p className="ws-agent-job">{definition.job}</p>
             <p className="ws-muted">{definition.description}</p>
