@@ -228,17 +228,24 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
     const found = matches.map(match => {
       let start = match.index ?? 0;
       let end = start + match[0].length + (source.slice(start + match[0].length).match(/^[\p{L}\p{N}()-]*/u)?.[0].length ?? 0);
-      const before = source.slice(0, start).match(/(\p{L}+(?:ая|яя|ое|ее|ые|ие|ый|ий|ой|ых|их|ую|юю))\s+$/u);
+      // Before the concept: only an adjective in agreement with it («катетерная аблация»), never a noun («ведение») or a comparative («безопаснее»).
+      const before = source.slice(0, start).match(/(\p{L}{3,}(?:ая|яя|ое|ые|ый|ий))\s+$/u);
       if (before && !/^(?:старше|младше|моложе|[0-9])/u.test(fold(match[0]))) start -= before[0].length;
-      const after = source.slice(end).match(/^(?:\s+(?!(?:при|у|с|со|для|на|в|во|по|и|или|после|до|от|без|к|о|об|за)(?![\p{L}]))\p{Ll}{3,}){0,2}/u)?.[0] ?? "";
+      // After the concept: only the noun its last adjective belongs to («изоляция лёгочных» + «вен»), never a verb or a comparison.
+      const last = source.slice(start, end).split(/\s+/u).at(-1) ?? "";
+      const after = /(?:ых|их|ой|ей|ого|его|ая|ое|ые|ий|ый)$/u.test(last) ? source.slice(end).match(/^\s+(?!(?:при|у|с|со|для|на|в|во|по|и|или|после|до|от|без|к|о|об|за|более|менее|выше|ниже|против)(?![\p{L}]))\p{Ll}{3,}(?![\p{L}])/u)?.[0] ?? "" : "";
       end += after.length;
       let text = source.slice(start, end).replace(/[-(]+$/u, "");
       // An unpaired bracket belongs to the sentence, not to the words («(ТИА):» → «ТИА»).
       if ((text.match(/\)/gu) ?? []).length > (text.match(/\(/gu) ?? []).length) text = text.replace(/\)+$/u, "");
       if ((text.match(/\(/gu) ?? []).length > (text.match(/\)/gu) ?? []).length) text = text.replace(/^\(+/u, "");
-      return /[A-Za-z]|\p{Lu}.*\p{Lu}/u.test(text) ? text : text.toLocaleLowerCase("ru-RU");
+      // Case word by word: abbreviations and Latin as written, other words in lower case («дозирование ПОАК»).
+      return text.split(/(\s+)/u).map(word => /[A-Za-z]|\p{Lu}.*\p{Lu}/u.test(word) ? word : word.toLocaleLowerCase("ru-RU")).join("");
     });
-    return found.length ? [...new Set(found)] : [label(concept)];
+    // «Транзиторная ишемическая атака (ТИА)»: the abbreviation of a phrase named beside it is that phrase.
+    const initials = (text: string) => text.split(/\s+/u).map(word => word[0] ?? "").join("").toLocaleUpperCase("ru-RU");
+    const unique = [...new Set(found)].filter(item => !(/^\p{Lu}{2,6}$/u.test(item) && found.some(other => other !== item && initials(other) === item)));
+    return unique.length ? unique : [label(concept)];
   };
   const dropped = all.filter(concept => !used(concept)).flatMap(written).filter(item => !conditions.some(condition => fold(condition) === fold(item)));
   // A word is known when the review accounts for it: its topics and the concepts it searched or names above, including
@@ -255,12 +262,15 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const known = (word: string) => {
     const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
     // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
-    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => part.length >= 4 ? value.includes(part) : value === part);
+    // A concept counts by what it matched in the whole question, not by the word alone («гипогликемические препараты»).
+    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || matchedParts.some(part => part.length >= 4 ? value.includes(part) : value === part);
   };
   const named = unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused });
   // A dropped concept already inside a named phrase («апиксабан» in «апиксабан 2,5 мг», «старше 75» in «старше 75 лет») is named once.
-  const inPhrase = (item: string) => named.some(phrase => ` ${fold(phrase)} `.includes(` ${fold(item)} `));
-  return { conditions, unmatched: [...dropped.filter(item => !inPhrase(item)), ...named] };
+  // Each word is named once: a dropped concept inside a named phrase, or a named phrase inside a dropped concept, is dropped.
+  const within = (inner: string, outer: string) => ` ${fold(outer)} `.includes(` ${fold(inner)} `);
+  const kept = dropped.filter((item, index) => !named.some(phrase => within(item, phrase)) && !dropped.some((other, at) => at !== index && other !== item && within(item, other)));
+  return { conditions, unmatched: [...kept, ...named.filter(phrase => !kept.some(item => item !== phrase && within(phrase, item)))] };
 }
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {

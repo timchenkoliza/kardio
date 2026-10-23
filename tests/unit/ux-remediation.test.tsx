@@ -1217,7 +1217,43 @@ describe("Round 24: CABG only in a coronary context; field adjectives yield to a
     expect(rc("Апиксабан 2,5 мг у пожилых")).toEqual(["пожилые пациенты", "апиксабан 2,5 мг"]);
     expect(rc("Статины старше 75 лет").filter(item => item.includes("старше"))).toEqual(["старше 75 лет"]);
     expect(rc("Изоляция лёгочных вен при ФП")).toContain("изоляция лёгочных вен");
-    expect(rc("Транзиторная ишемическая атака (ТИА): аспирин")).toContain("ТИА");
+    // The abbreviation in brackets is the phrase before it: named once, without a bracket.
+    expect(rc("Транзиторная ишемическая атака (ТИА): аспирин")).toEqual(["транзиторная ишемическая атака", "аспирин"]);
     expect(rc("ИМ 2 типа")).toEqual(["ИМ 2 типа"]);
+  });
+});
+
+describe("Round 25: ИБС and АКШ only from words about the heart; events by closed lists; the physician's words as a whole term", () => {
+  const specialties = ["cardiology", "therapy", "endocrinology", "neurology", "pediatrics", "obgyn"];
+  const both = (question: string, specialty: string) => [...searchConditions(compileIntent(question, specialty as never)), ...researchConditions({ input: { text: question }, plan: [], toolsUsed: [], specialty } as unknown as AgentRun).conditions];
+  const listing = (question: string, specialty = "cardiology") => routePortalIntent(question, specialty as never).job === "events";
+  const rc = (text: string, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }], specialty } as unknown as AgentRun).unmatched;
+  const home = (question: string, specialty = "cardiology") => unmatchedWords(question, searchConditions(compileIntent(question, specialty as never)), specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  it("N25-5 (A), N25-02 (B): an ischaemic stroke, a TIA or an infarction of another organ is not ИБС", () => {
+    for (const question of ["Тромболизис при ишемическом инсульте", "Хроническая ишемия мозга у пожилых", "ОНМК по ишемическому типу", "Инфаркт мозга", "Лакунарный инфаркт", "Гипоксически-ишемическая энцефалопатия у новорождённых", "Инфаркты плаценты при преэклампсии", "Ишемический колит", "Транзиторная ишемическая атака"]) {
+      for (const specialty of specialties) expect(both(question, specialty), `${specialty}: ${question}`).not.toContain("ИБС");
+    }
+    for (const question of ["Ишемическая болезнь сердца у пожилых", "ОКС без подъёма ST"]) expect(both(question, "cardiology"), question).toContain("ИБС");
+  });
+  it("N25-01 (B), N25-07 (B): «шунтирование» is CABG in one clause with a coronary word, and never a named other shunt", () => {
+    for (const question of ["Экстра-интракраниальное шунтирование после инфаркта мозга", "Бариатрическое шунтирование и ИБС", "Шунтирование желудка и риск инфаркта миокарда", "Портосистемное шунтирование у пациентов с ИБС"]) {
+      for (const specialty of specialties) expect(both(question, specialty), `${specialty}: ${question}`).not.toContain("АКШ");
+    }
+    for (const question of ["Шунтирование после инфаркта миокарда", "Шунтирование при стабильной стенокардии", "Шунтирование или ЧКВ при СД", "Маммарокоронарное шунтирование", "Ишемическая болезнь сердца: шунтирование или стентирование"]) expect(both(question, "cardiology"), question).toContain("АКШ");
+  });
+  it("N25-1, N25-2, N25-4 (A), N25-05 (B): field adjectives by a closed list; «ведущие», «связанные с» need a subject; adverse events stay questions", () => {
+    for (const question of ["Какие неврологические события считаются серьёзными", "Инфекционные события в первые 2 года жизни", "Ближайшие нежелательные события после ЧКВ", "Нежелательные события по критериям ESC", "Нежелательные события в мае", "События, о которых сообщают при приёме статинов"]) expect(listing(question, "neurology"), question).toBe(false);
+    for (const question of ["Ведущие события года в кардиологии", "События с ведущими экспертами", "События клуба ФП", "События ОССН ХСН", "Российские неврологические события", "Сосудистые события РКО", "Инфекционные события года в педиатрии", "Нежелательные события конгресса ESC", "Сердечные события РКО в ноябре", "Ближайшие сердечно-сосудистые события"]) expect(listing(question), question).toBe(true);
+  });
+  it("N25-3 (A), N25-03, N25-04, N25-06 (B): the physician's words are a whole term, once; «гипогликемические» is named; «во время» never hangs", () => {
+    expect(rc("Апиксабан независимо от функции почек")).toEqual(["апиксабан", "независимо от функции почек"]);
+    expect(rc("Возраст старше 80 лет апиксабан")).toEqual(["апиксабан", "возраст старше 80 лет"]);
+    expect(rc("Апиксабан-ассоциированные кровотечения")).toEqual(["апиксабан-ассоциированные кровотечения"]);
+    expect(rc("Дозирование ПОАК при ХБП")).toContain("ПОАК");
+    expect(rc("Радиочастотная аблация устья лёгочных вен")).toContain("устья лёгочных вен");
+    expect(rc("Пероральные гипогликемические препараты при ХБП", "endocrinology").join(" ")).toContain("гипогликемические");
+    expect(home("Гепарин во время ЧКВ")).toEqual([]);
+    expect(home("Апноэ во время сна", "neurology")).toEqual(["апноэ во время сна"]);
+    expect(home("Антикоагулянты до и во время терапии")).toEqual([]);
   });
 });

@@ -22,7 +22,7 @@ export interface TopicOption {
 
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
   cardiology: [
-    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард", "инфаркт миокард", "ишем болезн сердц"] },
+    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "коронар", "инфаркт", "окс", "стенокард", "инфаркт миокард", "ишем болезн сердц", "ишеми миокард", "ишемическ кардиомиопат", "безболев ишеми"] },
     { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сн", "снсфв", "сннфв", "снунфв", "снпфв", "снфв", "снснфв", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
     { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен", "ад", "гипертони болезн"] },
     { id: "af", label: "Фибрилляция предсердий", catalogTopics: ["atrial_fibrillation"], pubmed: "\"atrial fibrillation\"[tiab]", keywords: ["фп", "фибрилляц", "трепетан", "антикоагул"] },
@@ -224,7 +224,7 @@ const concept = (id: string, label: string, stems: string, term: string, cased?:
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
-  concept("stroke", "инсульт", "инсульт|онмк|тиа(?![\\p{L}])", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
+  concept("stroke", "инсульт", "(?:(?:остр\\p{L}*\\s+)?(?:ишемическ|геморрагическ|кардиоэмболическ|лакунарн)\\p{L}*\\s+)?инсульт|онмк|тиа(?![\\p{L}])|транзиторн\\p{L}*\\s+ишемическ\\p{L}*\\s+атак", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),
   concept("bleeding", "кровотечения", "кровотеч|геморраг", "bleeding[tiab] OR hemorrhag*[tiab]"),
   concept("sglt2", "иНГЛТ-2", "ингл|sglt|глифлозин|дапаглифлозин|эмпаглифлозин", "SGLT2[tiab] OR \"sodium-glucose\"[tiab] OR gliflozin*[tiab]"),
@@ -237,9 +237,10 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
   concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
   concept("mi", "инфаркт миокарда (ИМ)", "инфаркт\\p{L}*\\s+миокард", "\"myocardial infarction\"[tiab]", "ИМ|ОИМ"),
-  // Only coronary bypass: «шунтирование» alone is any shunt (hydrocephalus, gastric, portosystemic).
-  concept("cabg", "АКШ", "акш|(?:аорто)?коронарн\\p{L}*\\s+шунтир|шунтир\\p{L}*(?=[\\s\\S]*(?:ибс|коронар|инфаркт|стенокард|ишемическ\\p{L}*\\s+болезн))|(?:ибс|коронар|инфаркт|стенокард)[\\s\\S]*?шунтир", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
-  concept("pe", "ТЭЛА", "тэла|тромбоэмболи\\p{L}*\\s+легочн\\p{L}*(?:\\s+артери\\p{L}*)?", "\"pulmonary embolism\"[tiab]"),
+  // Only coronary bypass: «АКШ», «аорто-/маммарокоронарное шунтирование», «шунтирование коронарных артерий», or
+  // «шунтирование» in one clause with a coronary word — never a named other shunt (gastric, portosystemic, ventricular…).
+  concept("cabg", "АКШ", "акш|мкш|(?:аорто|маммаро)?-?коронарн\\p{L}*\\s+шунтир|(?<!(?:бариатрическ|портосистемн|портокавальн|вентрикул\\p{L}*|экстра-интракраниальн|интракраниальн|экстракраниальн|ликворн|спленоренальн|мезентериальн|артериовенозн|желудочн|внутрипеченочн)\\p{L}*\\s)шунтир\\p{L}*(?![\\p{L}])(?!\\s+(?:желудк|кишечн|печен|почк|при\\s+гидроцефал|при\\s+впс))(?:\\s+коронарн|(?=[^.;!?]{0,50}?(?:ибс|ишемическ\\p{L}*\\s+болезн\\p{L}*\\s+сердц|инфаркт\\p{L}*\\s+миокард|(?<![\\p{L}])им(?![\\p{L}])|стенокард|многососуд|работающ\\p{L}*\\s+сердц|(?<![\\p{L}])ик(?![\\p{L}])|чкв|стентир|хсн|сердечн\\p{L}*\\s+недостаточн)))|(?:ибс|ишемическ\\p{L}*\\s+болезн\\p{L}*\\s+сердц|инфаркт\\p{L}*\\s+миокард|стенокард|чкв|стентир)[^.;!?]{0,50}?(?<!(?:бариатрическ|портосистемн|вентрикул\\p{L}*|экстра-интракраниальн|интракраниальн|желудочн)\\p{L}*\\s)шунтир(?!\\p{L}*\\s+(?:желудк|кишечн|печен|почк))", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
+  concept("pe", "ТЭЛА", "тэла|тромбоэмболи\\p{L}*\\s+легочн\\p{L}*(?![\\p{L}])(?!\\s+гипертенз)(?:\\s+артери\\p{L}*)?", "\"pulmonary embolism\"[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
   concept("tavi", "TAVI", "tavi|тави|тавр|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
@@ -250,7 +251,7 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   // «гипогликемические препараты» are glucose-lowering drugs, not hypoglycaemia.
   concept("hypoglycemia", "гипогликемия", "гипогликеми(?!ческ\\p{L}*\\s+(?:препарат|средств|терапи|агент|лекарств))", "hypoglyc*[tiab]"),
   concept("insulin", "инсулин", "инсулинотерап|инсулин(?:а|у|ом|е|ы|ов)?(?![\\p{L}])", "insulin[tiab]"),
-  concept("birth", "роды", "род(?:ы|ов|ах|ам|ами)(?![\\p{L}])|родоразрешени|послеродов", "delivery[tiab] OR childbirth[tiab] OR postpartum[tiab]"),
+  concept("birth", "роды", "(?<!(?:разн|нескольк|друг|эт|всех|двух|тр[её]х|многих|одн)\\p{L}*\\s)род(?:ы|ов|ах|ам|ами)(?![\\p{L}])|родоразрешени|послеродов", "delivery[tiab] OR childbirth[tiab] OR postpartum[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
   concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),
@@ -290,7 +291,11 @@ export function sourceLabels(ids: readonly string[]): string[] {
  * «лёгочная гипертензия» is pulmonary hypertension, not arterial hypertension through «гипертенз».
  */
 /** Abbreviations with another meaning in a context: «АД» in «атопический дерматит (АД)» is not blood pressure. */
-const AMBIGUOUS_KEYS: Readonly<Record<string, RegExp>> = { ад: /атопическ/u };
+const AMBIGUOUS_KEYS: Readonly<Record<string, RegExp>> = {
+  ад: /атопическ/u,
+  // An infarction of another organ is not ИБС («инфаркт мозга», «лакунарный инфаркт», «инфаркты плаценты»).
+  инфаркт: /инфаркт\p{L}*\s+(?:мозг|мозжечк|плацент|почк|селезен|кишечн|легк|легочн|спинн|сетчатк)|(?:лакунарн|церебральн|ишемическ|геморрагическ|кардиоэмболическ|мозгов)\p{L}*\s+инфаркт/u,
+};
 
 export function topicsMentioned(specialty: SpecialtyId, text: string): string[] {
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");

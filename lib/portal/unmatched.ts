@@ -351,7 +351,8 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
       continue;
     }
     // «атопический дерматит (АД)»: an abbreviation in brackets after the words it abbreviates is those words.
-    const initials = index >= 2 && question.slice(end - token.length - 1, end - token.length) === "(" ? `${tokens[index - 2][0][0]}${tokens[index - 1][0][0]}`.toLocaleUpperCase("ru-RU") : "";
+    // As many words as the abbreviation has letters («транзиторная ишемическая атака (ТИА)»).
+    const initials = index >= token.length && question.slice(end - token.length - 1, end - token.length) === "(" ? tokens.slice(index - token.length, index).map(item => item[0][0]).join("").toLocaleUpperCase("ru-RU") : "";
     if (ABBREVIATION.test(token) && initials === token) { close(); continue; }
     if (ABBREVIATION.test(token)) {
       const continues = !separated && ABBREVIATION.test(tokens[index - 1]?.[0] ?? "") && measureRun.length > 0;
@@ -419,7 +420,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     if (NUMBER_LEAD.has(lower) && (!/^\p{Ll}{4,}$/u.test(following) || STOP.has(following))) { dropNumber(number); close(); previousWord = null; continue; }
     // «во время приёма»: «время» belongs to the drug's context.
     // «во время приёма», «во время беременности» (searched): context; «во время операции»: a condition with its «во».
-    if (lower === "время" && tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") === "во" && (/^при[её]м/u.test(following.toLocaleLowerCase("ru-RU")) || (following.length > 3 && (understood(following) || covered.has(following))))) { dropNumber(number); close(); continue; }
+    if (lower === "время" && tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") === "во" && (/^при[её]м/u.test(following.toLocaleLowerCase("ru-RU")) || STOP.has(following.toLocaleLowerCase("ru-RU")) || (/^[\p{L}-]{2,}$/u.test(following) && (understood(following) || covered.has(following))))) { dropNumber(number); close(); continue; }
     if (lower === "время" && tokens[index - 1]?.[0].toLocaleLowerCase("ru-RU") === "во" && !number) current.push({ word: "во", abbreviated: false });
     // A Latin word counts as searched when the PubMed query took it as typed («ST при ИБС»; not «Витамин D»).
     if (latin && ((latinSearched && latinQueried.has(lower)) || societies.has(lower))) { dropNumber(number); close(); previousWord = token; latinBefore = true; continue; }
@@ -459,6 +460,10 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
       // A lead word starts the number's own phrase («детей до 3 лет»); «тип» heads a type inside a phrase («аорты тип A»).
       if (NUMBER_LEAD.has(lower) && leadsNumber(index)) { close(); lead(index, lower); continue; }
       if (/^(?:тип|вид|ряд)$/u.test(lower) && current.length) { current.push({ word: lower, abbreviated: false }); previousWord = token; continue; }
+      // «устья лёгочных вен»: a short noun after an adjective of the phrase belongs to it.
+      if (current.length && /(?:ых|их|ой|ей|ого|его)$/u.test(current[current.length - 1].word) && /^\p{Ll}{3}$/u.test(token) && !STOP.has(lower) && !/^(?:нет|все|это|так|уже|еще|ещё|где|кто|что|как|чем|его|она|они|оно|был|без|для|при|под|над)$/u.test(lower)) { current.push({ word: lower, abbreviated: false }); continue; }
+      // «апноэ во время сна»: a short word ends the time phrase it follows.
+      if (current.length && current[current.length - 1].word === "время" && !STOP.has(lower)) { current.push({ word: lower, abbreviated: false }); continue; }
       if (token.length === 3 && !STOP.has(lower)) previousWord = token;
       continue;
     }
