@@ -99,6 +99,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </>}
       </div>
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
+      {!onDemand && card.state === "disabled" && <p className="ws-muted" data-disabled="true">{nbsp("Выключена — её находки не попадают в «Для вас». Включить можно в «Настроить проверку» ниже.")}</p>}
     </header>
 
     {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}
@@ -113,7 +114,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       <span className="ws-run-status" data-tone={monitoringOutcome.tone}>{monitoringOutcome.label}</span>
       {monitoringOutcome.note && <p>{monitoringOutcome.note}</p>}
     </div>}
-    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} firstCheck={firstCheck} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) ? ["IMPORTANT_NEW_STUDY"] : []} />}
+    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} firstCheck={firstCheck} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) && !results.some(result => result.category === "IMPORTANT_NEW_STUDY") ? ["IMPORTANT_NEW_STUDY"] : []} />}
 
     <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
@@ -128,11 +129,16 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </section>}
 
 
-          {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
+          {/* The first check is one list «Найдено»: nothing was found «ранее». */}
+          {tracksNew && firstCheck && results.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
+            <h2 id="ws-fresh-title" className="ws-section-title">{`Найдено · ${results.length}`}</h2>
+            <ResultList results={results} specialty={specialty} emptyText="" />
+          </section>}
+          {tracksNew && !firstCheck && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
             <h2 id="ws-fresh-title" className="ws-section-title">{lastSeenAt ? `Новое с прошлого просмотра · ${fresh.length}` : `Найдено · ${fresh.length}`}</h2>
             <ResultList results={fresh} specialty={specialty} emptyText="" />
           </section>}
-          {tracksNew && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
+          {tracksNew && !firstCheck && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
             <h2 id="ws-earlier-title" className="ws-section-title">Ранее найдено · {earlier.length}</h2>
             <ResultList results={earlier} specialty={specialty} emptyText="" />
           </section>}

@@ -158,7 +158,8 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
     breakdown,
     highlights: definition.id === "whats_new" ? (pool.length ? pool : organic).slice(0, 3).map(result => result.title) : [],
     reasons,
-    primaryAction: { label: state === "needs_setup" ? "Настроить" : primaryLabel[definition.id], href },
+    // A check that only needs topics goes straight to the one topics editor.
+    primaryAction: state === "needs_setup" ? { label: "Выбрать темы", href: `/${specialty}/settings#topics` } : { label: primaryLabel[definition.id], href },
   };
 }
 

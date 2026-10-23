@@ -135,7 +135,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
             <p className="ws-muted pt-continues" data-continues={run.input.continuation.runId}>
               Продолжение вопроса <Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.rootRunId ?? run.input.continuation.runId })}>«{run.input.continuation.question}»</Link>
               {run.input.continuation.steps?.length ? <> после уточнений {run.input.continuation.steps.map(step => `«${step}»`).join(", ")} (<Link className="ws-text-link" href={askHref(specialty, { run: run.input.continuation.runId })}>предыдущий шаг</Link>)</> : null}
-              {run.input.continuation.replaced ? ` — условия сохранены, кроме популяции: ${run.input.continuation.replaced}.` : " — его условия сохранены."}
+              {run.input.continuation.replaced ? ` — искали с его условиями, кроме популяции: ${run.input.continuation.replaced}.` : " — искали с его условиями."} Что вошло в поиск — в «Искали по» ниже.
             </p>
           </>
           : run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}

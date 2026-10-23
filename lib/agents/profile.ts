@@ -56,6 +56,7 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     specialty,
     interests,
     answerMode: isAnswerMode(value.answerMode) ? value.answerMode : base.answerMode,
+    topicsChangedAt: typeof value.topicsChangedAt === "string" ? value.topicsChangedAt : null,
     identity: normalizeIdentity(value.identity),
     subscriptions,
     preferences,
@@ -114,7 +115,7 @@ export function isConfigured(profile: UserProfile): boolean {
  * Agents that build «Для вас» without any configuration: they fall back to the
  * specialty scope (progressive profiling — value before setup).
  */
-export const ZERO_SETUP_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "events"];
+export const ZERO_SETUP_AGENTS: readonly AgentId[] = ["whats_new", "guidelines", "events", "learning"];
 const LEARNING_REFRESH_HOURS = 72;
 
 /** Scheduled agents catch up on visit when their frequency window has elapsed. */
@@ -122,6 +123,8 @@ export function isRunDue(profile: UserProfile, agentId: AgentId, now: Date): boo
   const definition = AGENT_DEFINITIONS[agentId];
   const subscription = profile.subscriptions[agentId];
   if (!subscription?.enabled) return false;
+  // Topics changed since the last run (in the profile or from the home nudge): the check is due now.
+  if (profile.topicsChangedAt && (!subscription.lastRunAt || subscription.lastRunAt < profile.topicsChangedAt) && (definition.triggerMode === "scheduled" || agentId === "learning")) return true;
   // The learning next step is re-derived from real signals every few days.
   if (agentId === "learning") return !subscription.lastRunAt || (now.getTime() - new Date(subscription.lastRunAt).getTime()) / 3_600_000 >= LEARNING_REFRESH_HOURS;
   if (definition.triggerMode !== "scheduled") return false;

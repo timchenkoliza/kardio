@@ -201,7 +201,10 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
     if (!subjects.length) continue;
     push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier", ...(ASKED_MODIFIERS.has(modifier.id) ? { asked: true } : {}) });
   }
-  return concepts.slice(0, 7);
+  // What is asked («безопасность», «длительность») is never the condition the limit cuts: the rest give way first.
+  const asked = concepts.filter(concept => concept.asked);
+  const rest = concepts.filter(concept => !concept.asked).slice(0, Math.max(0, 7 - asked.length));
+  return concepts.filter(concept => asked.includes(concept) || rest.includes(concept));
 }
 
 /** Latin words the physician typed (drug names, acronyms, English terms). */

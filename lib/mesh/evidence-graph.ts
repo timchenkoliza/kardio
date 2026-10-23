@@ -94,7 +94,11 @@ const ASKED_FORMS: Record<string, readonly string[]> = {
   "modifier:duration": ["shorter", "short course", " days", "-day", "длительн", " дней"],
   "modifier:dose": ["dosing", "dosage", " mg"],
   "modifier:safety": ["harm", "bleeding", "tolerab", "safe"],
-  "modifier:diagnosis": ["accuracy", "sensitivity", "specificity"],
+};
+
+/** Asked groups worded only by these forms: the search term's own words are too broad («rapid diagnostics» in a stewardship review). */
+const ASKED_ONLY: Record<string, readonly string[]> = {
+  "modifier:diagnosis": ["diagnostic accuracy", "accuracy", "sensitivity", "specificity", "ultrasound", "radiograph", "imaging", "diagnostic criteria", "biomarker", "диагностик"],
 };
 
 export function askedTerms(intent: NormalizedIntent): string[][] {
@@ -102,7 +106,7 @@ export function askedTerms(intent: NormalizedIntent): string[][] {
   const words = (term: string) => [...term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z-]*)/gu)].map(match => (match[1] ?? match[2]).toLowerCase()).filter(word => word.length >= 4);
   // Only what is asked («длительность»), not the context it is asked in («антибиотики»): the context is already in the search.
   // A conclusion says it in its own words («a shorter course», «5 days»), so each asked group also accepts those forms.
-  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set([...words(concept.term), ...(ASKED_FORMS[concept.id] ?? [])])]).filter(group => group.length);
+  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set(ASKED_ONLY[concept.id] ?? [...words(concept.term), ...(ASKED_FORMS[concept.id] ?? [])])]).filter(group => group.length);
 }
 
 /** The conditions the search actually used, in the physician's words (shown above the answer). */

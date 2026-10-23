@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
 import { VERIFICATION_LABEL } from "@/lib/agents/format";
-import { defaultProfile } from "@/lib/agents/profile";
+import { defaultProfile, isRunDue } from "@/lib/agents/profile";
 import type { AgentRun } from "@/lib/agents/types";
 import { compileExperience } from "@/lib/mesh/compiler";
 import { askedTerms } from "@/lib/mesh/evidence-graph";
@@ -151,6 +151,21 @@ describe("R-A-03 a drug safety question in another task is answered from the ask
     expect(kinds).not.toContain("indication");
     expect(kinds).not.toContain("currentness");
     expect(kinds).not.toContain("guideline_metadata");
+  });
+});
+
+describe("N5-1 / N-10 conditions and topics are never silently dropped", () => {
+  it("what is asked survives the concept limit even with many conditions", () => {
+    const ids = conceptsIn("Апиксабан у пожилых с фибрилляцией предсердий при ХБП: что известно о безопасности?", "cardiology").map(concept => concept.id);
+    expect(ids).toContain("modifier:safety");
+  });
+  it("changed topics make the feed checks due on the next visit, wherever they were edited", () => {
+    const profile = defaultProfile("cardiology");
+    const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    profile.subscriptions.whats_new = { ...profile.subscriptions.whats_new, lastRunAt: hourAgo };
+    expect(isRunDue(profile, "whats_new", new Date())).toBe(false);
+    profile.topicsChangedAt = new Date().toISOString();
+    expect(isRunDue(profile, "whats_new", new Date())).toBe(true);
   });
 });
 

@@ -138,6 +138,8 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       };
       const before = new Set((await loadProfile(sessionId, specialtyId)).interests.topics);
       profile.configuredAt ??= now;
+      // New topics make every feed check due: the profile promises «лента обновится при следующем открытии».
+      if (profile.interests.topics.length !== before.size || profile.interests.topics.some(topicId => !before.has(topicId))) profile.topicsChangedAt = now;
       await saveProfile(sessionId, profile);
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: profile.interests.topics.length });
       const added = profile.interests.topics.filter(topicId => !before.has(topicId));

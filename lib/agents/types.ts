@@ -324,6 +324,8 @@ export interface UserProfile {
   version: 1;
   specialty: SpecialtyId;
   interests: UserInterests;
+  /** When the topics last changed: the feed's checks rerun on the next visit, wherever the topics were edited. */
+  topicsChangedAt?: string | null;
   /** Default depth of an answer; a request may override it. */
   answerMode: AnswerMode;
   identity: ProfileIdentity;

@@ -236,7 +236,7 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
   return <p className="ws-muted pt-search-conditions" data-conditions={conditions.length} data-missing={missing.length || undefined}>
     {nbsp(`Искали по: ${conditions.join(" · ")}.`)}
     {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.map(phrase => `«${phrase}»`).join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
-    {absent.length > 0 && <> {nbsp(`В копии инструкции нет раздела ${absent.map(group => `«${sectionLabel(group)}»`).join(", ")} — полный текст в ГРЛС.`)}</>}
+    {absent.length > 0 && <> {nbsp(`${absent.length > 1 ? "Разделы" : "Раздел"} ${absent.map(group => `«${sectionLabel(group)}»`).join(" и ")} в этот ответ не ${absent.length > 1 ? "вошли" : "вошёл"} — смотрите полную инструкцию по ссылке ниже и в ГРЛС.`)}</>}
   </p>;
 }
 
@@ -293,7 +293,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         </li>;
       })}
     </ol>
-    {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — из расширенного поиска${unmatched ? ` без условия «${unmatched}»` : ""}: они ниже, в «Шире вопроса», и в этот вывод не вошли.`)}</p>}
+    {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — шире вопроса${unmatched ? ` (найдены без условия «${unmatched}»)` : ""}: они ниже, в «Шире вопроса», и в этот вывод не вошли.`)}</p>}
     <Gaps graph={ctx.graph} />
   </section>;
 }
@@ -509,7 +509,8 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
   if (!documents.length && !widened.length && !ctx.sectionQuestion) return null;
   if (ctx.sectionQuestion) return <details className="pt-widened" data-module="evidence" data-secondary="true">
     <summary>{nbsp(`${heading(entry, ctx.job)} · ${all.length}`)}</summary>
-    <ol className="pt-answers">{all.map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol>
+    {documents.length + repeated.length > 0 && <ol className="pt-answers">{[...repeated, ...documents].map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol>}
+    {widened.length > 0 && <><h3 className="pt-widened-title">{nbsp(`Шире вопроса · ${widened.length}`)}</h3><ol className="pt-answers">{widened.map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol></>}
   </details>;
   const certainties = documents.flatMap(document => ctx.graph.claims.filter(claim => claim.documentId === document.id && claims.has(claim.id))).map(claim => claim.language !== "ru" ? certaintyOf(claim.statement) : null).filter((value): value is Certainty => Boolean(value));
   const counts = (["high", "moderate", "low", "very_low"] as const).map(level => [level, certainties.filter(item => item === level).length] as const).filter(([, count]) => count > 0);

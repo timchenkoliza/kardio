@@ -235,6 +235,7 @@
 .pt-original,
 .pt-widened { min-width: 0; border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
 .pt-widened { margin-top: var(--ws-space-12); }
+.pt-widened > .pt-widened-title { margin: 0; padding: var(--ws-space-8) var(--ws-space-12) 0; font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-label); }
 .pt-widened > p,
 .pt-widened > .pt-drug-sections,
 .pt-widened > .pt-answers { margin: 0; padding: 0 var(--ws-space-12) var(--ws-space-12); }
