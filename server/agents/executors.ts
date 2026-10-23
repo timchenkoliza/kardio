@@ -2,7 +2,7 @@ import { countLabel } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
-import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
 import { entrezDate, type PubmedArticle } from "./adapters/pubmed";
@@ -111,6 +111,15 @@ export function studyTypeLabel(types: readonly string[]): string | null {
   return null;
 }
 
+/** Does a title contain what a topic's PubMed term looks for («hypertension», «"chronic kidney disease"», «diabet*»)? */
+function titleNamesTopic(title: string, term: string): boolean {
+  const value = title.toLowerCase();
+  return [...term.matchAll(/"([^"]+)"\[[a-z]+\]|([A-Za-z0-9-]+)(\*?)\[[a-z]+\]/giu)].some(match => {
+    const phrase = (match[1] ?? match[2]).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?<![a-z])${phrase}${match[3] ? "" : "(?![a-z])"}`, "u").test(value);
+  });
+}
+
 /**
  * Guidelines job. Cardiology adds the canonical catalog version chains and the
  * ESC snapshot; every specialty gets recently published guidelines from
@@ -129,14 +138,22 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
   });
 
   const questionTerm = concepts.length ? pubmedTermFor(concepts) : null;
-  const topicTerm = tools.pubmedTermForTopics(ctx);
+  // A guideline is «по вашей теме» when its title names the topic: a tinnitus guideline that mentions hypertension in its abstract is not.
+  const topicTerm = tools.pubmedTermForTopics(ctx)?.replace(/\[tiab\]/g, "[ti]") ?? null;
   const term = questionTerm ?? topicTerm ?? tools.specialtyScopeTerm(ctx);
   const years = question ? 5 : 2;
   const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - years, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
   const articles = builder.record("Искали опубликованные рекомендации в PubMed", await tools.searchPubmed(ctx, { term, minDate, maxDate: entrezDate(ctx.now), retmax: question ? 6 : 4, publicationTypes: GUIDELINE_PUBLICATION_TYPES, sort: question ? "relevance" : "pub_date" }), items => countLabel(items.length, ["документ", "документа", "документов"]) + ` за ${years} ${years === 2 ? "года" : "лет"}`);
   const conclusions = question && articles.length ? builder.record("Прочитали рефераты рекомендаций", await tools.readAbstracts(ctx, articles.slice(0, 4).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
   const byPmid = new Map(conclusions.map(item => [item.pmid, item]));
-  const scopeReason = questionTerm ? `По вопросу: ${concepts.map(item => item.label).join(", ")}` : topicTerm ? `Темы: ${topicLabels(ctx.specialty, ctx.preference.topics).join(", ")}` : `Специальность: ${specialties[ctx.specialty].name}`;
+  // The reason names the topics this document's title matches, not every topic in the profile.
+  const scopeReason = (title: string) => {
+    if (questionTerm) return `По вопросу: ${concepts.map(item => item.label).join(", ")}`;
+    if (!topicTerm) return `Специальность: ${specialties[ctx.specialty].name}`;
+    const matched = ctx.preference.topics.filter(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? ""));
+    const labels = topicLabels(ctx.specialty, matched.length ? matched : ctx.preference.topics);
+    return `${labels.length > 1 ? "Темы" : "Тема"}: ${labels.join(", ")}`;
+  };
   const publications: ResultDraft[] = articles.map(article => {
     const abstract = byPmid.get(article.pmid);
     const bibliographic = factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso));
@@ -149,7 +166,7 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
       category: "guideline_publication",
       title: truncate(article.title, 220),
       summary: [studyTypeLabel(article.publicationTypes), article.journal, article.pubDate].filter(Boolean).join(" · "),
-      reasonShown: [scopeReason, "Международная публикация: статус в РФ сверяйте с рубрикатором Минздрава"],
+      reasonShown: [scopeReason(article.title), "Международная публикация: статус в РФ сверяйте с рубрикатором Минздрава"],
       observedAt: article.sortDate,
       evidence: quote ? [quote, bibliographic] : [bibliographic],
       source: pubmedProvenance(article, ctx.nowIso),

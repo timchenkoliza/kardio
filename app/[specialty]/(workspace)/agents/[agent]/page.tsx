@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Clock3 } from "lucide-react";
 import { AgentConfigPanel } from "@/components/workspace/agent-config-panel";
 import { AgentIcon } from "@/components/workspace/agent-icon";
-import { AgentRunButton } from "@/components/workspace/agent-run-button";
+import { AgentEnableButton, AgentRunButton } from "@/components/workspace/agent-run-button";
 import { BulkActions } from "@/components/workspace/bulk-actions";
 import { SeenMarker } from "@/components/workspace/lifecycle";
 import { PendingActions } from "@/components/workspace/pending-actions";
@@ -97,9 +97,11 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <p className="ws-muted">{definition.description}</p>
             <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускалась"} · {firstCheck && selectedRun && results.length ? `Первая проверка: ${countLabel(results.length, ["находка", "находки", "находок"])}` : card.headline}</p>
           </>}
+        {/* A switched-off check says so in its header, next to the one action that switches it on. */}
+        {!onDemand && card.state === "disabled" && <p className="ws-agent-state" data-disabled="true"><span className="ws-state ws-state-disabled">Выключена</span>{nbsp(" Её находки не попадают в «Для вас».")}</p>}
       </div>
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
-      {!onDemand && card.state === "disabled" && <p className="ws-muted" data-disabled="true">{nbsp("Выключена — её находки не попадают в «Для вас». Включить можно в «Настроить проверку» ниже.")}</p>}
+      {!onDemand && card.state === "disabled" && <AgentEnableButton agentId={agentId} />}
     </header>
 
     {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}

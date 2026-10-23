@@ -310,6 +310,10 @@ export function drugSectionGroup(heading: string | null | undefined): DrugSectio
   if (/показан|indication/.test(value)) return "indications";
   if (/дозир|способ применения|доз|dosage|administration/.test(value)) return "dosing";
   if (/взаимодейств|interaction/.test(value)) return "interactions";
+  // «Особые указания» are the label's warnings, not a section about special populations.
+  if (/особые указания|special warning/.test(value)) return "safety";
+  // «С осторожностью» lists the patients who need caution (renal or hepatic impairment, the elderly).
+  if (/с осторожн/.test(value)) return "populations";
   if (/беремен|лактац|кормлен|дет|пожил|почеч|печен|особ|pregnan|lactation|pediatric|geriatric|population/.test(value)) return "populations";
   if (/предупрежд|мер[ыа] предосторож|побочн|нежелательн|передозир|рамке|warning|precaution|adverse|overdos|boxed|изменени/.test(value)) return "safety";
   return "other";

@@ -135,3 +135,25 @@ test("UX-03 + UX-04: adults and duration are kept; a follow-up continues the que
   await expect(page.locator(".pt-continues")).toContainText("внебольничной пневмонии у взрослых");
   await expect(page.locator("main")).not.toContainText("Назовите заболевание");
 });
+
+test("R6-01: a switched-off check keeps its title on a phone and switches on in one click", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/cardiology/agents/guidelines");
+  const title = page.locator(".ws-agent-head h1");
+  const onWidth = (await title.boundingBox())?.width ?? 0;
+  const toggle = page.getByRole("button", { name: "Настроить проверку" });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await page.getByRole("button", { name: "Выключить проверку" }).click();
+  await expect(page.locator(".ws-agent-head [data-disabled]")).toBeVisible({ timeout: 15_000 });
+  // Opening the page again: the state and «Включить» are on the first screen.
+  await page.goto("/cardiology/agents/guidelines");
+  await expect(page.locator(".ws-agent-head")).toContainText("Выключена");
+  const offWidth = (await title.boundingBox())?.width ?? 0;
+  expect(offWidth).toBeGreaterThan(200);
+  expect(Math.abs(offWidth - onWidth)).toBeLessThan(2);
+  const enable = page.locator(".ws-agent-head").getByRole("button", { name: "Включить" });
+  await expect(enable).toBeInViewport();
+  await enable.click();
+  await expect(page.locator(".ws-agent-head [data-disabled]")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator(".ws-agent-head").getByRole("button", { name: "Запустить сейчас" })).toBeVisible();
+});

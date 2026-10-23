@@ -543,6 +543,7 @@
 .ws-agent-head > .ws-button { grid-column: 1 / -1; justify-self: start; }
 .ws-agent-head-copy { display: flex; flex-direction: column; gap: var(--ws-space-4); min-width: 0; }
 .ws-agent-head h1 { margin: 0; }
+.ws-agent-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ws-space-8); margin: 0; color: var(--ws-text-secondary); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }
 .ws-agent-head .ws-agent-job { color: var(--ws-text); font-size: var(--font-size-body); line-height: var(--ws-leading-body); }
 .ws-agent-head .ws-muted { font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }
 .ws-agent-composer .ws-composer { max-width: none; }

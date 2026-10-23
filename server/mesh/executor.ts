@@ -308,7 +308,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   // A question about a named drug's safety or a population is answered from those sections, whatever the task
   // («Апиксабан у пожилых… сниженной функцией почек: что известно о безопасности?» routes to guidelines).
   const named = intent.entities.drugs.length ? askedSections(question) : [];
-  const asked = named.includes("safety") && !named.includes("contraindications") ? [...named, "contraindications" as const] : named;
+  // Safety is also answered by contraindications; a population by the dosing section, where renal, hepatic and age adjustments are stated.
+  const asked = [...named, ...(named.includes("safety") && !named.includes("contraindications") ? ["contraindications" as const] : []), ...(named.includes("populations") && !named.includes("dosing") ? ["dosing" as const] : [])];
   const directives = opening ? viewDirectives(graph, null, opening, graph) : { moduleProps: {}, priorityClaims: [] as string[] };
   const askedClaims = asked.length ? graph.claims.filter(claim => {
     const chunk = claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId) : undefined;

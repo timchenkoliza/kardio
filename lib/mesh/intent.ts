@@ -5,6 +5,7 @@ import { routePortalIntent, type PortalRoute } from "@/lib/portal/router";
 import { detectDomain, NOSOLOGIES, scenarioFor, type SafetyRuleId } from "./domain-graph";
 import { DEFAULT_JOB_FOR_FAMILY, JOB_DEFINITIONS, type EvidenceRequirement, type JobType } from "./jobs";
 import type { ModuleFamily } from "./manifest";
+import { askedSections, type AskedSection } from "./refine";
 
 /**
  * Intent compiler: physician text → NormalizedIntent.
@@ -32,6 +33,8 @@ export interface NormalizedIntent {
     matched: string[];
   };
   entities: { drugs: DrugEntry[]; concepts: QueryConcept[]; latin: string[] };
+  /** Instruction sections the question names about a named drug («противопоказания», «взаимодействия»): the instruction keeps them. */
+  sections?: AskedSection[];
   requirements: EvidenceRequirement[];
   optional: EvidenceRequirement[];
   safety: SafetyRuleId[];
@@ -106,6 +109,7 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
   }
 
   const populations = route.concepts.filter(concept => concept.kind === "population").map(concept => concept.id.replace("population:", ""));
+  const sections = drugs.length ? askedSections(text) : [];
   const safety = unique<SafetyRuleId>([
     "no_prescribing",
     ...(domain.nosology?.safety ?? []),
@@ -123,7 +127,7 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
   return {
     // Every recognised condition is part of the identity: two questions that differ in what they ask
     // («длительность» vs «диагностика», «+ нетяжёлое течение») never share a cached answer.
-    id: intentId([specialty, job, domain.nosology?.id ?? "", domain.subtype?.id ?? "", ...drugs.map(drug => drug.inn), ...populations, ...route.concepts.map(concept => concept.id).sort(), ...latinTermsIn(text).sort()]),
+    id: intentId([specialty, job, domain.nosology?.id ?? "", domain.subtype?.id ?? "", ...drugs.map(drug => drug.inn), ...populations, ...route.concepts.map(concept => concept.id).sort(), ...latinTermsIn(text).sort(), ...sections.map(section => `section:${section}`)]),
     job: { primary: job, family: route.job, confidence: route.confidence, reasons, explicit: Boolean(options.job) && !forced },
     context: {
       specialty,
@@ -134,6 +138,7 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
       matched: domain.evidence,
     },
     entities: { drugs, concepts: route.concepts, latin: latinTermsIn(text) },
+    ...(sections.length ? { sections } : {}),
     requirements: unique(requirements),
     optional: unique(optional).filter(item => !requirements.includes(item)),
     safety,

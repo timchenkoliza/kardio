@@ -1,5 +1,6 @@
 import type { ClaimKind, CoverageState, EvidenceGraph, GraphConflict, GraphDocument, GraphFreshness, GraphRelation, GraphSource, NormalizedClaim, NormalizedDocument, SourceResult } from "./evidence";
 import type { NormalizedIntent } from "./intent";
+import { detectDomain } from "./domain-graph";
 import { REQUIREMENT_LABEL, type EvidenceRequirement } from "./jobs";
 import type { ExecutionPlan } from "./planner";
 import type { SourceDescriptor, SourceId, SourceStatusReport } from "./sources";
@@ -96,9 +97,9 @@ const ASKED_FORMS: Record<string, readonly string[]> = {
   "modifier:safety": ["harm", "bleeding", "tolerab", "safe"],
 };
 
-/** Asked groups worded only by these forms: the search term's own words are too broad («rapid diagnostics» in a stewardship review). */
+/** Asked groups worded only by these forms: the search term's own words are too broad («rapid diagnostics» in a stewardship review), and a call for «standardised diagnostic criteria» says nothing about how to diagnose. */
 const ASKED_ONLY: Record<string, readonly string[]> = {
-  "modifier:diagnosis": ["diagnostic accuracy", "accuracy", "sensitivity", "specificity", "ultrasound", "radiograph", "imaging", "diagnostic criteria", "biomarker", "диагностик"],
+  "modifier:diagnosis": ["diagnostic accuracy", "accuracy", "sensitivity", "specificity", "ultrasound", "radiograph", "imaging", "biomarker", "диагностик"],
 };
 
 export function askedTerms(intent: NormalizedIntent): string[][] {
@@ -114,7 +115,8 @@ export function searchConditions(intent: NormalizedIntent): string[] {
   const labels = [
     ...(intent.context.nosology ? [intent.context.nosology.label] : []),
     ...(intent.context.subtype ? [intent.context.subtype.label] : []),
-    ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic")).map(concept => concept.label),
+    // The topic the disease was recognised from is the disease itself; any other topic («Кардиоренальные связи») is a condition of its own.
+    ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic" && detectDomain(concept.label, intent.context.specialty).nosology?.id === intent.context.nosology.id)).map(concept => concept.label),
   ];
   // «внебольничная» is already in «внебольничная пневмония»: a label inside an earlier one is not repeated.
   const unique = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];

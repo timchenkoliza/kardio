@@ -13,21 +13,24 @@ import { VERIFICATION_LABEL } from "@/lib/agents/format";
 import { defaultProfile, isRunDue } from "@/lib/agents/profile";
 import type { AgentRun } from "@/lib/agents/types";
 import { compileExperience } from "@/lib/mesh/compiler";
-import { askedTerms } from "@/lib/mesh/evidence-graph";
+import { askedTerms, searchConditions } from "@/lib/mesh/evidence-graph";
 import { compileIntent } from "@/lib/mesh/intent";
 import { askedSections, openingView, viewDirectives } from "@/lib/mesh/refine";
 import { GALLERY, galleryHref } from "@/lib/portal/agents-gallery";
 import { continuedQuestion, isDependentFollowup } from "@/lib/portal/continuation";
 import { conceptsIn, pubmedCoreTermFor, pubmedTermFor } from "@/lib/portal/lexicon";
 import { runOutcome } from "@/lib/portal/run-outcome";
-import { editorialVerification } from "@/lib/presentation/physician";
+import { drugSectionGroup, editorialVerification } from "@/lib/presentation/physician";
+import { unmatchedWords } from "@/lib/portal/unmatched";
 import { ExperienceView } from "@/components/experience/experience-view";
 import { WorkspaceProvider } from "@/components/workspace/workspace-provider";
 import { workspaceStore } from "@/server/agents/store";
 import { createRun } from "@/server/agents/supervisor";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
 import { conceptsForIntent, createPubmedAdapter } from "@/server/mesh/sources/pubmed";
-import { scenariosFor } from "@/server/portal/for-you";
+import { resultCard, scenariosFor } from "@/server/portal/for-you";
+import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
+import type { PageSnapshot } from "@/server/mesh/browser/drivers";
 import { respondToAsk } from "@/server/portal/manager";
 import { ensureSession } from "@/server/services/state";
 import { fakeAbstracts, fakeArticle, testContext } from "./agent-test-utils";
@@ -269,5 +272,94 @@ describe("UX-09 no card action pretends to act on the material", () => {
       expect(scenarios.map(item => item.label)).not.toContain("Кратко");
       expect(scenarios.some(item => item.job === "answer")).toBe(false);
     }
+  });
+});
+
+describe("Round 6: the drug, the asked sections and the feed reason survive", () => {
+  it("N5-1: a long question keeps the named drug and the asked safety; one disease named three ways takes one place", () => {
+    for (const question of [
+      "Апиксабан у пожилых с фибрилляцией предсердий при ХБП",
+      "Апиксабан у пожилых с ФП и ХБП: что известно о безопасности?",
+      continuedQuestion("Апиксабан у пожилых с фибрилляцией предсердий и сниженной функцией почек: что известно о безопасности?", "А при ХБП?"),
+    ]) {
+      const concepts = conceptsIn(question, "cardiology");
+      expect(concepts.map(concept => concept.id)).toContain("drug:apixaban");
+      expect(pubmedTermFor(concepts)).toContain('"apixaban"[tiab]');
+      const kidney = concepts.filter(concept => /chronic kidney disease/u.test(concept.term));
+      expect(kidney).toHaveLength(1);
+      if (/безопасн/u.test(question)) expect(concepts.map(concept => concept.id)).toContain("modifier:safety");
+    }
+  });
+
+  it("N5-1: «Искали по» names the kidney condition that was searched, and «Не учтено» does not claim it was dropped", () => {
+    const question = continuedQuestion("Апиксабан у пожилых с фибрилляцией предсердий и сниженной функцией почек: что известно о безопасности?", "А при ХБП?");
+    const conditions = searchConditions(compileIntent(question, "cardiology"));
+    expect(conditions).toContain("апиксабан");
+    expect(conditions.some(condition => /кардиоренал|хбп|почек/u.test(condition))).toBe(true);
+    expect(unmatchedWords(question, conditions, "cardiology")).toEqual([]);
+    expect(unmatchedWords("ХСН: что нового в лечении?", searchConditions(compileIntent("ХСН: что нового в лечении?", "cardiology")), "cardiology")).toEqual([]);
+  });
+
+  it("N6-1: «Особые указания» is a safety section; «С осторожностью» names the patients who need caution", () => {
+    expect(drugSectionGroup("Особые указания")).toBe("safety");
+    expect(drugSectionGroup("С осторожностью")).toBe("populations");
+    expect(drugSectionGroup("Применение у особых групп пациентов")).toBe("populations");
+    expect(drugSectionGroup("Применение при беременности и в период грудного вскармливания")).toBe("populations");
+  });
+
+  it("N4-2: the instruction keeps the sections the question names («взаимодействия»), whatever the task", () => {
+    const intent = compileIntent("Апиксабан: противопоказания и взаимодействия", "cardiology");
+    expect(intent.sections).toEqual(expect.arrayContaining(["contraindications", "interactions"]));
+    expect(intent.id).not.toBe(compileIntent("Апиксабан: противопоказания", "cardiology").id);
+    const raw: InstructionPage = {
+      title: "Эликвис", inn: "апиксабан", registration: null, officialNote: null, prescription: null, indications: [],
+      sections: [
+        { id: "contraindications", heading: "Противопоказания", text: "Повышенная чувствительность к апиксабану.", html: "" },
+        { id: "interactions", heading: "Взаимодействие с другими лекарственными средствами", text: "Сильные ингибиторы CYP3A4 и P-gp повышают концентрацию апиксабана.", html: "" },
+        { id: "warnings", heading: "Особые указания", text: "Риск кровотечений.", html: "" },
+      ],
+    };
+    const page = { requestedUrl: "https://medi.ru/instrukciya/eliquis/", finalUrl: "https://medi.ru/instrukciya/eliquis/", status: 200, html: "", fetchedAt: "2026-10-23T00:00:00.000Z", driver: "http", durationMs: 1 } as unknown as PageSnapshot;
+    const document = normalizeInstruction(raw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary, sections: intent.sections });
+    const headings = document.claims.map(claim => document.chunks.find(chunk => chunk.id === claim.chunkId)?.heading);
+    expect(headings).toContain("Взаимодействие с другими лекарственными средствами");
+    // Without the asked sections the adapter kept only its default sections: «Взаимодействие» was read and dropped.
+    const before = normalizeInstruction(raw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary });
+    expect(before.claims.map(claim => before.chunks.find(chunk => chunk.id === claim.chunkId)?.heading)).not.toContain("Взаимодействие с другими лекарственными средствами");
+  });
+
+  it("R6-02: an unrecognised feed document is not titled with the specialty", () => {
+    const card = resultCard({
+      id: "r", key: "k", agentId: "guidelines", specialty: "cardiology", kind: "guideline_change", category: "guideline_publication",
+      title: "Clinical Practice Guideline: Tinnitus (Update)", summary: "Otolaryngol Head Neck Surg · 2026", reasonShown: ["Тема: Артериальная гипертензия"],
+      observedAt: "2026-10-01", evidence: [], source: { connectorId: "pubmed", sourceName: "PubMed", sourceUrl: "https://pubmed.ncbi.nlm.nih.gov/1/", dataOrigin: "runtime_api", retrievedAt: "2026-10-23T00:00:00.000Z" },
+      actions: [], attributes: {}, partner: null, rank: 0, createdAt: "2026-10-23T00:00:00.000Z", runId: "run",
+    } as unknown as Parameters<typeof resultCard>[0], "cardiology", false);
+    expect(card.title).not.toContain("Кардиология");
+  });
+});
+
+describe("Round 6: a population question is answered from that population's sections", () => {
+  const raw: InstructionPage = {
+    title: "Эликвис", inn: "апиксабан", registration: null, officialNote: null, prescription: null, indications: [],
+    sections: [
+      { id: "caution", heading: "С осторожностью", text: "Тяжёлая почечная недостаточность (КК 15–29 мл/мин).", html: "" },
+      { id: "pregnancy", heading: "Применение при беременности и в период грудного вскармливания", text: "Данных о применении у беременных нет.", html: "" },
+      { id: "dosing", heading: "Способ применения и дозы", text: "Пациентам 80 лет и старше с массой тела 60 кг и менее — 2,5 мг 2 раза в сутки.", html: "" },
+    ],
+  };
+  const page = { requestedUrl: "https://medi.ru/instrukciya/eliquis/", finalUrl: "https://medi.ru/instrukciya/eliquis/", status: 200, html: "", fetchedAt: "2026-10-23T00:00:00.000Z", driver: "http", durationMs: 1 } as unknown as PageSnapshot;
+  const headingsFor = (question: string) => {
+    const intent = compileIntent(question, "cardiology");
+    const document = normalizeInstruction(raw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary, sections: intent.sections, populations: populationsNamed(intent) });
+    return document.claims.map(claim => document.chunks.find(chunk => chunk.id === claim.chunkId)?.heading);
+  };
+  it("elderly with CKD: dosing and «С осторожностью», not pregnancy", () => {
+    const headings = headingsFor("Апиксабан у пожилых с фибрилляцией предсердий при ХБП");
+    expect(headings).toEqual(expect.arrayContaining(["С осторожностью", "Способ применения и дозы"]));
+    expect(headings).not.toContain("Применение при беременности и в период грудного вскармливания");
+  });
+  it("pregnancy: the pregnancy section", () => {
+    expect(headingsFor("Апиксабан при беременности")).toContain("Применение при беременности и в период грудного вскармливания");
   });
 });

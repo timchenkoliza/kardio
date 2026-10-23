@@ -134,7 +134,8 @@ export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean },
   const kind = kindFor(result);
   const topicAttr = typeof result.attributes.topic === "string" ? result.attributes.topic : null;
   const label = kind === "publication" && typeof result.attributes.studyType === "string" ? result.attributes.studyType : result.kind === "drug_change" && result.category && result.category in DRUG_CHANGE_LABEL ? DRUG_CHANGE_LABEL[result.category as DrugChangeType].title : LABEL[kind];
-  const localized = localizeItem({ title: result.title, summary: result.summary, typeLabel: label, topic: topicAttr ?? specialties[specialty].name, tags: topicAttr ? [topicAttr] : [] });
+  // Only a topic the result states names its subject: the specialty is not what an unrecognised document is about.
+  const localized = localizeItem({ title: result.title, summary: result.summary, typeLabel: label, topic: topicAttr, tags: topicAttr ? [topicAttr] : [] });
   const why = physicianSafe(whyItMatters(result));
   const href = internalHref(result, specialty);
   const state = stateForOrigin(result.source.dataOrigin);

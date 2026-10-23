@@ -201,10 +201,38 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
     if (!subjects.length) continue;
     push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier", ...(ASKED_MODIFIERS.has(modifier.id) ? { asked: true } : {}) });
   }
-  // What is asked («безопасность», «длительность») is never the condition the limit cuts: the rest give way first.
-  const asked = concepts.filter(concept => concept.asked);
-  const rest = concepts.filter(concept => !concept.asked).slice(0, Math.max(0, 7 - asked.length));
-  return concepts.filter(concept => asked.includes(concept) || rest.includes(concept));
+  const distinct = withoutImplied(concepts);
+  // What is asked («безопасность», «длительность») and the drug it is asked about are never what the limit cuts: the rest give way first.
+  const kept = (concept: QueryConcept) => Boolean(concept.asked) || concept.kind === "drug";
+  const fixed = distinct.filter(kept);
+  const rest = distinct.filter(concept => !kept(concept)).slice(0, Math.max(0, 7 - fixed.length));
+  return distinct.filter(concept => fixed.includes(concept) || rest.includes(concept));
+}
+
+/** `inner` is one whole AND/OR operand of `outer` («"chronic kidney disease"[tiab]» in «… OR renal[tiab]»). */
+function operandOf(outer: string, inner: string): boolean {
+  if (outer === inner) return false;
+  const at = outer.indexOf(inner);
+  if (at < 0) return false;
+  const before = outer.slice(0, at);
+  const after = outer.slice(at + inner.length);
+  return (!before || /(?:\s(?:AND|OR)\s|\()$/u.test(before)) && (!after || /^(?:\s(?:AND|OR)\s|\))/u.test(after));
+}
+
+/**
+ * One disease named three ways («ХБП» → «Кардиоренальные связи», «Хроническая
+ * болезнь почек», «ХБП») takes one place among the conditions, not three. A
+ * condition another one already implies is dropped; the AND of what remains
+ * finds the same publications, so the search does not change.
+ */
+function withoutImplied(concepts: QueryConcept[]): QueryConcept[] {
+  const subject = (concept: QueryConcept) => (concept.kind === "topic" || concept.kind === "concept") && Boolean(concept.term);
+  const only = (term: string, connective: "AND" | "OR") => term.includes(` ${connective} `) && !term.includes(` ${connective === "AND" ? "OR" : "AND"} `);
+  // y implies x: y = x AND z, or x = y OR z.
+  const implies = (y: QueryConcept, x: QueryConcept) =>
+    (only(y.term, "AND") && operandOf(y.term, x.term)) || (only(x.term, "OR") && operandOf(x.term, y.term));
+  const subjects = concepts.filter(subject);
+  return concepts.filter(x => !subject(x) || !subjects.some(y => y !== x && implies(y, x)));
 }
 
 /** Latin words the physician typed (drug names, acronyms, English terms). */
