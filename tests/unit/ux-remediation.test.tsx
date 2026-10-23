@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { SUGGESTIONS } from "@/lib/portal/suggestions";
 import { detectDomain } from "@/lib/mesh/domain-graph";
 import { ResearchAnswerView } from "@/components/workspace/research-answer";
 
@@ -544,7 +545,7 @@ describe("Round 11: no part of the question is lost silently", () => {
   it("N11-2: a negated key («неклапанная», «неишемическая») does not bring the opposite topic", () => {
     expect(unmatched("Неклапанная фибрилляция предсердий и антикоагулянты").conditions).not.toContain("клапанные пороки");
     expect(unmatched("Клапанная фибрилляция предсердий и антикоагулянты").conditions).toContain("клапанные пороки");
-    expect(unmatched("Неишемическая кардиомиопатия и ИКД").conditions).not.toContain("ибс");
+    expect(unmatched("Неишемическая кардиомиопатия и ИКД").conditions).not.toContain("ИБС");
     expect(unmatched("Дислипидемия у пожилых").conditions).toContain("липидология");
   });
   it("N11-3: a skipped PubMed names the concepts it did not search", () => {
@@ -560,7 +561,7 @@ describe("Round 12: the review names what its own search did not use; hyphenated
   it("N12-1: a drug the portal knows but the review did not search is named", () => {
     expect(rc("Бисопролол при ХСН у пожилых").unmatched).toContain("бисопролол");
     expect(rc("Амиодарон при фибрилляции предсердий у пожилых").unmatched).toContain("амиодарон");
-    expect(rc("СНсФВ у пожилых")).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["СНсФВ"] });
+    expect(rc("СНсФВ у пожилых")).toEqual({ conditions: ["ХСН", "пожилые пациенты"], unmatched: ["СНсФВ"] });
     expect(rc("Хроническая СН у пожилых").unmatched).toEqual([]);
     expect(rc("ПОАК у пожилых с фибрилляцией предсердий").unmatched).toEqual([]);
     expect(rc("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
@@ -589,7 +590,7 @@ describe("Round 12 (IA): no dead topic key in any specialty", () => {
 describe("Round 13: phenotype forms are named; «лёгочных вен» is not pulmonary hypertension; multi-word keys are used", () => {
   const rc = (text: string) => researchConditions({ input: { text }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun);
   it("N13-1: every written form of an HF phenotype finds ХСН and is named in its own case", () => {
-    for (const form of ["СНсФВ", "ХСНсФВ", "ХСНунФВ", "СНнФВ", "ХСНнФВ"]) expect(rc(`${form} у пожилых`)).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: [form] });
+    for (const form of ["СНсФВ", "ХСНсФВ", "ХСНунФВ", "СНнФВ", "ХСНнФВ"]) expect(rc(`${form} у пожилых`)).toEqual({ conditions: ["ХСН", "пожилые пациенты"], unmatched: [form] });
   });
   it("N13-2: «лёгочных вен», «лёгочной артерии», «сердечно-лёгочная» do not bring «Лёгочная гипертензия»", () => {
     expect(topicsMentioned("cardiology", "Изоляция лёгочных вен при ФП у пожилых")).not.toContain("ph");
@@ -632,7 +633,7 @@ describe("Round 14: the diabetes type is searched or named; written-out forms of
     expect(rc("Бета-блокаторы при ХСН у пожилых").unmatched).toEqual(["бета-блокаторы"]);
     expect(rc("Д-димер при ФП").unmatched).toEqual(["Д-димер"]);
     expect(rc("Стресс-ЭхоКГ при ИБС").unmatched).toEqual(["стресс-ЭхоКГ"]);
-    expect(rc("ХСН-сФВ у пожилых")).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["ХСН-сФВ"] });
+    expect(rc("ХСН-сФВ у пожилых")).toEqual({ conditions: ["ХСН", "пожилые пациенты"], unmatched: ["ХСН-сФВ"] });
     expect(rc("Сердечно-сосудистый риск у пожилых", "therapy").unmatched).toEqual(["сердечно-сосудистый"]);
     expect(rc("Сердечно-сосудистый риск при СД2", "endocrinology").unmatched).toEqual(["сердечно-сосудистый"]);
     expect(rc("Сердечно-сосудистый риск у пожилых").unmatched).toEqual([]);
@@ -649,9 +650,9 @@ describe("Round 14: the diabetes type is searched or named; written-out forms of
   it("B: with nothing found the screen still says what was searched and what was not", () => {
     const answer = buildResearchAnswer({ input: { text: "СНнФВ у пожилых" }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun, []);
     expect(answer.kind).toBe("not_found");
-    expect(answer).toMatchObject({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["СНнФВ"] });
+    expect(answer).toMatchObject({ conditions: ["ХСН", "пожилые пациенты"], unmatched: ["СНнФВ"] });
     const html = renderToStaticMarkup(<ResearchAnswerView run={{ input: { text: "СНнФВ у пожилых" }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun} results={[]} />);
-    expect(html).toMatch(/Искали\sпо:\sхсн\s·\sпожилые\sпациенты\.\sНе\sучтено\sв\sпоиске:\s«СНнФВ»\.</u);
+    expect(html).toMatch(/Искали\sпо:\sХСН\s·\sпожилые\sпациенты\.\sНе\sучтено\sв\sпоиске:\s«СНнФВ»\.</u);
     expect(html).not.toContain("по найденным работам");
   });
   it("N13-04 rest (B): «АД» is arterial hypertension in therapy too", () => {
@@ -672,7 +673,7 @@ describe("Round 15: every written form of a word is a question word; what the re
       expect(rc("Тропонин-I при ИБС", use).unmatched).toEqual(["тропонин-I"]);
       expect(rc("Ковид-19 и миокардит", use).unmatched).toContain("ковид-19");
     }
-    expect(rc("арГПП-1 при ХСН").conditions).toContain("гпп-1");
+    expect(rc("арГПП-1 при ХСН").conditions).toContain("ГПП-1");
     expect(rc("Ингибиторы ПЦСК9 при ИБС").unmatched).toEqual([]);
     // Latin words are searched as typed only by PubMed.
     expect(rc("Dapagliflozin при ХСН").unmatched).toEqual([]);
@@ -719,7 +720,7 @@ describe("Round 15 (A): understood words are never «не учтено»; ЛАГ
   const rc = (text: string, plan: unknown[] = []) => researchConditions({ input: { text }, plan, toolsUsed: [{ tool: "searchPubmed", status: "ok", note: null }], specialty: "cardiology" } as unknown as AgentRun);
   it("N15-1: a word differing from a condition only by suffix is used; a different word sharing six letters is not", () => {
     for (const question of ["Эмпаглифлозин при ХСН: дозировка", "Дозировки бисопролола при ХСН", "Безопасен ли апиксабан у пожилых", "Критерии диагноза ХСН"]) expect(home(question).unmatched).toEqual([]);
-    expect(rc("Дапаглифлозин при хронической болезни почек")).toEqual({ conditions: ["инглт-2", "хбп"], unmatched: [] });
+    expect(rc("Дапаглифлозин при хронической болезни почек")).toEqual({ conditions: ["иНГЛТ-2", "ХБП"], unmatched: [] });
     expect(rc("Бета-блокаторы при ХСН").unmatched).toEqual(["бета-блокаторы"]);
     expect(rc("Гипертрофия миокарда при АГ").unmatched).toEqual(["гипертрофия миокарда"]);
     expect(home("Апиксабан у пожилых со сниженной функцией почек").unmatched).toEqual(["сниженной функцией почек"]);
@@ -783,7 +784,7 @@ describe("Round 16: a word counts as used only when the search used it", () => {
     expect(home("Безопасен ли апиксабан у пожилых").unmatched).toEqual([]);
   });
   it("N16-4 (A): «ХБП» is not hidden behind the compound topic «Кардиоренальные связи»", () => {
-    expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("хбп");
+    expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("ХБП");
     expect(researchConditions({ input: { text: "Хроническая болезнь почек при АГ" }, plan: [], toolsUsed: [ok], specialty: "therapy" } as unknown as AgentRun).conditions).toEqual(["артериальная гипертензия", "хроническая болезнь почек"]);
   });
   it("N16-5 (A) / N16-02, N16-03 (B): a number stays with its word; a short Latin word not in the query is named", () => {
@@ -796,5 +797,58 @@ describe("Round 16: a word counts as used only when the search used it", () => {
   it("N16-3 (A): sources excluded in the profile are the one reason, without a request to name a disease", () => {
     const step = { id: "step-3", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "Подходящие источники исключены в вашем профиле: PubMed. Включите их, чтобы проверить", connectorIds: [] };
     expect(runOutcome({ status: "done", plan: [step], toolsUsed: [], resultIds: [], experience: null, error: null } as never).note).toMatch(/^Подходящие источники исключены в вашем профиле: PubMed/u);
+  });
+});
+
+describe("Round 17: compounds, sections and short Latin as the search used them", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return { conditions, unmatched: unmatchedWords(question, conditions, specialty as never) };
+  };
+  const ok = { tool: "searchPubmed", status: "ok", note: null };
+  const skipped = { tool: "searchPubmed", status: "ok", note: "PubMed пропущен" };
+  const rc = (text: string, use: unknown = ok) => researchConditions({ input: { text }, plan: [], toolsUsed: [use], specialty: "cardiology" } as unknown as AgentRun);
+  it("N17-01 (B) / N17-2 (A): a compound of a searched word and the parts of a searched concept are used", () => {
+    expect(home("Длительность антибиотикотерапии при внебольничной пневмонии", "therapy").unmatched).toEqual([]);
+    expect(home("Антибиотикотерапия внебольничной пневмонии у детей", "pediatrics").unmatched).toEqual([]);
+    expect(home("Lp(a) при ИБС").unmatched).toEqual([]);
+    expect(home("ХСН NYHA II–III: дапаглифлозин").unmatched).toEqual([]);
+    expect(home("Витамин D при ХСН").unmatched).toEqual(["витамин D"]);
+    expect(home("Инсулинотерапия при СД 2 типа", "endocrinology").unmatched).toEqual(["инсулинотерапия"]);
+    expect(rc("Тромбоз артерии при АГ").unmatched).toEqual(["тромбоз артерии"]);
+    for (const specialty of Object.keys(SUGGESTIONS) as Array<keyof typeof SUGGESTIONS>) for (const question of SUGGESTIONS[specialty]) {
+      const { conditions, unmatched } = home(question, specialty);
+      // No named word repeats a word of the conditions.
+      for (const phrase of unmatched) expect(conditions.join(" ").toLocaleLowerCase("ru-RU")).not.toContain(phrase.toLocaleLowerCase("ru-RU"));
+    }
+  });
+  it("N17-1 (A): a section noun belongs only to the section word right before it", () => {
+    for (const question of ["Апиксабан: безопасность и эффективность у пожилых", "Безопасность и эффективность финеренона", "Аторвастатин: доза и эффективность"]) expect(home(question).unmatched).toEqual(["эффективность"]);
+    for (const question of ["Амиодарон: побочные эффекты", "Амиодарон: нежелательные явления", "Апиксабан: побочное действие"]) expect(home(question).unmatched).toEqual([]);
+  });
+  it("N17-02 (B): Latin the PubMed query took is used; English service words are not conditions", () => {
+    expect(rc("QT interval при ФП").unmatched).toEqual([]);
+    expect(rc("NYHA II при ХСН").unmatched).toEqual([]);
+    expect(rc("Депрессия сегмента ST при ИБС").unmatched).toEqual(["депрессия сегмента"]);
+    expect(rc("QT interval при ФП", skipped).unmatched).toEqual(["QT interval"]);
+    expect(home("Beta blockers in heart failure").unmatched).toEqual([]);
+  });
+  it("N17-03 (B): without PubMed a concept whose words chose the topic is used; with PubMed it is shown once", () => {
+    expect(rc("Искусственный интеллект в кардиологии", skipped)).toEqual({ conditions: ["ИИ в кардиологии"], unmatched: [] });
+    expect(rc("ИИ в кардиологии").conditions).toEqual(["ИИ в кардиологии"]);
+    expect(rc("Инфаркт миокарда и миокардит", skipped).unmatched).toEqual([]);
+    expect(rc("ХБП при АГ", skipped).unmatched).toEqual([]);
+    expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("ХБП");
+  });
+  it("N17-3 (A) / N17-04 (B): numbers keep their fraction, range and unit; a lone dash separates", () => {
+    expect(home("Целевой ЛПНП ниже 1,4 ммоль/л").unmatched).toContain("ниже 1,4 ммоль/л");
+    expect(home("Лихорадка у младенцев 8–60 дней", "pediatrics").unmatched).toEqual(["8–60 дней"]);
+    expect(rc("Омега 3 при ИБС").unmatched).toEqual(["омега 3"]);
+    expect(rc("ИЛ 6 при ИБС").unmatched).toEqual(["ИЛ 6"]);
+    expect(rc("ФП - кардиоверсия").unmatched).toEqual(["кардиоверсия"]);
+  });
+  it("N17-4 (A): abbreviations keep their case in «Искали по» and «Не учтено» alike", () => {
+    expect(rc("Дапаглифлозин при хронической болезни почек", skipped).unmatched).toEqual(["иНГЛТ-2", "ХБП"]);
+    expect(home("Эмпаглифлозин при ХСН: дозировка").conditions).toContain("иНГЛТ-2");
   });
 });

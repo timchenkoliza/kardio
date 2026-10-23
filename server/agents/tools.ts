@@ -88,7 +88,7 @@ export function searchPubmed(ctx: AgentContext, args: { term: string | null; min
       if (researchOptions.contentScope === "guidelines") return { items: [], status: "ok", note: "PubMed пропущен: выбран поиск только по клиническим рекомендациям" };
       if (!pubmedAllowedForResearch(researchOptions)) return { items: [], status: "ok", note: "PubMed пропущен фильтром конкретных сайтов" };
     }
-    if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в ваших источниках" };
+    if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в вашем профиле" };
     if (!args.term) return { items: [], status: "partial", note: "Нет тем для поиска" };
     const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals: args.journals, publicationTypes: args.publicationTypes, ...(args.sort ? { sort: args.sort } : {}) });
     return { items: result.articles, status: result.status === "ok" ? "ok" : result.status === "unavailable" ? "unavailable" : "failed", note: result.error };

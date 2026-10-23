@@ -35,7 +35,7 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const found = graph ? graph.documents.length : run.resultIds.length;
   const sourceFailed = graph
     ? graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"))
-    : run.toolsUsed.some(tool => (tool.status === "failed" || tool.status === "unavailable") && !/исключ[её]н в ваших источниках/iu.test(tool.note ?? ""));
+    : run.toolsUsed.some(tool => (tool.status === "failed" || tool.status === "unavailable") && !/исключ[её]н в (?:ваших источниках|вашем профиле)/iu.test(tool.note ?? ""));
   const searched = graph
     ? graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"))
     : run.toolsUsed.some(tool => tool.status === "ok" || (tool.status === "partial" && !NOTHING_TO_SEARCH.test(tool.note ?? "")));

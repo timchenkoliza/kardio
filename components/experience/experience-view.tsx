@@ -590,8 +590,10 @@ function Notices({ ctx }: { ctx: Ctx }) {
   const searched = outcome.kind !== "not_run";
   // Sources excluded in the profile are the whole reason: asking to name a disease would contradict it.
   const excluded = outcome.kind === "not_run" && /исключены в вашем профиле/u.test(outcome.note ?? "");
+  // The question named a disease, drug or topic: asking to name one would contradict it.
+  const named = (ctx.graph.context.conditions ?? []).length > 0;
   return <div className="pt-synthesis" data-module="notices">
-    {!ctx.graph.documents.length && !excluded && <p>{nbsp(`${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
+    {!ctx.graph.documents.length && !excluded && <p>{nbsp(named ? "Подходящих источников не нашлось." : `${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
     <Gaps graph={ctx.graph} />
   </div>;
 }

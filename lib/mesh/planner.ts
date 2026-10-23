@@ -144,7 +144,8 @@ export function planSources(args: {
     if (!executable.length && !handoffs.length) {
       // A source the physician excluded is named as excluded, not as missing.
       const excludedHere = rejected.some(item => item.requirement === requirement && item.reason === "исключён в вашем профиле");
-      if (required) unmet.push({ requirement, reason: `${excludedHere ? "источник исключён в вашем профиле" : "нет подключённого источника"}: ${REQUIREMENT_LABEL[requirement]}` });
+      // The gap line already names the requirement («свежие обзоры — источник исключён в вашем профиле»).
+      if (required) unmet.push({ requirement, reason: excludedHere ? "источник исключён в вашем профиле" : `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
       return;
     }
     // Optional evidence is added only when it is cheap, or is an official hand-off.

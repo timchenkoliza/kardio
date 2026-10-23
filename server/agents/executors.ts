@@ -324,7 +324,8 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const drafts = [...organicDrafts, ...checked.filter(draft => draft.partner)];
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [
-    pubmedUse && pubmedUse.status !== "ok" ? `PubMed: ${pubmedUse.note ?? "недоступен"}` : null,
+    // The note names PubMed itself («PubMed исключён в вашем профиле»): no «PubMed: PubMed…».
+    pubmedUse && pubmedUse.status !== "ok" ? (/^PubMed/u.test(pubmedUse.note ?? "") ? pubmedUse.note : `PubMed: ${pubmedUse.note ?? "недоступен"}`) : null,
     "Полные тексты статей не загружались — выводы исследований не пересказываются",
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);

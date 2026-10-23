@@ -1,4 +1,5 @@
 import type { ClaimKind, CoverageState, EvidenceGraph, GraphConflict, GraphDocument, GraphFreshness, GraphRelation, GraphSource, NormalizedClaim, NormalizedDocument, SourceResult } from "./evidence";
+import { conditionLabel } from "@/lib/portal/labels";
 import type { NormalizedIntent } from "./intent";
 import { detectDomain } from "./domain-graph";
 import { REQUIREMENT_LABEL, type EvidenceRequirement } from "./jobs";
@@ -119,8 +120,10 @@ export function searchConditions(intent: NormalizedIntent): string[] {
     ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic" && detectDomain(concept.label, intent.context.specialty).nosology?.id === intent.context.nosology.id)).map(concept => concept.label),
   ];
   // «внебольничная» is already in «внебольничная пневмония»: a label inside an earlier one is not repeated.
-  const unique = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
-  return unique.filter((label, index) => !unique.slice(0, index).some(earlier => earlier.includes(label)));
+  // Abbreviations keep their case («иНГЛТ-2», «ХСН»), as in the research review's «Искали по».
+  const shown = labels.map(conditionLabel);
+  const lower = shown.map(label => label.toLocaleLowerCase("ru-RU"));
+  return shown.filter((_, index) => lower.indexOf(lower[index]) === index && !lower.slice(0, index).some(earlier => earlier.includes(lower[index])));
 }
 
 export function buildEvidenceGraph(args: {

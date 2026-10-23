@@ -386,7 +386,7 @@ describe("QA review regressions (docs/agent-mvp/DECISION.md, independent QA pass
 
   it("says why PubMed was not used instead of «повторите позже»", () => {
     const excluded = buildResearchAnswer(run({ resultIds: [], toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: ["LIVE"], status: "unavailable", itemCount: 0, durationMs: 0, note: "PubMed исключён в ваших источниках" }] as AgentRun["toolsUsed"] }), []);
-    expect(excluded.headline).toContain("исключён в источниках вашего профиля");
+    expect(excluded.headline).toContain("исключён в вашем профиле");
     expect(excluded.headline).not.toContain("Повторите");
     const noTopic = buildResearchAnswer(run({ input: { text: "Разбор исследований" } as AgentRun["input"], resultIds: [], toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: ["LIVE"], status: "partial", itemCount: 0, durationMs: 0, note: "Нет тем для поиска" }] as AgentRun["toolsUsed"] }), []);
     expect(noTopic.headline).toContain("Не удалось понять тему вопроса");
