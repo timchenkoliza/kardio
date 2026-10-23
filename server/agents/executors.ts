@@ -335,7 +335,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     return `— ${truncate(draft.title, 120)} (${draft.source.source})${checks.length ? ` · ${checks.join(" · ")}` : ""}`;
   });
   const synthesis = drafts.length
-    ? [`По вопросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `Источник сверен:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
+    ? [`По запросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `Источник сверен:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
     : `По вопросу «${truncate(question, 120)}» в доверенных источниках ничего не найдено. Чего не хватает: ${gaps.join("; ")}.`;
   builder.note("Собрали проверяемый обзор", "Только найденное, с источниками; без выводов сверх них");
   return { intent: "research_question", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };

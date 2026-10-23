@@ -30,7 +30,7 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "arrhythmia", label: "Нарушения ритма", catalogTopics: ["ventricular_arrhythmias", "bradyarrhythmias", "supraventricular_tachycardia"], pubmed: "arrhythmia[tiab] OR tachycardia[tiab]", keywords: ["аритм", "тахикард", "брадикард", "ритм"] },
     { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид", "аортальн стеноз"] },
     { id: "cardiomyopathy", label: "Кардиомиопатии", catalogTopics: ["hypertrophic_cardiomyopathy", "myocarditis"], pubmed: "cardiomyopathy[tiab] OR myocarditis[tiab]", keywords: ["кардиомиопат", "гкмп", "миокардит", "амилоид"] },
-    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "лаг", "хтэлг"] },
+    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "легочн артериальн гипертенз", "легочн гипертон", "лаг", "хтэлг"] },
     { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"], specialtyBound: true },
     { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"], specialtyBound: true },
     { id: "endocarditis", label: "Инфекционный эндокардит", catalogTopics: ["infective_endocarditis"], pubmed: "endocarditis[tiab]", keywords: ["эндокардит"] },
@@ -38,8 +38,8 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "ai", label: "ИИ в кардиологии", catalogTopics: ["ai_in_cardiology"], pubmed: "\"artificial intelligence\"[tiab] AND cardiology[tiab]", keywords: ["ии", "искусственн интеллект", "нейросет"], specialtyBound: true },
   ],
   therapy: [
-    { id: "ah", label: "Артериальная гипертензия", catalogTopics: [], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
-    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "сахарн диабет", "диабет 2"] },
+    { id: "ah", label: "Артериальная гипертензия", catalogTopics: [], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен", "ад"] },
+    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "диабет 2", "2 тип"] },
     { id: "copd", label: "ХОБЛ", catalogTopics: [], pubmed: "COPD[tiab] OR \"chronic obstructive pulmonary\"[tiab]", keywords: ["хобл"] },
     { id: "asthma", label: "Бронхиальная астма", catalogTopics: [], pubmed: "asthma[tiab]", keywords: ["астм"] },
     { id: "pneumonia", label: "Пневмония", catalogTopics: [], pubmed: "pneumonia[tiab]", keywords: ["пневмон"] },
@@ -237,7 +237,9 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
   concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
-  concept("ckd", "ХБП", "хбп|почечн|рскф", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
+  concept("ckd", "ХБП", "хбп|почечн|рскф|болезн\\p{L}*\\s+почек", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
+  concept("dm1", "сахарный диабет 1 типа", "сд\\s*1(?![\\p{N}])|диабет\\p{L}*\\s+1(?:-?го)?\\s*тип|1(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет", "\"type 1 diabetes\"[tiab]"),
+  concept("dm2", "сахарный диабет 2 типа", "сд\\s*2(?![\\p{N}])|диабет\\p{L}*\\s+2(?:-?го)?\\s*тип|2(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет", "\"type 2 diabetes\"[tiab]"),
   concept("diabetes", "сахарный диабет", "диабет|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
@@ -250,7 +252,10 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
 
 export function pubmedConceptsIn(text: string): PubmedConcept[] {
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
-  return PUBMED_CONCEPTS.filter(item => item.match.test(normalized)).slice(0, 4);
+  const found = PUBMED_CONCEPTS.filter(item => item.match.test(normalized));
+  // A stated diabetes type replaces the general concept: «type 1 diabetes», not any diabetes.
+  const typed = found.some(item => item.id === "dm1" || item.id === "dm2");
+  return found.filter(item => !(typed && item.id === "diabetes")).slice(0, 4);
 }
 
 /** Human label for a catalog ontology topic (e.g. "pulmonary_hypertension" → "Лёгочная гипертензия"). */
@@ -290,7 +295,7 @@ export function topicsMentioned(specialty: SpecialtyId, text: string): string[] 
     });
     return found.length ? { id: topic.id, words: new Set(found.flatMap(item => item.words)), phrases: found.map(item => item.phrase).filter(phrase => phrase.size) } : null;
   };
-  const own = TOPICS[specialty].flatMap(topic => match(topic) ?? []);
+  const own = (TOPICS[specialty] ?? []).flatMap(topic => match(topic) ?? []);
   // Narrower phrases of any specialty («легочн гипертенз» in cardiology) also stop a broader key in a specialty without that topic.
   const narrower = (Object.keys(TOPICS) as SpecialtyId[]).flatMap(id => TOPICS[id].flatMap(topic => match(topic) ?? [])).flatMap(hit => hit.phrases.map(phrase => ({ id: hit.id, phrase })));
   return own

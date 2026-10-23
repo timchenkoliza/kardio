@@ -74,7 +74,7 @@ export function chooseLearningSignal(ctx: AgentContext): LearningSignal {
   const repeated = behaviour.find(entry => entry.runs.length >= MIN_REPEATS);
   if (repeated) {
     const dates = repeated.runs.map(run => run.startedAt).sort();
-    return { kind: "repeated_interest", concept: repeated.concept, reason: `Вы обращались к теме «${repeated.concept.label}» ${countLabel(repeated.runs.length, ["раз", "раза", "раз"])}: ${dates.slice(-3).map(short).join(", ")}`, evidenceDates: dates };
+    return { kind: "repeated_interest", concept: repeated.concept, reason: `Вы обращались к теме «${repeated.concept.label}» ${countLabel(repeated.runs.length, ["раз", "раза", "раз"])}: ${[...new Set(dates.map(short))].slice(-3).join(", ")}`, evidenceDates: dates };
   }
   const explicit = ctx.profile.interests.topics.map(id => topicById(ctx.specialty, id)).find(Boolean);
   if (explicit) return { kind: "explicit_topic", concept: { id: `${ctx.specialty}:${explicit.id}`, label: explicit.label, term: explicit.pubmed, kind: "topic" }, reason: `Тема из ваших настроек: ${explicit.label}`, evidenceDates: [] };
@@ -158,8 +158,8 @@ export async function learning(ctx: AgentContext): Promise<ExecutorResult> {
   const checked = builder.record("Проверили версии и источники", await tools.factCheck(drafts), items => verificationSummary(items));
   const done = checked.filter(item => item.attributes.done === true).length;
   const synthesis = checked.length
-    ? `Следующий шаг: ${checked[0].title.replace(/^Прочитать /u, "прочитать ").replace(/[.\s]+$/u, "")}. Почему: ${signal.reason}.${done ? ` Пройдено ${done} из ${checked.length}.` : ""}`
-    : `Подходящих материалов не нашлось. Почему искали так: ${signal.reason}. Попробуйте назвать тему, которую хотите освежить.`;
+    ? `Следующий шаг: ${checked[0].title.replace(/^Прочитать /u, "прочитать ").replace(/[.\s]+$/u, "")}. Почему: ${signal.reason.replace(/\.$/u, "")}.${done ? ` Пройдено ${done} из ${checked.length}.` : ""}`
+    : `Подходящих материалов не нашлось. Почему искали так: ${signal.reason.replace(/\.$/u, "")}. Попробуйте назвать тему, которую хотите освежить.`;
   const topicsLine = ctx.profile.interests.topics.length ? topicLabels(ctx.specialty, ctx.profile.interests.topics).join(", ") : null;
   if (signal.kind === "specialty" && !topicsLine) builder.notices.push("Добавьте одну тему — следующий шаг станет точнее");
   return { intent: ctx.job ?? "plan_learning", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts: checked, synthesis, notices: builder.notices };

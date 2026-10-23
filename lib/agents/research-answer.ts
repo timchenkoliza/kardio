@@ -187,7 +187,7 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   if (!question.trim()) return { conditions: [], unmatched: [] };
   // A widened search and a skipped PubMed («Только РФ», «Только клинрекомендации») did not use the concepts: the catalog is searched by topic.
   // PubMed skipped, excluded or down: the catalog is searched by topic, so the concepts were not used either.
-  const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
+  const widened = (run.plan ?? []).some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
   const concepts = pubmedConceptsIn(question).map(concept => concept.label.toLocaleLowerCase("ru-RU"));
   const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : concepts)];
   const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
@@ -196,13 +196,19 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   // A word is known only when the review's own search understands it: its topics and PubMed concepts, including
   // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
   const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+  const questionTopics = topicsMentioned(run.specialty, question);
   const matchedParts = [
-    ...topicsMentioned(run.specialty, question).flatMap(id => topicById(run.specialty, id)?.keywords ?? []).flatMap(keyword => keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").split(" ")),
+    // Only the keys that matched the question («митральн», not «аортальн стеноз» of the same topic).
+    ...questionTopics.flatMap(id => topicById(run.specialty, id)?.keywords ?? [])
+      .map(keyword => keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").split(" "))
+      .filter(parts => parts.every(part => normalized.includes(part)))
+      .flat(),
     ...pubmedConceptsIn(question).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
   ].filter(part => part.length >= 4);
   const known = (word: string) => {
     const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
-    return topicsMentioned(run.specialty, word).length > 0 || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => value.includes(part));
+    // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
+    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || pubmedConceptsIn(word).length > 0 || matchedParts.some(part => value.includes(part));
   };
   return { conditions, unmatched: [...dropped, ...unmatchedWords(question, conditions, run.specialty, known)] };
 }
@@ -249,7 +255,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const designs = [...designCounts.entries()].map(([design, count]) => `${design} — ${count}`);
 
   const trust = [
-    designs.length ? `Дизайн: ${designs.slice(0, 4).join(", ")}.` : null,
+    designs.length ? `Дизайн: ${designs.join(", ")}.` : null,
     read.length ? `Прочитано: ${fullText ? `полный текст — ${fullText}` : ""}${fullText && read.length - fullText ? ", " : ""}${read.length - fullText ? `только аннотация — ${read.length - fullText}` : ""}.${withEffect ? " Цифры эффекта взяты из этого текста, у каждой есть цитата." : ""}` : null,
     // What was checked, in its own terms: citations against PubMed, quotes against the text; the journal's standing is said apart.
     citationOnly.length ? `Данные публикации сверены с PubMed — ${citationChecked} из ${citationOnly.length}${outsideList ? `; журнал вне списка, одобренного врачами, — ${outsideList}` : ""}.` : null,

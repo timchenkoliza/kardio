@@ -1,4 +1,5 @@
 import { matchedSource, verificationLabelFor } from "./format";
+import { researchConditions } from "./research-answer";
 import type { AgentResult, AgentRun, VerificationStatus } from "./types";
 import type { ResearchMode } from "./research-options";
 
@@ -123,6 +124,9 @@ function reportLines(args: BuildResearchExportArgs): string[] {
   ].filter((line, index, all) => line !== "" || all[index - 1] !== "");
 
   if (run.synthesis) lines.push("Сводка", "", run.synthesis, "");
+  // The file says what the screen says: what was searched and which words of the question were not.
+  const search = researchConditions(run);
+  if (search.conditions.length || search.unmatched.length) lines.push(`${search.conditions.length ? `Искали по: ${search.conditions.join(" · ")}.` : "Тему вопроса не распознали."}${search.unmatched.length ? ` Не учтено в поиске: ${search.unmatched.map(words => `«${words}»`).join(", ")}.` : ""}`, "");
   lines.push("Найденные материалы", "");
   // Each record carries the same check label as on screen («Сверены данные публикации · журнал вне списка врачей»).
   for (const [index, result] of results.entries()) {

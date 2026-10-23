@@ -32,7 +32,7 @@ import { resultCard, scenariosFor } from "@/server/portal/for-you";
 import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/topic-match";
 import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-answer";
 import { buildResearchExport, researchSourceBuckets } from "@/lib/agents/research-citations";
-import { specificTopicTerms, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, specificTopicTerms, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
 import { ResearchComparison } from "@/components/workspace/research-comparison";
 import { verificationSummary } from "@/server/agents/plan";
@@ -522,7 +522,7 @@ describe("Round 10 (IA): the export and the trace repeat the labels; a partial d
 
   it("N10-01: each exported record carries its on-screen check; catalog cards from one page stay separate", () => {
     const card = (id: string, title: string) => ({ id, rank: Number(id.slice(1)), createdAt: "2026-10-23T00:00:00.000Z", title, summary: "Рекомендации РКО", attributes: {}, source: { source: "Рекомендации РКО", sourceUrl: "https://scardio.ru/rekomendacii/rekomendacii_rko", retrievedAt: "2026-10-23T00:00:00.000Z" }, evidence: [{ claim: "Официальный материал РКО.", verificationStatus: "PARTIALLY_SUPPORTED", verificationNote: "Актуальность версии требует проверки" }] });
-    const run = { id: "run", input: { text: "ПОАК у пожилых" }, synthesis: null, completedAt: "2026-10-23T00:00:00.000Z", startedAt: "2026-10-23T00:00:00.000Z" } as unknown as AgentRun;
+    const run = { id: "run", specialty: "cardiology", plan: [], toolsUsed: [], input: { text: "ПОАК у пожилых" }, synthesis: null, completedAt: "2026-10-23T00:00:00.000Z", startedAt: "2026-10-23T00:00:00.000Z" } as unknown as AgentRun;
     const text = buildResearchExport({ run, results: [card("r1", "Фибрилляция и трепетание предсердий"), card("r2", "Контроль безопасности антикоагулянтной терапии при ФП")] as unknown as Parameters<typeof buildResearchExport>[0]["results"], mode: "articles", citationStyle: "gost", bibliographyOrder: "appearance", includeBibliography: true, format: "markdown" });
     expect(text).toContain("Проверка: Совпадает с источником · версию сверьте");
     expect(text).toContain("Фибрилляция и трепетание предсердий");
@@ -606,5 +606,45 @@ describe("Round 13 (after): a narrower multi-word topic is not also the broader 
     expect(topicsMentioned("therapy", "Лёгочная гипертензия у пожилых")).not.toContain("ah");
     expect(topicsMentioned("cardiology", "Лёгочная гипертензия и артериальная гипертензия")).toEqual(expect.arrayContaining(["ah", "ph"]));
     expect(topicsMentioned("cardiology", "Артериальная гипертензия у пожилых")).toEqual(["ah"]);
+  });
+});
+
+describe("Round 14: the diabetes type is searched or named; written-out forms of PH are PH", () => {
+  const rc = (text: string, specialty = "cardiology") => researchConditions({ input: { text }, plan: [], toolsUsed: [], specialty } as unknown as AgentRun);
+  it("N14-1: «1 типа» is searched as type 1 diabetes, never lost and never type 2", () => {
+    expect(rc("Статины при сахарном диабете 1 типа").conditions).toContain("сахарный диабет 1 типа");
+    expect(pubmedConceptsIn("Статины при сахарном диабете 1 типа").map(concept => concept.term)).toContain('"type 1 diabetes"[tiab]');
+    expect(rc("Сахарный диабет 1 типа у пожилых", "therapy").conditions).not.toContain("сахарный диабет 2 типа");
+    expect(rc("СД у пожилых с ХСН").conditions).toContain("сахарный диабет");
+  });
+  it("N14-2: «лёгочная артериальная гипертензия» and «лёгочная гипертония» are PH, not АГ", () => {
+    expect(rc("Лёгочная артериальная гипертензия у пожилых").conditions).toEqual(["лёгочная гипертензия", "пожилые пациенты"]);
+    expect(rc("Лёгочная гипертония у пожилых").conditions).toEqual(["лёгочная гипертензия", "пожилые пациенты"]);
+    expect(rc("Лёгочная гипертензия у пожилых", "therapy").unmatched).toContain("лёгочная гипертензия");
+  });
+  it("N14-5: a hyphenated word is named", () => {
+    expect(rc("Сердечно-лёгочная реанимация у пожилых").unmatched).toContain("сердечно-лёгочная реанимация");
+  });
+  it("N14-01 (B): hyphenated drugs, tests and phenotypes are named; understood compound terms are not", () => {
+    expect(rc("Бета-блокаторы при ФП")).toEqual({ conditions: ["фибрилляция предсердий"], unmatched: ["бета-блокаторы"] });
+    expect(rc("Бета-блокаторы при ХСН у пожилых").unmatched).toEqual(["бета-блокаторы"]);
+    expect(rc("Д-димер при ФП").unmatched).toEqual(["д-димер"]);
+    expect(rc("Стресс-ЭхоКГ при ИБС").unmatched).toEqual(["стресс-эхокг"]);
+    expect(rc("ХСН-сФВ у пожилых")).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["ХСН-сФВ"] });
+    expect(rc("Сердечно-сосудистый риск у пожилых", "therapy").unmatched).toEqual(["сердечно-сосудистый"]);
+    expect(rc("Сердечно-сосудистый риск при СД2", "endocrinology").unmatched).toEqual(["сердечно-сосудистый"]);
+    expect(rc("Сердечно-сосудистый риск у пожилых").unmatched).toEqual([]);
+    expect(rc("иНГЛТ-2 при ХСН").unmatched).toEqual([]);
+  });
+  it("N14-03/N14-04 (B): only the matched key and the words of the name next to each other are used", () => {
+    expect(rc("Митральная регургитация и стеноз сонных артерий").unmatched).toEqual(["регургитация", "стеноз сонных артерий"]);
+    expect(rc("Гипертрофия миокарда при АГ").unmatched).toEqual(["гипертрофия миокарда"]);
+    expect(rc("Дыхательная недостаточность при ХСН").unmatched).toEqual(["дыхательная недостаточность"]);
+    expect(rc("Хроническая сердечная недостаточность у пожилых").unmatched).toEqual([]);
+    expect(rc("Сердечной недостаточностью у пожилых").unmatched).toEqual([]);
+    expect(rc("Лёгочная артериальная гипертензия: риоцигуат", "therapy").unmatched).toEqual(["лёгочная артериальная гипертензия", "риоцигуат"]);
+  });
+  it("N13-04 rest (B): «АД» is arterial hypertension in therapy too", () => {
+    expect(rc("Целевое АД у пожилых", "therapy")).toEqual({ conditions: ["артериальная гипертензия", "пожилые пациенты"], unmatched: ["целевое"] });
   });
 });

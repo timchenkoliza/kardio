@@ -123,6 +123,13 @@ describe("learning: next step from real signals, cold start included", () => {
     expect(signal.evidenceDates).toHaveLength(2);
   });
 
+  it("names each day once and never ends the reason with a double period (N13-08)", async () => {
+    const sameDay = await testContext({ agentId: "learning", topics: [], specialty: "endocrinology", history: [run("остеопороз у пожилых", "2026-10-18T08:00:00.000Z"), run("деносумаб при остеопорозе", "2026-10-18T10:00:00.000Z")] });
+    const signal = chooseLearningSignal(sameDay);
+    expect(signal.reason).toMatch(/2 раза: 18 окт\.$/u);
+    expect(signal.reason).not.toMatch(/18 окт\., 18 окт/u);
+  });
+
   it("the current request outranks stored history", async () => {
     const ctx = await testContext({ agentId: "learning", topics: [], specialty: "neurology", text: "хочу освежить ведение эпилепсии", history: [run("мигрень", "2026-10-12T10:00:00.000Z"), run("мигрень у подростков", "2026-10-13T10:00:00.000Z")] });
     expect(chooseLearningSignal(ctx).kind).toBe("current_intent");
