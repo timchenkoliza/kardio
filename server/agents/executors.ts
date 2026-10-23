@@ -250,7 +250,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
   const question = ctx.inputText?.trim() || topicLabels(ctx.specialty, ctx.preference.topics).join(", ");
   if (!question) {
-    builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в настройках агента");
+    builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в профиле");
     return { intent: "research_question", plan: builder.plan, toolsUsed: [], drafts: [], synthesis: null, notices: [] };
   }
   const identifiers = studyIdentifiersIn(question);
@@ -302,7 +302,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [
     pubmedUse && pubmedUse.status !== "ok" ? `PubMed: ${pubmedUse.note ?? "недоступен"}` : null,
-    "Полные тексты статей не загружались — агент не пересказывает выводы исследований",
+    "Полные тексты статей не загружались — выводы исследований не пересказываются",
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);
   const keyFacts = drafts.filter(draft => draft.evidence.some(item => item.verificationStatus === "SUPPORTED")).slice(0, 4).map(draft => `— ${truncate(draft.title, 120)} (${draft.source.source})`);
@@ -385,7 +385,7 @@ async function materials(ctx: AgentContext): Promise<ExecutorResult> {
       category: hit.material.kind,
       title: hit.material.title,
       summary: hit.snippet,
-      reasonShown: [`Совпадения: ${hit.matchedTerms.slice(0, 4).join(", ")}`, hit.material.ownership === "USER_UPLOADED" ? "Ваш документ" : hit.material.ownership === "GENERATED" ? "Сохранённый результат агента" : "Сохранённая ссылка"],
+      reasonShown: [`Совпадения: ${hit.matchedTerms.slice(0, 4).join(", ")}`, hit.material.ownership === "USER_UPLOADED" ? "Ваш документ" : hit.material.ownership === "GENERATED" ? "Сохранённый результат" : "Сохранённая ссылка"],
       observedAt: hit.material.createdAt,
       evidence: [{
         id: materialEvidenceId(hit.material, hit.snippet),

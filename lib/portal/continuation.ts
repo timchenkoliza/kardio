@@ -17,11 +17,17 @@ const CHILD_PHRASE = /\s*(?:у|для|среди)\s+(?:дет(?:ей|и|ям)|р
 const MAX_FOLLOWUP = 160;
 
 /** Does the follow-up depend on the question it was typed under (it names no disease, drug or study of its own)? */
+/** «а при беременности?», «а у пожилых?», «а если течение тяжёлое?», «и при ХБП?»: a short add-on to the question above. */
+const ADD_ON = /^(?:а|и|ну а)\s+(?:если|при|у|для|в|во|на|после|без|с|со|как насчёт)\s/iu;
+
 export function isDependentFollowup(text: string, specialty: SpecialtyId): boolean {
   const value = text.trim();
   if (!value || value.length > MAX_FOLLOWUP || STUDY_ID.test(value)) return false;
   const intent = compileIntent(value, specialty);
-  if (intent.context.nosology || intent.entities.drugs.length) return false;
+  // A named drug is a new subject; a short add-on («а при ХБП?») adds a condition even when it names a disease.
+  if (intent.entities.drugs.length) return false;
+  if (ADD_ON.test(value) && value.split(/\s+/u).length <= 8) return true;
+  if (intent.context.nosology) return false;
   return !intent.entities.concepts.some(concept => concept.kind === "topic" || concept.kind === "drug");
 }
 

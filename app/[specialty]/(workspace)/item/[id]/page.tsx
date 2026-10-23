@@ -43,7 +43,9 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
   const russianQuotes = quotes.filter(quote => isRussian(quote.text));
   const originalQuotes = quotes.filter(quote => !isRussian(quote.text));
   // The short form is only a real finding: a line of publication metadata is not a «Ключевая мысль».
-  const keyText = card.summary && !/^(?:Документ:|Национальный документ:|Опубликовано в журнале|Уверенность доказательств)/u.test(card.summary) ? card.summary : card.whyItMatters ?? null;
+  // Neither a metadata line nor a templated «почему важно» («…опубликованные за последние два года», change counts) is a key thought.
+  const template = (text: string) => /^(?:Документ:|Национальный документ:|Опубликовано в журнале|Уверенность доказательств|Клинические рекомендации, опубликованные за последние|Новая публикация по|\d+ содержательн)/u.test(text);
+  const keyText = card.summary && !template(card.summary) ? card.summary : card.whyItMatters && !template(card.whyItMatters) ? card.whyItMatters : null;
   const authorsWords = !keyText && !russianQuotes.length ? originalQuotes.slice(0, 1) : [];
   const hasOriginal = Boolean(card.original || originalQuotes.length);
 

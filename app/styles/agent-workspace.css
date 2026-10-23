@@ -249,6 +249,12 @@
 .pt-outcome { display: flex; flex-direction: column; gap: var(--ws-space-4); margin: 0; padding: var(--ws-space-12) var(--ws-space-16); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
 .pt-outcome p { margin: 0; }
 .pt-outcome .ws-run-status { align-self: flex-start; }
+/* On a phone the state is one compact block, so the first finding stays on the first screen. */
+@media (max-width: 767px) {
+  .pt-outcome { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--ws-space-4) var(--ws-space-8); padding: var(--ws-space-8) var(--ws-space-12); }
+  .pt-outcome p { font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
+}
+.pt-search-conditions { margin: 0; font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 .ws-run-status.is-failed,
 .ws-run-status.is-blocked { background: var(--ws-danger-soft); color: var(--ws-danger); }
 .ws-owner-user_uploaded { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }

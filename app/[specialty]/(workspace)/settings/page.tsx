@@ -4,6 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { ModeBadge } from "@/components/workspace/mode-badge";
 import { AnswerModeCard, IdentityCard, InterestsEditor, SpecialtyCard } from "@/components/workspace/profile-settings";
 import { PartnerToggle, ResetSeenButton } from "@/components/workspace/settings-controls";
+import { AGENT_DEFINITIONS, agentHref } from "@/lib/agents/definitions";
 import { formatDateRu } from "@/lib/agents/format";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
 import type { SourceStanding } from "@/lib/agents/source-policy";
@@ -61,6 +62,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         <IdentityCard identity={profile.identity} specialty={specialty} />
         <SpecialtyCard specialty={specialty} />
         <InterestsEditor specialty={specialty} interests={profile.interests} />
+        {/* The feed's checks have their own settings (what, how often, on/off); the profile is where they are listed. */}
+        <section className="pt-profile-card" id="feed" aria-labelledby="pt-feed-title">
+          <h2 id="pt-feed-title">{nbsp("Лента «Для вас»")}</h2>
+          <p>{nbsp("Ленту наполняют фоновые проверки. Темы для всех берутся из блока «Интересующие темы» выше; что отслеживать, как часто и включена ли проверка — на её странице.")}</p>
+          <ul className="ws-plain-list">{(["whats_new", "guidelines", "drugs", "events", "learning"] as const).map(id => <li key={id}><Link className="ws-text-link" href={agentHref(specialty, id)}>{AGENT_DEFINITIONS[id].name}</Link></li>)}</ul>
+        </section>
         <AnswerModeCard answerMode={profile.answerMode} />
       </div>
 
@@ -114,7 +121,6 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <h2 id="ws-demo-title">Демонстрация</h2>
           <p>Отметки «новое» считаются от вашего прошлого визита. Чтобы показать механику ещё раз, можно сбросить отметки просмотра.</p>
           <ResetSeenButton />
-          <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
           {(specialty === "cardiology" || specialty === "oncology") && <p className="ws-legacy-link"><Link href={`/${specialty}/legacy`}>Предыдущая версия интерфейса (архив)<ArrowUpRight size={14} aria-hidden="true" /></Link></p>}
         </section>
       </div>

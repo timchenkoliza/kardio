@@ -89,7 +89,7 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
 const TAKEAWAY_MAX = 6;
 
 /** Sentences about the document or future work («the panel formulated», «further research is needed») are not an answer. */
-const NOT_A_FINDING = /^(?:the (?:panel|committee|working group)|this (?:review|guideline|document|update) (?:summarizes|provides|describes|presents))|^(?:however, )?(?:further|future) (?:research|studies|efforts|trials)/iu;
+const NOT_A_FINDING = /^(?:the (?:panel|committee|working group)|this (?:review|guideline|document|update) (?:summarizes|provides|describes|presents))|^(?:however, )?(?:further|future) (?:research|studies|efforts|trials|evidence)|^(?:our|these) (?:findings|results) (?:suggest|highlight|underscore) the need|need for further (?:evidence|research|studies)/iu;
 function informative(claim: NormalizedClaim): boolean {
   return claim.kind !== "review_conclusion" || !NOT_A_FINDING.test(claim.statement.trim());
 }
@@ -106,6 +106,12 @@ function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeawa
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
   const subtype = graph.context.subtype;
+  // A conclusion that speaks about what was asked («duration») comes before newer ones that do not.
+  // A word group every conclusion mentions («antibiotic») does not tell them apart; a rare one («duration») does.
+  const asked = graph.context.asked ?? [];
+  const claimText = (claim: NormalizedClaim) => `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+  const weights = asked.map(group => 1 / Math.max(1, graph.claims.filter(claim => group.some(word => claimText(claim).includes(word))).length));
+  const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
   const relevant = (claim: NormalizedClaim) => claim.verification !== "UNSUPPORTED"
     && !widened.has(claim.documentId)
     // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
@@ -113,17 +119,13 @@ function takeawayClaims(graph: EvidenceGraph, input: Pick<CompileInput, "takeawa
     // A question that names instruction sections is answered from them: no indications or document metadata instead.
     && (!askedSections.length || ((claim.kind !== "indication" || askedSections.includes("indications")) && claim.kind !== "guideline_metadata" && claim.kind !== "currentness"))
     && informative(claim)
+    // When the question asks something specific («длительность»), a review conclusion that never speaks about it is not the answer.
+    && (claim.kind !== "review_conclusion" || !asked.length || onAsked(claim) > 0)
     && (claim.kind !== "indication" || !nosology || family === "drug" || claim.entityIds.includes(nosology))
     && (claim.kind !== "product_listing" || graph.job === "inn_lookup");
   const onSubtype = (claim: NormalizedClaim) => Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
   const terms = graph.context.terms ?? [];
   const onTopic = (claim: NormalizedClaim) => { const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase(); return terms.filter(term => text.includes(term)).length; };
-  // A conclusion that speaks about what was asked («duration») comes before newer ones that do not.
-  // A word group every conclusion mentions («antibiotic») does not tell them apart; a rare one («duration») does.
-  const asked = graph.context.asked ?? [];
-  const claimText = (claim: NormalizedClaim) => `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
-  const weights = asked.map(group => 1 / Math.max(1, graph.claims.filter(claim => group.some(word => claimText(claim).includes(word))).length));
-  const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
   const picked: string[] = [];
   for (const claimId of input.priorityClaims ?? []) {
     const claim = graph.claims.find(item => item.id === claimId);

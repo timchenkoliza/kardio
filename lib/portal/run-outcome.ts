@@ -15,7 +15,12 @@ export interface RunOutcome {
   note: string | null;
   /** Tone of the status tag: `ok` / `neutral` / `warning` / `danger`. */
   tone: "ok" | "neutral" | "warning" | "danger";
+  /** A repeat can help (network, timeout); not when the source page changed or refuses automated reading. */
+  retryable?: boolean;
 }
+
+/** Failures a repeat will not fix: the source page changed its structure or closed automated reading. */
+const STRUCTURAL = /структура страницы|изменилась|robots|закрыт\p{L}* для автоматическ/iu;
 
 /** Tool notes and steps that mean nothing could be searched for (no topic, no recognised term). */
 const NOTHING_TO_SEARCH = /нет тем для поиска|нет распознанных терминов|не распознаны заболевание|тема не распознана/iu;
@@ -40,15 +45,16 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
 
   // Name what did not answer: «часть источников» does not tell the physician what is missing from the answer.
   const silent = graph ? [...new Set(graph.sources.filter(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable")).map(source => source.name))] : [];
-  const missing = silent.length ? `Не ответил${silent.length > 1 ? "и" : ""}: ${silent.join(", ")}` : "Часть источников не ответила";
+  const structural = [...(graph?.gaps ?? []), ...run.plan.map(step => step.detail ?? "")].some(text => STRUCTURAL.test(text));
+  const missing = silent.length ? `${structural ? "Сейчас не читается" : `Не ответил${silent.length > 1 ? "и" : ""}`}: ${silent.join(", ")}` : "Часть источников не ответила";
   if (found) {
     return sourceFailed || run.status === "partial"
-      ? { kind: "partial", label: "Готово частично", note: `${missing} — показано то, что дали остальные источники. Можно повторить позже.`, tone: "warning" }
+      ? { kind: "partial", label: "Готово частично", note: `${missing} — показано то, что дали остальные источники.${structural ? " Страница источника изменилась — повтор не поможет, пока это не исправят." : " Можно повторить позже."}`, tone: "warning", retryable: !structural }
       : { kind: "found", label: "Готово", note: null, tone: "ok" };
   }
   if (nothingToSearch) return { kind: "not_run", label: "Проверка не выполнялась", note: options.monitoring ? "Не выбраны темы, по которым проверять. Выберите темы в настройках — проверка запустится." : "В запросе не распознаны заболевание, препарат или тема — искать было нечего.", tone: "warning" };
-  if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger" };
-  if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning" };
+  if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger", retryable: !structural };
+  if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning", retryable: !structural };
   return options.monitoring
     ? { kind: "not_found", label: "Проверено: изменений не найдено", note: null, tone: "neutral" }
     : { kind: "not_found", label: "Проверено: ничего не найдено", note: null, tone: "neutral" };

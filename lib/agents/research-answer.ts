@@ -158,7 +158,7 @@ function depth(study: StudyDigest): number {
   return study.effect ? 0 : study.conclusion ? 1 : study.access && study.access !== "unavailable" ? 2 : 3;
 }
 
-const PRACTICE = "Выводы авторов приведены выше на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+const PRACTICE = "Выводы авторов, если тексты статей прочитаны, приведены выше на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
   const question = run.input.text ?? "";

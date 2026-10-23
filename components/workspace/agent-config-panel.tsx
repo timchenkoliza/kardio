@@ -26,7 +26,7 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
   const { command, pending } = useWorkspace();
   const [open, setOpen] = useState(defaultOpen);
   const [ownTopics, setOwnTopics] = useState(Boolean(preference.topics && preference.topics.length));
-  const [topics, setTopics] = useState<string[]>(preference.topics?.length ? preference.topics : inheritedTopics);
+  const [topics] = useState<string[]>(preference.topics?.length ? preference.topics : inheritedTopics);
   const [contentTypes, setContentTypes] = useState<ContentTypePref[]>(preference.contentTypes);
   const [frequency, setFrequency] = useState<Frequency>(preference.frequency);
   const [delivery, setDelivery] = useState<DeliveryChannel[]>(preference.delivery);
@@ -72,10 +72,11 @@ export function AgentConfigPanel({ specialty, definition, preference, inheritedT
       <SlidersHorizontal size={16} aria-hidden="true" /><span id={`config-${definition.id}`}>Настроить проверку</span>
     </button>
     {open && <div className="ws-config-body" id={`config-body-${definition.id}`}>
+      {/* Topics have one editor — the profile. An older per-check override is shown and can be dropped, never created here. */}
       {groups.has("topics") && <div className="ws-config-topics">
-        <label className="ws-switch"><input type="checkbox" checked={ownTopics} onChange={event => setOwnTopics(event.target.checked)} /><span>Свои темы для этой проверки</span></label>
-        {ownTopics ? <ChipGroup name={`${definition.id}-topics`} legend="Темы" options={topicsFor(specialty).map(topic => ({ id: topic.id, label: topic.label }))} value={topics} onChange={setTopics} />
-          : <p className="ws-muted">Проверка использует ваши общие темы. Изменить их можно в профиле.</p>}
+        {ownTopics
+          ? <p className="ws-muted">{`Для этой проверки заданы свои темы: ${topicsFor(specialty).filter(topic => topics.includes(topic.id)).map(topic => topic.label).join(", ")}. `}<button type="button" className="ws-text-link" onClick={() => setOwnTopics(false)}>Использовать темы профиля</button></p>
+          : <p className="ws-muted">Проверка использует темы из профиля. <a className="ws-text-link" href={`/${specialty}/settings#topics`}>Изменить темы</a></p>}
       </div>}
       {groups.has("contentTypes") && <ChipGroup name={`${definition.id}-types`} legend="Что отслеживать" options={CONTENT_TYPE_OPTIONS.filter(option => option.id !== "events" && option.id !== "learning")} value={contentTypes} onChange={setContentTypes} />}
       {groups.has("formats") && <ChipGroup name={`${definition.id}-formats`} legend="Город и формат" options={FORMAT_OPTIONS} value={formats} onChange={setFormats} />}

@@ -32,9 +32,11 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 function DrugSinceLastVisit({ results, lastSeenAt, unchecked = [] }: { results: AgentResultView[]; lastSeenAt: string | null; unchecked?: readonly string[] }) {
-  const fresh = results.filter(result => result.newSinceLastSeen);
+  // First view: everything found counts; afterwards only what is new since the last view (and the total is said too).
+  const fresh = lastSeenAt ? results.filter(result => result.newSinceLastSeen) : results;
   return <section className="ws-since" aria-labelledby="ws-since-title">
     <h2 id="ws-since-title">{lastSeenAt ? `С прошлого просмотра · ${formatRelativeRu(lastSeenAt)}` : "Первый просмотр: изменения за выбранный период"}</h2>
+    {lastSeenAt && results.length > 0 && <p className="ws-muted" data-total={results.length}>{nbsp(`${fresh.length ? "Новое ниже" : "Новых изменений нет"} · всего в последней проверке: ${results.length}`)}</p>}
     <ul>{DRUG_CHANGE_TYPES.map(type => {
       // A category the check did not search (no topics) is «не проверялось», never a zero that reads as «изменений нет».
       if (unchecked.includes(type)) return <li key={type} data-unchecked="true"><strong>—</strong><span>{DRUG_CHANGE_LABEL[type].title} · не проверялось</span></li>;

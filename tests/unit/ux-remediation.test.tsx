@@ -159,6 +159,10 @@ describe("UX-04 a follow-up continues the question", () => {
     expect(isDependentFollowup("А если течение нетяжёлое?", "therapy")).toBe(true);
     expect(isDependentFollowup("а у детей?", "therapy")).toBe(true);
     expect(isDependentFollowup("Аторвастатин: противопоказания", "therapy")).toBe(false);
+    // A short add-on continues the question even when it names a condition (N-03).
+    expect(isDependentFollowup("а при беременности?", "therapy")).toBe(true);
+    expect(isDependentFollowup("а при ХБП?", "therapy")).toBe(true);
+    expect(isDependentFollowup("Метформин: противопоказания", "therapy")).toBe(false);
     expect(isDependentFollowup("PMID 31535829", "therapy")).toBe(false);
   });
   it("the continued question keeps every condition and adds the new one; a new population replaces the old", () => {

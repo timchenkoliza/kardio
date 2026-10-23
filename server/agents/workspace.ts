@@ -119,7 +119,7 @@ export function buildCard(args: { definition: AgentDefinition; profile: UserProf
       break;
     }
     case "research":
-      headline = latestRun?.input.text ? `Последний вопрос: «${latestRun.input.text.slice(0, 60)}${latestRun.input.text.length > 60 ? "…" : ""}» · ${countLabel(organic.length, ["источник", "источника", "источников"])}` : "Задайте вопрос — агент соберёт проверяемый обзор";
+      headline = latestRun?.input.text ? `Последний вопрос: «${latestRun.input.text.slice(0, 60)}${latestRun.input.text.length > 60 ? "…" : ""}» · ${countLabel(organic.length, ["источник", "источника", "источников"])}` : "Задайте вопрос — соберём проверяемый обзор";
       break;
     case "learning": {
       const done = organic.filter(result => result.attributes.done === true).length;
@@ -191,7 +191,7 @@ export async function getWorkspaceView(sessionId: string | null, specialty: Spec
     const card = buildCard({ definition: AGENT_DEFINITIONS[agentId], profile, specialty, latestRun, current, now });
     if (agentId === "materials") {
       const uploaded = materials.filter(material => material.ownership === "USER_UPLOADED").length;
-      card.headline = materials.length ? `${countLabel(materials.length, ["материал", "материала", "материалов"])} · ${countLabel(uploaded, ["ваш файл или заметка", "ваших файла или заметки", "ваших файлов и заметок"])}` : "Добавьте документы — агент будет искать только в них";
+      card.headline = materials.length ? `${countLabel(materials.length, ["материал", "материала", "материалов"])} · ${countLabel(uploaded, ["ваш файл или заметка", "ваших файла или заметки", "ваших файлов и заметок"])}` : "Добавьте документы — поиск по материалам будет искать только в них";
       card.totalResults = materials.length;
     }
     return card;

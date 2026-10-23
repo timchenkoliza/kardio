@@ -36,7 +36,7 @@ test("configuring topics runs the background checks behind «Для вас»", a
   // «Что нового» appears once, as a task card; the block lists only the other checks that fill «Для вас».
   await expect(page.locator('.pt-background .ws-agent-card[data-agent="whats_new"]')).toHaveCount(0);
   await expect(page.locator('.pt-agent[data-agent="updates"]')).toBeVisible();
-  await expect(page.locator(".pt-background .ws-agent-card")).toHaveCount(3);
+  await expect(page.locator(".pt-background .ws-agent-card")).toHaveCount(4);
   await page.goto("/cardiology");
   await expect(page.locator(".pt-card").first()).toBeVisible();
   // Every card explains itself: the reason it is shown is on the card's own page, one click away in the same tab.

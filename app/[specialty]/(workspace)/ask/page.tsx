@@ -148,7 +148,10 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     {outcome && outcome.kind !== "found" && outcome.kind !== "blocked" && phase !== "expired" && <div className="pt-outcome" role="status" data-outcome={outcome.kind}>
       <span className="ws-run-status" data-tone={outcome.tone}>{outcome.label}</span>
       {outcome.note && <p>{outcome.note}</p>}
-      {(outcome.kind === "partial" || outcome.kind === "source_error") && run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
+      {(outcome.kind === "partial" || outcome.kind === "source_error") && outcome.retryable && run.input.text && (run.input.continuation
+        // A repeated follow-up is typed again under its previous step, so it stays a continuation (never the joined text).
+        ? <RetryRun text={run.input.continuation.followup} job={retryJob} contextRunId={run.input.continuation.runId} />
+        : <RetryRun text={run.input.text} job={retryJob} />)}
     </div>}
 
     {!finished

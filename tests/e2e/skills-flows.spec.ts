@@ -28,7 +28,7 @@ test("A: «Что изменилось в рекомендациях по ХСН
   await expect(page.locator("[data-clarification]")).toHaveCount(0);
   await expect(page.locator(CONTENT).first()).toBeVisible({ timeout: 60_000 });
   await done(page);
-  await expect(page.locator('[data-explanation="skill"]')).toHaveText("Сравниваем текущую и предыдущую версии рекомендаций");
+  await expect(page.locator('[data-explanation="skill"]')).toHaveText("Сравнили текущую и предыдущую версии рекомендаций");
   await expect(page.locator('[data-module="recommendation_delta"]')).toBeVisible();
   await expect(page.locator('[data-module="sources"]')).toBeAttached();
   // Internal machinery is never shown.

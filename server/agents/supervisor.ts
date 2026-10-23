@@ -158,6 +158,9 @@ export function requestApproval(args: { specialty: SpecialtyId; agentId: AgentId
   return actions;
 }
 
+/** Background checks that fill «Для вас» (their results belong to the check, not to a question). */
+const FEED_CHECKS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "events"];
+
 /** persistResult(): merge by stable key; first-seen time is never rewritten. */
 export function mergeResults(args: { drafts: readonly ResultDraft[]; existing: readonly AgentResult[]; runId: string; now: string; lastSeenAt: string | null; rehydrated: boolean; keyPrefix: string }): { results: AgentResult[]; newCount: number } {
   const byKey = new Map(args.existing.map(result => [result.key, result]));
@@ -404,7 +407,10 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   // Progress writes end before the final state is computed: nothing late can overwrite it.
   const closed = await writer?.close();
   const validation = validateEvidence(executed.drafts);
-  const merged = mergeResults({ drafts: validation.kept, existing, runId, now: nowIso, lastSeenAt: ctx.lastSeenAt, rehydrated: Boolean(deps.rehydrated), keyPrefix: request.agentId });
+  // A question asked on a feed check's capability («Что нового по ХСН?») keeps its own results: it never rewrites
+  // the check's findings, their reasons or what «Для вас» shows.
+  const keyPrefix = request.trigger === "composer" && FEED_CHECKS.includes(request.agentId) ? `${request.agentId}:q:${runId}` : request.agentId;
+  const merged = mergeResults({ drafts: validation.kept, existing, runId, now: nowIso, lastSeenAt: ctx.lastSeenAt, rehydrated: Boolean(deps.rehydrated), keyPrefix });
   await deps.store.upsertResults(deps.sessionId, merged.results);
 
   if (preference.delivery.includes("save")) {

@@ -11,6 +11,7 @@ import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { SUGGESTIONS } from "@/lib/portal/suggestions";
 import { runOutcome } from "@/lib/portal/run-outcome";
+import { unmatchedWords } from "@/lib/portal/unmatched";
 import { CERTAINTY_LABEL, certaintyOf, DRUG_SECTION_ORDER, DRUG_SECTION_TITLE, drugSectionGroup, editorialVerification, isRussian, localizeItem, physicianSafe, type Certainty, type DrugSectionGroup } from "@/lib/presentation/physician";
 import { nbsp } from "@/lib/ui/typography";
 import { StateBadge } from "@/components/portal/for-you";
@@ -40,6 +41,9 @@ interface Ctx {
   inTakeaway: ReadonlySet<string>;
   /** Statements already shown in «Коротко»: never printed a second time in another module. */
   takeawayClaims: ReadonlySet<string>;
+  /** Instruction sections the question named, and whether it opened as a version comparison (part of «Искали по»). */
+  askedSections: readonly string[];
+  comparison: boolean;
 }
 
 /** Section headings as the physician reads them, per result family. */
@@ -205,8 +209,37 @@ function Gaps({ graph }: { graph: EvidenceGraph }) {
   </>;
 }
 
+/**
+ * What the search used, and the words of the question it did not («Не учтено в поиске: сниженной функцией почек»):
+ * a dropped condition is named, never left for the physician to work out.
+ */
+function SearchConditions({ ctx }: { ctx: Ctx }) {
+  const conditions = [
+    ...(ctx.graph.context.conditions ?? []),
+    ...ctx.askedSections.filter((group): group is DrugSectionGroup => (DRUG_SECTION_ORDER as readonly string[]).includes(group)).map(group => `раздел «${DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU")}»`),
+    ...(ctx.comparison ? ["что изменилось между версиями"] : []),
+  ];
+  if (!conditions.length) return null;
+  const continuation = ctx.run.input.continuation;
+  const question = continuation ? `${continuation.question} ${continuation.steps?.join(" ") ?? ""} ${continuation.followup}` : ctx.run.input.text ?? "";
+  const missing = unmatchedWords(question, conditions);
+  return <p className="ws-muted pt-search-conditions" data-conditions={conditions.length} data-missing={missing.length || undefined}>
+    {nbsp(`Искали по: ${conditions.join(" · ")}.`)}
+    {missing.length > 0 && <> <strong>{nbsp(`Не учтено в поиске: ${missing.join(", ")}.`)}</strong> {nbsp("Проверьте это по выводам ниже.")}</>}
+  </p>;
+}
+
+/** A publication whose read conclusion never names the asked disease is off the question, whatever the search matched. */
+function offTopic(document: GraphDocument, ctx: Pick<Ctx, "graph">): boolean {
+  const nosology = ctx.graph.context.nosology;
+  if (!nosology || document.attributes.questionMatch === undefined) return false;
+  const claims = ctx.graph.claims.filter(claim => claim.documentId === document.id && claim.kind === "review_conclusion");
+  return claims.length > 0 && !claims.some(claim => claim.entityIds.includes(`nosology:${nosology}`));
+}
+
 /** Whether a publication answers the question as asked — separate from whether its text was matched. */
-function RelevanceTag({ document }: { document: GraphDocument }) {
+function RelevanceTag({ document, ctx }: { document: GraphDocument; ctx?: Pick<Ctx, "graph"> }) {
+  if (ctx && offTopic(document, ctx)) return <span className="pt-relevance" data-relevance="partial">Тема вопроса в выводе не названа</span>;
   if (document.attributes.questionMatch === "partial") return <span className="pt-relevance" data-relevance="partial">{nbsp(`Шире вопроса${document.attributes.unmatchedConditions ? `: без условия «${document.attributes.unmatchedConditions}»` : ""}`)}</span>;
   // Found by the search conditions listed above the answer — not a judgement that the work answers the question.
   if (document.attributes.questionMatch === "all_conditions") return <span className="pt-relevance" data-relevance="all">По условиям поиска</span>;
@@ -221,15 +254,15 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
       <h2 id={id} className="pt-subtitle">Прямого ответа не нашлось</h2>
       <p>{nbsp(unmatched
         ? `В PubMed нет обзоров и рекомендаций за последние годы, где были бы все условия вопроса — не хватает: ${unmatched}. Найденные работы шире вопроса и на него напрямую не отвечают; они ниже, в разделе «Шире вопроса».`
-        : "В выводах найденных обзоров тема вопроса прямо не названа, поэтому главного вывода нет. Работы — ниже, как есть; уточните вопрос, если нужен прямой ответ.")}</p>
+        : "В выводах найденных обзоров нет прямого ответа на то, что спрошено, поэтому главного вывода нет. Работы — ниже, как есть; уточните вопрос, если нужен прямой ответ.")}</p>
+      <SearchConditions ctx={ctx} />
       <Gaps graph={ctx.graph} />
     </section>;
   }
   const widened = Number(entry.props.widened ?? 0);
-  const conditions = ctx.graph.context.conditions ?? [];
   return <section className="pt-synthesis pt-takeaway" aria-labelledby={id} data-module="key_takeaway" data-answer="direct">
     <h2 id={id} className="pt-subtitle">{nbsp(heading(entry, ctx.job))}</h2>
-    {conditions.length > 0 && <p className="ws-muted pt-search-conditions" data-conditions={conditions.length}>{nbsp(`Искали по: ${conditions.join(" · ")}. Чего нет в этом списке, поиск не учитывал — проверьте по выводам ниже.`)}</p>}
+    <SearchConditions ctx={ctx} />
     <ol className="pt-takeaway-list">
       {entry.claimIds.map(claimId => {
         const claim = ctx.index.claim.get(claimId);
@@ -237,9 +270,14 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         if (!claim || !document) return null;
         const source = sourceName(document);
         const version = versionDate(document, source);
+        // An instruction excerpt names its section and says when the section was shortened.
+        const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
+        const instruction = document.kind === "drug_instruction" || document.kind === "drug_label";
+        const section = instruction ? DRUG_SECTION_TITLE[drugSectionGroup(chunk?.heading)] : null;
         return <li key={claimId}>
-          <p className="pt-takeaway-source">{nbsp(`${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
+          <p className="pt-takeaway-source">{nbsp(`${section ? `${section} · ` : ""}${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} ctx={ctx} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
           <Claim claim={claim} ctx={ctx} named open={claim.kind === "review_conclusion"} />
+          {instruction && chunk?.truncated && <p className="ws-muted" data-truncated="true">{nbsp("Раздел сокращён — полный текст в инструкции по ссылке ниже и в ГРЛС.")}</p>}
           {document.sourceId === "pubmed" && <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
         </li>;
       })}
@@ -437,7 +475,7 @@ function EvidenceItem({ document, entry, ctx, claims }: { document: GraphDocumen
     <div className="ws-result-meta">
       <span className="ws-kind" data-art={document.kind === "guideline_publication" || document.kind === "guideline" ? "guideline" : "article"}>{studyType(document)}</span>
       <span>{sourceName(document)}</span>
-      <RelevanceTag document={document} />
+      <RelevanceTag document={document} ctx={ctx} />
     </div>
     <h3 className="pt-version-title">{nbsp(title.title)}</h3>
     {docClaims.map(claim => <Claim key={claim.id} claim={claim} ctx={ctx} grouped />)}
@@ -452,9 +490,10 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
   const all = entry.documentIds.map(id => ctx.index.document.get(id)).filter((document): document is GraphDocument => Boolean(document));
   // Publications from a widened search are kept apart and closed: they are context, not evidence for the answer.
   // A work whose conclusion is the main answer is not listed again; the list says how many it leaves out.
-  const repeated = all.filter(document => ctx.inTakeaway.has(document.id) && document.attributes.questionMatch !== "partial");
-  const documents = all.filter(document => document.attributes.questionMatch !== "partial" && !ctx.inTakeaway.has(document.id));
-  const widened = all.filter(document => document.attributes.questionMatch === "partial");
+  const aside = (document: GraphDocument) => document.attributes.questionMatch === "partial" || offTopic(document, ctx);
+  const repeated = all.filter(document => ctx.inTakeaway.has(document.id) && !aside(document));
+  const documents = all.filter(document => !aside(document) && !ctx.inTakeaway.has(document.id));
+  const widened = all.filter(aside);
   // Everything is already in «Коротко»: no section that only says so.
   if (!documents.length && !widened.length && !ctx.sectionQuestion) return null;
   if (ctx.sectionQuestion) return <details className="pt-widened" data-module="evidence" data-secondary="true">
@@ -472,7 +511,7 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
     {documents.length > 0 && <ol className="pt-answers">{documents.map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol>}
     {widened.length > 0 && <details className="pt-widened" data-widened={widened.length} open={!documents.length || undefined}>
       <summary>{nbsp(`Шире вопроса · ${widened.length}`)}</summary>
-      <p className="ws-muted">{nbsp("Эти работы найдены, когда поиск расширили без части условий вопроса. Они по теме, но на заданный вопрос напрямую не отвечают.")}</p>
+      <p className="ws-muted">{nbsp("Эти работы найдены без части условий вопроса или не называют его тему в выводе. На заданный вопрос они напрямую не отвечают.")}</p>
       <ol className="pt-answers">{widened.map(document => <EvidenceItem key={document.id} document={document} entry={entry} ctx={ctx} claims={claims} />)}</ol>
     </details>}
   </Section>;
@@ -558,7 +597,11 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
   const index = graphIndex(graph);
   const byKey = new Map(results.map(result => [result.key, result]));
   const view = viewLabel(experience.manifest.view);
-  const explanation = experience.manifest.execution?.class === "skill" ? experience.manifest.execution.explanation : null;
+  // The Skill's line is written for the run in progress («Сверяем…»); on a finished answer it says what was done.
+  const PAST: Record<string, string> = { "Открываем": "Открыли", "Сверяем": "Сверили", "Сравниваем": "Сравнили" };
+  const finished = run.status === "completed" || run.status === "partial";
+  const line = experience.manifest.execution?.class === "skill" ? experience.manifest.execution.explanation ?? null : null;
+  const explanation = line && finished ? line.replace(/^(Открываем|Сверяем|Сравниваем)/u, verb => PAST[verb] ?? verb) : line;
   const ctx: Ctx = {
     run,
     graph,
@@ -567,6 +610,8 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
     sectionQuestion: experience.manifest.modules.some(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) && entry.props.asked.length > 0),
     inTakeaway: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway" && !entry.props.noDirectAnswer).flatMap(entry => entry.documentIds)),
     takeawayClaims: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway").flatMap(entry => entry.claimIds)),
+    askedSections: experience.manifest.modules.flatMap(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) ? entry.props.asked : []),
+    comparison: experience.manifest.view?.comparison === "previous_version",
     resultFor: (documentId, entry) => {
       const key = entry.resultKeys.find(item => item.endsWith(`mesh:${documentId}`)) ?? `${run.agentId}:mesh:${documentId}`;
       return byKey.get(key) ?? null;
