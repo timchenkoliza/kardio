@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
-import { VERIFICATION_LABEL } from "@/lib/agents/format";
+import { VERIFICATION_LABEL, verificationLabelFor } from "@/lib/agents/format";
 import { defaultProfile, isRunDue } from "@/lib/agents/profile";
 import type { AgentRun } from "@/lib/agents/types";
 import { compileExperience } from "@/lib/mesh/compiler";
@@ -29,7 +29,8 @@ import { createRun } from "@/server/agents/supervisor";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
 import { conceptsForIntent, createPubmedAdapter } from "@/server/mesh/sources/pubmed";
 import { resultCard, scenariosFor } from "@/server/portal/for-you";
-import { titleNamesTopic } from "@/server/agents/executors";
+import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/executors";
+import { buildResearchAnswer } from "@/lib/agents/research-answer";
 import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
 import type { PageSnapshot } from "@/server/mesh/browser/drivers";
 import { respondToAsk } from "@/server/portal/manager";
@@ -398,5 +399,33 @@ describe("Round 7: section labels, population excerpts and feed topics stay trut
     } as unknown as Parameters<typeof resultCard>[0], "cardiology", false);
     expect(card.tags).toContain("Артериальная гипертензия");
     expect(card.tags).not.toContain("ah");
+  });
+});
+
+describe("D-7: the research review says what was checked and puts the asked population first", () => {
+  it("a record checked only by its citation is «Сверены данные публикации», not «Совпадает с текстом источника»", () => {
+    const citation = [{ claim: "Опубликовано: «Switching from warfarin to DOACs in frail elderly patients» — Eur Heart J, 2026" }];
+    expect(verificationLabelFor("SUPPORTED", citation).label).toBe("Сверены данные публикации");
+    expect(verificationLabelFor("SUPPORTED", [{ claim: "Short-course therapy was non-inferior." }]).label).toBe("Совпадает с текстом источника");
+  });
+
+  it("titles that name the asked population and drug class come first", () => {
+    const terms = conceptsIn("ПОАК у пожилых с фибрилляцией предсердий", "cardiology").filter(concept => concept.kind === "concept").map(concept => concept.term);
+    const ordered = byQuestionInTitle([
+      { title: "1-month versus 12-month dual antithrombotic therapy after percutaneous coronary intervention in patients with atrial fibrillation (OPTIMA-AF)" },
+      { title: "Switching from warfarin to direct oral anticoagulants in frail elderly Asian patients with atrial fibrillation" },
+      { title: "Temporal trends in the use of oral anticoagulants and clinical outcomes in older, elderly, and very elderly patients with atrial fibrillation" },
+    ], terms);
+    expect(ordered[0].title).toMatch(/elderly/u);
+    expect(ordered[1].title).toMatch(/elderly/u);
+    expect(ordered[2].title).toMatch(/OPTIMA-AF/u);
+  });
+
+  it("the reading note does not speak of authors' conclusions when no text was read", () => {
+    const run = { id: "run", agentId: "research", specialty: "cardiology", status: "completed", input: { text: "ПОАК у пожилых с фибрилляцией предсердий" }, toolsUsed: [{ tool: "searchPubmed", connectorIds: ["pubmed"], modes: [], status: "ok", itemCount: 1, durationMs: 1, note: null }], plan: [], resultIds: [] } as unknown as AgentRun;
+    const result = { id: "r1", rank: 1, partner: null, kind: "research_finding", category: "publication", title: "Switching from warfarin to DOACs in frail elderly patients", summary: "Eur Heart J · 2026", attributes: {}, evidence: [{ claim: "Опубликовано: «Switching…» — Eur Heart J", verificationStatus: "SUPPORTED", evidenceLevel: "peer_reviewed" }], source: { source: "PubMed", connectorId: "pubmed" }, actions: [] } as unknown as Parameters<typeof buildResearchAnswer>[1][number];
+    const answer = buildResearchAnswer(run, [result]);
+    expect(answer.practice).not.toMatch(/если тексты статей прочитаны/u);
+    expect(answer.practice).toMatch(/Тексты статей не читались/u);
   });
 });

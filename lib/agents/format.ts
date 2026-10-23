@@ -31,6 +31,22 @@ export const VERIFICATION_LABEL: Record<VerificationStatus, { label: string; ton
   UNKNOWN: { label: "Сверить с источником не удалось", tone: "unknown" },
 };
 
+/** A record whose only evidence is its bibliographic entry («Опубликовано: «…» — журнал»): no text of the article was read. */
+export function isBibliographicOnly(evidence: readonly { claim: string }[]): boolean {
+  return evidence.length > 0 && evidence.every(item => /^Опубликовано: «/u.test(item.claim));
+}
+
+/**
+ * The verification label for what was actually checked. When only the
+ * citation was compared with PubMed, the label says so, never «Совпадает с
+ * текстом источника» — no text was read.
+ */
+export function verificationLabelFor(status: VerificationStatus, evidence: readonly { claim: string }[]): { label: string; tone: "supported" | "partial" | "unsupported" | "unknown" } {
+  if (isBibliographicOnly(evidence) && status === "SUPPORTED") return { label: "Сверены данные публикации", tone: "supported" };
+  if (isBibliographicOnly(evidence) && status === "PARTIALLY_SUPPORTED") return { label: "Данные публикации совпадают частично", tone: "partial" };
+  return VERIFICATION_LABEL[status];
+}
+
 const VERIFICATION_ORDER: Record<VerificationStatus, number> = { SUPPORTED: 3, PARTIALLY_SUPPORTED: 2, UNKNOWN: 1, UNSUPPORTED: 0 };
 
 /** The weakest link decides how a multi-claim result is labelled. */

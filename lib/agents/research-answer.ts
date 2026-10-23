@@ -158,7 +158,14 @@ function depth(study: StudyDigest): number {
   return study.effect ? 0 : study.conclusion ? 1 : study.access && study.access !== "unavailable" ? 2 : 3;
 }
 
-const PRACTICE = "Выводы авторов, если тексты статей прочитаны, приведены выше на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+const NOT_ADVICE = "Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+
+/** How to read the result, for what was actually read: no «если тексты прочитаны» when none were. */
+function practiceFor(read: number): string {
+  return read
+    ? `Выводы авторов приведены выше на языке оригинала. ${NOT_ADVICE}`
+    : `Тексты статей не читались, поэтому выводов авторов здесь нет — они в самих статьях по ссылкам. ${NOT_ADVICE.replace("превращает их", "превращает найденное")}`;
+}
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
   const question = run.input.text ?? "";
@@ -173,7 +180,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     .map(entry => entry.digest);
 
   if (run.status === "blocked") {
-    return { kind: "blocked", headline: "Запрос остановлен проверкой безопасности: продукт не разбирает данные конкретного пациента и не назначает лечение.", studies: [], trust: [], practice: PRACTICE, limitations: [...run.riskNotices], totalFound: 0 };
+    return { kind: "blocked", headline: "Запрос остановлен проверкой безопасности: продукт не разбирает данные конкретного пациента и не назначает лечение.", studies: [], trust: [], practice: practiceFor(0), limitations: [...run.riskNotices], totalFound: 0 };
   }
 
   const read = digests.filter(study => study.access === "full_text" || study.access === "abstract");
@@ -211,28 +218,28 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     const headline = excluded
       ? "PubMed исключён в источниках вашего профиля, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
       : `PubMed не ответил${note ? ` (${note.replace(/\.$/u, "")})` : ""}, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`;
-    return { kind: "unavailable", headline, studies: [], trust: [], practice: PRACTICE, limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0 };
+    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0 };
   }
   if (named) {
     const asked = describeStudyIdentifiers(identifiers);
     if (!organic.length) {
       const skipped = pubmedUse?.status === "ok" && pubmedUse.note?.startsWith("PubMed пропущен");
-      return { kind: "not_found", headline: skipped ? `${pubmedUse?.note}: публикацию (${asked}) не искали.` : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на статью в PubMed.`, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
+      return { kind: "not_found", headline: skipped ? `${pubmedUse?.note}: публикацию (${asked}) не искали.` : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на статью в PubMed.`, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0 };
     }
     const study = digests[0];
     const result = study.effect ? `Основной результат по тексту статьи: ${study.effect}.` : study.conclusion ? "Величину эффекта в тексте найти не удалось — ниже вывод авторов." : "Текст статьи прочитать не удалось — доступны только данные PubMed.";
-    return { kind: "study", headline: `${study.design ? `${study.design[0].toLocaleUpperCase("ru-RU")}${study.design.slice(1)}, ` : ""}${study.journal}${study.year ? `, ${study.year}` : ""}. ${result}`, studies: digests.slice(0, 4), trust, practice: PRACTICE, limitations, totalFound: organic.length };
+    return { kind: "study", headline: `${study.design ? `${study.design[0].toLocaleUpperCase("ru-RU")}${study.design.slice(1)}, ` : ""}${study.journal}${study.year ? `, ${study.year}` : ""}. ${result}`, studies: digests.slice(0, 4), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length };
   }
   if (!organic.length) {
     const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
     const headline = noTopic
       ? "Не удалось понять тему вопроса, поэтому поиск не выполнялся. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
       : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
-    return { kind: "not_found", headline, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
+    return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0 };
   }
   const headline = [
     `Нашли ${countLabel(organic.length, ["публикацию", "публикации", "публикаций"])} по вопросу.`,
     read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : "Тексты публикаций не читались — ниже только данные PubMed и каталога.",
   ].join(" ");
-  return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: PRACTICE, limitations, totalFound: organic.length };
+  return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length };
 }

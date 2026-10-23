@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Bookmark, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
 import { SavedLink } from "@/components/portal/result-actions";
-import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
+import { DRUG_CHANGE_LABEL, formatDateRu, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
 import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
@@ -64,7 +64,7 @@ function SourceStandingNote({ standing, note }: { standing?: SourceStanding; not
 }
 
 function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) {
-  const verification = VERIFICATION_LABEL[item.verificationStatus];
+  const verification = verificationLabelFor(item.verificationStatus, [item]);
   const published = item.publicationDate ? (formatDateRu(item.publicationDate) ?? item.publicationDate) : null;
   return <li className="ws-evidence-item">
     <span className={`ws-verify ws-verify-${verification.tone}`}>{verification.label}</span>
@@ -141,7 +141,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
         <span className="ws-kind" data-art={artKind(result)}>{label ?? KIND_LABEL[result.kind]}</span>
-        {verification && <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[verification].tone}`}><ShieldCheck size={13} aria-hidden="true" />{VERIFICATION_LABEL[verification].label}</span>}
+        {verification && <span className={`ws-verify ws-verify-${verificationLabelFor(verification, result.evidence).tone}`}><ShieldCheck size={13} aria-hidden="true" />{verificationLabelFor(verification, result.evidence).label}</span>}
       </div>
       <h3 className="ws-result-title" id={`r-${result.id}`}>
         {internal?.href ? <Link href={internal.href} onClick={() => opened(false)}>{result.title}</Link> : result.title}

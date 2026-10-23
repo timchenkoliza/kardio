@@ -19,6 +19,7 @@ import { PendingActions } from "@/components/workspace/pending-actions";
 import { RunTrace } from "@/components/workspace/run-trace";
 import { connectorRegistry } from "@/server/agents/connectors";
 import { pageSession } from "@/server/agents/page-session";
+import { listResearchJobs } from "@/server/agents/research-jobs";
 import { workspaceStore } from "@/server/agents/store";
 import { AGENT_CONNECTORS, loadProfile } from "@/server/agents/workspace";
 import { recordResultRendered } from "@/server/portal/manager";
@@ -101,6 +102,8 @@ export default async function AskPage({ params, searchParams }: { params: Promis
   const phase = runPhase(run);
   const finished = isFinished(run);
   const profile = await loadProfile(sessionId, specialty);
+  // A review started from the scenario page is shown in the mode it was asked in.
+  const researchMode = job === "research" && sessionId ? (await listResearchJobs(sessionId, specialty, 40)).find(item => item.runId === run.id)?.options.mode ?? null : null;
   const views = withNewFlags(results, profile).map(result => ({ ...result, newSinceLastSeen: false }));
   const organic = views.filter(result => !result.partner);
   const partner = views.filter(result => result.partner);
@@ -165,7 +168,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       </div>}
       {showExperience
         ? <ExperienceView run={run} experience={run.experience!} results={views} />
-        : finished && phase !== "expired" ? <JobResult job={job} run={run} results={organic} partner={partner} specialty={specialty} adapter={adapter} /> : null}
+        : finished && phase !== "expired" ? <JobResult job={job} run={run} results={organic} partner={partner} specialty={specialty} adapter={adapter} researchMode={researchMode} /> : null}
       {phase === "failed" && run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
     </div>
 

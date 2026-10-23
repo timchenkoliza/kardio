@@ -111,6 +111,14 @@ export function studyTypeLabel(types: readonly string[]): string | null {
   return null;
 }
 
+/** Articles ordered by how many of the question's concepts their title names; a stable sort keeps PubMed's order otherwise. */
+export function byQuestionInTitle<T extends { title: string }>(articles: readonly T[], terms: readonly string[]): T[] {
+  const groups = terms.map(termPhrases).filter(group => group.length);
+  if (!groups.length) return [...articles];
+  const score = (title: string) => groups.filter(group => group.some(item => phraseIn(title.toLowerCase(), item))).length;
+  return articles.map((article, index) => ({ article, index, score: score(article.title) })).sort((a, b) => b.score - a.score || a.index - b.index).map(item => item.article);
+}
+
 /** Phrases a topic's PubMed term looks for («hypertension», «chronic kidney disease», «diabet» as a prefix). */
 function termPhrases(term: string): Array<{ phrase: string; prefix: boolean }> {
   return [...term.matchAll(/"([^"]+)"\[[a-z]+\]|([A-Za-z0-9-]+)(\*?)\[[a-z]+\]/giu)].map(match => ({ phrase: (match[1] ?? match[2]).toLowerCase(), prefix: Boolean(match[3]) }));
@@ -332,7 +340,11 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     rank: 0,
   }));
   const pubmedDrafts: ResultDraft[] = articles.map(article => pubmedFindingDraft(ctx, questionKey, question, article, pubmedReason));
-  const drafts = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
+  const checked = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
+  // After the ranking by source strength, a title that names more of the question («пожилые», «антикоагулянты») comes first;
+  // the strength ranking breaks ties.
+  const organicDrafts = byQuestionInTitle(checked.filter(draft => !draft.partner).sort((a, b) => a.rank - b.rank), concepts.map(item => item.term)).map((draft, index) => ({ ...draft, rank: index + 1 }));
+  const drafts = [...organicDrafts, ...checked.filter(draft => draft.partner)];
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [
     pubmedUse && pubmedUse.status !== "ok" ? `PubMed: ${pubmedUse.note ?? "недоступен"}` : null,

@@ -316,7 +316,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
       startedAt: nowIso,
       completedAt: null,
       status: "running",
-      input: { text: null, preferenceDigest: preferenceDigest(preference) },
+      // The depth asked for (a review's «Что получить») stays on the run, so every door shows it the same way.
+      input: { text: null, preferenceDigest: preferenceDigest(preference), ...(request.answerMode ? { answerMode: request.answerMode } : {}) },
       intent: request.job ?? routed?.intent ?? null,
       plan: [],
       toolsUsed: [],

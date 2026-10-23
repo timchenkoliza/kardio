@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, ExternalLink, ShieldAlert } from "lucide-react";
-import { formatDateRu, VERIFICATION_LABEL, weakestVerification } from "@/lib/agents/format";
+import { formatDateRu, VERIFICATION_LABEL, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import type { AgentResultView, AgentRun } from "@/lib/agents/types";
 import type { SpecialtyAdapter } from "@/lib/specialty";
 import { stateForOrigin } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
-import { researchOptionsForAnswerMode } from "@/lib/agents/research-options";
+import { researchOptionsForAnswerMode, type ResearchMode } from "@/lib/agents/research-options";
 import { hasStudyIdentifiers, studyIdentifiersIn } from "@/lib/agents/study-identifiers";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { ResultList } from "@/components/workspace/result-card";
@@ -32,7 +32,7 @@ function retrieved(result: AgentResultView): string {
 /** One quoted conclusion: the answer unit of the reference job. */
 function AnswerItem({ result }: { result: AgentResultView }) {
   const evidence = result.evidence[0];
-  const verification = evidence ? VERIFICATION_LABEL[evidence.verificationStatus] : null;
+  const verification = evidence ? verificationLabelFor(evidence.verificationStatus, [evidence]) : null;
   const source = result.actions.find(action => action.kind === "open_source" && action.href);
   return <li className="pt-answer">
     <div className="ws-result-meta">
@@ -120,7 +120,7 @@ function RubricatorHandoff() {
   </aside>;
 }
 
-export function JobResult({ job, run, results, partner, specialty, adapter }: { job: PortalJob; run: AgentRun; results: AgentResultView[]; partner: AgentResultView[]; specialty: string; adapter: SpecialtyAdapter }) {
+export function JobResult({ job, run, results, partner, specialty, adapter, researchMode = null }: { job: PortalJob; run: AgentRun; results: AgentResultView[]; partner: AgentResultView[]; specialty: string; adapter: SpecialtyAdapter; researchMode?: ResearchMode | null }) {
   if (run.status === "blocked") {
     return <div className="pt-blocked" role="alert">
       <p><ShieldAlert size={16} aria-hidden="true" />{run.plan[0]?.detail ?? "Запрос остановлен проверкой безопасности."}</p>
@@ -186,7 +186,8 @@ export function JobResult({ job, run, results, partner, specialty, adapter }: { 
 
   if (job === "research") {
     // The same answer as on the scenario page: the research scenario runs and renders one way from every door.
-    const mode = researchOptionsForAnswerMode(run.input.answerMode).mode;
+    // A review started from the scenario keeps the mode it was asked in («найти статьи»), whichever door opens it.
+    const mode = researchMode ?? researchOptionsForAnswerMode(run.input.answerMode).mode;
     return <>
       {notices}
       <ResearchAnswerView run={run} results={results} mode={mode} />

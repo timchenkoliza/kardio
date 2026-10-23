@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ExternalLink, ShieldCheck } from "lucide-react";
-import { VERIFICATION_LABEL, weakestVerification } from "@/lib/agents/format";
+import { verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import type { AgentResultView, AgentRun, VerificationStatus } from "@/lib/agents/types";
 import type { PhysicianResearchMode, PhysicianResearchViewOptions } from "@/lib/ui/physician-research-view";
 
@@ -70,6 +70,12 @@ function resultVerification(result: AgentResultView): VerificationStatus | null 
   return result.evidence.length ? weakestVerification(result.evidence.map(item => item.verificationStatus)) : null;
 }
 
+/** The type in the physician's words: the study design PubMed states, never an internal category («publication»). */
+function typeLabel(result: AgentResultView): string {
+  if (typeof result.attributes.studyType === "string" && result.attributes.studyType) return result.attributes.studyType;
+  return result.category === "publication" ? "Публикация" : result.kind === "guideline_change" ? "Рекомендации" : "Материал";
+}
+
 export function ResearchResultsTable({ results }: { results: AgentResultView[] }) {
   if (!results.length) return <p className="ws-empty">По выбранным фильтрам ничего не найдено. Расширьте источники или тип материалов.</p>;
 
@@ -87,8 +93,8 @@ export function ResearchResultsTable({ results }: { results: AgentResultView[] }
         return <tr key={result.id}>
           <td data-label="Материал"><strong>{title}</strong><span>{result.summary}</span></td>
           <td data-label="Источник">{result.source.source}</td>
-          <td data-label="Тип">{result.category ?? result.kind}</td>
-          <td data-label="Проверка">{verification ? <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[verification].tone}`}>{VERIFICATION_LABEL[verification].label}</span> : "—"}</td>
+          <td data-label="Тип">{typeLabel(result)}</td>
+          <td data-label="Проверка">{verification ? <span className={`ws-verify ws-verify-${verificationLabelFor(verification, result.evidence).tone}`}>{verificationLabelFor(verification, result.evidence).label}</span> : "—"}</td>
         </tr>;
       })}</tbody>
     </table>
