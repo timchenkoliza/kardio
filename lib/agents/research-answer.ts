@@ -296,7 +296,8 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     const headline = noTopic
       ? "Не удалось понять тему вопроса, поэтому поиск не выполнялся. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
       : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
-    return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0 };
+    // With nothing found the physician still sees what was searched and what was not («ХСН», not «СНнФВ»).
+    return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0, ...(noTopic ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
   const headline = [
     `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,

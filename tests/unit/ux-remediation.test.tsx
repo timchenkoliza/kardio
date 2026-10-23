@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ResearchAnswerView } from "@/components/workspace/research-answer";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => undefined, replace: () => undefined, refresh: () => undefined, back: () => undefined }),
@@ -643,6 +644,14 @@ describe("Round 14: the diabetes type is searched or named; written-out forms of
     expect(rc("Хроническая сердечная недостаточность у пожилых").unmatched).toEqual([]);
     expect(rc("Сердечной недостаточностью у пожилых").unmatched).toEqual([]);
     expect(rc("Лёгочная артериальная гипертензия: риоцигуат", "therapy").unmatched).toEqual(["лёгочная артериальная гипертензия", "риоцигуат"]);
+  });
+  it("B: with nothing found the screen still says what was searched and what was not", () => {
+    const answer = buildResearchAnswer({ input: { text: "СНнФВ у пожилых" }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun, []);
+    expect(answer.kind).toBe("not_found");
+    expect(answer).toMatchObject({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["СНнФВ"] });
+    const html = renderToStaticMarkup(<ResearchAnswerView run={{ input: { text: "СНнФВ у пожилых" }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun} results={[]} />);
+    expect(html).toMatch(/Искали\sпо:\sхсн\s·\sпожилые\sпациенты\.\sНе\sучтено\sв\sпоиске:\s«СНнФВ»\.</u);
+    expect(html).not.toContain("по найденным работам");
   });
   it("N13-04 rest (B): «АД» is arterial hypertension in therapy too", () => {
     expect(rc("Целевое АД у пожилых", "therapy")).toEqual({ conditions: ["артериальная гипертензия", "пожилые пациенты"], unmatched: ["целевое"] });
