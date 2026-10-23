@@ -23,7 +23,7 @@ export interface TopicOption {
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
   cardiology: [
     { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард"] },
-    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
+    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сн", "снсфв", "снунфв", "снпфв", "снфв", "снснфв", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
     { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
     { id: "af", label: "Фибрилляция предсердий", catalogTopics: ["atrial_fibrillation"], pubmed: "\"atrial fibrillation\"[tiab]", keywords: ["фп", "фибрилляц", "трепетан", "антикоагул"] },
     { id: "lipids", label: "Липидология", catalogTopics: [], pubmed: "dyslipidemia[tiab] OR \"lipoprotein(a)\"[tiab] OR LDL[tiab]", keywords: ["липид", "холестер", "лпнп", "статин", "дислипид"] },
@@ -272,11 +272,12 @@ export function topicsMentioned(specialty: SpecialtyId, text: string): string[] 
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
   return TOPICS[specialty]
     .filter(topic => topic.keywords.some(keyword => {
-      const parts = keyword.split(" ");
+      // Keys are compared the way the text is normalised («лёгочн» → «легочн»).
+      const parts = keyword.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").split(" ");
       return parts.every(part => {
         if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(normalized);
         // A key inside a word counts («дислипидемия» → «липид»), but not after a negating «не»: «неклапанная» is not «клапан».
-        return (normalized.match(/\p{L}+/gu) ?? []).some(word => word.includes(part) && !word.startsWith(`не${part}`));
+        return (normalized.match(/[\p{L}\p{N}-]+/gu) ?? []).some(word => word.includes(part) && !word.startsWith(`не${part}`));
       });
     }))
     .map(topic => topic.id);

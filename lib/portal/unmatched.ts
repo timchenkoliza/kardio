@@ -17,7 +17,7 @@ const STOP = new Set([
   "рекомендации", "рекомендациях", "рекомендаций", "исследования", "исследований", "показало", "показали", "лучше", "хуже",
   "пациентов", "пациентам", "пациенты", "больных", "лечение", "лечения", "лечении", "лечению", "лечением", "терапия", "терапии", "терапией", "течение", "течении",
   "насколько", "старше", "младше", "моложе", "года", "годы", "лет", "сколько", "стоит", "надо", "ведение", "ведения", "риск", "риска",
-  "выбор", "выбора", "выборе",
+  "выбор", "выбора", "выборе", "шкала", "шкалы", "шкале", "шкалой", "оценка", "оценки", "оценке", "оценку",
 ]);
 
 /**
@@ -43,6 +43,9 @@ const COVERED_QUALIFIERS: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/абляц/u, ["катетерн"]],
 ];
 
+/** Heart-failure phenotypes: the topic «ХСН» finds them, but not narrowed to the phenotype. */
+const PHENOTYPE = /^(?:снсфв|снунфв|снпфв|снснфв|снфв|снрфв)$/u;
+
 const stem = (word: string) => word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").slice(0, 5);
 
 function recognised(word: string, specialty: SpecialtyId): boolean {
@@ -50,7 +53,12 @@ function recognised(word: string, specialty: SpecialtyId): boolean {
   return Boolean(intent.context.nosology || intent.entities.drugs.length || intent.entities.concepts.length);
 }
 
-export function unmatchedWords(question: string, conditions: readonly string[], specialty: SpecialtyId): string[] {
+/**
+ * `known`: what the search that produced the answer understands. The reference answer searches with the portal's
+ * whole lexicon; the research review searches only by its topics and PubMed concepts, so a drug the portal knows
+ * («бисопролол») but the review did not search is named, never presumed used.
+ */
+export function unmatchedWords(question: string, conditions: readonly string[], specialty: SpecialtyId, known: (word: string) => boolean = word => recognised(word, specialty)): string[] {
   const covered = new Set(conditions.flatMap(condition => condition.split(/[^А-Яа-яЁёA-Za-z0-9]+/u)).filter(word => word.length >= 3).map(stem));
   const joined = conditions.join(" ").toLocaleLowerCase("ru-RU");
   const active = ABBREVIATIONS.filter(entry => entry.pattern.test(joined));
@@ -67,9 +75,11 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
   for (const [token] of question.matchAll(/[А-Яа-яЁёA-Za-z0-9-]+/gu)) {
     const lower = token.toLocaleLowerCase("ru-RU");
     // An abbreviation typed in capitals («ИКД», «СРТ») is a condition of its own unless the lexicon or the conditions know it («ПОАК», «ХСН»).
+    // A heart-failure phenotype («СНсФВ», «СНнФВ») finds heart failure, but the search does not narrow it to the phenotype: it is named.
+    if (PHENOTYPE.test(lower)) { close(); phrases.push(token); continue; }
     if (/^[А-ЯЁ]{2,5}$/u.test(token)) {
       close();
-      if (!covered.has(stem(token)) && !joined.split(/[^а-яё0-9]+/u).includes(lower) && !recognised(token, specialty)) phrases.push(token);
+      if (!STOP.has(lower) && !covered.has(stem(token)) && !joined.split(/[^а-яё0-9]+/u).includes(lower) && !known(token)) phrases.push(token);
       continue;
     }
     // Other short words («и», «с», «по») neither start nor break a phrase.
@@ -77,7 +87,7 @@ export function unmatchedWords(question: string, conditions: readonly string[], 
     // Latin words are searched as typed.
     const content = /^[А-Яа-яЁё]+$/u.test(token) && !STOP.has(lower);
     // A qualifier the searched concept already covers («катетерная» for «абляция») and the words of an abbreviated disease name are used.
-    if (content && !covered.has(stem(token)) && !recognised(token, specialty) && !qualifierCovered(lower) && !inName(lower)) current.push({ word: lower, abbreviated: viaAbbreviation(lower) });
+    if (content && !covered.has(stem(token)) && !known(token) && !qualifierCovered(lower) && !inName(lower)) current.push({ word: lower, abbreviated: viaAbbreviation(lower) });
     else close();
   }
   close();

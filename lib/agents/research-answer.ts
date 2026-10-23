@@ -186,13 +186,16 @@ export function researchConditions(run: AgentRun): { conditions: string[]; unmat
   const question = run.input.text ?? "";
   if (!question.trim()) return { conditions: [], unmatched: [] };
   // A widened search and a skipped PubMed («Только РФ», «Только клинрекомендации») did not use the concepts: the catalog is searched by topic.
-  const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && /PubMed пропущен/u.test(use.note ?? ""));
+  // PubMed skipped, excluded or down: the catalog is searched by topic, so the concepts were not used either.
+  const widened = run.plan.some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label)) || (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
   const concepts = pubmedConceptsIn(question).map(concept => concept.label.toLocaleLowerCase("ru-RU"));
   const labels = [...topicLabels(run.specialty, topicsMentioned(run.specialty, question)), ...(widened ? [] : concepts)];
   const conditions = [...new Set(labels.map(label => label.toLocaleLowerCase("ru-RU")))];
   // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
   const dropped = widened ? concepts.filter(concept => !conditions.includes(concept)) : [];
-  return { conditions, unmatched: [...dropped, ...(conditions.length ? unmatchedWords(question, conditions, run.specialty) : [])] };
+  // A word is known only when the review's own search understands it: its topics and PubMed concepts.
+  const known = (word: string) => topicsMentioned(run.specialty, word).length > 0 || pubmedConceptsIn(word).length > 0;
+  return { conditions, unmatched: [...dropped, ...unmatchedWords(question, conditions, run.specialty, known)] };
 }
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
@@ -282,7 +285,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   }
   const headline = [
     `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
-    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : (!organic.some(result => result.source.connectorId === "pubmed") ? "Ниже только материалы каталога специальности." : organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
+    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? (/исключ/u.test(pubmedUse?.note ?? "") ? "PubMed исключён в ваших источниках: ниже только материалы каталога специальности." : "PubMed не ответил: ниже только материалы каталога специальности.") : (!organic.some(result => result.source.connectorId === "pubmed") ? "Ниже только материалы каталога специальности." : organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
   ].join(" ");
   return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched };
 }

@@ -32,7 +32,7 @@ import { resultCard, scenariosFor } from "@/server/portal/for-you";
 import { byQuestionInTitle, titleNamesTopic } from "@/server/agents/topic-match";
 import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-answer";
 import { buildResearchExport, researchSourceBuckets } from "@/lib/agents/research-citations";
-import { specificTopicTerms } from "@/lib/agents/vocabulary";
+import { specificTopicTerms, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
 import { ResearchComparison } from "@/components/workspace/research-comparison";
 import { verificationSummary } from "@/server/agents/plan";
@@ -550,5 +550,36 @@ describe("Round 11: no part of the question is lost silently", () => {
     expect(skipped.conditions).toEqual(["фибрилляция предсердий"]);
     expect(skipped.unmatched).toEqual(expect.arrayContaining(["абляция", "пожилые пациенты"]));
     expect(unmatched("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
+  });
+});
+
+describe("Round 12: the review names what its own search did not use; hyphenated keys match", () => {
+  const rc = (text: string) => researchConditions({ input: { text }, plan: [], toolsUsed: [], specialty: "cardiology" } as unknown as AgentRun);
+  it("N12-1: a drug the portal knows but the review did not search is named", () => {
+    expect(rc("Бисопролол при ХСН у пожилых").unmatched).toContain("бисопролол");
+    expect(rc("Амиодарон при фибрилляции предсердий у пожилых").unmatched).toContain("амиодарон");
+    expect(rc("СНсФВ у пожилых")).toEqual({ conditions: ["хсн", "пожилые пациенты"], unmatched: ["СНсФВ"] });
+    expect(rc("Хроническая СН у пожилых").unmatched).toEqual([]);
+    expect(rc("ПОАК у пожилых с фибрилляцией предсердий").unmatched).toEqual([]);
+    expect(rc("Катетерная аблация при фибрилляции предсердий у пожилых").unmatched).toEqual([]);
+  });
+  it("N12-2: «сердечно-сосудистый риск» and «SCORE2» find the prevention topic again", () => {
+    expect(rc("Сердечно-сосудистый риск у пожилых").conditions).toContain("профилактика");
+    expect(rc("Шкала SCORE2 у пожилых")).toEqual({ conditions: ["профилактика", "пожилые пациенты"], unmatched: [] });
+  });
+  it("N12-5: stop words typed in capitals are not «не учтено»", () => {
+    expect(rc("Катетерная аблация при ФП у пожилых: ЧТО НОВОГО?").unmatched).toEqual([]);
+  });
+});
+
+describe("Round 12 (IA): no dead topic key in any specialty", () => {
+  it("N12-01: every keyword of every topic, written in a sentence, finds its topic", () => {
+    const dead: string[] = [];
+    for (const [specialty, topics] of Object.entries(TOPICS)) for (const topic of topics) for (const keyword of topic.keywords) {
+      // A keyword is a stem («сердечно-сосудист»): the sentence uses it as the start of a word, as a physician would type it.
+      const text = `Вопрос про ${keyword}ый у пожилых`;
+      if (!topicsMentioned(specialty as Parameters<typeof topicsMentioned>[0], text).includes(topic.id) && !topicsMentioned(specialty as Parameters<typeof topicsMentioned>[0], `Вопрос про ${keyword} у пожилых`).includes(topic.id)) dead.push(`${specialty}:${topic.id}:${keyword}`);
+    }
+    expect(dead).toEqual([]);
   });
 });

@@ -201,6 +201,7 @@
 /* The type and check columns break between words («многоцентровое»), not inside them. */
 .ws-research-table td[data-label="Тип"], .ws-research-table td[data-label="Проверка"], .ws-research-table td[data-label="Источник"] { overflow-wrap: break-word; word-break: normal; hyphens: manual; }
 .ws-ra-check { margin: var(--ws-space-4) 0 0; }
+.ws-ra-check .ws-verify { white-space: normal; max-width: 100%; height: auto; }
 .ws-research-table td > span:not(.ws-verify) { display: block; margin-top: var(--ws-space-4); color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 
 @media (min-width: 760px) {
@@ -216,7 +217,7 @@
 }
 
 /* The four-column table needs room: until the content area is wide (the sidebar takes ~280 px), each record is a card with labelled fields — types and checks never squeeze into narrow columns. */
-@media (max-width: 1199px) {
+@media (max-width: 1279px) {
   .ws-research-table,
   .ws-research-table tbody,
   .ws-research-table tr,
