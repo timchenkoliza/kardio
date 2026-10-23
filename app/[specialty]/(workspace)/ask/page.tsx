@@ -93,7 +93,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         </div>
       </header>
       {lookup && lookup.availability !== "available" && <p className="ws-empty" role="status" data-run-unavailable={lookup.availability}>{UNAVAILABLE_COPY[lookup.availability]}</p>}
-      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} />
+      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} pubmedExcluded={defaults.interests.excludedSources.includes("pubmed")} />
       {quick && <div className="pt-card-actions"><FollowupJobButton text={quick.text} job={job as PortalJob} label={quick.label} primary /></div>}
     </div>;
   }
@@ -183,7 +183,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
     <section className="ws-section" aria-labelledby="pt-followup-title">
       <h2 id="pt-followup-title" className="pt-subtitle">Уточнить или спросить другое</h2>
-      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Уточнение или новый вопрос" placeholder="Уточните условие (например: а у пожилых?) или задайте новый вопрос" contextRunId={finished && run.status !== "blocked" ? run.id : undefined} />
+      <PortalInput specialty={specialty} followup inputId="pt-followup-input" label="Уточнение или новый вопрос" placeholder="Уточните условие (например: а у пожилых?) или задайте новый вопрос" contextRunId={finished && run.status !== "blocked" ? run.id : undefined} pubmedExcluded={profile.interests.excludedSources.includes("pubmed")} />
     </section>
   </div>;
 }

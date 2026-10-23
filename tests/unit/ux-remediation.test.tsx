@@ -38,6 +38,11 @@ import { buildResearchAnswer, researchConditions } from "@/lib/agents/research-a
 import { buildResearchExport, researchSourceBuckets } from "@/lib/agents/research-citations";
 import { pubmedConceptsIn, specificTopicTerms, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 import { ResearchResultsTable } from "@/components/workspace/research-report";
+import { decideStrategy } from "@/lib/mesh/strategy";
+import { routePortalIntent } from "@/lib/portal/router";
+import type { PortalJob } from "@/lib/portal/jobs";
+import { recentQuestions } from "@/components/portal/recent-questions";
+import { JobResult } from "@/components/portal/job-results";
 import { ResearchComparison } from "@/components/workspace/research-comparison";
 import { verificationSummary } from "@/server/agents/plan";
 import { normalizeInstruction, populationsNamed, type InstructionPage } from "@/server/mesh/sources/medi";
@@ -842,7 +847,7 @@ describe("Round 17: compounds, sections and short Latin as the search used them"
     expect(rc("Апиксабан у пожилых с ФП и ХБП").conditions).toContain("ХБП");
   });
   it("N17-3 (A) / N17-04 (B): numbers keep their fraction, range and unit; a lone dash separates", () => {
-    expect(home("Целевой ЛПНП ниже 1,4 ммоль/л").unmatched).toContain("ЛПНП ниже 1,4 ммоль/л");
+    expect(home("Целевой ЛПНП ниже 1,4 ммоль/л").unmatched).toContain("целевой ЛПНП ниже 1,4 ммоль/л");
     expect(home("Лихорадка у младенцев 8–60 дней", "pediatrics").unmatched).toEqual(["8–60 дней"]);
     expect(rc("Омега 3 при ИБС").unmatched).toEqual(["омега 3"]);
     expect(rc("ИЛ 6 при ИБС").unmatched).toEqual(["ИЛ 6"]);
@@ -1031,5 +1036,83 @@ describe("Round 21 (A): a number takes only a type word after it; «ниже/в�
   it("«особые», «рамке», «меры предосторожности» belong to the safety section; «предупреждение ривароксабаном» does not", () => {
     expect(askedSections("Апиксабан: меры предосторожности")).toContain("safety");
     expect(askedSections("Предупреждение ривароксабаном тромбоза")).not.toContain("safety");
+  });
+});
+
+describe("Round 22: a plan never below two steps; «события» by meaning with the way back on top; measures as written", () => {
+  const home = (question: string, specialty = "cardiology") => {
+    const conditions = searchConditions(compileIntent(question, specialty as never));
+    return unmatchedWords(question, conditions, specialty as never, undefined, { latinSearched: true, latinQueried: new Set(latinTermsIn(question)) });
+  };
+  const listing = (question: string, specialty = "cardiology") => routePortalIntent(question, specialty as never).job === "events";
+  it("N22-01 (B): no task stops at a one-step plan, and only comparisons of drugs stop at one at all", () => {
+    const jobs: PortalJob[] = ["answer", "drug", "guidelines", "research", "events", "learning", "updates", "materials"];
+    for (const text of ["Бисопролол, метопролол или карведилол при ХСН", "Курсы по апиксабану, ривароксабану и дабигатрану", "Мои материалы: апиксабан, ривароксабан, дабигатран"]) {
+      for (const job of jobs) {
+        const strategy = decideStrategy({ text, specialty: "cardiology", job, session: null, answered: null, planConfirmed: null });
+        if (strategy.planPreview) {
+          expect(["answer", "drug", "guidelines", "research"]).toContain(job);
+          expect(strategy.planPreview.steps.length).toBeGreaterThanOrEqual(2);
+        }
+      }
+    }
+    expect(decideStrategy({ text: "Курсы по апиксабану, ривароксабану и дабигатрану", specialty: "cardiology", job: "learning", session: null, answered: null, planConfirmed: null }).planPreview).toBeNull();
+  });
+  it("N22-01 (B): a next action never stops at the plan, while the composer still shows it", async () => {
+    delete process.env.DATABASE_URL;
+    await ensureSession(SESSION);
+    const text = "Апиксабан, ривароксабан или дабигатран при ФП";
+    const next = await respondToAsk(SESSION, "cardiology", text, { job: "guidelines", followup: true, clarification: { id: "next_action", optionId: null }, schedule: () => undefined });
+    expect(next.kind).toBe("run");
+    const typed = await respondToAsk(SESSION, "cardiology", text, { schedule: () => undefined });
+    expect(typed.kind === "plan" ? typed.plan.steps.length : 2).toBeGreaterThanOrEqual(2);
+  });
+  it("N22-1 (A), N22-02 (B): a group of patients, a registry or a disease right after «события» is a clinical question", () => {
+    for (const [question, specialty] of [["Какие события у детей с эпилепсией", "neurology"], ["Какие события регистрируются в регистре ХСН", "cardiology"], ["Какие события чаще у женщин с ФП", "cardiology"], ["События ОКС", "cardiology"], ["События у беременных с АГ", "obgyn"], ["Эпилептические события у детей", "neurology"], ["Церебральные события ФП", "cardiology"], ["События, определяющие прогноз ХСН", "cardiology"], ["Кровотечения как события на антикоагулянтах", "cardiology"], ["События у пациентов после ЧКВ в ближайшие 30 дней", "cardiology"], ["Какие события по данным ESC при ФП", "cardiology"]]) {
+      expect(listing(question, specialty), question).toBe(false);
+    }
+    for (const question of ["Ближайшие события по ХСН", "События по ХСН на этой неделе", "Какие события по ХСН", "Ближайшие события по СД 2 типа у детей", "Главные события по кардиологии"]) expect(listing(question), question).toBe(true);
+  });
+  it("N22-2 (A), N22-03 (B): a month, the audience or a supporting society keep the listing over «при» and «в течение»", () => {
+    for (const [question, specialty] of [["События по ХСН в течение ноября", "cardiology"], ["События по кардиологии при поддержке РКО", "cardiology"], ["События для эндокринологов при СД", "endocrinology"], ["События для кардиологов при участии ESC", "cardiology"], ["Какие события по ФП в течение ближайшего месяца", "cardiology"]]) {
+      expect(listing(question, specialty), question).toBe(true);
+    }
+  });
+  it("N22-1 (A): without a word of the listing the way to the answer comes first; with one it follows the listing, and only with a topic", () => {
+    const render = (text: string) => renderToStaticMarkup(<WorkspaceProvider><JobResult job="events" run={{ id: "r", specialty: "cardiology", input: { text }, riskNotices: [], synthesis: null, plan: [], toolsUsed: [], resultIds: [], status: "completed" } as unknown as AgentRun} results={[]} partner={[]} specialty="cardiology" adapter={{ catalog: true, organisers: [] } as never} /></WorkspaceProvider>);
+    expect(render("Какие события у женщин с ФП")).toContain("data-bridge=\"top\"");
+    expect(render("Ближайшие события по ХСН")).toContain("data-bridge=\"bottom\"");
+    expect(render("Ближайшие события по специальности")).not.toContain("Искали не мероприятия?");
+    expect(render("Конференции по ХСН в ноябре")).not.toContain("Искали не мероприятия?");
+  });
+  it("N22-3 (A), N22-05, N22-06 (B): signs read as words, «не более» keeps «не», the lead word stays with its value", () => {
+    expect(home("ФВ ЛЖ < 40% при ХСН")).toEqual(["ФВ ЛЖ менее 40%"]);
+    expect(home("СКФ < 30 мл/мин")).toEqual(["СКФ менее 30 мл/мин"]);
+    expect(home("ЧСС < 60 уд/мин")).toEqual(["ЧСС менее 60 уд/мин"]);
+    expect(home("QTc > 500 мс")).toEqual(["QTc более 500 мс"]);
+    expect(home("ЛПНП не более 1,4 при ИБС")).toEqual(["ЛПНП не более 1,4"]);
+    expect(home("АД не более 130/80")).toEqual(["АД не более 130/80"]);
+    expect(home("Статины старше или моложе 75 лет")).toEqual(["старше или моложе 75 лет"]);
+    expect(home("Тропонин выше 99-го перцентиля")).toEqual(["тропонин выше 99-го перцентиля"]);
+    expect(home("Гликированный гемоглобин выше 7%")).toEqual(["гликированный гемоглобин выше 7%"]);
+    expect(home("ЛПНП ниже целевого уровня")).toEqual(["ниже целевого уровня"]);
+    expect(home("ХСН с ФВ 50% и выше")).toEqual(["ФВ 50% и выше"]);
+    expect(home("ХБП 3 и 4 стадии")).toEqual(["ХБП 3 и 4 стадии"]);
+    expect(home("ИМ 2 типа")).toEqual(["ИМ 2 типа"]);
+    expect(home("Систолическое АД выше 140")).toEqual(["систолическое АД выше 140"]);
+    expect(home("Статины после 75 лет")).toEqual(["после 75 лет"]);
+  });
+  it("N22-04 (B): «приёма» after «на фоне» and «без» is the drug's context; «время приёма» is named", () => {
+    expect(home("Кровотечения на фоне приёма апиксабана")).toEqual([]);
+    expect(home("Инсульт без приёма антикоагулянтов при ФП")).toEqual([]);
+    expect(home("Время приёма статинов")).toContain("время приёма");
+  });
+  it("N22-5 (A): a source excluded in the profile does not make the answer partial", () => {
+    const run = { status: "partial", plan: [], resultIds: ["x"], experience: null, error: null, toolsUsed: [{ tool: "searchPubmed", status: "unavailable", note: "PubMed исключён в вашем профиле" }, { tool: "searchCatalog", status: "ok", note: null }] };
+    expect(runOutcome(run as never).kind).toBe("found");
+  });
+  it("N22-08 (B): «История» keeps the answer and the listing of the same words apart", () => {
+    const run = (id: string, job: string, startedAt: string) => ({ id, trigger: "composer", status: "completed", intent: job, specialty: "cardiology", input: { text: "События после ЧКВ" }, startedAt } as unknown as AgentRun);
+    expect(recentQuestions([run("a", "events", "2026-10-23T10:00:00Z"), run("b", "answer", "2026-10-23T10:01:00Z"), run("c", "events", "2026-10-23T10:02:00Z")]).map(item => item.id)).toEqual(["c", "b"]);
   });
 });

@@ -84,7 +84,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
       <h1 id="pt-title">{nbsp(`Ответы и обновления — ${adapter.audienceDative}`)}</h1>
       <p className="pt-lead">{nbsp("Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из рекомендаций, обзоров и официальных инструкций — у каждого утверждения есть источник и дата.")}</p>
       {/* No depth choice before the question: the profile default is used, and depth is chosen on the result. */}
-      <PortalInput specialty={specialty} suggestions={homeSuggestions(specialty, profile.interests.topics)} answerMode={profile.answerMode} />
+      <PortalInput specialty={specialty} suggestions={homeSuggestions(specialty, profile.interests.topics)} answerMode={profile.answerMode} pubmedExcluded={profile.interests.excludedSources.includes("pubmed")} />
       <QuickAgents specialty={specialty} />
     </section>
 

@@ -22,6 +22,9 @@ export interface RunOutcome {
 /** Failures a repeat will not fix: the source page changed its structure or closed automated reading. */
 const STRUCTURAL = /структура страницы|изменилась|robots|закрыт\p{L}* для автоматическ/iu;
 
+/** A tool note for a source the physician excluded: not a failure, nothing to repeat. */
+export const EXCLUDED_IN_PROFILE = /исключ[её]н в (?:ваших источниках|вашем профиле)/iu;
+
 /** Tool notes and steps that mean nothing could be searched for (no topic, no recognised term). */
 const NOTHING_TO_SEARCH = /нет тем для поиска|нет распознанных терминов|не распознаны заболевание|тема не распознана/iu;
 
@@ -35,7 +38,7 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const found = graph ? graph.documents.length : run.resultIds.length;
   const sourceFailed = graph
     ? graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"))
-    : run.toolsUsed.some(tool => (tool.status === "failed" || tool.status === "unavailable") && !/исключ[её]н в (?:ваших источниках|вашем профиле)/iu.test(tool.note ?? ""));
+    : run.toolsUsed.some(tool => (tool.status === "failed" || tool.status === "unavailable") && !EXCLUDED_IN_PROFILE.test(tool.note ?? ""));
   const searched = graph
     ? graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"))
     : run.toolsUsed.some(tool => tool.status === "ok" || (tool.status === "partial" && !NOTHING_TO_SEARCH.test(tool.note ?? "")));
@@ -50,7 +53,9 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const structural = [...(graph?.gaps ?? []), ...run.plan.map(step => step.detail ?? "")].some(text => STRUCTURAL.test(text));
   const missing = silent.length ? `${structural ? "Сейчас не читается" : `Не ответил${silent.length > 1 ? "и" : ""}`}: ${silent.join(", ")}` : "Часть источников не ответила";
   if (found) {
-    return sourceFailed || run.status === "partial"
+    // Older runs were stored «partial» when the only silent source was one the physician excluded.
+    const onlyExcluded = run.toolsUsed.length > 0 && run.toolsUsed.every(tool => (tool.status !== "failed" && tool.status !== "unavailable") || EXCLUDED_IN_PROFILE.test(tool.note ?? ""));
+    return sourceFailed || (run.status === "partial" && !onlyExcluded)
       ? { kind: "partial", label: "Готово частично", note: `${missing} — показано то, что дали остальные источники.${structural ? " Страница источника изменилась — повтор не поможет, пока это не исправят." : " Можно повторить позже."}`, tone: "warning", retryable: !structural }
       : { kind: "found", label: "Готово", note: null, tone: "ok" };
   }

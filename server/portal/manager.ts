@@ -209,7 +209,8 @@ export async function respondToAsk(sessionId: string, specialty: SpecialtyId, ty
       options = { ...requested, job: requested.job ?? continued.options.job ?? null, continuation: continued.options.continuation };
     }
   }
-  const strategy = await decideAsk(sessionId, specialty, text, options);
+  // A next action is one click: it never stops for a plan either.
+  const strategy = await decideAsk(sessionId, specialty, text, options.clarification?.id === "next_action" ? { ...options, planConfirmed: options.planConfirmed ?? "next_action" } : options);
   if (strategy.executionClass === "clarify" && strategy.clarification) {
     await recordMeshEvent(sessionId, "clarification_shown", { specialty, clarificationId: strategy.clarification.id, reason: strategy.clarification.reason, count: strategy.clarification.options.length, signature: strategy.signature });
     if (strategy.clarification.reason !== "facet_changes_execution") await recordMeshEvent(sessionId, "intent_skill_ambiguous", { specialty, reason: strategy.clarification.reason, signature: strategy.signature });

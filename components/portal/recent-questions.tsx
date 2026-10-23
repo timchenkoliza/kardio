@@ -7,13 +7,14 @@ import { runOutcome } from "@/lib/portal/run-outcome";
 
 const MAX_RECENT = 5;
 
-/** The physician's own questions (never background checks or blocked input), newest first, one per wording. */
+/** The physician's own questions (never background checks or blocked input), newest first, one per wording and task. */
 export function recentQuestions(runs: readonly AgentRun[], limit = MAX_RECENT): AgentRun[] {
   const seen = new Set<string>();
   const picked: AgentRun[] = [];
   for (const run of [...runs].sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
     if (run.trigger !== "composer" || !run.input.text || run.status === "blocked") continue;
-    const key = `${run.input.continuation?.runId ?? ""}:${(run.input.continuation?.followup ?? run.input.text).trim().toLocaleLowerCase("ru-RU")}`;
+    // The same words asked as an answer and as the events listing are two results («афиша → ответ»).
+    const key = `${jobForRun(run)}:${run.input.continuation?.runId ?? ""}:${(run.input.continuation?.followup ?? run.input.text).trim().toLocaleLowerCase("ru-RU")}`;
     if (seen.has(key)) continue;
     seen.add(key);
     picked.push(run);

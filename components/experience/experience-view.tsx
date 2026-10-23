@@ -2,6 +2,7 @@ import { ExternalLink, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatDateRu, weakestVerification } from "@/lib/agents/format";
 import type { AgentResultView, AgentRun, RunExperience } from "@/lib/agents/types";
+import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { EvidenceGraph, GraphDocument, NormalizedClaim, SourceOutcome } from "@/lib/mesh/evidence";
 import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
@@ -590,9 +591,9 @@ function Handoff({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
   </>;
 }
 
-function NextActions({ ctx }: { ctx: Ctx }) {
+function NextActions({ ctx, eventsOnly = false }: { ctx: Ctx; eventsOnly?: boolean }) {
   const text = ctx.run.input.text?.trim();
-  const actions = (ctx.run.experience?.manifest.actions ?? []).filter(action => (action.kind === "follow_up" || action.kind === "investigate_deeper") && action.job);
+  const actions = eventsOnly ? [] : (ctx.run.experience?.manifest.actions ?? []).filter(action => (action.kind === "follow_up" || action.kind === "investigate_deeper") && action.job);
   // A question about «события» may have meant the events listing: it is one click away, with the same words.
   const events = Boolean(text && /(?<![\p{L}])событи/iu.test(text));
   if (!text || (!actions.length && !events)) return null;
@@ -600,7 +601,8 @@ function NextActions({ ctx }: { ctx: Ctx }) {
     <h2 id="pt-next-title" className="pt-subtitle">Что дальше</h2>
     <div className="pt-card-actions">
       {actions.slice(0, 3).map(action => <FollowupJobButton key={action.id} text={text} job={action.job as PortalJob} label={action.label} />)}
-      {events && <FollowupJobButton text={text} job="events" label="Мероприятия по теме" />}
+      {/* The listing filters by a topic of the specialty; without one it shows the whole specialty and says so. */}
+      {events && <FollowupJobButton text={text} job="events" label={topicsMentioned(ctx.run.specialty, text).length ? "Мероприятия по теме" : "Мероприятия по специальности"} />}
     </div>
   </section>;
 }
@@ -666,5 +668,7 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
       const Renderer = RENDERERS[entry.family];
       return Renderer ? <Renderer key={entry.id} module={entry} ctx={ctx} /> : null;
     })}
+    {/* Nothing was searched or found: «Что дальше» is not compiled, but the way to the events listing stays. */}
+    {!experience.manifest.modules.some(entry => entry.family === "next_actions") && <NextActions ctx={ctx} eventsOnly />}
   </div>;
 }

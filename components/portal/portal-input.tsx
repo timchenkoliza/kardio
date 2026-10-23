@@ -41,7 +41,7 @@ type SpeechWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionLi
  * previewed in plain language before submit; the physician never chooses an
  * agent. The mode travels with the request into run metadata.
  */
-export function PortalInput({ specialty, job = null, examples = [], suggestions = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId, answerMode = DEFAULT_ANSWER_MODE, showModes = false, forcedState = null }: {
+export function PortalInput({ specialty, job = null, examples = [], suggestions = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId, answerMode = DEFAULT_ANSWER_MODE, showModes = false, forcedState = null, pubmedExcluded = false }: {
   specialty: SpecialtyId;
   inputId?: string;
   job?: PortalJob | null;
@@ -60,6 +60,8 @@ export function PortalInput({ specialty, job = null, examples = [], suggestions 
   answerMode?: AnswerMode;
   /** Show the three-mode control under the input (home and job pages, not follow-ups). */
   showModes?: boolean;
+  /** PubMed is excluded in the profile: the route line does not promise it. */
+  pubmedExcluded?: boolean;
   /** Visual-audit only: render one state without interaction. */
   forcedState?: ComposerState | null;
 }) {
@@ -198,7 +200,7 @@ export function PortalInput({ specialty, job = null, examples = [], suggestions 
       {message && !busy && <span className="ws-route" role="status">{message}</span>}
       {!busy && continues && !blocked && <span className="ws-route" data-continues="true">Продолжим этот вопрос с новым условием — прежние условия сохранятся</span>}
       {!busy && route && !blocked && !continues && route.vague && !route.concepts.length && <span className="ws-route" data-vague="true">Тема не распознана — добавьте заболевание, препарат (МНН) или тему, иначе искать будет нечего</span>}
-      {!busy && route && !blocked && !continues && !(route.vague && !route.concepts.length) && <span className="ws-route"><JobIcon icon={JOBS[planned ?? route.job].icon} size={14} />Покажем {JOBS[planned ?? route.job].preview}{(planned ?? route.job) === "research" ? " · PubMed и каталог специальности" : ""}{route.drugs.length ? ` · ${route.drugs.map(drug => drug.ru).join(", ")}` : ""}{route.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
+      {!busy && route && !blocked && !continues && !(route.vague && !route.concepts.length) && <span className="ws-route"><JobIcon icon={JOBS[planned ?? route.job].icon} size={14} />Покажем {JOBS[planned ?? route.job].preview}{(planned ?? route.job) === "research" ? (pubmedExcluded ? " · каталог специальности (PubMed исключён в вашем профиле)" : " · PubMed и каталог специальности") : ""}{route.drugs.length ? ` · ${route.drugs.map(drug => drug.ru).join(", ")}` : ""}{route.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
       {route?.risk.imageInterpretation && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.imageInterpretation}</span>}
       {route?.risk.emergency && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.emergency}</span>}
       {route?.risk.prescribing && <span className="ws-risk"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.prescribing}</span>}
