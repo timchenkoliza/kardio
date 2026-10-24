@@ -12,7 +12,8 @@ export function RunTrace({ run, connectors, now, showSynthesis = true, showConne
   const used = new Set(run.toolsUsed.flatMap(use => use.connectorIds));
   const shown = connectors.filter(connector => used.has(connector.id) || connector.mode === "UNAVAILABLE");
   // A source the physician excluded is not «Онлайн» for this run: it was not asked (R1 B round 2 N-3, C N-10).
-  const excluded = new Set(run.toolsUsed.filter(use => EXCLUDED_IN_PROFILE.test(use.note ?? "")).flatMap(use => use.connectorIds));
+  // Only a source that was not asked: a note about an excluded journal on a PubMed search that ran is not that (R1 round 3, C Р3-7).
+  const excluded = new Set(run.toolsUsed.filter(use => use.status === "unavailable" && EXCLUDED_IN_PROFILE.test(use.note ?? "")).flatMap(use => use.connectorIds));
   return <section className="ws-trace" aria-labelledby={`trace-${run.id}`}>
     <div className="ws-trace-head">
       <h3 id={`trace-${run.id}`}>Как получен результат</h3>

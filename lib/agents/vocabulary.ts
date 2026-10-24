@@ -233,6 +233,8 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   // «ствол левой коронарной артерии», «ствол ЛКА»: the anatomy decides between PCI and CABG (R1 round 2: a question on the
   // left main was answered by a review on revascularisation before non-cardiac surgery).
   concept("left_main", "ствол левой коронарной артерии", "ствол\\p{L}*\\s+(?:левой\\s+)?(?:коронарн|лка)|ствол\\p{L}*\\s+лка", "\"left main\"[tiab]"),
+  // «ДАТТ»: dual antiplatelet therapy; without it «Сколько длится ДАТТ после ЧКВ» searched PCI alone (R1 round 3, A №5).
+  concept("dapt", "двойная антитромбоцитарная терапия (ДАТТ)", "(?<![\\p{L}])датт(?![\\p{L}])|двойн\\p{L}*\\s+антитромбоцитарн|двухкомпонентн\\p{L}*\\s+антитромбоцитарн|(?<![\\p{L}])dapt(?![\\p{L}])", "\"dual antiplatelet\"[tiab] OR DAPT[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
   concept("stroke", "инсульт", "(?:(?:остр\\p{L}*\\s+)?(?:ишемическ|геморрагическ|кардиоэмболическ|лакунарн)\\p{L}*\\s+)?инсульт|онмк|тиа(?![\\p{L}])|транзиторн\\p{L}*\\s+ишемическ\\p{L}*\\s+атак|инфаркт\\p{L}*\\s+(?:головного\\s+)?мозг", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),
@@ -254,7 +256,8 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
   concept("tavi", "TAVI", "tavi|тави|тавр|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
-  concept("ckd", "ХБП", "хбп|почечн|рскф|(?:хроническ\\p{L}*\\s+)?болезн\\p{L}*\\s+почек", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
+  // «КК 25 мл/мин», «клиренс креатинина», «СКФ 30», «на диализе» name the renal population too (R1 round 3, C Р3-4).
+  concept("ckd", "ХБП", "хбп|почечн|рскф|(?<![\\p{L}])скф(?![\\p{L}])|клиренс\\p{L}*\\s+креатинин|(?<![\\p{L}])кк(?:\\s*[<>≤≥]?\\s*\\d)|гемодиализ|диализ|(?:хроническ\\p{L}*\\s+)?болезн\\p{L}*\\s+почек", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
   concept("dm1", "сахарный диабет 1 типа", "сд\\s*1(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+1(?:-?го)?\\s*тип\\p{L}*|1(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 1 diabetes\"[tiab]"),
   concept("dm2", "сахарный диабет 2 типа", "сд\\s*2(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+2(?:-?го)?\\s*тип\\p{L}*|2(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 2 diabetes\"[tiab]"),
   concept("diabetes", "сахарный диабет", "(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),

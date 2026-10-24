@@ -45,7 +45,7 @@ export function checkInputRisk(text: string): InputRiskDecision {
   const deidentified = deidentify(text);
   const signals = detectRiskSignals(deidentified.text);
   const notices: string[] = [];
-  if (deidentified.redactions.length) notices.push(RISK_COPY.identifiers);
+  if (deidentified.redactions.length) notices.push(deidentified.needsReview ? RISK_COPY.identifiersReview : RISK_COPY.identifiers);
   if (signals.patientSpecific || deidentified.needsReview) notices.push(RISK_COPY.patientSpecific);
   if (signals.prescribing) notices.push(RISK_COPY.prescribing);
   if (signals.imageInterpretation) {

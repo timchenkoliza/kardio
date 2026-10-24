@@ -100,6 +100,10 @@ const TOPIC_WORD_NAMES: Readonly<Record<string, readonly string[]>> = {
   "миокардит": ["myocarditis"],
   "амилоид": ["amyloid"],
 };
+/** Concepts of a question that name its topic in a title or conclusion (topic id → concept id → words). */
+const TOPIC_IMPLIED: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
+  ihd: { "concept:left_main": ["left main", "left-main", "ствол"], "concept:pci": ["percutaneous coronary", "pci"], "concept:cabg": ["coronary artery bypass", "cabg", "bypass graft"] },
+};
 /** Qualifiers written before a key: each is a condition of its own when the lexicon knows its name. */
 const QUALIFIER_NAMES: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/^гипертрофическ/u, ["hypertrophic", "гипертрофическ"]],
@@ -127,7 +131,11 @@ export function topicGroups(intent: NormalizedIntent): string[][] {
     const keys = matched.filter(word => TOPIC_WORD_NAMES[word]);
     const named = keys.length ? [...new Set(keys.flatMap(key => [key, ...TOPIC_WORD_NAMES[key]]))] : whole;
     const qualifiers = matched.flatMap(word => QUALIFIER_NAMES.filter(([pattern]) => pattern.test(word)).map(([, names]) => [...names]));
-    return [...(named.length ? [named] : []), ...qualifiers];
+    // A coronary procedure or lesion the question named is the topic named too: «PCI versus CABG for left main disease»
+    // answers a question on the left main (R1 round 3, A №4).
+    const implied = intent.entities.concepts.flatMap(item => TOPIC_IMPLIED[topic.id]?.[item.id] ?? []);
+    const group = [...new Set([...named, ...implied])];
+    return [...(group.length ? [group] : []), ...qualifiers];
   });
 }
 

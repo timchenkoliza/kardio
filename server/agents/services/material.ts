@@ -278,7 +278,8 @@ export function materialFromAnswer(run: AgentRun, now: string): Material {
   const documentOf = (documentId: string) => experience.graph.documents.find(document => document.id === documentId);
   const points = claims.map(claim => { const document = documentOf(claim.documentId); return `— ${claim.statement}${document ? ` (${document.title}${document.url ? `, ${document.url}` : ""})` : ""}`; });
   const sources = [...new Set(experience.graph.documents.map(document => document.url).filter(Boolean))].slice(0, 20);
-  const text = [`Вопрос: ${question}`, patientDose ? PATIENT_DOSE_SAVED : null, points.length ? `Коротко:\n${points.join("\n")}` : "Прямого ответа не нашлось.", experience.graph.gaps.length ? `Чего не хватает: ${experience.graph.gaps.join("; ")}` : null, sources.length ? `Источники:\n${sources.join("\n")}` : null].filter(Boolean).join("\n\n");
+  const indication = typeof takeaway?.props.labelIndication === "string" ? takeaway.props.labelIndication : null;
+  const text = [`Вопрос: ${question}`, patientDose ? PATIENT_DOSE_SAVED : null, indication, points.length ? `Коротко:\n${points.join("\n")}` : patientDose ? null : "Прямого ответа не нашлось.", experience.graph.gaps.length ? `Чего не хватает: ${experience.graph.gaps.join("; ")}` : null, sources.length ? `Источники:\n${sources.join("\n")}` : null].filter(Boolean).join("\n\n");
   return {
     id: newMaterialId(),
     specialty: run.specialty,
