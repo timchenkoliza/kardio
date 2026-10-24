@@ -86,7 +86,9 @@ test("de-identification: its own tool with four tabs; materials stay a library",
   await page.getByRole("tab", { name: "История" }).click();
   await expect(page.locator(".pt-anon-table tbody tr")).toHaveCount(1);
   await page.getByRole("tab", { name: "Настройки" }).click();
-  await expect(page.getByRole("checkbox")).toHaveCount(8);
+  // R1 C-1 added the medical record number rule: nine rules, «Номер медкарты» among them.
+  await expect(page.getByRole("checkbox")).toHaveCount(9);
+  await expect(page.getByRole("checkbox", { name: /Номер медкарты/u })).toBeChecked();
 });
 
 test("media geometry: feed 2:1, open material 3:1, no layout shift", async ({ page }) => {
