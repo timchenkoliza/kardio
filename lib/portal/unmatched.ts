@@ -2,6 +2,7 @@ import type { SpecialtyId } from "@/lib/domain/types";
 import { pubmedConceptsIn, TOPICS } from "@/lib/agents/vocabulary";
 import { askedSections, type AskedSection } from "@/lib/mesh/refine";
 import { compileIntent } from "@/lib/mesh/intent";
+import { REDACTION_PLACEHOLDER } from "@/lib/clinical-case/anonymizer";
 
 /**
  * Parts of the physician's question the search did not use («сниженной функцией
@@ -29,6 +30,8 @@ const STOP = new Set([
   "теме", "теми", "приеме", "приёме", "фоне",
   // «Консилиум: …», «позиции рекомендаций», «что говорят источники»: the kind of result asked for, not a condition.
   "консилиум", "консилиума", "консилиуме", "консилиумом", "позиции", "позиций", "позиция", "говорят", "расходятся", "расходится", "источники", "источников",
+  // A comparison word and the framing of a trial question («Исследование DAPA-HF: основной результат») are not conditions.
+  "против", "исследование", "основной", "основные", "основная", "основного", "результат", "результаты",
 ]);
 
 /**
@@ -191,7 +194,9 @@ function recognised(word: string, specialty: SpecialtyId, conditions: readonly s
  * whole lexicon; the research review searches only by its topics and PubMed concepts, so a drug the portal knows
  * («бисопролол») but the review did not search is named, never presumed used.
  */
-export function unmatchedWords(question: string, conditions: readonly string[], specialty: SpecialtyId, known: (word: string) => boolean = word => recognised(word, specialty, conditions), options: { latinSearched?: boolean; latinQueried?: ReadonlySet<string>; societies?: ReadonlySet<string> } = {}): string[] {
+export function unmatchedWords(asked: string, conditions: readonly string[], specialty: SpecialtyId, known: (word: string) => boolean = word => recognised(word, specialty, conditions), options: { latinSearched?: boolean; latinQueried?: ReadonlySet<string>; societies?: ReadonlySet<string> } = {}): string[] {
+  // What redaction left in place of a patient's identifiers («[ФИО]», «[ГОД РОЖДЕНИЯ]») is not a word of the question.
+  const question = asked.replace(REDACTION_PLACEHOLDER, " ");
   // Latin words go into the PubMed query as typed; when PubMed was not used, they were searched nowhere.
   const latinSearched = options.latinSearched ?? true;
   const keyParts = matchedKeyParts(question, conditions);

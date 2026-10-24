@@ -44,18 +44,19 @@ const KIND: Record<string, NormalizedClaim["kind"]> = {
 export function labelDocument(label: DrugLabel, args: { inn: string; ru: string; retrievedAt: string; nosologyId: string | null; sections: ReadonlySet<string> }): NormalizedDocument {
   const id = `openfda:${label.setId}`;
   const drug = drugEntity(args.inn, args.ru);
-  const sections = label.sections.filter(section => args.sections.has(section.id)).slice(0, 7);
+  // A combination product's doses are not the drug's: its dosing section is never taken.
+  const sections = label.sections.filter(section => args.sections.has(section.id) && !(label.combination && section.id === "dosage_and_administration")).slice(0, 7);
   const chunks = sections.map(section => makeChunk({ documentId: id, path: [section.ru], fullText: section.text, maxChars: 900, keepText: true, entityIds: [drug.id] }));
   const claims = sections.map((section, index) => {
     const check = verifyQuote({ connectorId: "openfda-labels", url: label.dailyMedUrl, sourceName: `Инструкция FDA · ${section.ru}`, statement: section.text, quote: section.text, language: "en", level: "regulatory", secondary: false, verifyIn: null, retrievedAt: args.retrievedAt, publishedAt: label.effectiveDate });
     return makeClaim({ documentId: id, chunkId: chunks[index].id, kind: KIND[section.id] ?? "label_section", statement: section.text, quote: section.text, language: "en", polarity: polarityOf(section.text), entityIds: [drug.id], covers: args.nosologyId ? coverageOf(section.text, args.nosologyId) : [], method: "verbatim", confidence: 1, verification: check.verification, verificationNote: check.note });
   });
   return {
-    id, sourceId: "openfda", kind: "drug_label", title: `${args.ru[0].toLocaleUpperCase("ru-RU")}${args.ru.slice(1)} (${label.genericName || args.inn}): инструкция FDA`, url: label.dailyMedUrl, language: "en",
+    id, sourceId: "openfda", kind: "drug_label", title: `${args.ru[0].toLocaleUpperCase("ru-RU")}${args.ru.slice(1)}${label.combination ? " в составе комбинированного препарата" : ""} (${label.genericName || args.inn}): инструкция FDA`, url: label.dailyMedUrl, language: "en",
     publisher: label.manufacturer ?? "U.S. Food and Drug Administration", publishedAt: label.effectiveDate, retrievedAt: args.retrievedAt,
     version: { fingerprint: combineFingerprints(chunks.map(chunk => chunk.fingerprint)), label: label.version ? `версия ${label.version}` : null, date: label.effectiveDate },
     jurisdiction: "US", authority: "official", state: "LIVE",
-    attributes: { inn: args.inn, genericName: label.genericName || args.inn, brands: label.brandNames.join(", ") || null, setId: label.setId, productType: label.productType, sectionTitles: sections.map(section => section.ru).join("|"), truncated: sections.some(section => section.truncated) },
+    attributes: { inn: args.inn, genericName: label.genericName || args.inn, brands: label.brandNames.join(", ") || null, setId: label.setId, productType: label.productType, sectionTitles: sections.map(section => section.ru).join("|"), combination: label.combination ?? false, truncated: sections.some(section => section.truncated) },
     chunks, claims, entities: [drug],
   };
 }

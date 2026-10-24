@@ -13,6 +13,10 @@ const PRESCRIBING = [
   stemPattern("отмени(?:ть)? (?:препарат|терапи|лечени)|прекратить при[её]м"),
   stemPattern("подбери (?:терапи|схем|лечени|дозу)"),
   wordPattern("prescribe|what dose"),
+  // R1 C-3: the ways a dose for one patient is asked without «какую дозу».
+  stemPattern("(?:стартов|начальн)\\p{L}*\\s+доз"),
+  wordPattern("\\d+(?:[.,]\\d+)?\\s*или\\s*\\d+(?:[.,]\\d+)?\\s*мг"),
+  stemPattern("отмен\\p{L}*\\s+\\p{L}+\\s+(?:пациент|больн)"),
 ];
 
 const IMAGE_INTERPRETATION = [
@@ -33,6 +37,8 @@ const PATIENT_SPECIFIC = [
   stemPattern("(?:мой|моему|моего|у моего|у моей|моей|мою)\\s+пациент"),
   stemPattern("пациент(?:ка|у|а)?\\s+\\d{1,3}\\s*(?:лет|года|г\\.)"),
   stemPattern("больн(?:ой|ая|ому)\\s+\\d{1,3}\\s*(?:лет|года)"),
+  // One described person with an age («Женщина 78 лет», «Мужчина 58 лет»); the plural («у женщин 50 лет») is a population.
+  wordPattern("(?:мужчина|женщина|ребенок|девочка|мальчик|пациентка|пациент)\\s+\\d{1,3}\\s*(?:лет|года|год|мес\\p{L}*)"),
 ];
 
 const DIRECTIVE_OUTPUT = [

@@ -46,6 +46,23 @@
 .ws-research-mode strong { font-size: var(--font-size-label); line-height: var(--ws-leading-label); }
 .ws-research-mode span { color: var(--ws-text-secondary); font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 .ws-research-submit-row { justify-content: flex-end; }
+/* «Что получить» is one row of switches under the question, its description on one line below. */
+.ws-research-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ws-space-8);
+}
+.ws-research-mode-row .ws-research-mode {
+  min-height: 38px;
+  padding: var(--ws-space-8) var(--ws-space-12);
+  flex-direction: row;
+  align-items: center;
+  font-size: var(--font-size-label);
+}
+.ws-research-mode-note { margin: 0; font-size: var(--font-size-caption); }
+.ws-research-profile-note { margin: 0; font-size: var(--font-size-caption); }
+.ws-agent-about summary { cursor: pointer; color: var(--ws-text-secondary); font-size: var(--font-size-caption); }
+.ws-history-link { margin: 0; }
 
 .ws-research-filters {
   display: flex;

@@ -1,4 +1,5 @@
 import type { ClaimKind, CoverageState, EvidenceGraph, GraphConflict, GraphDocument, GraphFreshness, GraphRelation, GraphSource, NormalizedClaim, NormalizedDocument, SourceResult } from "./evidence";
+import { TOPICS } from "@/lib/agents/vocabulary";
 import { conditionLabel } from "@/lib/portal/labels";
 import type { NormalizedIntent } from "./intent";
 import { detectDomain } from "./domain-graph";
@@ -85,6 +86,24 @@ export function topicTerms(intent: NormalizedIntent): string[] {
   }
   if (intent.context.subtype) words.add(intent.context.subtype.id.split("/").at(-1)!);
   return [...words];
+}
+
+/**
+ * The disease topics of a question that names no nosology («Кардиомиопатии», «Инфекционный эндокардит»), one
+ * word group each, from the topic's own PubMed term and Russian keywords: a review conclusion answers the question
+ * only when its title or conclusion names each of them. A generic, specialty-framed topic («Профилактика») is not
+ * a disease and sets no condition.
+ */
+export function topicGroups(intent: NormalizedIntent): string[][] {
+  if (intent.context.nosology) return [];
+  const all = Object.values(TOPICS).flat();
+  return intent.entities.concepts.filter(concept => concept.kind === "topic").flatMap(concept => {
+    const topic = all.find(item => item.label === concept.label && item.pubmed === concept.term);
+    if (!topic || topic.specialtyBound) return [];
+    const english = [...topic.pubmed.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z0-9-]*\*?)/gu)].map(match => (match[1] ?? match[2]).toLowerCase().replace(/\*$/u, "")).filter(word => word.length >= 4);
+    const words = [...new Set([...english, ...topic.keywords.map(keyword => keyword.toLowerCase()).filter(keyword => keyword.length >= 4)])];
+    return words.length ? [words] : [];
+  });
 }
 
 /**
@@ -210,6 +229,22 @@ export function buildEvidenceGraph(args: {
     if (unread.length) gaps.push(`инструкция не найдена: ${unread.map(drug => drug.ru).join(", ")} — по ${unread.length === 1 ? "этому препарату" : "этим препаратам"} сравнение не составлено`);
   }
 
+  // A guideline question about a drug: when no guideline or society document states anything about the drug or its
+  // class, the physician reads that first — not a 2016 sentence about «no specific treatment» as the current position (R1 C-5).
+  if (intent.job.family === "guidelines" && intent.entities.drugs.length) {
+    const words = topicTerms(intent);
+    const guidelineKinds = new Set(["guideline", "society_guideline_summary", "guideline_publication"]);
+    const positions = [...claims.values()].filter(claim => guidelineKinds.has(documents.get(claim.documentId)?.kind ?? "") && (claim.kind === "guideline_statement" || claim.kind === "society_assertion" || claim.kind === "review_conclusion"));
+    const phenotype = intent.context.subtype?.label ?? intent.context.nosology?.label ?? null;
+    for (const drug of intent.entities.drugs) {
+      const named = positions.some(claim => {
+        const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+        return claim.entityIds.includes(`drug:${drug.inn}`) || words.some(word => text.includes(word));
+      });
+      if (!named) gaps.push(`позиции действующих рекомендаций по препарату «${drug.ru}»${phenotype ? ` при ${phenotype}` : ""} в показанных источниках нет`);
+    }
+  }
+
   const extraction = [...claims.values()].map(claim => claim.confidence);
   const graphDocuments: GraphDocument[] = [...documents.values()].map(document => {
     const { chunks: docChunks, ...rest } = document;
@@ -225,7 +260,7 @@ export function buildEvidenceGraph(args: {
     job: intent.job.primary,
     family: intent.job.family,
     specialty: intent.context.specialty,
-    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent), conditions: searchConditions(intent) },
+    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent), topics: topicGroups(intent), conditions: searchConditions(intent) },
     sources,
     documents: graphDocuments,
     versions: [...documents.values()].map(document => ({ documentId: document.id, ...document.version })),

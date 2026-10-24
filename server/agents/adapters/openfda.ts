@@ -52,6 +52,8 @@ export interface DrugLabel {
   /** «HUMAN PRESCRIPTION DRUG» or «HUMAN OTC DRUG». Prescription labels are preferred. */
   productType: string | null;
   sections: DrugLabelSection[];
+  /** No single-ingredient label was found: this is a combination product containing the drug. */
+  combination?: boolean;
   dailyMedUrl: string;
   apiUrl: string;
 }
@@ -131,6 +133,20 @@ export function parseLabel(record: Record<string, unknown>, apiUrl: string): Dru
   };
 }
 
+/** Labels asked for at once; the first single-ingredient one is used. */
+const CANDIDATE_LABELS = 20;
+
+/**
+ * A label of the drug itself, with or without its salt («bisoprolol fumarate», «apixaban»), not a combination
+ * («bisoprolol fumarate and hydrochlorothiazide», «amlodipine besylate, valsartan»).
+ */
+export function isSingleIngredient(genericName: string, inn: string): boolean {
+  const value = genericName.trim().toLowerCase();
+  if (!value) return false;
+  if (/\s(?:and|with|plus)\s|[,;/+&]/u.test(value)) return false;
+  return value.split(/\s+/u)[0] === inn.trim().toLowerCase().split(/\s+/u)[0];
+}
+
 export async function lookupDrugLabelLive(genericName: string, options: { fetchImpl?: FetchLike; timeoutMs?: number; disabled?: boolean; now?: () => Date } = {}): Promise<DrugLabelResult> {
   // A physician needs the prescribing information; an OTC consumer label is the fallback.
   const prescription = await lookupLabel(genericName, "HUMAN PRESCRIPTION DRUG", options);
@@ -143,7 +159,9 @@ async function lookupLabel(genericName: string, productType: string | null, opti
   const retrievedAt = (options.now?.() ?? new Date()).toISOString();
   const name = genericName.trim().toLowerCase().replace(/"/g, "");
   const search = productType ? `openfda.generic_name:"${name}" AND openfda.product_type:"${productType}"` : `openfda.generic_name:"${name}"`;
-  const params = new URLSearchParams({ search, sort: "effective_time:desc", limit: "1" });
+  // Several labels, newest first: the newest label of «bisoprolol» is often a combination product
+  // («bisoprolol fumarate and hydrochlorothiazide»), whose doses are not the single drug's.
+  const params = new URLSearchParams({ search, sort: "effective_time:desc", limit: String(CANDIDATE_LABELS) });
   const apiKey = process.env.OPENFDA_API_KEY?.trim();
   if (apiKey) params.set("api_key", apiKey);
   const url = `${BASE}?${params.toString()}`;
@@ -168,9 +186,13 @@ async function lookupLabel(genericName: string, productType: string | null, opti
     }
     if (!response.ok) return { status: "unavailable", query: name, label: null, total: 0, error: response.status === 429 ? "openFDA временно ограничил частоту запросов" : `openFDA ответил ошибкой ${response.status}`, durationMs: Date.now() - started, retrievedAt };
     const payload = await response.json() as { results?: unknown; meta?: { results?: { total?: unknown } } };
-    const record = Array.isArray(payload.results) ? payload.results[0] as Record<string, unknown> | undefined : undefined;
-    const label = record ? parseLabel(record, publicUrl) : null;
-    if (!label) return { status: "failed", query: name, label: null, total: 0, error: "Ответ openFDA не распознан", durationMs: Date.now() - started, retrievedAt };
+    const records = Array.isArray(payload.results) ? payload.results.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : [];
+    const labels = records.map(record => parseLabel(record, publicUrl)).filter((label): label is DrugLabel => label !== null);
+    if (!labels.length) return { status: "failed", query: name, label: null, total: 0, error: "Ответ openFDA не распознан", durationMs: Date.now() - started, retrievedAt };
+    // The drug itself when FDA has its label; otherwise the newest combination, marked as one
+    // (sacubitril exists only with valsartan) — its doses are never shown as the drug's own.
+    const single = labels.find(item => isSingleIngredient(item.genericName, name));
+    const label: DrugLabel = single ?? { ...labels[0], combination: true };
     const value: DrugLabelResult = { status: "ok", query: name, label, total: Number(payload.meta?.results?.total ?? 1) || 1, error: null, durationMs: Date.now() - started, retrievedAt };
     cache.set(url, { expires: Date.now() + CACHE_TTL_MS, value });
     if (cache.size > 300) cache.delete(cache.keys().next().value as string);

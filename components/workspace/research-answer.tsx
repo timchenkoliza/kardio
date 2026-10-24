@@ -24,7 +24,7 @@ const ACCESS_LABEL: Record<NonNullable<StudyDigest["access"]>, string> = {
   unavailable: "текст недоступен",
 };
 
-function Study({ study, first }: { study: StudyDigest; first: boolean }) {
+function Study({ study, first, broader = false }: { study: StudyDigest; first: boolean; broader?: boolean }) {
   const primary = study.links[0];
   const meta = [study.design, study.journal, study.year, study.access ? ACCESS_LABEL[study.access] : null].filter(Boolean).join(" · ");
   return <li className="ws-ra-study" data-study={study.id}>
@@ -33,13 +33,15 @@ function Study({ study, first }: { study: StudyDigest; first: boolean }) {
       : primary ? <a href={primary.href} target="_blank" rel="noreferrer">{study.title}</a> : study.title}</h3>
     <p className="ws-ra-meta">{meta}</p>
     {study.verificationLabel && <p className="ws-ra-check"><span className={`ws-verify ws-verify-${study.verificationTone ?? "unknown"}`}>{study.verificationLabel}</span></p>}
-    {(study.effect || study.endpoint || study.population || study.followUp) && <dl className="ws-ra-facts">
+    {/* A work broader than the question shows no result figures on top: they are another study's numbers. */}
+    {broader && <p className="ws-ra-check"><span className="pt-relevance" data-relevance="partial">Шире вопроса</span></p>}
+    {!broader && (study.effect || study.endpoint || study.population || study.followUp) && <dl className="ws-ra-facts">
       {study.effect && <div data-fact="effect"><dt>Результат</dt><dd>{study.effect}</dd></div>}
       {study.endpoint && <div data-fact="endpoint"><dt>Конечная точка</dt><dd lang="en">{study.endpoint}</dd></div>}
       {study.population && <div data-fact="population"><dt>Участники</dt><dd lang="en">{study.population}</dd></div>}
       {study.followUp && <div data-fact="follow-up"><dt>Наблюдение</dt><dd lang="en">{study.followUp}</dd></div>}
     </dl>}
-    {study.conclusion && <details className="ws-ra-conclusion" open={first}>
+    {study.conclusion && <details className="ws-ra-conclusion" open={first && !broader}>
       <summary>Вывод авторов · на языке оригинала</summary>
       <blockquote lang="en">{study.conclusion.text}</blockquote>
     </details>}
@@ -52,17 +54,20 @@ function Study({ study, first }: { study: StudyDigest; first: boolean }) {
 }
 
 export function ResearchAnswerView({ run, results, mode = "brief" }: { run: AgentRun; results: AgentResultView[]; mode?: ResearchMode }) {
+  const specialty = run.specialty;
   const answer = buildResearchAnswer(run, results);
   // «Найти статьи» is a table of records: the table below is the result, not a second list here.
   const studies = mode === "articles" && answer.kind === "question" ? [] : answer.studies;
   return <section className="ws-research-answer" aria-labelledby="ws-ra-title" data-research-answer={answer.kind}>
     <h2 id="ws-ra-title" className="ws-section-title">{answer.kind === "study" ? "Разбор публикации" : "Что нашли"}</h2>
     <p className="ws-ra-headline">{nbsp(answer.headline)}</p>
+    {answer.sourcesLink && <p><Link className="ws-text-link" href={`/${specialty}/settings#sources`} data-sources-link="true">Источники в профиле</Link></p>}
     {((answer.conditions?.length ?? 0) > 0 || (answer.unmatched?.length ?? 0) > 0) && <p className="ws-muted pt-search-conditions" data-missing={answer.unmatched?.length || undefined}>{nbsp(`${answer.conditions?.length ? `Искали по: ${answer.conditions.join(" · ")}.` : "Тему вопроса не распознали."}${answer.unmatched?.length ? ` Не учтено в поиске: ${answer.unmatched.map(words => `«${words}»`).join(", ")}.${answer.totalFound === 0 ? "" : " Проверьте это по найденным работам."}` : ""}`)}</p>}
-    {studies.length > 0 && <ol className="ws-ra-studies">{studies.map((study, index) => <Study key={study.id} study={study} first={index === 0} />)}</ol>}
+    {studies.length > 0 && <ol className="ws-ra-studies" data-broader={answer.broader || undefined}>{studies.map((study, index) => <Study key={study.id} study={study} first={index === 0} broader={answer.broader} />)}</ol>}
     <div className="ws-ra-notes">
       {answer.trust.length > 0 && <section aria-labelledby="ws-ra-trust"><h3 id="ws-ra-trust">Что проверили</h3><ul>{answer.trust.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
-      {answer.kind !== "blocked" && <section aria-labelledby="ws-ra-practice"><h3 id="ws-ra-practice">Как читать результат</h3><p>{nbsp(answer.practice)}</p></section>}
+      {/* «Как читать результат» speaks about found works: with none, there is nothing to read. */}
+      {answer.kind !== "blocked" && answer.totalFound > 0 && <section aria-labelledby="ws-ra-practice"><h3 id="ws-ra-practice">Как читать результат</h3><p>{nbsp(answer.practice)}</p></section>}
       {answer.limitations.length > 0 && <section aria-labelledby="ws-ra-limits"><h3 id="ws-ra-limits">Ограничения</h3><ul>{answer.limitations.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
     </div>
   </section>;

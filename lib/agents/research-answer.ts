@@ -2,8 +2,9 @@ import { unmatchedWords } from "@/lib/portal/unmatched";
 import { countLabel, isBibliographicOnly, matchedSource, outsideApprovedList, verificationLabelFor } from "./format";
 import { conditionLabel } from "@/lib/portal/labels";
 import { type PubmedConcept, pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "./vocabulary";
-import { researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
+import { isFragment, researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
 import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "./study-identifiers";
+import { compileIntent } from "@/lib/mesh/intent";
 import type { AgentResultView, AgentRun, ResultAttributeValue, VerificationStatus } from "./types";
 
 /**
@@ -59,7 +60,34 @@ export interface ResearchAnswer {
   /** What the search used and the words of the question it did not («Не учтено в поиске: катетерная аблация»). */
   conditions?: string[];
   unmatched?: string[];
+  /** The state comes from the physician's source settings: the way out is the profile's «Источники». */
+  sourcesLink?: boolean;
+  /**
+   * None of the found works answers the question as asked (no asked drug in its title or conclusion, the named
+   * trial not found): the works are shown as «Шире вопроса», with no result figures on top.
+   */
+  broader?: boolean;
 }
+
+/** PubMed journals the topic search was limited to, as the run recorded them («журналы: BMJ, Lancet»). */
+export const SEARCHED_JOURNALS = /журналы поиска: ([^·]+)/u;
+
+/** Abbreviations that are not a trial name («HR», «ESC», «PMID»). */
+const NOT_A_TRIAL = /^(?:HR|OR|RR|CI|RCT|ESC|AHA|ACC|ADA|ASN|NEJM|JAMA|BMJ|PMID|DOI|ХСН|ФП|ИБС|ОКС|ЧКВ|АКШ|ХБП|HFPEF|HFREF|HFMREF|SGLT2|GLP-1|LDL|PCSK9|NOAC|DOAC|TAVI|PCI|CABG|MRI|CT|ECG|COVID-19)$/iu;
+
+/**
+ * The trial a question names by its acronym («DAPA-HF», «EMPEROR-Preserved», «PARADIGM-HF»): a hyphenated Latin
+ * name with capitals, or an all-capitals word of four letters or more next to «исследование» / «trial».
+ */
+export function trialNameIn(question: string): string | null {
+  const hyphenated = question.match(/(?<![\p{L}\p{N}])[A-Z][A-Z0-9]{1,}(?:-[A-Za-z0-9]+)+(?![\p{L}\p{N}])/u)?.[0];
+  if (hyphenated && !NOT_A_TRIAL.test(hyphenated)) return hyphenated;
+  if (!/исследовани|trial|РКИ/iu.test(question)) return null;
+  const capitals = [...question.matchAll(/(?<![\p{L}\p{N}])[A-Z]{4,}[0-9]*(?![\p{L}\p{N}])/gu)].map(match => match[0]).find(word => !NOT_A_TRIAL.test(word));
+  return capitals ?? null;
+}
+
+const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/gu, "");
 
 const DESIGN_RU: ReadonlyArray<[RegExp, string]> = [
   [/^meta-analysis$/iu, "метаанализ"],
@@ -139,7 +167,9 @@ function linksFor(result: AgentResultView): StudyLink[] {
 export function studyDigest(result: AgentResultView): StudyDigest {
   const normalized = researchStudyNormalizationFromAttributes(result.attributes);
   const access = text(result.attributes["evidenceText.access"]);
-  const conclusionText = text(result.attributes["authorsConclusion.text"]);
+  // A value saved as a piece of a sentence («) by 17%…», «94) to a similar extent») is shown as an empty field.
+  const whole = (value: string | null | undefined) => value && !isFragment(value) ? value : null;
+  const conclusionText = whole(text(result.attributes["authorsConclusion.text"]));
   const internal = result.actions.find(action => action.kind === "open_internal" && action.href)?.href ?? null;
   return {
     id: result.id,
@@ -150,10 +180,10 @@ export function studyDigest(result: AgentResultView): StudyDigest {
     access: access === "full_text" || access === "abstract" || access === "unavailable" ? access : null,
     effect: effectLine(normalized),
     effectQuote: normalized?.fields.effectEstimate?.supportText ?? null,
-    endpoint: normalized?.fields.endpoint?.value ?? null,
+    endpoint: whole(normalized?.fields.endpoint?.value),
     population: populationLine(normalized),
     comparison: comparisonLine(normalized),
-    followUp: normalized?.fields.followUp?.value ?? null,
+    followUp: whole(normalized?.fields.followUp?.value),
     conclusion: conclusionText ? { text: conclusionText, label: text(result.attributes["authorsConclusion.label"]) ?? "Вывод авторов" } : null,
     links: linksFor(result),
     verification: weakest(result.evidence.map(item => item.verificationStatus)),
@@ -323,12 +353,15 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     citationOnly.length && quoted.length ? "Это сверка ссылок и текста, а не оценка качества исследования." : citationOnly.length ? "Это сверка ссылок, а не оценка качества исследования." : quoted.length ? "Это сверка текста с источником, а не оценка качества исследования." : null,
   ].filter((value): value is string => Boolean(value));
 
+  // Journals set to «Не использовать»: what was withheld, or that a named publication comes from one.
+  const journalNote = !pubmedDown ? pubmedUse?.note?.split("; ").find(part => /исключённых в ваших источниках|журнал исключён в вашем профиле/u.test(part)) ?? null : null;
   const limitations = [
     pubmedDown ? `PubMed: ${(pubmedUse?.note ?? "недоступен во время запуска").replace(/^PubMed\s+/u, "")}.` : null,
+    journalNote ? `${journalNote[0].toLocaleUpperCase("ru-RU")}${journalNote.slice(1)}.` : null,
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
     digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
-    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами${outsideList ? ", и журналами источников из вашего профиля (приоритет в настройках — они помечены «журнал вне списка врачей»)" : ""}, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
+    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами${outsideList ? ", и журналами источников с «Приоритетом» в профиле — у новых профилей он стоит по умолчанию (они помечены «журнал не из списка врачей-экспертов»)" : ""}, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
     read.length ? "Выводы авторов приводятся на языке оригинала, перевода нет." : null,
   ].filter((value): value is string => Boolean(value));
 
@@ -336,11 +369,12 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     // The note says why: excluded in the physician's sources, switched off, or no answer from NCBI.
     const note = pubmedUse?.note ?? "";
     const excluded = /исключ/u.test(note);
+    // The review's own filters cannot turn PubMed back on: only the profile can, and the link goes there.
     const headline = excluded
-      ? "PubMed исключён в вашем профиле, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
+      ? `PubMed исключён в вашем профиле, поэтому разбор по PubMed не выполнялся${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Включите его в источниках профиля.`
       : `PubMed не ответил${note ? ` (${note.replace(/\.$/u, "")})` : ""}, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`;
     // The catalog was still searched by the question's topics: say by what.
-    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0, ...(named ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
+    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0, ...(excluded ? { sourcesLink: true } : {}), ...(named ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
   if (named) {
     const asked = describeStudyIdentifiers(identifiers);
@@ -360,8 +394,24 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     // With nothing found the physician still sees what was searched and what was not («ХСН», not «СНнФВ»).
     return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0, ...(noTopic ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
+  // The topic search is limited to a list of journals: the first thing read names them.
+  const journals = (run.plan ?? []).map(step => step.detail?.match(SEARCHED_JOURNALS)?.[1]?.trim()).find(Boolean) ?? null;
+  const journalLine = journals && pubmedCount ? ` Искали в журналах: ${journals}.` : "";
+  // The named trial is not among the found titles: say so first, with the way to get it (PMID or DOI search any journal).
+  const trial = trialNameIn(question);
+  if (trial && !digests.some(study => squash(study.title).includes(squash(trial)))) {
+    const headline = `Основную публикацию «${trial}» не нашли: поиск по теме идёт только в журналах из списка${journals ? ` (${journals})` : ""}. Вставьте PMID или DOI — по ним ищем в любом журнале. Ниже — работы шире вопроса.`;
+    return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched, broader: true };
+  }
+  // A drug the question names («апиксабан», «варфарин») that no found work names in its title or conclusion: no direct answer.
+  const askedDrugs = compileIntent(question, run.specialty).entities.drugs;
+  const namesDrugs = (study: StudyDigest) => { const words = `${study.title} ${study.conclusion?.text ?? ""} ${study.effectQuote ?? ""}`.toLowerCase(); return askedDrugs.every(drug => words.includes(drug.inn.toLowerCase()) || words.includes(drug.ru.toLowerCase())); };
+  if (askedDrugs.length && pubmedCount && !digests.some(namesDrugs)) {
+    const headline = `Прямого ответа не нашлось: ни одна найденная работа не называет ${askedDrugs.map(drug => `«${drug.ru}»`).join(" и ")} в названии или выводе.${journalLine} Ниже — работы шире вопроса, их цифры к вопросу не относятся.`;
+    return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched, broader: true };
+  }
   const headline = [
-    `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
+    `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.${journalLine}`,
     read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? (/исключ/u.test(pubmedUse?.note ?? "") ? "PubMed исключён в вашем профиле: ниже только материалы каталога специальности." : "PubMed не ответил: ниже только материалы каталога специальности.") : (!organic.some(result => result.source.connectorId === "pubmed") ? "Ниже только материалы каталога специальности." : organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
   ].join(" ");
   return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched };

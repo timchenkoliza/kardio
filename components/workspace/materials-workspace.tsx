@@ -50,6 +50,7 @@ function MaterialItem({ material, specialty, collections, onCommand }: { materia
       {material.parseNote && <span className={material.kind === "link" ? "ws-material-meta" : "ws-material-note"}>{material.parseNote}</span>}
       {material.redactions.length > 0 && <span className="ws-material-note">Замаскированы персональные данные: {material.redactions.length}</span>}
       {material.note && material.kind !== "note" && <p className="ws-material-own-note">{material.note}</p>}
+      {material.origin && <p className="ws-material-meta" data-origin-run={material.origin.runId}>Из вопроса <Link className="ws-text-link" href={`/${specialty}/ask?run=${encodeURIComponent(material.origin.runId)}`}>«{material.origin.question}»</Link></p>}
       {material.url && <a className="pt-source-link" href={material.url} target="_blank" rel="noreferrer">Открыть первоисточник<ExternalLink size={13} aria-hidden="true" /></a>}
     </div>
     <div className="ws-material-actions">

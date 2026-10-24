@@ -37,6 +37,18 @@ export function deidentify(text: string): DeidentifiedText {
 }
 
 /**
+ * A run read back from storage shows its question masked by today's rules: a row saved before a rule existed
+ * («Иванов И.И., 1956 г.р.») never reaches «История», the home page or a result header as typed.
+ */
+export function maskStoredRun<T extends { input?: { text?: string | null; continuation?: { question?: string; followup?: string } | null } }>(run: T): T {
+  const input = run.input;
+  if (!input) return run;
+  const mask = (text: string) => deidentify(text).text;
+  const continuation = input.continuation ? { ...input.continuation, ...(input.continuation.question ? { question: mask(input.continuation.question) } : {}), ...(input.continuation.followup ? { followup: mask(input.continuation.followup) } : {}) } : input.continuation;
+  return { ...run, input: { ...input, ...(input.text ? { text: mask(input.text) } : {}), ...(input.continuation ? { continuation } : {}) } };
+}
+
+/**
  * RiskCheckService — mandatory cross-cutting gate on inputs and outputs.
  */
 export interface InputRiskDecision {

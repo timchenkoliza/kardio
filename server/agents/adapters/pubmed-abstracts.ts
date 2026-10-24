@@ -35,10 +35,18 @@ const CONCLUSION_LABELS: readonly RegExp[] = [
 const MAX_CONCLUSION_CHARS = 520;
 
 /** First sentences of the conclusion, cut on a sentence boundary. */
+/**
+ * Whole sentences: a point inside a number («HR 0.94», «P<0.001») does not end one. Matching sentences as
+ * «text up to the next point» started DELIVER's conclusion at «94) to a similar extent…».
+ */
+export function sentencesOf(text: string): string[] {
+  return text.match(/(?:[^.!?]|[.!?](?!\s|$))+[.!?]+(?=\s|$)\s*/gu) ?? [];
+}
+
 export function conciseConclusion(text: string, limit = MAX_CONCLUSION_CHARS): string {
   const clean = text.replace(/\s+/g, " ").trim();
   if (clean.length <= limit) return clean;
-  const sentences = clean.match(/[^.!?]+[.!?]+(?:\s|$)/g) ?? [clean];
+  const sentences = sentencesOf(clean).length ? sentencesOf(clean) : [clean];
   let out = "";
   for (const sentence of sentences) {
     if ((out + sentence).length > limit) break;
@@ -57,7 +65,7 @@ export function extractConclusion(sections: readonly PubmedDocumentSection[]): {
     if (labelled) return { text: conciseConclusion(labelled.text), label: labelled.label };
   }
   if (sections.length === 1) {
-    const sentences = sections[0].text.match(/[^.!?]+[.!?]+(?:\s|$)/g) ?? [];
+    const sentences = sentencesOf(sections[0].text);
     if (sentences.length >= 3) return { text: conciseConclusion(sentences.slice(-2).join("")), label: "Окончание реферата" };
   }
   return null;

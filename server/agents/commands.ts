@@ -15,7 +15,7 @@ import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
 import { cancelAction, confirmAction, prepareAction } from "./services/action-confirmation";
 import { enrichLink } from "./services/link-enrichment";
-import { materialFromLink, materialFromNote, materialFromResult, searchUserMaterials } from "./services/material";
+import { materialFromAnswer, materialFromLink, materialFromNote, materialFromResult, searchUserMaterials } from "./services/material";
 import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
 import { recordAgentEvent } from "./telemetry";
@@ -53,6 +53,9 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("setInterests"), specialty, topics: z.array(topic).max(16), trustedSources: z.array(sourceId).max(12), excludedSources: z.array(sourceId).max(12), runAgents: z.boolean().optional() }).strict(),
   // One topic added from a page (the home nudge): source preferences are never sent back from a page that may be stale.
   z.object({ action: z.literal("addTopic"), specialty, topic, runAgents: z.boolean().optional() }).strict(),
+  // The profile page sends only what the physician changed: a page opened earlier never writes back the rest (R1 A-2, B-8).
+  z.object({ action: z.literal("removeTopic"), specialty, topic }).strict(),
+  z.object({ action: z.literal("setSourceState"), specialty, source: sourceId, state: z.enum(["priority", "neutral", "excluded"]) }).strict(),
   z.object({ action: z.literal("configureAgent"), specialty, agentId, preference: preferencePatch, run: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("setAgentEnabled"), specialty, agentId, enabled: z.boolean() }).strict(),
   z.object({ action: z.literal("runAgent"), specialty, agentId, text: freeText.optional() }).strict(),
@@ -76,6 +79,8 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("resetSeen"), specialty }).strict(),
   z.object({ action: z.literal("recordVisit"), specialty }).strict(),
   z.object({ action: z.literal("saveResult"), specialty, resultId }).strict(),
+  // The whole answer: its question, «Коротко» and the links of its sources (R1 B-7).
+  z.object({ action: z.literal("saveAnswer"), specialty, runId: z.string().regex(/^run-[a-f0-9-]{36}$/) }).strict(),
   z.object({ action: z.literal("dismissResult"), specialty, resultId }).strict(),
   z.object({ action: z.literal("openResult"), specialty, resultId, evidence: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("addLink"), specialty, url: z.string().trim().url().max(2000).refine(value => /^https?:\/\//i.test(value), "HTTP(S) only"), title: z.string().trim().max(200).optional(), note: z.string().trim().max(4000).optional() }).strict(),
@@ -176,6 +181,28 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       const ran = command.runAgents ? (await catchUpAll(sessionId, specialtyId)) : [];
       return { ok: true, profileChanged: true, ran };
     }
+    case "removeTopic": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      if (!profile.interests.topics.includes(command.topic)) return { ok: true, profileChanged: false };
+      // Only the topic list changes; trusted and excluded sources stay exactly as stored.
+      profile.interests = { ...profile.interests, topics: profile.interests.topics.filter(topicId => topicId !== command.topic) };
+      profile.topicsChangedAt = now;
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: profile.interests.topics.length });
+      return { ok: true, profileChanged: true };
+    }
+    case "setSourceState": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      const { source, state } = command;
+      // Only this source's state changes; the topics and every other source stay as stored.
+      const trustedSources = state === "priority" ? [...new Set([...profile.interests.trustedSources, source])] : profile.interests.trustedSources.filter(id => id !== source);
+      const excludedSources = state === "excluded" ? [...new Set([...profile.interests.excludedSources, source])] : profile.interests.excludedSources.filter(id => id !== source);
+      profile.interests = { ...profile.interests, trustedSources, excludedSources };
+      profile.configuredAt ??= now;
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: profile.interests.topics.length });
+      return { ok: true, profileChanged: true };
+    }
     case "setInterests": {
       const profile = await loadProfile(sessionId, specialtyId);
       profile.interests = {
@@ -270,11 +297,24 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
     case "saveResult": {
       const result = await resultFor(sessionId, specialtyId, command.resultId);
       if (result.savedMaterialId) return { ok: true, profileChanged: false };
-      const material = materialFromResult(result, now);
+      // The question the result answered stays with the material: «Мои материалы» leads back to it.
+      const run = result.runId ? await store.getRun(sessionId, result.runId) : null;
+      const question = run?.trigger === "composer" ? run.input.continuation?.followup ?? run.input.text ?? null : null;
+      const material = materialFromResult(result, now, run && question ? { runId: run.id, question: question.slice(0, 200) } : null);
       await store.saveMaterial(sessionId, material);
       await store.upsertResults(sessionId, [{ ...result, savedMaterialId: material.id }]);
       await recordAgentEvent(sessionId, "material_saved", { specialty: specialtyId, agentId: result.agentId, resultId: result.id });
       await recordPortalEvent(sessionId, "result_saved", { specialty: specialtyId, resultId: result.id, resultKind: result.kind });
+      return { ok: true, profileChanged: false, material };
+    }
+    case "saveAnswer": {
+      const run = await store.getRun(sessionId, command.runId);
+      if (!run || run.specialty !== specialtyId || !run.experience) throw new HttpError(404, "Ответ не найден.");
+      const existing = (await store.listMaterials(sessionId, specialtyId)).find(material => material.origin?.runId === run.id && material.format === "result");
+      if (existing) return { ok: true, profileChanged: false, material: existing };
+      const material = materialFromAnswer(run, now);
+      await store.saveMaterial(sessionId, material);
+      await recordAgentEvent(sessionId, "material_saved", { specialty: specialtyId, agentId: run.agentId });
       return { ok: true, profileChanged: false, material };
     }
     case "dismissResult": {

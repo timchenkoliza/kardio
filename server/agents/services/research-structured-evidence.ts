@@ -34,8 +34,10 @@ const FIELD_RULES: Record<ResearchEvidenceFieldId, { sectionHints: RegExp[]; sen
 };
 
 function splitSentences(value: string): string[] {
+  // A point followed by a digit is a decimal point: «HR 0. 79» in a reflowed abstract does not end a sentence.
   return value
     .replace(/\s+/gu, " ")
+    .replace(/(\d)\.\s+(?=\d)/gu, "$1.")
     .split(/(?<=[.!?])\s+(?=[A-ZА-Я0-9])/u)
     .map(sentence => sentence.trim())
     .filter(sentence => sentence.length >= 30 && sentence.length <= 900);

@@ -417,6 +417,8 @@ export interface Material {
   format?: MaterialFormat | null;
   typeLabel?: string | null;
   summary?: string | null;
+  /** The question a saved result came from: the way back to it from «Мои материалы». */
+  origin?: { runId: string; question: string } | null;
 }
 
 export interface MaterialCollection {

@@ -13,7 +13,7 @@ import { JobIcon } from "@/components/portal/job-icon";
 import { ExperienceView } from "@/components/experience/experience-view";
 import { JobResult } from "@/components/portal/job-results";
 import { PortalInput } from "@/components/portal/portal-input";
-import { FollowupJobButton } from "@/components/portal/result-actions";
+import { FollowupJobButton, SaveAnswerButton } from "@/components/portal/result-actions";
 import { RetryRun, RunProgress } from "@/components/portal/run-progress";
 import { PendingActions } from "@/components/workspace/pending-actions";
 import { RunTrace } from "@/components/workspace/run-trace";
@@ -133,7 +133,9 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     {/* Back to where the search was started: the material it came from, else the home page. */}
     {run.input.origin
       ? <Link className="ws-back" href={run.input.origin.href} data-origin="material"><ArrowLeft size={15} aria-hidden="true" />{`К материалу «${run.input.origin.label.length > 60 ? `${run.input.origin.label.slice(0, 57)}…` : run.input.origin.label}»`}</Link>
-      : <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>}
+      : first(query.from) === "history"
+        ? <Link className="ws-back" href={`/${specialty}/history`} data-back="history"><ArrowLeft size={15} aria-hidden="true" />История</Link>
+        : <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>}
     <header className="pt-ask-head">
       <span className="pt-shortcut-icon"><JobIcon icon={JOBS[job].icon} size={20} /></span>
       <div>
@@ -149,6 +151,8 @@ export default async function AskPage({ params, searchParams }: { params: Promis
           </>
           : run.input.text && <p className="pt-question">Запрос: «{run.input.text}»</p>}
         {/* The depth was not chosen before the question, so it is not shown as a choice; the research scenario names what it gets. */}
+        {/* The whole answer can be kept, not only its sources (R1 B-7). */}
+        {finished && run.experience && run.status !== "blocked" && <p className="pt-ask-save"><SaveAnswerButton runId={run.id} /></p>}
         <p className="ws-muted">{adapter.name} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{run.input.answerMode && job === "research" && <> · <span className="pt-mode-chip" data-answer-mode={run.input.answerMode}>{`Что получить: ${researchModeLabel(researchOptionsForAnswerMode(run.input.answerMode).mode)}`}</span></>}</p>
       </div>
     </header>
@@ -157,6 +161,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     {outcome && outcome.kind !== "found" && outcome.kind !== "blocked" && phase !== "expired" && <div className="pt-outcome" role="status" data-outcome={outcome.kind}>
       <span className="ws-run-status" data-tone={outcome.tone}>{outcome.label}</span>
       {outcome.note && <p>{outcome.note}</p>}
+      {outcome.sourcesLink && <Link className="ws-text-link" href={`/${specialty}/settings#sources`} data-sources-link="true">Источники в профиле</Link>}
       {(outcome.kind === "partial" || outcome.kind === "source_error") && outcome.retryable && run.input.text && (run.input.continuation
         // A repeated follow-up is typed again under its previous step, so it stays a continuation (never the joined text).
         ? <RetryRun text={run.input.continuation.followup} job={retryJob} contextRunId={run.input.continuation.runId} />
@@ -178,6 +183,8 @@ export default async function AskPage({ params, searchParams }: { params: Promis
       {phase === "failed" && run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
     </div>
 
+    {/* «Что нового» asked as a question and the scheduled check are one task: one click to its settings (R1 B-10). */}
+    {finished && job === "updates" && <p className="ws-muted pt-updates-link" data-updates-link="true">{"Та же проверка наполняет «Для вас» по вашим темам. "}<Link className="ws-text-link" href={`/${specialty}/agents/whats-new`}>Частота и темы — на странице «Что нового»</Link></p>}
     {finished && actions.length ? <PendingActions actions={actions} /> : null}
 
     {finished && phase !== "expired" && run.plan.length

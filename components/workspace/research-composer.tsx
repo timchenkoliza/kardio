@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, SlidersHorizontal } from "lucide-react";
 import type { ResearchJob } from "@/lib/agents/research-jobs";
 import { normalizeResearchDomains } from "@/lib/agents/research-options";
@@ -30,10 +31,21 @@ export function ResearchComposer({
   specialty,
   initialText = "",
   initialOptions,
+  modeFromProfile = false,
+  focusFilters = false,
+  pubmedExcluded = false,
+  excludedJournals = [],
 }: {
   specialty: SpecialtyId;
   initialText?: string;
   initialOptions: PhysicianResearchViewOptions;
+  /** The selected «Что получить» is the profile's default (no mode in the link): said under the switch. */
+  modeFromProfile?: boolean;
+  /** Opened by «Повторить с другими источниками»: the filters are what the physician came to change. */
+  focusFilters?: boolean;
+  /** Profile settings the review's own filters cannot override, named before the run. */
+  pubmedExcluded?: boolean;
+  excludedJournals?: readonly string[];
 }) {
   const router = useRouter();
   const { notify, pending } = useWorkspace();
@@ -44,6 +56,8 @@ export function ResearchComposer({
   const [includeDomainsText, setIncludeDomainsText] = useState(initialOptions.includeDomains.join(", "));
   const [excludeDomainsText, setExcludeDomainsText] = useState(initialOptions.excludeDomains.join(", "));
   const [busy, setBusy] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (focusFilters) filtersRef.current?.scrollIntoView({ block: "center" }); }, [focusFilters]);
 
   const options = useMemo<PhysicianResearchViewOptions>(() => {
     const excludeDomains = normalizeResearchDomains([excludeDomainsText]);
@@ -75,13 +89,15 @@ export function ResearchComposer({
       const result = await response.json() as { runId?: string; notices?: string[]; job?: ResearchJob };
       if (background) {
         if (!result.job) return;
-        if (result.job.status === "queued") notify("Исследование запущено в фоне. Можно перейти в другой раздел.");
+        if (result.job.status === "queued") notify("Исследование запущено в фоне. Можно перейти в другой раздел — разбор будет в «Истории».");
+        setText("");
         router.push(`/${specialty}/agents/research?job=${encodeURIComponent(result.job.id)}&${researchViewQuery(options)}`);
         return;
       }
       if (!result.runId) return;
       if (result.notices?.length) notify(result.notices[0]);
-      router.push(`/${specialty}/agents/research?run=${encodeURIComponent(result.runId)}&${researchViewQuery(options)}`);
+      // One address per review: the result page, where it is refined and saved, as from «История».
+      router.push(`/${specialty}/ask?run=${encodeURIComponent(result.runId)}`);
     } catch {
       notify("Нет связи с сервером. Проверьте подключение.", "error");
     } finally {
@@ -89,27 +105,19 @@ export function ResearchComposer({
     }
   }
 
+  // Enter sends, as on the home page; Shift+Enter starts a new line.
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void submit();
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      void submit();
+    }
   }
 
-  return <form className="ws-research-composer" onSubmit={event => void submit(event)} aria-label="Разбор по исследованиям">
-    <fieldset className="ws-research-modes">
-      <legend>Что получить</legend>
-      <div className="ws-research-mode-grid">
-        {RESEARCH_MODE_OPTIONS.map(option => <button
-          type="button"
-          key={option.id}
-          className={mode === option.id ? "ws-research-mode is-selected" : "ws-research-mode"}
-          aria-pressed={mode === option.id}
-          onClick={() => setMode(option.id)}
-        >
-          <strong>{option.label}</strong>
-          <span>{option.description}</span>
-        </button>)}
-      </div>
-    </fieldset>
+  const selected = RESEARCH_MODE_OPTIONS.find(option => option.id === mode) ?? RESEARCH_MODE_OPTIONS[0];
+  const profileNote = [pubmedExcluded ? "PubMed не используется" : null, excludedJournals.length ? `${excludedJournals.join(", ")} не используются` : null].filter(Boolean).join(" · ");
 
+  // The question comes first; what to get and where to search follow it, on one line each.
+  return <form className="ws-research-composer" onSubmit={event => void submit(event)} aria-label="Разбор по исследованиям">
     <div className="ws-composer is-compact">
       <div className="ws-composer-box">
         <label className="sr-only" htmlFor="research-composer-input">Что хотите исследовать?</label>
@@ -120,7 +128,7 @@ export function ResearchComposer({
           onKeyDown={onKeyDown}
           rows={3}
           maxLength={1200}
-          placeholder="Например: данные о ПОАК при ФП и промежуточном риске инсульта"
+          placeholder="Например: данные о ПОАК при ФП и промежуточном риске инсульта — или PMID / DOI статьи"
         />
         <div className="ws-composer-bar ws-research-submit-row">
           <button type="submit" className="ws-composer-run" disabled={busy || pending || text.trim().length < 2} aria-label={mode === "academic" ? "Запустить фоновое исследование" : "Начать исследование"}>
@@ -130,7 +138,23 @@ export function ResearchComposer({
       </div>
     </div>
 
-    <div className="ws-research-filters" aria-label="Фильтры поиска">
+    <fieldset className="ws-research-modes">
+      <legend>Что получить</legend>
+      <div className="ws-research-mode-row" role="group">
+        {RESEARCH_MODE_OPTIONS.map(option => <button
+          type="button"
+          key={option.id}
+          className={mode === option.id ? "ws-research-mode is-selected" : "ws-research-mode"}
+          aria-pressed={mode === option.id}
+          onClick={() => setMode(option.id)}
+        >{option.label}</button>)}
+      </div>
+      <p className="ws-muted ws-research-mode-note">{selected.description}{modeFromProfile && mode === initialOptions.mode ? " · по умолчанию из профиля" : ""}</p>
+    </fieldset>
+
+    {profileNote && <p className="ws-muted ws-research-profile-note" data-profile-excluded="true">Из профиля: {profileNote} · <Link className="ws-text-link" href={`/${specialty}/settings#sources`}>Изменить</Link></p>}
+
+    <div className="ws-research-filters" aria-label="Фильтры поиска" ref={filtersRef}>
       <SlidersHorizontal size={16} aria-hidden="true" />
       <label>Источники
         <select value={sourceScope} onChange={event => setSourceScope(event.target.value as PhysicianResearchSourceScope)}>

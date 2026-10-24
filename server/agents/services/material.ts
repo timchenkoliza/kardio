@@ -1,6 +1,6 @@
 import { inflateRawSync } from "node:zlib";
 import { contentTokens, stableId, stem, truncate } from "@/lib/agents/text";
-import type { AgentResult, Material, MaterialParseStatus, Provenance } from "@/lib/agents/types";
+import type { MaterialFormat, AgentResult, AgentRun, Material, MaterialParseStatus, Provenance } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { fallbackTitle, knownSite, type LinkEnrichment } from "./link-enrichment";
 import { checkUploadRisk, deidentify } from "./risk";
@@ -214,14 +214,30 @@ export function materialFromNote(args: { specialty: SpecialtyId; title: string; 
 }
 
 /** saveMaterial(): an agent output saved by the user keeps its original provenance. */
-export function materialFromResult(result: AgentResult, now: string): Material {
+/**
+ * What a saved result is: a publication, a guideline or an instruction is filed as that format and as a public
+ * source; only a compiled answer is «Сохранённый ответ».
+ */
+export function resultFormat(result: Pick<AgentResult, "category" | "source" | "attributes">): MaterialFormat {
+  const types = String(result.attributes.publicationTypes ?? "").toLowerCase();
+  const connector = result.source.connectorId;
+  if (connector === "openfda-labels" || connector === "medi" || result.category === "drug_label" || result.category === "drug_instruction") return "drug_label";
+  if (result.category === "guideline" || /guideline/u.test(types)) return "guideline";
+  if (/review|meta-analysis/u.test(types) || result.category === "review") return "review";
+  if (/trial|study/u.test(types)) return "study";
+  if (connector === "pubmed") return "article";
+  return "result";
+}
+
+export function materialFromResult(result: AgentResult, now: string, origin: { runId: string; question: string } | null = null): Material {
+  const format = resultFormat(result);
   const evidenceText = result.evidence.map(item => `${item.claim}${item.sourceUrl ? ` (${item.sourceUrl})` : ""}`).join("\n");
   const text = [result.title, result.summary, evidenceText].filter(Boolean).join("\n");
   return {
     id: newMaterialId(),
     specialty: result.specialty,
     kind: "agent_result",
-    ownership: result.partner ? "PARTNER_SOURCE" : "GENERATED",
+    ownership: result.partner ? "PARTNER_SOURCE" : format === "result" ? "GENERATED" : "PUBLIC_SOURCE",
     title: result.title.slice(0, 200),
     url: result.source.sourceUrl,
     note: null,
@@ -238,7 +254,47 @@ export function materialFromResult(result: AgentResult, now: string): Material {
     provenance: result.source,
     collectionIds: [],
     createdAt: now,
+    format,
+    ...(origin ? { origin } : {}),
+  };
+}
+
+/**
+ * A whole answer kept as one material: the question, the points of «Коротко» with their sources and the links.
+ * Only what the answer showed, verbatim; nothing is summarised again.
+ */
+export function materialFromAnswer(run: AgentRun, now: string): Material {
+  const question = (run.input.continuation?.followup ?? run.input.text ?? "").trim();
+  const experience = run.experience!;
+  const takeaway = experience.manifest.modules.find(entry => entry.family === "key_takeaway");
+  const claims = (takeaway?.claimIds ?? []).map(id => experience.graph.claims.find(claim => claim.id === id)).filter((claim): claim is NonNullable<typeof claim> => Boolean(claim));
+  const documentOf = (documentId: string) => experience.graph.documents.find(document => document.id === documentId);
+  const points = claims.map(claim => { const document = documentOf(claim.documentId); return `— ${claim.statement}${document ? ` (${document.title}${document.url ? `, ${document.url}` : ""})` : ""}`; });
+  const sources = [...new Set(experience.graph.documents.map(document => document.url).filter(Boolean))].slice(0, 20);
+  const text = [`Вопрос: ${question}`, points.length ? `Коротко:\n${points.join("\n")}` : "Прямого ответа не нашлось.", experience.graph.gaps.length ? `Чего не хватает: ${experience.graph.gaps.join("; ")}` : null, sources.length ? `Источники:\n${sources.join("\n")}` : null].filter(Boolean).join("\n\n");
+  return {
+    id: newMaterialId(),
+    specialty: run.specialty,
+    kind: "agent_result",
+    ownership: "GENERATED",
+    title: `Ответ: ${question}`.slice(0, 200),
+    url: null,
+    note: null,
+    fileName: null,
+    mimeType: null,
+    sizeBytes: null,
+    text,
+    textChars: text.length,
+    parseStatus: "indexed",
+    parseNote: null,
+    redactions: [],
+    sourceResultId: null,
+    sourceAgentId: run.agentId,
+    provenance: null,
+    collectionIds: [],
+    createdAt: now,
     format: "result",
+    origin: { runId: run.id, question: question.slice(0, 200) },
   };
 }
 

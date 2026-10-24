@@ -76,7 +76,8 @@ describe("«Не использовать» removes the source from the plan and
 
   it("a required need whose only source is excluded is reported as the physician's exclusion, not a missing integration", async () => {
     const excluded = await plan("Что нового в лечении фибрилляции предсердий?", ["pubmed"], { job: "answer" });
-    expect(excluded.unmet.find(item => item.requirement === "current_research")?.reason).toBe(`источник ${EXCLUDED_BY_PHYSICIAN}`);
+    // R1 A-8: the excluded source is named, so the physician knows which setting to change.
+    expect(excluded.unmet.find(item => item.requirement === "current_research")?.reason).toBe(`PubMed — ${EXCLUDED_BY_PHYSICIAN}`);
   });
 
   it("the run trace names the excluded source instead of leaving it out", async () => {

@@ -343,3 +343,11 @@
 
 /* «Интересно / Не то» on «Для вас» cards. */
 .pt-verdict { display: inline-flex; flex-wrap: wrap; gap: var(--ws-space-4); }
+
+/* «Коротко»: the source link and «Сохранить» of a point, on one line (R1 B-7). */
+.pt-takeaway-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ws-space-8) var(--ws-space-12);
+}

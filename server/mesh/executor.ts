@@ -382,7 +382,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   // The last step says what actually happened: an answer, nothing found, sources that did not answer, or no search at all.
   const searched = graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
   const broken = graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"));
-  const excludedSources = [...new Set(plan.rejected.filter(item => /исключ[её]н в вашем профиле/u.test(item.reason)).map(item => registry[item.sourceId]?.name ?? item.sourceId))];
+  // The planner's own record of what the physician excluded, not a match on its wording (the wording changed in PR #27).
+  const excludedSources = [...new Set(excludedByPhysician(plan).map(sourceId => registry[sourceId]?.name ?? sourceId))];
   const final: PlanStep = graph.documents.length
     ? { id: "", label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] }
     : !intent.vague && !searched && !broken && excludedSources.length

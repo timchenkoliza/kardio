@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { actionRequests, agentProfiles, agentResults, agentRuns, agentSchedules, materialCollections, userMaterials } from "@/db/agent-schema";
 import { nextCheckAt } from "@/lib/agents/schedule";
+import { maskStoredRun } from "@/server/agents/services/risk";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, MaterialCollection, UserProfile } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { LIMITS, type WorkspaceStore } from "./types";
@@ -57,12 +58,12 @@ export class PostgresWorkspaceStore implements WorkspaceStore {
       .where(and(eq(agentRuns.sessionId, sessionId), eq(agentRuns.specialty, specialty), agentId ? eq(agentRuns.agentId, agentId) : undefined))
       .orderBy(desc(agentRuns.startedAt))
       .limit(limit);
-    return rows.map(row => row.payload);
+    return rows.map(row => maskStoredRun(row.payload));
   }
 
   async getRun(sessionId: string, id: string) {
     const [row] = await db.select({ payload: agentRuns.payload }).from(agentRuns).where(and(eq(agentRuns.sessionId, sessionId), eq(agentRuns.id, id)));
-    return row?.payload ?? null;
+    return row?.payload ? maskStoredRun(row.payload) : null;
   }
 
   async findRunSession(id: string) {
