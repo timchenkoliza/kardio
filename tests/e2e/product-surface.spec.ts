@@ -128,7 +128,8 @@ test("drug result: key information and label sections in Russian, the label text
   const label = page.locator(".pt-drug").first();
   if (await label.count()) {
     await expect(label.locator(".pt-drug-key")).toContainText("Ключевая информация");
-    const headings = await label.locator(".pt-drug-section h3").allInnerTexts();
+    // textContent, not innerText: sections not asked about sit in a closed «Другие разделы» (fix/ux-recovery), where innerText is "".
+    const headings = (await label.locator(".pt-drug-section h3").allTextContents()).map(text => text.trim());
     for (const heading of headings) expect(["Показания", "Дозирование", "Противопоказания", "Безопасность", "Взаимодействия", "Особые группы", "Другие разделы"]).toContain(heading);
     await expect(label.getByRole("link", { name: "Проверить в ГРЛС" })).toHaveAttribute("href", "https://grls.rosminzdrav.ru/");
   } else {
