@@ -1,7 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { AGENT_DEFINITIONS, AGENT_ORDER } from "./definitions";
 import { DEFAULT_ANSWER_MODE, isAnswerMode } from "@/lib/portal/answer-mode";
-import { WATCHLIST_LIMIT, type AgentId, type AgentPreference, type AgentResult, type AgentResultView, type AgentSubscription, type ProfileIdentity, type UserProfile, type WatchedDrug } from "./types";
+import { NMO_ENTRY_LIMIT, WATCHLIST_LIMIT, type AgentId, type NmoEntry, type NmoPlan, type AgentPreference, type AgentResult, type AgentResultView, type AgentSubscription, type ProfileIdentity, type UserProfile, type WatchedDrug } from "./types";
 import { FREQUENCY_OPTIONS } from "./vocabulary";
 
 export function defaultSubscription(agentId: AgentId, now: string): AgentSubscription {
@@ -31,6 +31,7 @@ export function defaultProfile(specialty: SpecialtyId, now = new Date().toISOStr
     firstSeenAt: null,
     firstValueAt: null,
     watchlist: [],
+    nmoPlan: { target: null, entries: [] },
     backgroundPaused: false,
     updatedAt: now,
   };
@@ -50,6 +51,20 @@ export function normalizeWatchlist(value: unknown): WatchedDrug[] {
     if (out.length >= WATCHLIST_LIMIT) break;
   }
   return out;
+}
+
+/** A stored НМО plan, repaired: valid dates and credits only, newest first, capped. */
+export function normalizeNmoPlan(value: unknown): NmoPlan {
+  const raw = value && typeof value === "object" ? value as Partial<NmoPlan> : {};
+  const target = typeof raw.target === "number" && Number.isFinite(raw.target) && raw.target > 0 && raw.target <= 1000 ? Math.round(raw.target) : null;
+  const entries = (Array.isArray(raw.entries) ? raw.entries : []).flatMap(item => {
+    if (!item || typeof item !== "object") return [];
+    const entry = item as Partial<NmoEntry>;
+    if (typeof entry.id !== "string" || typeof entry.title !== "string" || !entry.title.trim() || typeof entry.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(entry.date)) return [];
+    const credits = typeof entry.credits === "number" && Number.isFinite(entry.credits) && entry.credits >= 0 && entry.credits <= 500 ? Math.round(entry.credits * 10) / 10 : null;
+    return [{ id: entry.id.slice(0, 64), title: entry.title.trim().slice(0, 200), date: entry.date, credits, kind: entry.kind === "event" || entry.kind === "course" ? entry.kind : "other", from: entry.from === "event" ? "event" : "manual", url: typeof entry.url === "string" && /^https?:\/\//iu.test(entry.url) ? entry.url.slice(0, 500) : null, addedAt: typeof entry.addedAt === "string" ? entry.addedAt : new Date(0).toISOString() } satisfies NmoEntry];
+  });
+  return { target, entries: entries.sort((a, b) => b.date.localeCompare(a.date)).slice(0, NMO_ENTRY_LIMIT) };
 }
 
 /** Repair a persisted profile against the current agent catalog (forward compatible). */
@@ -86,6 +101,7 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     firstSeenAt: typeof value.firstSeenAt === "string" ? value.firstSeenAt : null,
     firstValueAt: typeof value.firstValueAt === "string" ? value.firstValueAt : null,
     watchlist: normalizeWatchlist(value.watchlist),
+    nmoPlan: normalizeNmoPlan(value.nmoPlan),
     backgroundPaused: value.backgroundPaused === true,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
   };

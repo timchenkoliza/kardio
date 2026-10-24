@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bookmark, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
+import { Bookmark, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, GraduationCap, Handshake, ShieldCheck, Ticket } from "lucide-react";
 import { SavedLink } from "@/components/portal/result-actions";
 import { DRUG_CHANGE_LABEL, formatDateRu, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
@@ -88,6 +88,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
   const [saved, setSaved] = useState(Boolean(result.savedMaterialId));
   const [done, setDone] = useState(result.attributes.done === true);
   const [hidden, setHidden] = useState(false);
+  const [inPlan, setInPlan] = useState(false);
   if (hidden) return null;
 
   const verification = result.evidence.length ? weakestVerification(result.evidence.map(item => item.verificationStatus)) : null;
@@ -110,6 +111,13 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
     if (evidence && result.kind === "event") void command({ action: "track", event: "event_opened", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
   }
 
+  // An event goes into the personal НМО plan without credits: the product does not know them (E2).
+  async function addToPlan() {
+    if (!startDate) return;
+    const url = result.actions.find(action => action.kind === "open_source" && action.href)?.href ?? null;
+    const response = await command({ action: "nmoAdd", title: result.title.slice(0, 200), date: startDate.slice(0, 10), credits: null, kind: "event", from: "event", url }, { refresh: false });
+    if (response) setInPlan(true);
+  }
   async function prepare(kind: "calendar_write" | "registration", url?: string | null) {
     if (kind === "registration") void command({ action: "track", event: "event_registration_clicked", resultId: result.id, resultKind: result.kind }, { quiet: true, refresh: false });
     const response = await command({ action: "prepareAction", kind, resultIds: [result.id], ...(url ? { url } : {}) }, { refresh: false });
@@ -169,6 +177,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
         {result.actions.filter(action => action.kind === "open_source" && action.href).slice(0, 2).map(action => <a key={action.label} className="ws-button is-small" href={action.href ?? undefined} target="_blank" rel="noreferrer" onClick={() => opened(true)}>{action.label}<ExternalLink size={13} aria-hidden="true" /></a>)}
         {result.actions.some(action => action.kind === "calendar") && <button type="button" className="ws-button is-small" disabled={pending} onClick={() => void prepare("calendar_write")}><CalendarPlus size={14} aria-hidden="true" />В календарь</button>}
         {result.actions.filter(action => action.kind === "registration").map(action => <button type="button" key={action.label} className="ws-button is-small is-accent" disabled={pending} onClick={() => void prepare("registration", action.href)}><Ticket size={14} aria-hidden="true" />{action.label}</button>)}
+        {isEvent && startDate && <button type="button" className="ws-button is-small is-quiet" disabled={pending || inPlan} onClick={() => void addToPlan()}><GraduationCap size={14} aria-hidden="true" />{inPlan ? "В плане НМО" : "В план НМО"}</button>}
         {result.kind === "learning_module" && <button type="button" className={done ? "ws-button is-small is-done" : "ws-button is-small"} aria-pressed={done} onClick={() => void toggleDone()}><Check size={14} aria-hidden="true" />{done ? "Пройдено" : "Отметить пройденным"}</button>}
         {result.actions.some(action => action.kind === "save") && (saved ? <SavedLink /> : <button type="button" className="ws-button is-small is-quiet" onClick={() => void save()}><Bookmark size={14} aria-hidden="true" />Сохранить</button>)}
         <button type="button" className="ws-icon-button is-quiet" aria-label="Скрыть находку" title="Скрыть находку" onClick={() => { setHidden(true); void command({ action: "dismissResult", resultId: result.id }, { quiet: true, refresh: false }); }}><EyeOff size={15} /></button>

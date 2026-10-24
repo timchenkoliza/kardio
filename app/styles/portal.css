@@ -317,3 +317,26 @@
   .pt-reader { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); }
   .pt-reader-panel { position: sticky; top: var(--ws-space-24); }
 }
+
+/* «Личный план НМО». */
+.pt-nmo { display: flex; flex-direction: column; gap: var(--ws-space-12); }
+.pt-nmo p { margin: 0; }
+.pt-nmo-total strong { font-size: var(--font-size-heading-2); }
+.pt-nmo-target,
+.pt-nmo-add > div > div,
+.pt-nmo-add { display: flex; flex-direction: column; gap: var(--ws-space-4); }
+.pt-nmo input,
+.pt-nmo select { min-height: var(--ws-touch-target); padding: 0 var(--ws-space-12); border: 1px solid var(--ws-border); border-radius: var(--ws-radius-button); background: var(--ws-canvas); color: var(--ws-text); font: inherit; font-size: var(--font-size-body-compact); }
+.pt-nmo label,
+.pt-nmo legend { font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); }
+.pt-nmo-add { margin: 0; padding: var(--ws-space-12); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); }
+.pt-nmo-add .ws-button { align-self: flex-start; }
+.pt-nmo-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-8); }
+.pt-nmo-list { display: flex; flex-direction: column; gap: var(--ws-space-12); margin: 0; padding: 0; list-style: none; }
+.pt-nmo-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto var(--ws-touch-target); gap: var(--ws-space-8); align-items: center; }
+.pt-nmo-list li > div { display: flex; flex-direction: column; gap: var(--ws-space-4); min-width: 0; }
+.pt-nmo-credits { display: flex; align-items: center; gap: var(--ws-space-4); }
+.pt-nmo-credits input { width: 88px; }
+@media (min-width: 768px) {
+  .pt-nmo-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

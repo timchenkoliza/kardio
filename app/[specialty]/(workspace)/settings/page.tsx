@@ -6,6 +6,7 @@ import { AnswerModeCard, IdentityCard, InterestsEditor, SpecialtyCard } from "@/
 import { PartnerToggle, ResetSeenButton } from "@/components/workspace/settings-controls";
 import { BackgroundChecksToggle, WatchlistEditor } from "@/components/workspace/watchlist-settings";
 import { ShareLinksList } from "@/components/portal/share-result";
+import { NmoPlanEditor } from "@/components/workspace/nmo-plan";
 import { shareLinkView } from "@/server/agents/commands";
 import { shareStore, sharingAvailable } from "@/server/sharing/store";
 import { DRUGS } from "@/lib/portal/lexicon";
@@ -102,6 +103,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         <section className="pt-profile-card" id="watchlist" aria-labelledby="ws-watchlist-title">
           <h2 id="ws-watchlist-title">{nbsp("Мои препараты")}</h2>
           <WatchlistEditor watchlist={profile.watchlist} options={DRUGS.map(drug => ({ inn: drug.inn, ru: drug.ru }))} />
+        </section>
+
+        <section className="pt-profile-card" id="nmo" aria-labelledby="ws-nmo-title">
+          <h2 id="ws-nmo-title">{nbsp("Личный план НМО")}</h2>
+          <NmoPlanEditor plan={profile.nmoPlan} />
         </section>
 
         <section className="pt-profile-card" id="background" aria-labelledby="ws-background-title">

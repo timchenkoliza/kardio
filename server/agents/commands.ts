@@ -2,6 +2,9 @@ import { z } from "zod";
 import { countLabel } from "@/lib/agents/format";
 import { AGENT_IDS, WATCHLIST_LIMIT, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
 import { DRUGS } from "@/lib/portal/lexicon";
+import { normalizeNmoPlan } from "@/lib/agents/profile";
+import { NMO_ENTRY_LIMIT } from "@/lib/agents/types";
+import { stableId } from "@/lib/agents/text";
 import { fragmentSearchTerms, MAX_FRAGMENT_CHARS } from "@/lib/materials/fragments";
 import { buildSharedSnapshot, newShareToken, SHARE_BLOCKER_COPY, SHARE_TOKEN, SHARE_TTL_DAYS, shareBlocker, sharePath } from "@/lib/sharing/snapshot";
 import type { ShareLinkView, SharedSnapshot } from "@/lib/sharing/types";
@@ -88,6 +91,11 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("watchDrug"), specialty, inn: z.string().refine(value => DRUGS.some(drug => drug.inn === value), "Unknown drug"), from: z.enum(["drug_result", "comparison", "settings"]) }).strict(),
   z.object({ action: z.literal("unwatchDrug"), specialty, inn: z.string().min(2).max(80) }).strict(),
   z.object({ action: z.literal("setBackgroundPaused"), specialty, paused: z.boolean() }).strict(),
+  // «Личный план НМО»: the physician's own record; credits only as the physician entered them.
+  z.object({ action: z.literal("nmoAdd"), specialty, title: z.string().trim().min(3).max(200), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u), credits: z.number().min(0).max(500).nullable(), kind: z.enum(["event", "course", "other"]), from: z.enum(["manual", "event"]).default("manual"), url: z.string().url().max(500).nullable().default(null) }).strict(),
+  z.object({ action: z.literal("nmoRemove"), specialty, id: z.string().min(1).max(64) }).strict(),
+  z.object({ action: z.literal("nmoSetCredits"), specialty, id: z.string().min(1).max(64), credits: z.number().min(0).max(500).nullable() }).strict(),
+  z.object({ action: z.literal("nmoSetTarget"), specialty, target: z.number().int().min(1).max(1000).nullable() }).strict(),
   // A question about a fragment of the physician's own material: answered from their library only.
   z.object({ action: z.literal("fragmentLookup"), specialty, materialId: z.string().min(1).max(80), fragment: z.string().trim().min(3).max(MAX_FRAGMENT_CHARS) }).strict(),
   // Sharing a result: preview first (what the recipient will see, or why it cannot be shared), then an explicit create.
@@ -393,6 +401,39 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       if (profile.watchlist.length === before) return { ok: true, profileChanged: false };
       await saveProfile(sessionId, profile);
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
+      return { ok: true, profileChanged: true };
+    }
+    case "nmoAdd": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      if (profile.nmoPlan.entries.length >= NMO_ENTRY_LIMIT) throw new HttpError(409, `В плане не больше ${NMO_ENTRY_LIMIT} записей.`);
+      // The same event twice is one entry.
+      if (profile.nmoPlan.entries.some(entry => entry.title === command.title && entry.date === command.date)) return { ok: true, profileChanged: false, notices: ["Эта запись уже есть в плане НМО."] };
+      const entry = { id: stableId("nmo", sessionId, command.title, command.date), title: command.title, date: command.date, credits: command.credits, kind: command.kind, from: command.from, url: command.url && /^https?:\/\//iu.test(command.url) ? command.url : null, addedAt: now };
+      profile.nmoPlan = normalizeNmoPlan({ ...profile.nmoPlan, entries: [entry, ...profile.nmoPlan.entries] });
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "events", count: profile.nmoPlan.entries.length });
+      return { ok: true, profileChanged: true, notices: [command.credits === null ? "Добавлено в план НМО. Баллы не указаны — внесите их со страницы организатора или портала НМО." : "Добавлено в план НМО."] };
+    }
+    case "nmoRemove": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      const before = profile.nmoPlan.entries.length;
+      profile.nmoPlan = { ...profile.nmoPlan, entries: profile.nmoPlan.entries.filter(entry => entry.id !== command.id) };
+      if (profile.nmoPlan.entries.length === before) throw new HttpError(404, "Запись не найдена.");
+      await saveProfile(sessionId, profile);
+      return { ok: true, profileChanged: true };
+    }
+    case "nmoSetCredits": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      const entry = profile.nmoPlan.entries.find(item => item.id === command.id);
+      if (!entry) throw new HttpError(404, "Запись не найдена.");
+      entry.credits = command.credits === null ? null : Math.round(command.credits * 10) / 10;
+      await saveProfile(sessionId, profile);
+      return { ok: true, profileChanged: true };
+    }
+    case "nmoSetTarget": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      profile.nmoPlan = { ...profile.nmoPlan, target: command.target };
+      await saveProfile(sessionId, profile);
       return { ok: true, profileChanged: true };
     }
     case "fragmentLookup": {

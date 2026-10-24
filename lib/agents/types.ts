@@ -331,6 +331,30 @@ export interface WatchedDrug {
   from: "drug_result" | "comparison" | "settings";
 }
 
+/**
+ * E2 «Личный план НМО»: the physician's own record of education credits. The product does not know
+ * credits it was not told: an entry added from an event has none until the physician enters them
+ * from the organiser's page or the НМО portal.
+ */
+export interface NmoEntry {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** ЗЕТ as the physician entered them; null = not stated. */
+  credits: number | null;
+  kind: "event" | "course" | "other";
+  from: "manual" | "event";
+  url: string | null;
+  addedAt: string;
+}
+export interface NmoPlan {
+  /** The physician's own target for the current period; null until set. */
+  target: number | null;
+  entries: NmoEntry[];
+}
+export const NMO_ENTRY_LIMIT = 100;
+
 export const WATCHLIST_LIMIT = 30;
 
 export interface UserProfile {
@@ -355,6 +379,7 @@ export interface UserProfile {
   firstValueAt: string | null;
   /** «Мои препараты»: drugs followed for safety and regulatory changes (≤ WATCHLIST_LIMIT). */
   watchlist: WatchedDrug[];
+  nmoPlan: NmoPlan;
   /** The physician paused background checks outside the open tab. */
   backgroundPaused: boolean;
   updatedAt: string;
