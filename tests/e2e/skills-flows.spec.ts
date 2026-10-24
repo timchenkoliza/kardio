@@ -75,9 +75,13 @@ test("C: refinements patch the open result in place", async ({ page }) => {
 
   await followup.fill("Покажи, что изменилось относительно предыдущей версии.");
   await followup.press("Enter");
-  await expect(page.locator('[data-view="applied"]')).toContainText("сравнение с предыдущей версией", { timeout: 30_000 });
+  // With only Russian sources shown, the previous version is named only by a hidden international source: nothing was
+  // compared, and the view says so (R1 A-4) instead of «сравнение с предыдущей версией».
+  const applied = page.locator('[data-view="applied"]');
+  await expect(applied).toContainText("предыдущую версию не нашли — показано текущее состояние", { timeout: 30_000 });
+  await expect(applied).not.toContainText("сравнение с предыдущей версией");
   expect(page.url()).toBe(runUrl);
-  await expect(page.locator("[data-comparison]")).toBeVisible();
+  await expect(page.locator('[data-comparison="current_state"]')).toContainText("скрытый фильтром «только российские источники»");
 
   await page.locator('[data-view="applied"]').getByRole("button", { name: "Показать всё" }).click();
   await expect(page.locator('[data-view="applied"]')).toHaveCount(0, { timeout: 30_000 });
