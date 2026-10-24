@@ -15,7 +15,7 @@ import type { ResearchMode } from "@/lib/agents/research-options";
 import type { SpecialtyId } from "@/lib/domain/types";
 
 const STYLE_LABEL: Record<ResearchCitationStyle, string> = { gost: "ГОСТ", apa: "APA", mla: "MLA" };
-const FORMAT_LABEL: Record<ResearchExportFormat, string> = { markdown: "Markdown", rtf: "Word · RTF", latex: "LaTeX" };
+const FORMAT_LABEL: Record<ResearchExportFormat, string> = { docx: "Word · DOCX", markdown: "Markdown", rtf: "RTF", latex: "LaTeX" };
 
 export function ResearchExport({
   specialty,

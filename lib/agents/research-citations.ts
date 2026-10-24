@@ -9,8 +9,10 @@ export type ResearchCitationStyle = (typeof RESEARCH_CITATION_STYLES)[number];
 export const RESEARCH_BIBLIOGRAPHY_ORDERS = ["appearance", "alphabetical"] as const;
 export type ResearchBibliographyOrder = (typeof RESEARCH_BIBLIOGRAPHY_ORDERS)[number];
 
-export const RESEARCH_EXPORT_FORMATS = ["markdown", "rtf", "latex"] as const;
+export const RESEARCH_EXPORT_FORMATS = ["docx", "markdown", "rtf", "latex"] as const;
 export type ResearchExportFormat = (typeof RESEARCH_EXPORT_FORMATS)[number];
+/** Formats written as text here; DOCX is a binary package built on the server (server/export/docx.ts). */
+export type ResearchTextFormat = Exclude<ResearchExportFormat, "docx">;
 
 export interface ResearchSourceBuckets {
   used: AgentResult[];
@@ -110,6 +112,17 @@ export interface BuildResearchExportArgs {
   format: ResearchExportFormat;
 }
 
+const REPORT_TITLE = "Исследовательский отчёт";
+const REPORT_HEADINGS = new Set(["Сводка", "Найденные материалы", "Источники, использованные в сводке", "Найдены дополнительно — не использованы напрямую в сводке"]);
+
+/** The same lines as every export, as document blocks: the title, section headings, numbered entries, paragraphs. */
+export function researchExportBlocks(args: Omit<BuildResearchExportArgs, "format">): Array<{ kind: "title" | "heading" | "paragraph" | "item"; text: string }> {
+  return reportLines({ ...args, format: "docx" }).filter(line => line.trim()).map(line => ({
+    kind: line === REPORT_TITLE ? "title" : REPORT_HEADINGS.has(line) ? "heading" : /^\d+\.\s/u.test(line) ? "item" : "paragraph",
+    text: line,
+  }));
+}
+
 function reportLines(args: BuildResearchExportArgs): string[] {
   const { run, results, mode, citationStyle, bibliographyOrder, includeBibliography } = args;
   const buckets = researchSourceBuckets(results, mode);
@@ -174,7 +187,7 @@ function escapeLatex(value: string): string {
   return [...value].map(char => escaped[char] ?? char).join("");
 }
 
-export function buildResearchExport(args: BuildResearchExportArgs): string {
+export function buildResearchExport(args: BuildResearchExportArgs & { format: ResearchTextFormat }): string {
   const lines = reportLines(args);
   if (args.format === "markdown") {
     const headings = new Set(["Исследовательский отчёт", "Сводка", "Найденные материалы", "Источники, использованные в сводке", "Найдены дополнительно — не использованы напрямую в сводке"]);

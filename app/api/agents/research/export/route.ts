@@ -6,7 +6,9 @@ import {
   RESEARCH_CITATION_STYLES,
   RESEARCH_EXPORT_FORMATS,
   buildResearchExport,
+  researchExportBlocks,
 } from "@/lib/agents/research-citations";
+import { buildDocx } from "@/server/export/docx";
 import { RESEARCH_MODES } from "@/lib/agents/research-options";
 import { getRequestAccessStateFromRequest } from "@/server/access/request-access";
 import { agentSession, attachAgentCookies } from "@/server/agents/http";
@@ -29,6 +31,7 @@ const querySchema = z.object({
 });
 
 const FORMAT_META = {
+  docx: { extension: "docx", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
   markdown: { extension: "md", type: "text/markdown; charset=utf-8" },
   rtf: { extension: "rtf", type: "application/rtf; charset=utf-8" },
   latex: { extension: "tex", type: "application/x-tex; charset=utf-8" },
@@ -53,15 +56,11 @@ export async function GET(request: NextRequest) {
     const results = allResults
       .filter(result => result.runId === run.id && !result.dismissed && (!selectedIds || selectedIds.has(result.id)))
       .sort((a, b) => a.rank - b.rank);
-    const content = buildResearchExport({
-      run,
-      results,
-      mode: parsed.mode,
-      citationStyle: parsed.style,
-      bibliographyOrder: parsed.order,
-      includeBibliography: parsed.bibliography === "1",
-      format: parsed.format,
-    });
+    const args = { run, results, mode: parsed.mode, citationStyle: parsed.style, bibliographyOrder: parsed.order, includeBibliography: parsed.bibliography === "1" };
+    // DOCX opens in Word, LibreOffice and Google Docs as a real document (headings, numbered sources), not as RTF text.
+    const content: BodyInit = parsed.format === "docx"
+      ? new Blob([new Uint8Array(buildDocx(researchExportBlocks(args), { title: run.input.text ? `Исследовательский отчёт: ${run.input.text}` : "Исследовательский отчёт", createdAt: run.completedAt ?? run.startedAt }))])
+      : buildResearchExport({ ...args, format: parsed.format });
     const meta = FORMAT_META[parsed.format];
     const filename = `research-${parsed.specialty}-${run.id.slice(-8)}.${meta.extension}`;
     const response = new NextResponse(content, {
