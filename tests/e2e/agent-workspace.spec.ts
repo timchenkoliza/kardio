@@ -93,13 +93,18 @@ test("an evidence question routes to the research job with a checked trace", asy
   // The run is durable at once; sources are checked on the result page.
   await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Разбор по исследованиям" })).toBeVisible();
-  await expect(page.locator(".pt-synthesis")).toContainText("Чего не хватает");
+  // One compact answer (docs/agent-mvp/DECISION.md): what was found, why to trust it, limitations; records collapsed.
+  const answer = page.locator("[data-research-answer]");
+  await expect(answer).toBeVisible();
+  await expect(answer).toContainText("Ограничения");
   await page.locator(".ws-trace-disclosure > summary").click();
   const trace = page.locator(".ws-trace");
   await expect(trace.getByRole("heading", { name: "Как получен результат" })).toBeVisible();
+  await expect(trace).toContainText("Применили фильтры до поиска");
   await expect(trace).toContainText("Искали в каталоге РКО и РКЖ");
   await expect(trace).toContainText("Искали публикации в PubMed");
   await expect(trace).toContainText("Проверили утверждения по источникам");
+  await page.locator('[data-more="all"] > summary').click();
   await expect(page.locator(".ws-result").first()).toContainText(/фибрилляц|fibrillation/i);
   await expect(page.locator(".ws-verify").first()).toBeVisible();
 });

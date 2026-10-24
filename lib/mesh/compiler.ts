@@ -213,9 +213,9 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
 }
 
 const FOLLOW_UPS: Partial<Record<PortalJob, Array<{ job: PortalJob; label: string }>>> = {
-  guidelines: [{ job: "research", label: "Разобрать по исследованиям" }, { job: "drug", label: "Справка по препарату" }, { job: "learning", label: "Что изучить по теме" }],
-  drug: [{ job: "guidelines", label: "Клинические рекомендации по теме" }, { job: "research", label: "Разобрать по исследованиям" }],
-  answer: [{ job: "research", label: "Разобрать по исследованиям" }, { job: "guidelines", label: "Клинические рекомендации по теме" }, { job: "learning", label: "Что изучить по теме" }],
+  guidelines: [{ job: "research", label: "Разбор по исследованиям" }, { job: "drug", label: "Справка по препарату" }, { job: "learning", label: "Что изучить по теме" }],
+  drug: [{ job: "guidelines", label: "Клинические рекомендации по теме" }, { job: "research", label: "Разбор по исследованиям" }],
+  answer: [{ job: "research", label: "Разбор по исследованиям" }, { job: "guidelines", label: "Клинические рекомендации по теме" }, { job: "learning", label: "Что изучить по теме" }],
 };
 
 function actionsFor(graph: EvidenceGraph, modules: readonly ManifestModule[]): ManifestAction[] {

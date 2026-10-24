@@ -67,3 +67,21 @@ export function researchDomainPolicyLabel(options: Pick<ResearchRunOptions, "inc
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 }
+
+/**
+ * The portal input carries an answer depth, not research settings. A request
+ * the router sends to the research scenario runs with the default settings and
+ * the depth chosen in the input: short → find articles (metadata table),
+ * full → brief review (top records read and structured), research → academic
+ * depth (more records read and compared).
+ */
+export function researchOptionsForAnswerMode(mode: "short" | "full" | "research" | null | undefined): ResearchRunOptions {
+  const researchMode: ResearchMode = mode === "short" ? "articles" : mode === "research" ? "academic" : "brief";
+  return { ...DEFAULT_RESEARCH_RUN_OPTIONS, mode: researchMode };
+}
+
+export function researchModeLabel(mode: ResearchMode): string {
+  if (mode === "articles") return "найти статьи";
+  if (mode === "academic") return "академическая основа";
+  return "краткий обзор";
+}

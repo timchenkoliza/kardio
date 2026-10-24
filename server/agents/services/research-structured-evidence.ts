@@ -7,6 +7,7 @@ import {
   type ResearchStructuredEvidence,
 } from "@/lib/agents/research-structured-evidence";
 import { normalizeResearchStudy, researchStudyNormalizationToAttributes } from "@/lib/agents/research-study-normalization";
+import { extractConclusion } from "../adapters/pubmed-abstracts";
 import { retrievePubmedEvidenceDocument, type PubmedDocumentSection, type PubmedEvidenceDocument } from "../adapters/pubmed-document";
 
 const FIELD_RULES: Record<ResearchEvidenceFieldId, { sectionHints: RegExp[]; sentence: RegExp }> = {
@@ -40,9 +41,16 @@ function splitSentences(value: string): string[] {
     .filter(sentence => sentence.length >= 30 && sentence.length <= 900);
 }
 
-function clampText(value: string, max = 760): string {
-  const clean = value.replace(/\s+/gu, " ").trim();
-  return clean.length <= max ? clean : `${clean.slice(0, max - 1).trimEnd()}…`;
+function wholeSentences(sentences: readonly string[], max = 760): string {
+  const kept: string[] = [];
+  let length = 0;
+  for (const sentence of sentences) {
+    const clean = sentence.replace(/\s+/gu, " ").trim();
+    if (kept.length && length + clean.length + 1 > max) break;
+    kept.push(clean);
+    length += clean.length + 1;
+  }
+  return kept.join(" ");
 }
 
 function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly PubmedDocumentSection[], access: "full_text" | "abstract"): ResearchEvidenceField | null {
@@ -62,7 +70,8 @@ function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly 
     if (matches.length >= 3) break;
   }
   if (!matches.length) return null;
-  const supportText = clampText(matches.map(match => match.sentence).join(" "));
+  // Whole sentences only: a cut at a fixed length turned «n = 4744» into «N=47» and «P<0.001» into «p < 0».
+  const supportText = wholeSentences(matches.map(match => match.sentence));
   const section = [...new Set(matches.map(match => match.section).filter(Boolean))].join(" · ") || null;
   return {
     value: supportText,
@@ -75,8 +84,11 @@ function fieldFromSections(fieldId: ResearchEvidenceFieldId, sections: readonly 
 export function extractStructuredResearchEvidence(document: PubmedEvidenceDocument): ResearchStructuredEvidence | null {
   if (document.access === "unavailable" || !document.sections.length) return null;
   const fields: ResearchStructuredEvidence["fields"] = {};
+  // The abstract states the main result; a full text also carries subgroup and prognostic statistics.
+  // Fields are read from the abstract first and only the missing ones from the full text.
+  const abstract = document.access === "full_text" && document.abstract?.length ? document.abstract : null;
   for (const fieldId of Object.keys(FIELD_RULES) as ResearchEvidenceFieldId[]) {
-    const field = fieldFromSections(fieldId, document.sections, document.access);
+    const field = (abstract ? fieldFromSections(fieldId, abstract, "abstract") : null) ?? fieldFromSections(fieldId, document.sections, document.access);
     if (field) fields[fieldId] = field;
   }
   const value: ResearchStructuredEvidence = { access: document.access, sourceUrl: document.sourceUrl, fields };
@@ -86,6 +98,22 @@ export function extractStructuredResearchEvidence(document: PubmedEvidenceDocume
 function pmidFromResult(result: AgentResult): string | null {
   if (result.source.connectorId !== "pubmed" || !result.source.sourceUrl) return null;
   return result.source.sourceUrl.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/iu)?.[1] ?? null;
+}
+
+/**
+ * What text the run actually read for a publication, and the authors' own
+ * conclusion quoted from the abstract (original language, never paraphrased).
+ */
+export function evidenceTextAttributes(document: PubmedEvidenceDocument): Record<string, string> {
+  const attributes: Record<string, string> = { "evidenceText.access": document.access, "evidenceText.url": document.sourceUrl };
+  if (document.note) attributes["evidenceText.note"] = document.note;
+  if (document.access === "unavailable") return attributes;
+  const conclusion = extractConclusion(document.abstract?.length ? document.abstract : document.sections);
+  if (conclusion) {
+    attributes["authorsConclusion.text"] = conclusion.text;
+    attributes["authorsConclusion.label"] = conclusion.label;
+  }
+  return attributes;
 }
 
 export interface StructuredEvidenceEnrichment {
@@ -120,6 +148,8 @@ export async function enrichResearchResultsWithStructuredEvidence(
 
   for (const { result, pmid } of candidates) {
     const document = await retrieve(pmid);
+    const current = enrichedById.get(result.id);
+    if (current) current.attributes = { ...current.attributes, ...evidenceTextAttributes(document) };
     if (document.access === "unavailable") {
       unavailable += 1;
       if (document.note) notes.push(`${pmid}: ${document.note}`);
@@ -129,16 +159,13 @@ export async function enrichResearchResultsWithStructuredEvidence(
     else abstracts += 1;
     if (document.note) notes.push(`${pmid}: ${document.note}`);
     const structured = extractStructuredResearchEvidence(document);
-    if (!structured) continue;
-    const current = enrichedById.get(result.id);
-    if (!current) continue;
+    if (!structured || !current) continue;
     const normalized = normalizeResearchStudy(structured);
     current.attributes = {
       ...current.attributes,
       ...structuredEvidenceToAttributes(structured),
       ...researchStudyNormalizationToAttributes(normalized),
     };
-    enrichedById.set(current.id, current);
     enriched += 1;
   }
 

@@ -1,0 +1,189 @@
+{
+  "change_id": "CHG-2026-10-22-agent-mvp-research-slice",
+  "cause": "code",
+  "status": "IN_PROGRESS",
+  "title": "Agent MVP: one configured research scenario, a named publication review and one compact evidence answer",
+  "problem": {
+    "user_segment": "physicians across the six launch specialties",
+    "job": "understand what studies show on a question or in one named article, check it against the primary source",
+    "observed_failure": "The home shortcut and the gallery opened the bare input without the scenario settings; the input ran research without settings or structured reading; a pasted PMID went to the reference answer; the research result stacked a trust panel, an English summary, a 14-row table, export and nine cards with the same decorative art (10 749 px at 390); Lancet decimals were read as «HR 0»; intervals from another sentence were glued to a ratio; a full patient name was masked only partly; an acute patient state was not stopped.",
+    "evidence": [
+      "docs/agent-mvp/DECISION.md",
+      "docs/agent-mvp/screens/current/research-result-390.jpg",
+      "lib/agents/research-study-normalization.ts: effect regex without the middle dot",
+      "server/agents/services/risk.ts: PATIENT_NAME masked one word",
+      "server/agents/research-run.ts: called only from /api/agents/research"
+    ]
+  },
+  "hypothesis": "If the research scenario has one door with its real settings, one execution, a review of a named publication and one compact answer whose numbers are quoted from the article, physicians can verify a study faster and return to the scenario.",
+  "target_metric": {
+    "name": "qualified_repeat_use_after_value_session",
+    "desired_direction": "increase"
+  },
+  "guardrails": [
+    {
+      "name": "effect_value_without_quote",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "implausible_ratio_shown",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "raw_or_decorative_image_on_research_answer",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "patient_name_fragment_after_redaction",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "emergency_request_executed",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "false_found_claim_when_source_unavailable",
+      "operator": "=",
+      "threshold": 0
+    },
+    {
+      "name": "horizontal_overflow_at_390_768_1440",
+      "operator": "=",
+      "threshold": 0
+    }
+  ],
+  "semantic_triggers": [
+    "research",
+    "study_review",
+    "evidence_answer",
+    "routing",
+    "risk_gate",
+    "answer_hierarchy"
+  ],
+  "expected_paths": [
+    "lib/agents/study-identifiers.ts",
+    "lib/agents/research-answer.ts",
+    "lib/agents/research-options.ts",
+    "lib/agents/research-study-normalization.ts",
+    "lib/agents/risk-rules.ts",
+    "lib/agents/definitions.ts",
+    "lib/portal/router.ts",
+    "lib/portal/jobs.ts",
+    "lib/portal/agents-gallery.ts",
+    "server/agents/executors.ts",
+    "server/agents/research-run.ts",
+    "server/agents/supervisor.ts",
+    "server/agents/services/**",
+    "server/agents/adapters/pubmed-document.ts",
+    "server/portal/manager.ts",
+    "components/workspace/**",
+    "components/portal/**",
+    "components/admin/agent-access-admin.tsx",
+    "app/[specialty]/(workspace)/**",
+    "app/styles/research-consumer.css",
+    "scripts/agent-mvp-screenshots.ts",
+    "tests/**",
+    "docs/agent-mvp/**",
+    "control-plane/changes/CHG-2026-10-22-agent-mvp-research-slice.json"
+  ],
+  "requested_rollout_percent": 0,
+  "kill_criteria": [
+    "an effect value is shown without the article text it was read from",
+    "a ratio of zero or below, or an interval that does not contain the estimate, is shown",
+    "a found or success claim is shown while PubMed did not answer",
+    "a patient name fragment survives redaction or an acute patient state is executed",
+    "the research answer is not the first block after the header on a 390 px screen"
+  ],
+  "capability_delta": {
+    "capabilities": [
+      "study_review_by_identifier",
+      "compact_research_answer"
+    ],
+    "sources_added": [],
+    "sources_removed": [],
+    "operations": [
+      "review_study",
+      "research_question",
+      "redact",
+      "route"
+    ]
+  },
+  "changes": {
+    "representation": true,
+    "module_family": false,
+    "ranking": false,
+    "source_policy": false,
+    "onboarding": false
+  },
+  "does_not_change": {
+    "navigation": true,
+    "onboarding": true,
+    "ranking": true,
+    "source_policy": true,
+    "safety_thresholds": false,
+    "user_job": true
+  },
+  "experience_contract": {
+    "user_visible": true,
+    "primary_job": "research_review",
+    "secondary_jobs": [
+      "reference_answer"
+    ],
+    "impact_triggers": [
+      "user_visible",
+      "representation_change"
+    ],
+    "capability_transition": "incremental",
+    "module": {
+      "strategy": "compose",
+      "allowed_modules": [
+        "key_takeaway",
+        "evidence",
+        "sources",
+        "notices",
+        "next_actions"
+      ],
+      "forbidden_modules": []
+    },
+    "representation": {
+      "primary": "EVIDENCE_STACK",
+      "secondary": [
+        "SOURCE_TRAIL"
+      ],
+      "visualization": "required_when_informative",
+      "text_summary": "required",
+      "semantic_equivalence_required": true,
+      "accessibility_fallback_required": true
+    },
+    "stable_shell": {
+      "navigation_landmarks_unchanged": true,
+      "action_semantics_unchanged": true,
+      "factual_meaning_unchanged": true,
+      "safety_thresholds_unchanged": false
+    },
+    "personalization": {
+      "mode": "specialty_and_session_context",
+      "inferred_traits_expire": true,
+      "sensitive_traits_forbidden": true
+    },
+    "onboarding": {
+      "meaningful_capability_transition": false,
+      "required_when_relevant": false,
+      "dismissal_respected": true,
+      "mastery_suppresses_future_guides": true
+    },
+    "cache": {
+      "blueprint_cacheable": true,
+      "invalidation_triggers": [
+        "compiler_version_change",
+        "editorial_policy_change",
+        "media_policy_change"
+      ]
+    }
+  }
+}

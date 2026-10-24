@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { GALLERY, HOME_AGENTS } from "@/lib/portal/agents-gallery";
-import { askHref, JOBS } from "@/lib/portal/jobs";
+import { askHref, JOBS, researchScenarioHref } from "@/lib/portal/jobs";
 import { Mascot } from "./mascot";
 
 /**
@@ -15,7 +15,7 @@ export function quickAgentCards(specialty: SpecialtyId) {
     const agent = GALLERY.find(item => item.id === id);
     const job = agent?.job ?? null;
     if (!agent || !job) return null;
-    return { id, job, href: askHref(specialty, { job }), label: JOBS[job].label, promise: JOBS[job].promise, help: agent.help };
+    return { id, job, href: job === "research" ? researchScenarioHref(specialty) : askHref(specialty, { job }), label: JOBS[job].label, promise: JOBS[job].promise, help: agent.help };
   }).filter((card): card is NonNullable<typeof card> => card !== null);
 }
 
