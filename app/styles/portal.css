@@ -298,3 +298,22 @@
 @media (min-width: 768px) {
   .pt-positions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* «Вопрос к фрагменту»: the document with numbered paragraphs, the panel beside it on wide screens. */
+.pt-reader { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-24); align-items: start; }
+.pt-reader-text { display: flex; flex-direction: column; gap: var(--ws-space-8); min-width: 0; }
+.pt-reader-paragraph { position: relative; display: grid; grid-template-columns: var(--ws-space-32) minmax(0, 1fr) var(--ws-touch-target); gap: var(--ws-space-8); align-items: start; padding: var(--ws-space-4) 0; border-radius: var(--ws-radius-button); }
+.pt-reader-paragraph[data-active] { background: var(--ws-accent-wash); }
+.pt-reader-paragraph p { margin: 0; line-height: var(--ws-leading-body); }
+.pt-reader-number { padding-top: var(--ws-space-4); color: var(--ws-text-tertiary); font-size: var(--font-size-caption); text-align: right; }
+.pt-reader-selection { position: sticky; bottom: var(--ws-space-16); display: flex; flex-wrap: wrap; align-items: center; gap: var(--ws-space-12); padding: var(--ws-space-12) var(--ws-space-16); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); background: var(--ws-canvas); box-shadow: var(--ws-shadow-floating); }
+.pt-reader-panel { position: relative; display: flex; flex-direction: column; gap: var(--ws-space-16); padding: var(--ws-space-20); padding-right: var(--ws-space-48); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); background: var(--ws-canvas); }
+.pt-reader-panel section { display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.pt-reader-panel p { margin: 0; }
+.pt-reader-hits { display: flex; flex-direction: column; gap: var(--ws-space-12); margin: 0; padding: 0; list-style: none; }
+.pt-reader-hits li { display: flex; flex-direction: column; gap: var(--ws-space-4); }
+.pt-reader-hits a { display: inline-flex; align-items: center; min-height: var(--ws-touch-target); }
+@media (min-width: 1024px) {
+  .pt-reader { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); }
+  .pt-reader-panel { position: sticky; top: var(--ws-space-24); }
+}

@@ -21,6 +21,8 @@ export const AGENT_EVENT_NAMES = [
   "share_created",
   "share_opened",
   "share_revoked",
+  // A fragment question: counts only, never the fragment.
+  "fragment_question",
 ] as const;
 export type AgentEventName = (typeof AGENT_EVENT_NAMES)[number];
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { countLabel } from "@/lib/agents/format";
 import { AGENT_IDS, WATCHLIST_LIMIT, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
 import { DRUGS } from "@/lib/portal/lexicon";
+import { fragmentSearchTerms, MAX_FRAGMENT_CHARS } from "@/lib/materials/fragments";
 import { buildSharedSnapshot, newShareToken, SHARE_BLOCKER_COPY, SHARE_TOKEN, SHARE_TTL_DAYS, shareBlocker, sharePath } from "@/lib/sharing/snapshot";
 import type { ShareLinkView, SharedSnapshot } from "@/lib/sharing/types";
 import { shareStore, sharingAvailable, type ShareRecord } from "@/server/sharing/store";
@@ -10,7 +11,7 @@ import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
 import { cancelAction, confirmAction, prepareAction } from "./services/action-confirmation";
 import { enrichLink } from "./services/link-enrichment";
-import { materialFromLink, materialFromNote, materialFromResult } from "./services/material";
+import { materialFromLink, materialFromNote, materialFromResult, searchUserMaterials } from "./services/material";
 import { durableRunStoreMissing, workspaceStore } from "./store";
 import { routeTask } from "./supervisor";
 import { recordAgentEvent } from "./telemetry";
@@ -87,6 +88,8 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("watchDrug"), specialty, inn: z.string().refine(value => DRUGS.some(drug => drug.inn === value), "Unknown drug"), from: z.enum(["drug_result", "comparison", "settings"]) }).strict(),
   z.object({ action: z.literal("unwatchDrug"), specialty, inn: z.string().min(2).max(80) }).strict(),
   z.object({ action: z.literal("setBackgroundPaused"), specialty, paused: z.boolean() }).strict(),
+  // A question about a fragment of the physician's own material: answered from their library only.
+  z.object({ action: z.literal("fragmentLookup"), specialty, materialId: z.string().min(1).max(80), fragment: z.string().trim().min(3).max(MAX_FRAGMENT_CHARS) }).strict(),
   // Sharing a result: preview first (what the recipient will see, or why it cannot be shared), then an explicit create.
   z.object({ action: z.literal("previewShare"), specialty, resultId }).strict(),
   z.object({ action: z.literal("createShare"), specialty, resultId }).strict(),
@@ -110,6 +113,8 @@ export interface CommandResult {
   clarification?: ClarificationManifest;
   /** The explicit plan of a large request, run on «Продолжить». */
   plan?: PlanPreview;
+  /** Places related to a fragment in the physician's other materials, and the terms a search by sources may receive. */
+  fragment?: { related: Array<{ materialId: string; title: string; snippet: string; matchedTerms: string[] }>; searchTerms: string[] };
   /** A share preview (what the recipient sees, or why it cannot be shared) or a created link. */
   share?: { snapshot: SharedSnapshot | null; blocker: string | null; link: ShareLinkView | null };
   /** A follow-up applied to the open result in place. */
@@ -389,6 +394,15 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       await saveProfile(sessionId, profile);
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
       return { ok: true, profileChanged: true };
+    }
+    case "fragmentLookup": {
+      const materials = await store.listMaterials(sessionId, specialtyId);
+      if (!materials.some(material => material.id === command.materialId)) throw new HttpError(404, "Материал не найден.");
+      // Only this physician's library is searched; the fragment never leaves the workspace.
+      const related = searchUserMaterials(materials.filter(material => material.id !== command.materialId), command.fragment, 5)
+        .map(hit => ({ materialId: hit.material.id, title: hit.material.title, snippet: hit.snippet, matchedTerms: hit.matchedTerms }));
+      await recordAgentEvent(sessionId, "fragment_question", { specialty: specialtyId, count: related.length });
+      return { ok: true, profileChanged: false, fragment: { related, searchTerms: fragmentSearchTerms(command.fragment, specialtyId) } };
     }
     case "previewShare": {
       const result = await resultFor(sessionId, specialtyId, command.resultId);

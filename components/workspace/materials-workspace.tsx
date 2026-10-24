@@ -29,6 +29,8 @@ function MaterialTitle({ material, specialty }: { material: Material; specialty:
   if (material.kind === "agent_result" && material.sourceResultId && /^res-[a-f0-9-]{36}$/u.test(material.sourceResultId)) {
     return <Link className="ws-material-link" href={`/${specialty}/item/${material.sourceResultId}`}>{material.title}</Link>;
   }
+  // A file or a note with extracted text opens in the reader: numbered paragraphs and «Спросить» on a fragment.
+  if (material.kind !== "agent_result" && material.textChars > 0) return <Link className="ws-material-link" href={`/${specialty}/materials/${material.id}`}>{material.title}</Link>;
   return <>{material.title}</>;
 }
 
