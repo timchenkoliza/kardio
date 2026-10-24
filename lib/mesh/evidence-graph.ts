@@ -159,6 +159,16 @@ export function buildEvidenceGraph(args: {
     gaps.push(`${REQUIREMENT_LABEL[requirement]} — ${notes.length ? notes.join("; ") : "источники ничего не нашли"}`);
   }
 
+  // A comparison names every drug whose instruction was not read (never an empty column without a reason).
+  if (intent.job.primary === "drug_comparison" && pending.size === 0) {
+    const labelled = [...documents.values()].filter(document => document.kind === "drug_instruction" || document.kind === "drug_label");
+    const unread = intent.entities.drugs.filter(drug => {
+      const entity = `drug:${drug.inn.toLowerCase().replace(/\s+/gu, "-")}`;
+      return !labelled.some(document => String(document.attributes.inn ?? "").toLowerCase() === drug.inn.toLowerCase() || document.claims.some(claim => claim.entityIds.includes(entity)));
+    });
+    if (unread.length) gaps.push(`инструкция не найдена: ${unread.map(drug => drug.ru).join(", ")} — по ${unread.length === 1 ? "этому препарату" : "этим препаратам"} сравнение не составлено`);
+  }
+
   const extraction = [...claims.values()].map(claim => claim.confidence);
   const graphDocuments: GraphDocument[] = [...documents.values()].map(document => {
     const { chunks: docChunks, ...rest } = document;

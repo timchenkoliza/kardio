@@ -74,6 +74,7 @@ const REPRESENTATION: Record<JobType, RepresentationMode> = {
   disease_reference: "professional_answer",
   professional_article_search: "source_list",
   drug_reference: "drug_card",
+  drug_comparison: "drug_comparison",
   inn_lookup: "drug_card",
   guideline_check: "guideline_delta",
   guideline_discovery: "guideline_delta",
@@ -123,6 +124,7 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   const terms = graph.context.terms ?? [];
   const onTopic = (claim: NormalizedClaim) => { const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase(); return terms.filter(term => text.includes(term)).length; };
   const picked: string[] = [];
+  if (graph.job === "drug_comparison") return comparisonTakeaway(graph, relevant);
   for (const claimId of input.priorityClaims ?? []) {
     const claim = graph.claims.find(item => item.id === claimId);
     if (claim && relevant(claim) && !picked.includes(claimId) && picked.length < TAKEAWAY_MAX) picked.push(claimId);
@@ -142,11 +144,64 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   return picked;
 }
 
+/**
+ * Drugs of a comparison in the order they were named, each with its document:
+ * the Russian instruction when one was read, otherwise the US label (a stand-in
+ * that carries its boundary).
+ */
+export function comparedDrugs(graph: EvidenceGraph): Array<{ inn: string; label: string; documentId: string | null }> {
+  const instructions = graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label");
+  // Same identity as the source adapters' drug entities (server/mesh/sources/common.ts).
+  const entityId = (inn: string) => `drug:${inn.toLowerCase().replace(/\s+/gu, "-")}`;
+  const forDrug = (inn: string) => {
+    const mine = instructions.filter(document => String(document.attributes.inn ?? "").toLowerCase() === inn.toLowerCase()
+      || graph.claims.some(claim => claim.documentId === document.id && claim.entityIds.includes(entityId(inn))));
+    return mine.find(document => document.jurisdiction === "RU") ?? mine[0] ?? null;
+  };
+  return graph.context.drugs.map(inn => {
+    const entity = graph.entities.find(item => item.id === entityId(inn));
+    return { inn, label: entity?.label ?? inn, documentId: forDrug(inn)?.id ?? null };
+  });
+}
+
+/** Rows of a drug comparison: the same instruction sections for every drug, in reading order. */
+export const COMPARISON_ROWS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: "indications", label: "Показания" },
+  { id: "contraindications", label: "Противопоказания" },
+  { id: "dosing", label: "Способ применения и дозы" },
+  { id: "populations", label: "Беременность, дети и особые группы" },
+  { id: "interactions", label: "Взаимодействие с другими препаратами" },
+  { id: "safety", label: "Особые указания и предупреждения" },
+];
+
+/** The key takeaway of a comparison: the first indication of each compared drug, so no drug is favoured. */
+function comparisonTakeaway(graph: EvidenceGraph, relevant: (claim: NormalizedClaim) => boolean): string[] {
+  const picked: string[] = [];
+  for (const drug of comparedDrugs(graph)) {
+    if (!drug.documentId) continue;
+    const claim = graph.claims.find(item => item.documentId === drug.documentId && item.kind === "indication" && relevant(item));
+    if (claim) picked.push(claim.id);
+  }
+  return picked.slice(0, TAKEAWAY_MAX);
+}
+
 /** Claims that speak about the question's drug, class or subtype first (deterministic word overlap). */
 function relevance(graph: EvidenceGraph, claim: NormalizedClaim): number {
   const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
   const subtype = graph.context.subtype;
   return (graph.context.terms ?? []).filter(term => text.includes(term)).length * 2 + Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
+}
+
+/** Row of a comparison for one claim, by the instruction section it was quoted from. */
+function comparisonRow(graph: EvidenceGraph, claim: NormalizedClaim): string {
+  if (claim.kind === "indication") return "indications";
+  if (claim.kind === "contraindication") return "contraindications";
+  if (claim.kind === "dosing") return "dosing";
+  const heading = claim.chunkId ? graph.chunks.find(chunk => chunk.id === claim.chunkId)?.heading ?? "" : "";
+  const value = heading.toLocaleLowerCase("ru-RU");
+  if (/взаимодейств|interaction/u.test(value)) return "interactions";
+  if (/беремен|лактац|кормлен|дет|pregnan|lactation|pediatric/u.test(value)) return "populations";
+  return "safety";
 }
 
 function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: CompileInput): ManifestModule | null {
@@ -178,6 +233,8 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: "primary", claimIds: [...new Set(graph.conflicts.flatMap(conflict => conflict.claimIds))], documentIds: [...new Set(graph.conflicts.flatMap(conflict => conflict.claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId)))], props: { conflictIds: graph.conflicts.map(conflict => conflict.id) } };
     }
     case "drug_reference": {
+      // In a comparison the table already shows every instruction; the card is the fallback for a single one.
+      if (graph.job === "drug_comparison" && comparedDrugs(graph).filter(drug => drug.documentId).length >= 2) return null;
       const docs = graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label" || (graph.job === "inn_lookup" && document.kind === "inn_listing"));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
@@ -185,6 +242,45 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       // Outside the drug job, indications are shown only for the disease asked about; safety sections stay.
       const claimIds = graph.claims.filter(claim => ids.has(claim.documentId) && (graph.family === "drug" || claim.kind !== "indication" || !nosology || claim.entityIds.includes(nosology))).map(claim => claim.id);
       return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
+    }
+    case "comparison": {
+      if (graph.job !== "drug_comparison") return null;
+      const drugs = comparedDrugs(graph);
+      const found = drugs.filter(drug => drug.documentId);
+      // A comparison needs at least two drugs with a document; otherwise the drug card is the honest form.
+      if (found.length < 2) return null;
+      const cells: string[] = [];
+      const claimIds: string[] = [];
+      drugs.forEach((drug, column) => {
+        if (!drug.documentId) return;
+        const claims = graph.claims.filter(claim => claim.documentId === drug.documentId && claim.kind !== "product_listing" && claim.kind !== "currentness");
+        for (const row of COMPARISON_ROWS) {
+          const ids = claims.filter(claim => comparisonRow(graph, claim) === row.id).map(claim => claim.id).slice(0, row.id === "indications" ? 4 : 2);
+          if (!ids.length) continue;
+          cells.push(`${row.id}|${column}|${ids.join(",")}`);
+          claimIds.push(...ids);
+        }
+      });
+      const documentIds = found.map(drug => drug.documentId!);
+      const docs = documentIds.map(documentId => graph.documents.find(document => document.id === documentId)!);
+      return {
+        ...base,
+        title: `${base.title}: ${drugs.map(drug => drug.label).join(", ")}`.slice(0, 120),
+        emphasis: "primary",
+        claimIds: [...new Set(claimIds)],
+        documentIds,
+        resultKeys: keysFor(documentIds),
+        props: {
+          drugs: drugs.map(drug => drug.inn),
+          labels: drugs.map(drug => drug.label),
+          columns: drugs.map(drug => drug.documentId ?? ""),
+          rows: COMPARISON_ROWS.map(row => row.id),
+          cells,
+          missing: drugs.filter(drug => !drug.documentId).map(drug => drug.label),
+          boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"),
+          mixedJurisdictions: new Set(docs.map(document => document.jurisdiction)).size > 1,
+        },
+      };
     }
     case "evidence": {
       // Every found publication stays; the physician's priority journals and sources go first.

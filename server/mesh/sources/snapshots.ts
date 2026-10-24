@@ -42,7 +42,7 @@ export const REGULATORY_DESCRIPTOR: SourceDescriptor = {
   connectorId: "regulatory-news",
   domains: ["regulatory", "drug"],
   specialties: ["cardiology"],
-  jobs: ["drug_reference", "reference_answer", "updates_digest"],
+  jobs: ["drug_reference", "drug_comparison", "reference_answer", "updates_digest"],
   provides: ["drug_safety_signal"],
   operations: ["safety_signals"],
   authority: "secondary",

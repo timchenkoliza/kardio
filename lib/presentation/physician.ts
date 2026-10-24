@@ -307,6 +307,8 @@ export function drugSectionGroup(heading: string | null | undefined): DrugSectio
   if (/показан|indication/.test(value)) return "indications";
   if (/дозир|способ применения|доз|dosage|administration/.test(value)) return "dosing";
   if (/взаимодейств|interaction/.test(value)) return "interactions";
+  // «Особые указания» are warnings, not «особые группы».
+  if (/особые указания/.test(value)) return "safety";
   if (/беремен|лактац|кормлен|дет|пожил|почеч|печен|особ|pregnan|lactation|pediatric|geriatric|population/.test(value)) return "populations";
   if (/предупрежд|мер[ыа] предосторож|побочн|нежелательн|передозир|рамке|warning|precaution|adverse|overdos|boxed|изменени/.test(value)) return "safety";
   return "other";

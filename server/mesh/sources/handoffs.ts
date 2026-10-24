@@ -35,7 +35,7 @@ export const GRLS_DESCRIPTOR: SourceDescriptor = {
   connectorId: "grls",
   domains: ["drug", "regulatory"],
   specialties: "all",
-  jobs: ["drug_reference", "inn_lookup", "reference_answer", "guideline_check"],
+  jobs: ["drug_reference", "drug_comparison", "inn_lookup", "reference_answer", "guideline_check"],
   provides: ["official_drug_registration"],
   operations: ["handoff"],
   authority: "official",

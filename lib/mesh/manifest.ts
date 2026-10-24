@@ -55,7 +55,7 @@ export const MODULE_POLICY: Record<ModuleFamily, ModuleFamilyPolicy> = {
   conflict: { implemented: true, requiresEvidence: true, maxPerManifest: 1, title: "Где источники расходятся" },
   drug_reference: { implemented: true, requiresEvidence: true, maxPerManifest: 2, title: "Инструкция по применению" },
   evidence: { implemented: true, requiresEvidence: true, maxPerManifest: 2, title: "Обзоры и рекомендации" },
-  comparison: { implemented: false, requiresEvidence: true, maxPerManifest: 1, title: "Сравнение" },
+  comparison: { implemented: true, requiresEvidence: true, maxPerManifest: 1, title: "Сравнение" },
   timeline: { implemented: false, requiresEvidence: true, maxPerManifest: 1, title: "Хронология" },
   sources: { implemented: true, requiresEvidence: false, maxPerManifest: 1, title: "Источники и их состояние" },
   event_list: { implemented: true, requiresEvidence: true, maxPerManifest: 1, title: "События" },
@@ -67,7 +67,7 @@ export const MODULE_POLICY: Record<ModuleFamily, ModuleFamilyPolicy> = {
   partner: { implemented: true, requiresEvidence: false, maxPerManifest: 1, title: "Партнёрский материал" },
 };
 
-export const REPRESENTATION_MODES = ["professional_answer", "drug_card", "guideline_delta", "evidence_comparison", "event_list", "learning_step", "source_list", "safe_answer"] as const;
+export const REPRESENTATION_MODES = ["professional_answer", "drug_card", "drug_comparison", "guideline_delta", "evidence_comparison", "event_list", "learning_step", "source_list", "safe_answer"] as const;
 export type RepresentationMode = (typeof REPRESENTATION_MODES)[number];
 
 export const ACTION_KINDS = ["open_source", "compare_versions", "investigate_deeper", "save", "follow_up", "verify_official"] as const;

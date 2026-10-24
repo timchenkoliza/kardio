@@ -56,6 +56,15 @@ const RULES: readonly Rule[] = [
   { job: "answer", weight: 2, patterns: [word("что такое"), word("как (?:лечить|диагностир|вести|отличить|оценить)"), word("каки(?:е|х) (?:критери|показани|противопоказани)"), word("сколько"), word("когда (?:назнача|начина|показан)"), word("можно ли"), word("показани"), word("критери"), word("норм[аыу](?![" + L + "])"), word("первой линии|первая линия"), word("тактика"), word("алгоритм"), word("дифференциальн"), word("длительност")] },
 ];
 
+/** «Сравни», «чем отличаются», «X или Y», «X vs Y». */
+const COMPARISON_CUE = re(`(?<![${L}])(?:сравн${L}*|отлича${L}*|отличи${L}*|разниц${L}*|vs|versus|против|или)(?![${L}])`);
+/** Outcome and study words: such a comparison is answered by evidence, not by the instructions. */
+const OUTCOME_CUE = re(`(?<![${L}])(?:исследован${L}*|эффективн${L}*|доказательн${L}*|доказательств${L}*|метаанализ${L}*|рки|исход${L}*|смертност${L}*|кровотечен${L}*|госпитализац${L}*|выживаемост${L}*|риск${L}*|снижени${L}*|частот${L}*|лучше)(?![${L}])`);
+
+export function comparesDrugsByLabel(normalized: string, clinicalEvents: ReturnType<typeof clinicalEventKind> = null): boolean {
+  return COMPARISON_CUE.test(normalized) && !OUTCOME_CUE.test(normalized) && clinicalEvents !== "outcome";
+}
+
 const PRIORITY: readonly PortalJob[] = ["materials", "events", "learning", "guidelines", "drug", "research", "updates", "answer"];
 
 const INTENT_FOR_JOB: Record<PortalJob, IntentKind> = {
@@ -100,8 +109,9 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
   const drugCue = hasDrugCue(text);
   if (drugs.length) add("drug", 3 + (drugCue ? 2 : 0), drugs.map(item => item.ru).join(", "));
   else if (drugCue) add("drug", 3, "вопрос о препарате");
-  // Comparing several drugs is an evidence question.
-  if (drugs.length >= 2 && scores.has("research")) add("research", 2, "сравнение препаратов");
+  // Several drugs side by side: by their instructions, unless the question is about outcomes or studies.
+  if (drugs.length >= 2 && comparesDrugsByLabel(value, clinicalEvents)) add("drug", 4, "сравнение препаратов по инструкциям");
+  else if (drugs.length >= 2 && scores.has("research")) add("research", 2, "сравнение препаратов");
   if (options.hasAttachment) add("materials", 3, "прикреплён файл");
   // A pasted PMID, DOI or PubMed link names one publication: that is a study review, whatever else the text says.
   const identifiers = studyIdentifiersIn(text);

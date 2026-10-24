@@ -128,7 +128,7 @@ export function experiencePolicy(manifest: ExperienceManifest, graph: EvidenceGr
     const visible = currentness && manifest.modules.some(entry => entry.claimIds.includes(currentness.id));
     if (currentness && !visible) out.push(finding("ExperiencePolicy", "EX-06-currentness-visible", "blocking", item.documentId, "Документ с просроченным пересмотром показан без отметки об актуальности", { kind: "show_currentness", detail: { document: item.documentId, claim: currentness.id }, changeCause: "experience_delta" }));
   }
-  for (const entry of manifest.modules.filter(item => item.family === "drug_reference")) {
+  for (const entry of manifest.modules.filter(item => item.family === "drug_reference" || item.family === "comparison")) {
     const foreign = entry.documentIds.some(id => graph.documents.find(document => document.id === id)?.jurisdiction === "US");
     if (foreign && entry.props.boundary !== true) out.push(finding("ExperiencePolicy", "EX-08-jurisdiction-boundary", "blocking", entry.id, "Инструкция другой страны без указания границы применимости", { kind: "add_disclosure", detail: { module: entry.id }, changeCause: "policy_delta" }));
   }

@@ -19,7 +19,7 @@ export const OPENFDA_DESCRIPTOR: SourceDescriptor = {
   connectorId: "openfda-labels",
   domains: ["drug"],
   specialties: "all",
-  jobs: ["drug_reference", "reference_answer", "guideline_check"],
+  jobs: ["drug_reference", "drug_comparison", "reference_answer", "guideline_check"],
   provides: ["drug_label"],
   operations: ["drug_label"],
   authority: "official",
@@ -71,6 +71,7 @@ export function createOpenfdaAdapter(): SourceAdapter {
     if (report.status === "UNAVAILABLE") return emptyResult(request, { sourceId: "openfda", outcome: "unavailable", status: "UNAVAILABLE", execution: "api", started, note: report.reason });
     const drug = request.intent.entities.drugs[0];
     if (!drug) return emptyResult(request, { sourceId: "openfda", outcome: "empty", status: report.status, execution: "api", started, note: "Препарат в запросе не распознан" });
+    if (request.intent.job.primary === "drug_comparison" && request.intent.entities.drugs.length > 1) return compareLabels(request, started, report);
     const result = await request.ctx.drugLabel(drug.inn);
     if (result.status !== "ok" || !result.label) {
       return emptyResult(request, { sourceId: "openfda", outcome: result.status === "not_found" ? "empty" : result.status === "unavailable" ? "unavailable" : "failed", status: report.status, execution: "api", started, errorCode: result.status === "ok" ? null : result.status, note: result.status === "not_found" ? `В базе FDA нет инструкции для «${drug.ru}»` : result.error });
@@ -81,6 +82,20 @@ export function createOpenfdaAdapter(): SourceAdapter {
     if (request.intent.safety.includes("pediatric_sections")) wanted.add("pediatric_use");
     const document = labelDocument(result.label, { inn: drug.inn, ru: drug.ru, retrievedAt: result.retrievedAt, nosologyId: nosologyById(request.intent.context.nosology?.id)?.id ?? null, sections: wanted });
     return { invocation: invocation(request, { sourceId: "openfda", outcome: "ok", status: report.status, execution: "api", started, documentIds: [document.id], urls: [result.label.apiUrl] }), documents: [document] };
+  }
+
+  /** US labels of every compared drug, read in parallel; a label FDA does not have is named, not invented. */
+  async function compareLabels(request: SourceRequest, started: number, report: SourceStatusReport): Promise<SourceResult> {
+    const drugs = request.intent.entities.drugs.slice(0, 4);
+    const wanted = new Set(["boxed_warning", "indications_and_usage", "contraindications", "warnings_and_cautions", "dosage_and_administration", "drug_interactions", "pregnancy", "pediatric_use"]);
+    const labels = await Promise.all(drugs.map(async drug => ({ drug, result: await request.ctx.drugLabel(drug.inn) })));
+    const documents = labels.filter(item => item.result.status === "ok" && item.result.label).map(item => labelDocument(item.result.label!, { inn: item.drug.inn, ru: item.drug.ru, retrievedAt: item.result.retrievedAt, nosologyId: nosologyById(request.intent.context.nosology?.id)?.id ?? null, sections: wanted }));
+    const missing = labels.filter(item => item.result.status !== "ok" || !item.result.label).map(item => item.drug.ru);
+    const failed = labels.every(item => item.result.status === "failed" || item.result.status === "unavailable");
+    return {
+      invocation: invocation(request, { sourceId: "openfda", outcome: documents.length ? "ok" : failed ? "failed" : "empty", status: report.status, execution: "api", started, note: missing.length ? `В базе FDA нет инструкций: ${missing.join(", ")}` : null, documentIds: documents.map(document => document.id), urls: labels.filter(item => item.result.label).map(item => item.result.label!.apiUrl) }),
+      documents,
+    };
   }
 
   return { ...OPENFDA_DESCRIPTOR, status, execute };

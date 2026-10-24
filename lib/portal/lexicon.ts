@@ -78,9 +78,12 @@ function stemRegex(stem: string): RegExp {
   return new RegExp(`(?<![\\p{L}])${escaped}`, "u");
 }
 
+/** A drug comparison takes two to four drugs; a fifth name is not read. */
+export const MAX_DRUGS_PER_REQUEST = 4;
+
 const DRUG_MATCHERS = DRUGS.map(entry => ({ entry, patterns: [...entry.stems.map(stemRegex), stemRegex(entry.inn.toLowerCase())] }));
 
-/** Drugs named in the text, in order of appearance, max 3. */
+/** Drugs named in the text, in order of appearance, max 4 (a comparison takes two to four). */
 export function drugsIn(text: string): DrugEntry[] {
   const value = normalizeQuery(text);
   const found: Array<{ entry: DrugEntry; at: number }> = [];
@@ -93,7 +96,7 @@ export function drugsIn(text: string): DrugEntry[] {
     if (at >= 0 && !found.some(item => item.entry.inn === entry.inn)) found.push({ entry, at });
   }
   // «инсулин гларгин» also matches the bare stem of other insulins only when written; keep the most specific.
-  return found.sort((a, b) => a.at - b.at).map(item => item.entry).slice(0, 3);
+  return found.sort((a, b) => a.at - b.at).map(item => item.entry).slice(0, MAX_DRUGS_PER_REQUEST);
 }
 
 export function hasDrugCue(text: string): boolean {

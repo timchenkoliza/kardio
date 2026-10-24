@@ -46,7 +46,7 @@ export const MEDI_DESCRIPTOR: SourceDescriptor = {
   connectorId: "medi",
   domains: ["drug", "inn", "disease", "guideline", "article"],
   specialties: "all",
-  jobs: ["drug_reference", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search", "reference_answer"],
+  jobs: ["drug_reference", "drug_comparison", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search", "reference_answer"],
   provides: ["russian_drug_reference", "product_listing", "russian_guideline", "professional_article"],
   operations: ["drug_reference", "inn_lookup", "disease_reference", "guideline_discovery", "professional_article_search"],
   authority: "professional",
@@ -349,6 +349,8 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
   const product: EntityRef = { id: `product:medi:${new URL(page.finalUrl).pathname.split("/").filter(Boolean).pop()}`, kind: "product", label: raw.title, codes: { inn: args.drug.inn, ...(raw.registration ? { registration: raw.registration } : {}) } };
   const wanted = new Set(["indications", "contraindications"]);
   if (args.job === "drug_reference") { wanted.add("dosing"); wanted.add("warnings"); wanted.add("caution"); }
+  // A comparison reads the same sections of every instruction, so that rows line up.
+  if (args.job === "drug_comparison") for (const section of ["dosing", "warnings", "caution", "pregnancy", "children", "interactions"]) wanted.add(section);
   if (args.safety.includes("pregnancy_sections")) wanted.add("pregnancy");
   if (args.safety.includes("pediatric_sections")) wanted.add("children");
   const doc: Pick<NormalizedDocument, "id" | "url" | "title" | "retrievedAt" | "publishedAt"> = { id, url: page.finalUrl, title: raw.title, retrievedAt: page.fetchedAt, publishedAt: args.listingDate };
@@ -364,7 +366,7 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
     const entityIds = [drugRef.id, ...nosologyIds.map(nosologyId => `nosology:${nosologyId}`)];
     claims.push(quoteClaim({ document: doc, chunk: indicationChunk, kind: "indication", quote, entityIds, covers: nosologyIds.flatMap(nosologyId => coverageOf(text, nosologyId)), verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
   }
-  const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", dosing: "dosing", pregnancy: "warning", children: "warning" };
+  const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", dosing: "dosing", pregnancy: "warning", children: "warning", interactions: "label_section" };
   raw.sections.forEach((section, index) => {
     if (section.id === "indications" || !wanted.has(section.id)) return;
     claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: excerpt(section.text, MAX_EXCERPT).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
@@ -460,6 +462,10 @@ export function rankProducts(items: readonly ListingItem[], drug: DrugEntry): Li
 
 /** Instruction pages tried per INN before giving up (patient leaflets are skipped, not read). */
 const MAX_INSTRUCTION_ATTEMPTS = 3;
+/** A comparison reads at most four instructions (lexicon MAX_DRUGS_PER_REQUEST). */
+const MAX_COMPARED_DRUGS = 4;
+/** Below this much time before the step deadline the next drug is not started. */
+const MIN_MS_PER_DRUG = 4000;
 
 /* ---------------------------------------------------------------- */
 /* Adapter                                                           */
@@ -515,6 +521,33 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     throw skipped ?? new SourceToolError("not_found", "no_instruction");
   }
 
+  /**
+   * Instructions of two to four drugs for a comparison. Drugs are read one after
+   * another (the site's politeness interval applies anyway); a drug is not started
+   * when too little time is left, and is reported as not read instead.
+   */
+  async function compareInstructions(request: SourceRequest, newTool: () => BrowserSourceTool): Promise<{ documents: NormalizedDocument[]; missing: string[]; tools: BrowserSourceTool[] }> {
+    const documents: NormalizedDocument[] = [];
+    const missing: string[] = [];
+    const tools: BrowserSourceTool[] = [];
+    for (const drug of request.intent.entities.drugs.slice(0, MAX_COMPARED_DRUGS)) {
+      if (request.deadlineAt && request.deadlineAt - Date.now() < MIN_MS_PER_DRUG) { missing.push(`${drug.ru} (не хватило времени)`); continue; }
+      const tool = newTool();
+      tools.push(tool);
+      try {
+        const found = await drugReference(tool, request, drug, true);
+        const instruction = found.find(document => document.kind === "drug_instruction");
+        if (instruction) documents.push(instruction);
+        else missing.push(drug.ru);
+      } catch (error) {
+        // A layout change is a source failure for everyone, not a missing drug.
+        if (isSourceToolError(error) && error.code === "layout_changed") throw error;
+        missing.push(drug.ru);
+      }
+    }
+    return { documents, missing, tools };
+  }
+
   async function guideline(tool: BrowserSourceTool, request: SourceRequest, definition: boolean): Promise<NormalizedDocument[]> {
     const nosology = nosologyById(request.intent.context.nosology?.id);
     if (!nosology) throw new SourceToolError("not_found", "nosology_not_recognised");
@@ -548,6 +581,17 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
     const tool = new BrowserSourceTool(site, driver, { fallbackDriver, deadlineAt: request.deadlineAt ?? null });
     try {
       let documents: NormalizedDocument[] = [];
+      if (request.operation === "drug_reference" && request.intent.job.primary === "drug_comparison" && request.intent.entities.drugs.length > 1) {
+        // Each drug is read with its own page budget; one missing instruction never hides the others.
+        const compared = await compareInstructions(request, () => new BrowserSourceTool(site, driver, { fallbackDriver, deadlineAt: request.deadlineAt ?? null }));
+        const visits = compared.tools.flatMap(item => item.provenance().visits);
+        const degraded = report.execution === "browser" && visits.some(visit => !visit.cached && visit.driver === "http");
+        const missing = compared.missing.length ? `Не прочитаны инструкции: ${compared.missing.join(", ")}` : null;
+        return {
+          invocation: invocation(request, { sourceId: "medi", outcome: compared.documents.length ? "ok" : "empty", status: report.status, execution: degraded ? "http" : report.execution, started, note: compared.documents.length ? missing : "Ни одной инструкции на МЕДИ РУ не нашлось", documentIds: compared.documents.map(document => document.id), urls: visits.map(visit => visit.url) }),
+          documents: compared.documents,
+        };
+      }
       if (request.operation === "inn_lookup" || request.operation === "drug_reference") {
         const drug = request.intent.entities.drugs[0];
         if (!drug) return emptyResult(request, { sourceId: "medi", outcome: "empty", status: report.status, execution: report.execution, started, note: "Препарат в запросе не распознан" });

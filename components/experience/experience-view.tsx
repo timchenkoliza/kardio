@@ -7,6 +7,7 @@ import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
+import { COMPARISON_ROWS } from "@/lib/mesh/compiler";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { CERTAINTY_LABEL, certaintyOf, DRUG_SECTION_ORDER, DRUG_SECTION_TITLE, drugSectionGroup, editorialVerification, isRussian, localizeItem, physicianSafe, type Certainty, type DrugSectionGroup } from "@/lib/presentation/physician";
@@ -41,6 +42,7 @@ function heading(entry: ManifestModule, job: PortalJob): string {
     case "recommendation_delta": return "Что изменилось · версии рекомендаций";
     case "conflict": return "Расхождения между источниками";
     case "drug_reference": return "Инструкция по применению";
+    case "comparison": return "Сравнение инструкций";
     case "evidence": return job === "guidelines" ? "Доказательства" : job === "drug" ? "Исследования и обзоры" : "Исследования";
     case "sources": return "Источники";
     default: return entry.title;
@@ -363,6 +365,91 @@ function DrugDocument({ entry, documentId, ctx }: { entry: ManifestModule; docum
   </article>;
 }
 
+const COMPARISON_ROW_LABEL = new Map(COMPARISON_ROWS.map(row => [row.id, row.label]));
+const CELL_PREVIEW = 260;
+const stringList = (value: unknown): string[] => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
+
+/** Dosage form named in a product title, to flag a comparison of different forms. */
+function dosageForm(title: string): string | null {
+  const value = title.toLocaleLowerCase("ru-RU");
+  const forms: Array<[RegExp, string]> = [[/таблет/u, "таблетки"], [/капсул/u, "капсулы"], [/раствор|инъекц|ампул/u, "раствор"], [/суспенз/u, "суспензия"], [/сироп/u, "сироп"], [/порош|гранул/u, "порошок"], [/спрей|аэрозол|ингал/u, "ингаляционная форма"], [/суппозит|свеч/u, "суппозитории"], [/мазь|крем|гель/u, "наружная форма"], [/tablet/u, "таблетки"], [/capsule/u, "капсулы"], [/injection|solution/u, "раствор"]];
+  return forms.find(([pattern]) => pattern.test(value))?.[1] ?? null;
+}
+
+function ComparisonCell({ claimIds, ctx }: { claimIds: readonly string[]; ctx: Ctx }) {
+  return <>{claimIds.map(claimId => {
+    const claim = ctx.index.claim.get(claimId);
+    if (!claim) return null;
+    if (claim.language !== "ru") return <div key={claimId} className="pt-compare-entry"><p className="pt-derived">{nbsp("Раздел инструкции FDA — на английском.")}</p><Original><p>{claim.statement}</p></Original></div>;
+    const long = claim.statement.length > CELL_PREVIEW;
+    return <div key={claimId} className="pt-compare-entry">
+      <p lang="ru">{nbsp(long ? `${claim.statement.slice(0, CELL_PREVIEW).replace(/\s+\S*$/u, "")}…` : claim.statement)}</p>
+      {long && <details className="pt-original"><summary>Полностью</summary><div className="pt-original-body"><p lang="ru">{nbsp(claim.statement)}</p></div></details>}
+    </div>;
+  })}</>;
+}
+
+/**
+ * Two to four drugs side by side: the same instruction sections in the same
+ * rows. Texts are quoted from the instructions; the table never ranks or
+ * recommends a drug, and an empty cell says what was not found.
+ */
+function Comparison({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
+  const labels = stringList(entry.props.labels);
+  const columns = stringList(entry.props.columns);
+  const rows = stringList(entry.props.rows);
+  const missing = stringList(entry.props.missing);
+  const cells = new Map<string, string[]>();
+  for (const cell of stringList(entry.props.cells)) {
+    const [row, column, ids] = cell.split("|");
+    cells.set(`${row}|${column}`, (ids ?? "").split(",").filter(Boolean));
+  }
+  const docs = columns.map(id => (id ? ctx.index.document.get(id) : undefined));
+  const forms = new Set(docs.map(document => (document ? dosageForm(document.title) : null)).filter((form): form is string => Boolean(form)));
+  const us = docs.some(document => document?.jurisdiction === "US");
+  const captionId = `cmp-${entry.id}`;
+  return <Section module={entry} ctx={ctx} className="pt-compare">
+    <p className="ws-muted">{nbsp("Одинаковые разделы инструкций рядом. Это сравнение текстов инструкций, а не эффективности: продукт не выбирает препарат, решение — за врачом.")}</p>
+    {forms.size > 1 && <p className="pt-boundary" data-forms="differ"><ShieldAlert size={14} aria-hidden="true" />{nbsp(`Сравниваются разные лекарственные формы (${[...forms].join(", ")}): дозы и ограничения у форм различаются — сверяйте форму и дозировку.`)}</p>}
+    {us && <p className="pt-boundary"><ShieldAlert size={14} aria-hidden="true" />{nbsp("Часть инструкций — утверждённые в США (FDA). Показания, дозы и ограничения в России определяет инструкция из ГРЛС.")}</p>}
+    {missing.length > 0 && <p className="ws-muted" data-missing="true">{nbsp(`Инструкция не найдена: ${missing.join(", ")}. Проверьте в ГРЛС — пустая колонка не означает отсутствия ограничений.`)}</p>}
+    <div className="pt-compare-scroll" role="region" aria-labelledby={captionId} tabIndex={0}>
+      <table className="pt-compare-table" data-columns={labels.length}>
+        <caption id={captionId} className="sr-only">{`Сравнение инструкций: ${labels.join(", ")}`}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Раздел инструкции</th>
+            {labels.map((label, column) => {
+              const document = docs[column];
+              return <th scope="col" key={label}>
+                <span className="pt-compare-drug">{label}</span>
+                <span className="pt-compare-doc">{document ? nbsp(`${document.title} · ${sourceName(document)}`) : "инструкция не найдена"}</span>
+              </th>;
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => <tr key={row}>
+            <th scope="row">{COMPARISON_ROW_LABEL.get(row) ?? row}</th>
+            {labels.map((label, column) => {
+              const ids = cells.get(`${row}|${column}`) ?? [];
+              return <td key={label} data-label={label}>
+                {docs[column]
+                  ? ids.length ? <ComparisonCell claimIds={ids} ctx={ctx} /> : <p className="ws-muted">{nbsp("В прочитанной части инструкции раздела нет — откройте полный текст.")}</p>
+                  : <p className="ws-muted">Нет данных</p>}
+              </td>;
+            })}
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+    <div className="pt-card-actions">
+      {docs.map((document, column) => document && <TrackedLink key={document.id} className="ws-button is-small" href={document.url} external events={["source_opened"]} resultId={ctx.resultFor(document.id, entry)?.id} resultKind={ctx.resultFor(document.id, entry)?.kind}>{`Инструкция: ${labels[column]}`}<ExternalLink size={13} aria-hidden="true" /></TrackedLink>)}
+      <TrackedLink className="ws-button is-small" href="https://grls.rosminzdrav.ru/" external events={["source_opened"]}>Проверить в ГРЛС<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
+    </div>
+  </Section>;
+}
+
 function DrugReference({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
   return <>{entry.documentIds.map(documentId => <DrugDocument key={documentId} entry={entry} documentId={documentId} ctx={ctx} />)}</>;
 }
@@ -462,6 +549,7 @@ const RENDERERS: Partial<Record<ModuleFamily, (props: { module: ManifestModule; 
   recommendation_delta: RecommendationDelta,
   conflict: Conflicts,
   drug_reference: DrugReference,
+  comparison: Comparison,
   evidence: Evidence,
   sources: Sources,
   handoff: Handoff,

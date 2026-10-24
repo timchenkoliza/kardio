@@ -57,6 +57,8 @@ function chooseJobType(family: PortalJob, text: string, args: { drugs: number; n
       return { job: "reference_answer", reason: null };
     case "drug":
       if (INN_LOOKUP.test(value)) return { job: "inn_lookup", reason: "нужны препараты с этим действующим веществом" };
+      // Two or more drugs in a drug question are compared section by section.
+      if (args.drugs >= 2) return { job: "drug_comparison", reason: "сравнение препаратов по инструкциям" };
       return { job: "drug_reference", reason: null };
     case "guidelines":
       if (args.drugs) return { job: "guideline_check", reason: "препарат в контексте рекомендаций" };
@@ -66,6 +68,11 @@ function chooseJobType(family: PortalJob, text: string, args: { drugs: number; n
       return { job: DEFAULT_JOB_FOR_FAMILY[family], reason: null };
   }
 }
+
+/** Module order for a job without a domain scenario, when it differs from the default. */
+const JOB_MODULES: Partial<Record<JobType, ModuleFamily[]>> = {
+  drug_comparison: ["key_takeaway", "comparison", "drug_reference", "evidence", "sources", "handoff", "next_actions"],
+};
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
@@ -135,7 +142,7 @@ export function compileIntent(text: string, specialty: SpecialtyId, options: { j
     requirements: unique(requirements),
     optional: unique(optional).filter(item => !requirements.includes(item)),
     safety,
-    modules: [...(scenario?.modules ?? ["key_takeaway", "evidence", "sources", "next_actions"])],
+    modules: [...(scenario?.modules ?? JOB_MODULES[job] ?? ["key_takeaway", "evidence", "sources", "next_actions"])],
     vague: route.vague && !domain.nosology,
     route,
   };

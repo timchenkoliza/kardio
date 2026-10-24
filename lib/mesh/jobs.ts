@@ -16,6 +16,7 @@ import type { PortalJob } from "@/lib/portal/jobs";
 export type JobType =
   | "reference_answer"
   | "drug_reference"
+  | "drug_comparison"
   | "inn_lookup"
   | "disease_reference"
   | "guideline_check"
@@ -28,7 +29,7 @@ export type JobType =
   | "materials_search";
 
 export const JOB_TYPES: readonly JobType[] = [
-  "reference_answer", "drug_reference", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery",
+  "reference_answer", "drug_reference", "drug_comparison", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery",
   "professional_article_search", "evidence_review", "event_search", "learning_next_step", "updates_digest", "materials_search",
 ];
 
@@ -89,6 +90,8 @@ export interface JobDefinition {
 export const JOB_DEFINITIONS: Record<JobType, JobDefinition> = {
   reference_answer: { id: "reference_answer", family: "answer", requirements: ["current_research"], optional: ["russian_guideline", "russian_drug_reference", "drug_label", "drug_safety_signal"] },
   drug_reference: { id: "drug_reference", family: "drug", requirements: ["russian_drug_reference"], optional: ["drug_label", "drug_safety_signal", "official_drug_registration", "current_research"] },
+  // Two to four drugs side by side: the instruction of each, the same sections in the same order.
+  drug_comparison: { id: "drug_comparison", family: "drug", requirements: ["russian_drug_reference"], optional: ["drug_label", "drug_safety_signal", "official_drug_registration", "current_research"] },
   inn_lookup: { id: "inn_lookup", family: "drug", requirements: ["product_listing"], optional: ["official_drug_registration"] },
   disease_reference: { id: "disease_reference", family: "answer", requirements: ["russian_guideline"], optional: ["current_research", "official_guideline_status"] },
   guideline_check: { id: "guideline_check", family: "guidelines", requirements: ["russian_guideline", "current_research"], optional: ["official_guideline_status", "russian_drug_reference", "specialty_society_guideline", "international_guideline"] },
