@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Bell, BellRing, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import { ArrowRight, Bell, BellRing, Bookmark, BookmarkCheck, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 
@@ -67,4 +67,21 @@ export function WatchDrugButton({ inn, label, watched: initiallyWatched, from }:
     setBusy(false);
     if (response) setWatched(!watched);
   }}>{watched ? <BellRing size={14} aria-hidden="true" /> : <Bell size={14} aria-hidden="true" />}{watched ? `Слежу: ${label}` : `Следить: ${label}`}</button>;
+}
+
+/**
+ * «Интересно / Не то» on a «Для вас» card (D1): the verdict is remembered as the material's signals
+ * (journal, kind of study, topic) and reorders the next selections; «Не то» also hides this card.
+ */
+export function FeedVerdictButtons({ resultId }: { resultId: string }) {
+  const { command } = useWorkspace();
+  const [verdict, setVerdict] = useState<"interesting" | "not_relevant" | null>(null);
+  const send = async (next: "interesting" | "not_relevant") => {
+    const response = await command({ action: "feedResult", resultId, verdict: next }, { refresh: next === "not_relevant" });
+    if (response) setVerdict(next);
+  };
+  return <span className="pt-verdict" role="group" aria-label="Насколько это вам подходит">
+    <button type="button" className="ws-button is-small is-quiet" aria-pressed={verdict === "interesting"} disabled={verdict !== null} onClick={() => void send("interesting")}><ThumbsUp size={14} aria-hidden="true" />Интересно</button>
+    <button type="button" className="ws-button is-small is-quiet" aria-pressed={verdict === "not_relevant"} disabled={verdict !== null} onClick={() => void send("not_relevant")}><ThumbsDown size={14} aria-hidden="true" />Не то</button>
+  </span>;
 }

@@ -32,6 +32,9 @@ export const PORTAL_EVENT_NAMES = [
   "topic_signal_added",
   "answer_mode_set",
   "recommendation_reason_shown",
+  // «интересно / не то» on «Для вас» (counts; the verdict is stored as signals in the profile).
+  "feed_interesting",
+  "feed_not_relevant",
   // Return
   "return_session",
   "repeat_job",

@@ -1,6 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { AGENT_DEFINITIONS, AGENT_ORDER } from "./definitions";
 import { DEFAULT_ANSWER_MODE, isAnswerMode } from "@/lib/portal/answer-mode";
+import { normalizeFeedback } from "@/lib/feed/feedback";
 import { NMO_ENTRY_LIMIT, WATCHLIST_LIMIT, type AgentId, type NmoEntry, type NmoPlan, type AgentPreference, type AgentResult, type AgentResultView, type AgentSubscription, type ProfileIdentity, type UserProfile, type WatchedDrug } from "./types";
 import { FREQUENCY_OPTIONS } from "./vocabulary";
 
@@ -32,6 +33,7 @@ export function defaultProfile(specialty: SpecialtyId, now = new Date().toISOStr
     firstValueAt: null,
     watchlist: [],
     nmoPlan: { target: null, entries: [] },
+    feedback: { signals: {} },
     backgroundPaused: false,
     updatedAt: now,
   };
@@ -102,6 +104,7 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     firstValueAt: typeof value.firstValueAt === "string" ? value.firstValueAt : null,
     watchlist: normalizeWatchlist(value.watchlist),
     nmoPlan: normalizeNmoPlan(value.nmoPlan),
+    feedback: normalizeFeedback(value.feedback),
     backgroundPaused: value.backgroundPaused === true,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
   };

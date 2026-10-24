@@ -380,6 +380,8 @@ export interface UserProfile {
   /** «Мои препараты»: drugs followed for safety and regulatory changes (≤ WATCHLIST_LIMIT). */
   watchlist: WatchedDrug[];
   nmoPlan: NmoPlan;
+  /** «интересно / не то» on «Для вас» (lib/feed/feedback.ts): signals, never texts. */
+  feedback: { signals: Record<string, number> };
   /** The physician paused background checks outside the open tab. */
   backgroundPaused: boolean;
   updatedAt: string;

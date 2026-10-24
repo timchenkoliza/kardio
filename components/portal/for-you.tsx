@@ -7,7 +7,7 @@ import type { ClientPortalEvent } from "@/lib/portal/metrics";
 import { russianPublicationDate } from "@/lib/presentation/physician";
 import { nbsp } from "@/lib/ui/typography";
 import { FeedArt } from "@/components/workspace/feed-art";
-import { SaveResultButton } from "./result-actions";
+import { FeedVerdictButtons, SaveResultButton } from "./result-actions";
 import { SaveLinkButton } from "./save-link-button";
 import { TrackedLink } from "./tracked-link";
 
@@ -88,6 +88,7 @@ function Card({ card, lead, showWhy }: { card: ForYouCard; lead: boolean; showWh
       {(card.source.url || card.resultId || card.next) && <div className="pt-card-actions">
         {card.next && <TrackedLink className="ws-button is-small is-quiet" href={card.next.href} events={card.kind === "learning" ? ["learning_recommendation_opened"] : []}>{card.next.label}</TrackedLink>}
         {card.resultId ? <SaveResultButton resultId={card.resultId} saved={false} /> : card.source.url ? <SaveLinkButton url={card.source.url} title={card.title} saved={false} /> : null}
+        {card.resultId && !card.showcase && <FeedVerdictButtons resultId={card.resultId} />}
         {card.source.url && <SourceLink url={card.source.url} />}
       </div>}
     </div>

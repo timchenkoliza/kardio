@@ -1,3 +1,4 @@
+import { preferenceFor } from "@/lib/feed/feedback";
 import { DRUG_CHANGE_LABEL, formatDateRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { AgentId, AgentResult, AgentRun, DrugChangeType, Material, UserProfile } from "@/lib/agents/types";
@@ -316,9 +317,15 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
   // New first, then the freshest; events keep their own slot below.
   // One set per page: a later card about the same subject takes another approved derivative, its art, or none.
   const used = new Set<string>();
+  // «интересно / не то» reorders within «new» and «earlier»; it never hides what a check found (D1).
+  const preference = (result: AgentResult) => preferenceFor(profile.feedback, result);
   const updates = unique.filter(result => result.kind !== "event")
-    .sort((a, b) => Number(isNew(b)) - Number(isNew(a)) || (b.observedAt ?? "").localeCompare(a.observedAt ?? "") || a.rank - b.rank)
-    .map(result => resultCard(result, specialty, isNew(result), { used }));
+    .sort((a, b) => Number(isNew(b)) - Number(isNew(a)) || preference(b).score - preference(a).score || (b.observedAt ?? "").localeCompare(a.observedAt ?? "") || a.rank - b.rank)
+    .map(result => {
+      const card = resultCard(result, specialty, isNew(result), { used });
+      const because = preference(result).because;
+      return because ? { ...card, whyShown: `${card.whyShown} · ${because}` } : card;
+    });
   const events = unique.filter(result => result.kind === "event")
     .sort((a, b) => String(a.attributes.startDate ?? "").localeCompare(String(b.attributes.startDate ?? "")))
     .slice(0, 1)

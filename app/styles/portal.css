@@ -340,3 +340,6 @@
 @media (min-width: 768px) {
   .pt-nmo-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* «Интересно / Не то» on «Для вас» cards. */
+.pt-verdict { display: inline-flex; flex-wrap: wrap; gap: var(--ws-space-4); }

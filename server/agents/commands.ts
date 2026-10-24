@@ -5,6 +5,7 @@ import { DRUGS } from "@/lib/portal/lexicon";
 import { normalizeNmoPlan } from "@/lib/agents/profile";
 import { NMO_ENTRY_LIMIT } from "@/lib/agents/types";
 import { stableId } from "@/lib/agents/text";
+import { applyVerdict, signalsOf } from "@/lib/feed/feedback";
 import { fragmentSearchTerms, MAX_FRAGMENT_CHARS } from "@/lib/materials/fragments";
 import { buildSharedSnapshot, newShareToken, SHARE_BLOCKER_COPY, SHARE_TOKEN, SHARE_TTL_DAYS, shareBlocker, sharePath } from "@/lib/sharing/snapshot";
 import type { ShareLinkView, SharedSnapshot } from "@/lib/sharing/types";
@@ -91,6 +92,8 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("watchDrug"), specialty, inn: z.string().refine(value => DRUGS.some(drug => drug.inn === value), "Unknown drug"), from: z.enum(["drug_result", "comparison", "settings"]) }).strict(),
   z.object({ action: z.literal("unwatchDrug"), specialty, inn: z.string().min(2).max(80) }).strict(),
   z.object({ action: z.literal("setBackgroundPaused"), specialty, paused: z.boolean() }).strict(),
+  // «интересно / не то» on a «Для вас» card: remembered as the material's signals; «не то» also hides it.
+  z.object({ action: z.literal("feedResult"), specialty, resultId, verdict: z.enum(["interesting", "not_relevant"]) }).strict(),
   // «Личный план НМО»: the physician's own record; credits only as the physician entered them.
   z.object({ action: z.literal("nmoAdd"), specialty, title: z.string().trim().min(3).max(200), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u), credits: z.number().min(0).max(500).nullable(), kind: z.enum(["event", "course", "other"]), from: z.enum(["manual", "event"]).default("manual"), url: z.string().url().max(500).nullable().default(null) }).strict(),
   z.object({ action: z.literal("nmoRemove"), specialty, id: z.string().min(1).max(64) }).strict(),
@@ -402,6 +405,15 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       await saveProfile(sessionId, profile);
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
       return { ok: true, profileChanged: true };
+    }
+    case "feedResult": {
+      const result = await resultFor(sessionId, specialtyId, command.resultId);
+      const profile = await loadProfile(sessionId, specialtyId);
+      profile.feedback = applyVerdict(profile.feedback, signalsOf(result), command.verdict);
+      await saveProfile(sessionId, profile);
+      if (command.verdict === "not_relevant") await store.upsertResults(sessionId, [{ ...result, dismissed: true }]);
+      await recordPortalEvent(sessionId, command.verdict === "interesting" ? "feed_interesting" : "feed_not_relevant", { specialty: specialtyId, resultId: result.id, resultKind: result.kind });
+      return { ok: true, profileChanged: true, notices: [command.verdict === "interesting" ? "Учтём: похожие материалы будут выше в «Для вас»." : "Скрыто. Похожие материалы будут ниже в «Для вас»."] };
     }
     case "nmoAdd": {
       const profile = await loadProfile(sessionId, specialtyId);
