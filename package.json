@@ -27,6 +27,7 @@
     "db:verify": "tsx scripts/verify-db.ts",
     "agents:metrics": "tsx scripts/agent-metrics.ts",
     "portal:metrics": "tsx scripts/portal-metrics.ts",
+    "capabilities:matrix": "tsx scripts/capability-matrix.ts",
     "data:validate": "tsx scripts/validate-content.ts",
     "media:publish": "tsx scripts/publish-media-derivatives.ts",
     "ontology:validate": "tsx scripts/validate-ontology.ts",
