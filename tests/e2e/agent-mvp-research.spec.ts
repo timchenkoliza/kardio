@@ -85,6 +85,8 @@ test("R1 A-7: «Повторить с другими источниками» sh
   // «Назад» returns to the result it came from, not to the home page.
   const back = page.locator('.ws-back[data-back="result"]');
   await expect(back).toHaveText("К результату");
+  // R1 A round 2 №8: the way back stays on the first screen too.
+  await expect(back).toBeInViewport();
   await expect(back).toHaveAttribute("href", `/cardiology/ask?run=${runId}`);
   await back.click();
   await expect(page).toHaveURL(new RegExp(`/cardiology/ask\\?run=${runId}$`, "u"));

@@ -183,7 +183,7 @@ describe("C-3: a dose asked for a described patient", () => {
     const driver = new FixtureDriver();
     const registry = createSourceRegistry({ browserDriver: driver, site: { minIntervalMs: 0 } });
     const intent = compileIntent(text, "cardiology");
-    const ctx = await testContext({ agentId: "reference", topics: [], specialty: "cardiology", text, job: "drugs", pubmed: fakePubmed([HFPEF_REVIEW]), abstracts: fakeAbstracts([HFPEF_ABSTRACT]) });
+    const ctx = await testContext({ agentId: "reference", topics: [], specialty: "cardiology", text, job: "drug", pubmed: fakePubmed([HFPEF_REVIEW]), abstracts: fakeAbstracts([HFPEF_ABSTRACT]) });
     const statuses = await registryStatuses(registry);
     const plan = planSources({ intent, sources: descriptors(registry), statuses });
     const execution = await executePlan({ plan, intent, registry, ctx, sessionId: "r1-dose" });
@@ -204,7 +204,7 @@ describe("C-5: a guideline question about a drug no guideline speaks of", () => 
     // The fixtures hold the reviewer's case: КР 2016 «no specific treatment» for ХСН-сФВ, an ESC summary on SGLT2
     // started in hospital (decompensated HF, not HFpEF) and the HFpEF definition — no position on the drug for HFpEF.
     const { graph, registry, intent } = await acceptanceGraph();
-    expect(graph.gaps.join(" | ")).toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин» при /u);
+    expect(graph.gaps.join(" | ")).toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин» \(хроническая сердечная недостаточность с сохранённой фракцией выброса\) в показанных источниках нет/u);
     const output = compileExperience({ graph, user: { signals: ["specialty"], topics: [] }, modules: intent.modules, policy: { descriptors: descriptors(registry) }, scenario: intent.context.scenario, resultKeys: {} });
     const html = view(runOf("Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?"), { intentId: "i", manifest: output.manifest, graph, plan: { id: "p", steps: 1, invocations: 1, reused: false } });
     expect(html.match(/data-module="key_takeaway"[\s\S]*?<\/section>/u)?.[0] ?? "").toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин»/u);
