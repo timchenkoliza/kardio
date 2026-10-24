@@ -42,6 +42,8 @@ const preferencePatch = z.object({
 
 export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("setInterests"), specialty, topics: z.array(topic).max(16), trustedSources: z.array(sourceId).max(12), excludedSources: z.array(sourceId).max(12), runAgents: z.boolean().optional() }).strict(),
+  // One topic added from a page (the home nudge): source preferences are never sent back from a page that may be stale.
+  z.object({ action: z.literal("addTopic"), specialty, topic, runAgents: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("configureAgent"), specialty, agentId, preference: preferencePatch, run: z.boolean().optional() }).strict(),
   z.object({ action: z.literal("setAgentEnabled"), specialty, agentId, enabled: z.boolean() }).strict(),
   z.object({ action: z.literal("runAgent"), specialty, agentId, text: freeText.optional() }).strict(),
@@ -129,6 +131,21 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
   if (RUN_COMMANDS.has(command.action) && durableRunStoreMissing()) throw new HttpError(503, STORAGE_UNAVAILABLE, "storage_unavailable");
 
   switch (command.action) {
+    case "addTopic": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      const [topicId] = filterTopics(specialtyId, [command.topic]);
+      if (!topicId) throw new HttpError(400, "Такой темы нет в этой специальности.");
+      if (profile.interests.topics.includes(topicId)) return { ok: true, profileChanged: false };
+      // Only the topic list changes; trusted and excluded sources stay exactly as stored.
+      profile.interests = { ...profile.interests, topics: [...profile.interests.topics, topicId].slice(0, 16) };
+      profile.configuredAt ??= now;
+      profile.topicsChangedAt = now;
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: profile.interests.topics.length });
+      await recordPortalEvent(sessionId, "topic_signal_added", { specialty: specialtyId, signal: topicId });
+      const ran = command.runAgents ? (await catchUpAll(sessionId, specialtyId)) : [];
+      return { ok: true, profileChanged: true, ran };
+    }
     case "setInterests": {
       const profile = await loadProfile(sessionId, specialtyId);
       profile.interests = {
