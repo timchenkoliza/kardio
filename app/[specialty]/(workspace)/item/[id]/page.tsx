@@ -6,6 +6,7 @@ import { isSpecialty, specialties } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
 import { CardMediaView, dateLabel, renderableMedia, TrustBadge } from "@/components/portal/for-you";
 import { SaveResultButton } from "@/components/portal/result-actions";
+import { ShareResultButton } from "@/components/portal/share-result";
 import { ScenarioButtons } from "@/components/portal/scenario-buttons";
 import { TrackedLink } from "@/components/portal/tracked-link";
 import { pageSession } from "@/server/agents/page-session";
@@ -57,6 +58,7 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
         <p className="pt-card-source"><span className="pt-card-publisher">{card.source.name}</span><TrustBadge trust={card.trust} />{!card.showcase && card.source.freshness && <span className="pt-card-fresh">{card.source.freshness}</span>}</p>
         <div className="pt-card-actions">
           {card.resultId && <SaveResultButton resultId={card.resultId} saved={saved} />}
+          {card.resultId && !card.partner && <ShareResultButton resultId={card.resultId} />}
           {card.source.url && <TrackedLink className="ws-button is-small" href={card.source.url} external events={["source_opened"]}>Открыть первоисточник<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
         </div>
       </header>

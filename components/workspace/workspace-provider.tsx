@@ -19,6 +19,7 @@ export interface CommandResponse {
   clarification?: import("@/lib/mesh/skills/types").ClarificationManifest;
   plan?: import("@/lib/mesh/skills/types").PlanPreview;
   refined?: { applied: boolean; message: string | null; manifestVersion: number; retrieval: boolean };
+  share?: { snapshot: import("@/lib/sharing/types").SharedSnapshot | null; blocker: string | null; link: import("@/lib/sharing/types").ShareLinkView | null };
 }
 
 interface WorkspaceContextValue {

@@ -15,6 +15,7 @@ import { CERTAINTY_LABEL, certaintyOf, DRUG_SECTION_ORDER, DRUG_SECTION_TITLE, d
 import { nbsp } from "@/lib/ui/typography";
 import { StateBadge } from "@/components/portal/for-you";
 import { FollowupJobButton, ResetViewButton, SaveResultButton, WatchDrugButton } from "@/components/portal/result-actions";
+import { ShareResultButton } from "@/components/portal/share-result";
 import { TrackedLink } from "@/components/portal/tracked-link";
 
 /**
@@ -217,6 +218,11 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
   </section>;
 }
 
+/** Own files and partner material never leave the workspace; the server checks the rest again. */
+function shareable(result: AgentResultView): boolean {
+  return !result.partner && result.agentId !== "materials" && result.source.ownership !== "USER_UPLOADED";
+}
+
 function DocumentActions({ document, result, label }: { document: GraphDocument; result: AgentResultView | null; label?: string }) {
   const internal = typeof document.attributes.internalHref === "string" ? document.attributes.internalHref : null;
   return <div className="pt-card-actions">
@@ -224,6 +230,7 @@ function DocumentActions({ document, result, label }: { document: GraphDocument;
       ? <TrackedLink className="ws-button is-small" href={internal} events={["source_opened"]} resultId={result?.id} resultKind={result?.kind}>Открыть</TrackedLink>
       : <TrackedLink className="ws-button is-small" href={document.url} external events={["source_opened"]} resultId={result?.id} resultKind={result?.kind}>{label ?? "Открыть первоисточник"}<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
     {result && <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />}
+    {result && shareable(result) && <ShareResultButton resultId={result.id} />}
   </div>;
 }
 
@@ -371,6 +378,7 @@ function DrugDocument({ entry, documentId, ctx }: { entry: ManifestModule; docum
       <TrackedLink className="ws-button is-small" href={document.url} external events={["source_opened"]} resultId={result?.id} resultKind={result?.kind}>{us ? "Инструкция на DailyMed" : "Инструкция на МЕДИ РУ"}<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
       <TrackedLink className="ws-button is-small" href="https://grls.rosminzdrav.ru/" external events={["source_opened"]}>Проверить в ГРЛС<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
       {result && <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />}
+      {result && shareable(result) && <ShareResultButton resultId={result.id} />}
       {ctx.watchlist && watchableInn(document) && <WatchDrugButton inn={watchableInn(document)!.inn} label={watchableInn(document)!.label} watched={ctx.watchlist.has(watchableInn(document)!.inn)} from="drug_result" />}
     </div>
   </article>;

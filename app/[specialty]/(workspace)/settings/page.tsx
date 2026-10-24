@@ -5,6 +5,9 @@ import { ModeBadge } from "@/components/workspace/mode-badge";
 import { AnswerModeCard, IdentityCard, InterestsEditor, SpecialtyCard } from "@/components/workspace/profile-settings";
 import { PartnerToggle, ResetSeenButton } from "@/components/workspace/settings-controls";
 import { BackgroundChecksToggle, WatchlistEditor } from "@/components/workspace/watchlist-settings";
+import { ShareLinksList } from "@/components/portal/share-result";
+import { shareLinkView } from "@/server/agents/commands";
+import { shareStore, sharingAvailable } from "@/server/sharing/store";
 import { DRUGS } from "@/lib/portal/lexicon";
 import { scheduleStatus } from "@/server/agents/scheduler";
 import { formatDateRu } from "@/lib/agents/format";
@@ -55,6 +58,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
   // Background checks run only with durable storage and a configured scheduler; otherwise they catch up on visit.
   const schedulerConfigured = storage === "postgres" && Boolean(process.env.CRON_SECRET?.trim());
   const schedule = schedulerConfigured && sessionId ? await scheduleStatus(sessionId, specialty).catch(() => null) : null;
+  const sharing = sharingAvailable();
+  const shareLinks = sharing && sessionId ? await shareStore().list(sessionId, specialty).then(records => records.map(shareLinkView)).catch(() => []) : [];
   const backgroundLine = !schedulerConfigured
     ? (storage === "memory" ? "Фоновые проверки выключены: постоянное хранилище не подключено. Агенты обновляют подборку, когда вы открываете портал." : "Расписание сервера не настроено. Агенты обновляют подборку, когда вы открываете портал.")
     : profile.backgroundPaused ? "Фоновые проверки на паузе."
@@ -97,6 +102,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <BackgroundChecksToggle paused={profile.backgroundPaused} available={schedulerConfigured} />
           <p className="ws-muted" data-background={schedulerConfigured ? (profile.backgroundPaused ? "paused" : "on") : "visit_only"}>{nbsp(backgroundLine)}</p>
           {schedule?.lastError && !profile.backgroundPaused && <p className="ws-muted">{nbsp(`Последняя проверка завершилась не полностью: ${schedule.lastError}. Повторим автоматически.`)}</p>}
+        </section>
+
+        <section className="pt-profile-card" id="shared" aria-labelledby="ws-shared-title">
+          <h2 id="ws-shared-title">{nbsp("Ссылки, которыми я поделился")}</h2>
+          {sharing
+            ? <ShareLinksList links={shareLinks} now={new Date().toISOString()} />
+            : <p className="ws-muted">{nbsp("Ссылки недоступны: постоянное хранилище не подключено, и ссылка не открылась бы на другом устройстве.")}</p>}
+          <p className="ws-muted">{nbsp("По ссылке открывается копия материала на момент, когда вы им поделились: заголовок, краткий текст и источники. Ваши файлы, заметки и партнёрские материалы по ссылке не публикуются.")}</p>
         </section>
 
         <section className="pt-profile-card" id="partner" aria-labelledby="ws-partner-settings">

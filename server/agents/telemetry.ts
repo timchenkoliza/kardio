@@ -17,6 +17,10 @@ export const AGENT_EVENT_NAMES = [
   "file_uploaded",
   "action_started",
   "action_completed",
+  // Sharing: counts only — never the text of what was shared or who opened it.
+  "share_created",
+  "share_opened",
+  "share_revoked",
 ] as const;
 export type AgentEventName = (typeof AGENT_EVENT_NAMES)[number];
 

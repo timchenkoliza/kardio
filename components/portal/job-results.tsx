@@ -11,6 +11,7 @@ import { ResearchAnswerView, ResearchMore } from "@/components/workspace/researc
 import { ResultList } from "@/components/workspace/result-card";
 import { StateBadge } from "./for-you";
 import { FollowupJobButton, SaveResultButton } from "./result-actions";
+import { ShareResultButton } from "./share-result";
 import { TrackedLink } from "./tracked-link";
 
 /**
@@ -47,6 +48,7 @@ function AnswerItem({ result }: { result: AgentResultView }) {
     <div className="pt-card-actions">
       {source?.href && <TrackedLink className="ws-button is-small" href={source.href} external events={["source_opened"]} resultId={result.id} resultKind={result.kind}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
       <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />
+      {!result.partner && <ShareResultButton resultId={result.id} />}
     </div>
   </li>;
 }
@@ -78,6 +80,7 @@ function DrugLabelBlock({ result }: { result: AgentResultView }) {
       {dailyMed?.href && <TrackedLink className="ws-button is-small" href={dailyMed.href} external events={["source_opened"]} resultId={result.id} resultKind={result.kind}>Инструкция на DailyMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
       {grls?.href && <TrackedLink className="ws-button is-small" href={grls.href} external events={["source_opened"]} resultId={result.id} resultKind={result.kind}>Проверить в ГРЛС<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
       <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />
+      {!result.partner && <ShareResultButton resultId={result.id} />}
     </div>
   </article>;
 }

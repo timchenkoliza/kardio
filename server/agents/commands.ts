@@ -2,6 +2,9 @@ import { z } from "zod";
 import { countLabel } from "@/lib/agents/format";
 import { AGENT_IDS, WATCHLIST_LIMIT, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
 import { DRUGS } from "@/lib/portal/lexicon";
+import { buildSharedSnapshot, newShareToken, SHARE_BLOCKER_COPY, SHARE_TOKEN, SHARE_TTL_DAYS, shareBlocker, sharePath } from "@/lib/sharing/snapshot";
+import type { ShareLinkView, SharedSnapshot } from "@/lib/sharing/types";
+import { shareStore, sharingAvailable, type ShareRecord } from "@/server/sharing/store";
 import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, GOAL_OPTIONS, SOURCE_OPTIONS, TOPICS } from "@/lib/agents/vocabulary";
 import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
@@ -80,6 +83,10 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("watchDrug"), specialty, inn: z.string().refine(value => DRUGS.some(drug => drug.inn === value), "Unknown drug"), from: z.enum(["drug_result", "comparison", "settings"]) }).strict(),
   z.object({ action: z.literal("unwatchDrug"), specialty, inn: z.string().min(2).max(80) }).strict(),
   z.object({ action: z.literal("setBackgroundPaused"), specialty, paused: z.boolean() }).strict(),
+  // Sharing a result: preview first (what the recipient will see, or why it cannot be shared), then an explicit create.
+  z.object({ action: z.literal("previewShare"), specialty, resultId }).strict(),
+  z.object({ action: z.literal("createShare"), specialty, resultId }).strict(),
+  z.object({ action: z.literal("revokeShare"), specialty, token: z.string().regex(SHARE_TOKEN) }).strict(),
   z.object({ action: z.literal("learningProgress"), specialty, resultId, done: z.boolean() }).strict(),
 ]);
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
@@ -99,6 +106,8 @@ export interface CommandResult {
   clarification?: ClarificationManifest;
   /** The explicit plan of a large request, run on «Продолжить». */
   plan?: PlanPreview;
+  /** A share preview (what the recipient sees, or why it cannot be shared) or a created link. */
+  share?: { snapshot: SharedSnapshot | null; blocker: string | null; link: ShareLinkView | null };
   /** A follow-up applied to the open result in place. */
   refined?: { applied: boolean; message: string | null; manifestVersion: number; retrieval: boolean };
 }
@@ -357,6 +366,31 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
       return { ok: true, profileChanged: true };
     }
+    case "previewShare": {
+      const result = await resultFor(sessionId, specialtyId, command.resultId);
+      const blocker = shareBlocker(result);
+      if (!sharingAvailable()) return { ok: true, profileChanged: false, share: { snapshot: null, blocker: "Ссылки доступны только при постоянном хранилище: без него ссылка не откроется на другом устройстве.", link: null } };
+      return { ok: true, profileChanged: false, share: { snapshot: blocker ? null : buildSharedSnapshot(result, new Date()), blocker: blocker ? SHARE_BLOCKER_COPY[blocker] : null, link: null } };
+    }
+    case "createShare": {
+      if (!sharingAvailable()) throw new HttpError(503, "Ссылки доступны только при постоянном хранилище.", "storage_unavailable");
+      const result = await resultFor(sessionId, specialtyId, command.resultId);
+      // The gate runs again on the server: the preview is not trusted.
+      const blocker = shareBlocker(result);
+      if (blocker) throw new HttpError(422, SHARE_BLOCKER_COPY[blocker], `share_${blocker}`);
+      const created = new Date();
+      const token = newShareToken();
+      const record = { token, sessionId, specialty: specialtyId, sourceId: result.id, createdAt: created.toISOString(), expiresAt: new Date(created.getTime() + SHARE_TTL_DAYS * 86_400_000).toISOString(), revokedAt: null, openCount: 0, lastOpenedAt: null, payload: buildSharedSnapshot(result, created) };
+      await shareStore().create(record);
+      await recordAgentEvent(sessionId, "share_created", { specialty: specialtyId, agentId: result.agentId, resultId: result.id });
+      return { ok: true, profileChanged: false, share: { snapshot: record.payload, blocker: null, link: shareLinkView(record) } };
+    }
+    case "revokeShare": {
+      const revoked = await shareStore().revoke(sessionId, command.token, new Date());
+      if (!revoked) throw new HttpError(404, "Ссылка не найдена.");
+      await recordAgentEvent(sessionId, "share_revoked", { specialty: specialtyId });
+      return { ok: true, profileChanged: false, notices: ["Ссылка отозвана: по ней больше ничего не откроется."] };
+    }
     case "setBackgroundPaused": {
       const profile = await loadProfile(sessionId, specialtyId);
       profile.backgroundPaused = command.paused;
@@ -396,4 +430,8 @@ async function catchUpAll(sessionId: string, specialtyId: SpecialtyId): Promise<
   const targets = (["whats_new", "guidelines", "drugs", "events", "learning"] as AgentId[]).filter(id => profile.subscriptions[id].enabled);
   for (const id of targets) await executeRun(sessionId, specialtyId, id, { trigger: "configuration" });
   return targets;
+}
+
+export function shareLinkView(record: ShareRecord): ShareLinkView {
+  return { token: record.token, url: sharePath(record.token), title: record.payload.title, createdAt: record.createdAt, expiresAt: record.expiresAt, revokedAt: record.revokedAt, openCount: record.openCount };
 }
