@@ -1,4 +1,5 @@
 import type { SpecialtyId } from "@/lib/domain/types";
+import { stripVersionLabels } from "@/lib/agents/clinical-terms";
 import { PUBMED_CONCEPTS, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 
 /**
@@ -183,7 +184,8 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
 
 /** Latin words the physician typed (drug names, acronyms, English terms). */
 export function latinTermsIn(text: string): string[] {
-  return [...new Set((text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []).map(word => word.toLowerCase()))]
+  // «v2.0», «ver. 3» are document versions, never search terms.
+  return [...new Set((stripVersionLabels(text).match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []).map(word => word.toLowerCase()))]
     .filter(word => !DRUGS.some(drug => drug.inn.toLowerCase() === word))
     .slice(0, 4);
 }

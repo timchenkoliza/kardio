@@ -1,4 +1,5 @@
 import type { SpecialtyId } from "@/lib/domain/types";
+import { eventsWordMeansProfessionalEvents } from "./clinical-terms";
 import { AGENT_DEFINITIONS } from "./definitions";
 import { detectRiskSignals, type RiskSignals } from "./risk-rules";
 import { normalizeText, stemPattern, wordPattern } from "./text";
@@ -26,8 +27,11 @@ interface Rule {
   weight: number;
 }
 
+/** «события» counts for the events agent only when it means congresses and schools (./clinical-terms.ts). */
+const EVENTS_WORD = stemPattern("событ");
+
 const RULES: Rule[] = [
-  { agentId: "events", intent: "find_events", weight: 3, patterns: [stemPattern("событ"), stemPattern("конференц"), stemPattern("конгресс"), stemPattern("вебинар"), stemPattern("мероприят"), wordPattern("школ[аыу]"), stemPattern("зарегистрируй"), stemPattern("в календар"), stemPattern("будильник"), stemPattern("форум"), stemPattern("симпозиум")] },
+  { agentId: "events", intent: "find_events", weight: 3, patterns: [EVENTS_WORD,stemPattern("конференц"), stemPattern("конгресс"), stemPattern("вебинар"), stemPattern("мероприят"), wordPattern("школ[аыу]"), stemPattern("зарегистрируй"), stemPattern("в календар"), stemPattern("будильник"), stemPattern("форум"), stemPattern("симпозиум")] },
   { agentId: "drugs", intent: "track_drugs", weight: 3, patterns: [stemPattern("препарат"), stemPattern("лекарств"), wordPattern("мнн"), stemPattern("отозван"), stemPattern("отзыв\\p{L}* (?:препарат|лекарств|сери)"), stemPattern("ограничени\\p{L}* (?:по|на|примен)"), stemPattern("инструкци"), wordPattern("грлс|fda"), stemPattern("баксдростат|афикамтен|апиксабан|ривароксабан|дабигатран|сакубитрил|семаглутид|тирзепатид|инклисиран|статин|селексипаг")] },
   { agentId: "guidelines", intent: "compare_guidelines", weight: 3, patterns: [stemPattern("рекомендац"), stemPattern("гайдлайн"), stemPattern("guideline"), stemPattern("клинреком"), wordPattern("кр"), wordPattern("esc"), stemPattern("что изменилось в"), stemPattern("нов\\p{L}* верси"), stemPattern("редакци")] },
   { agentId: "learning", intent: "plan_learning", weight: 3, patterns: [stemPattern("обучени"), stemPattern("курс"), stemPattern("лекци"), stemPattern("подготов\\p{L}* к"), wordPattern("нмо"), stemPattern("баллы"), stemPattern("аккредитац"), stemPattern("учебн"), stemPattern("хочу разобраться")] },
@@ -53,8 +57,10 @@ export function routeIntent(text: string, specialty: SpecialtyId, options: { pre
   }
 
   const scores = new Map<AgentId, { score: number; hits: string[] }>();
+  const professionalEvents = eventsWordMeansProfessionalEvents(value, text);
   for (const rule of RULES) {
     for (const pattern of rule.patterns) {
+      if (pattern === EVENTS_WORD && !professionalEvents) continue;
       const match = value.match(pattern);
       if (!match) continue;
       const current = scores.get(rule.agentId) ?? { score: 0, hits: [] };

@@ -1,5 +1,6 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { SourceId } from "@/lib/mesh/sources";
+import { MI_ABBREVIATION, NON_CORONARY_ISCHEMIA } from "./clinical-terms";
 import type { ContentTypePref, DeliveryChannel, EventFormatPref, Frequency, LearningGoal } from "./types";
 
 /**
@@ -19,11 +20,19 @@ export interface TopicOption {
    * asked from another specialty.
    */
   specialtyBound?: boolean;
+  /**
+   * Phrases that contain a keyword but mean something else (regex sources on
+   * normalized text). They are masked for this topic only: «ишемический инсульт»
+   * is not ИБС, yet it still matches the stroke topic.
+   */
+  notWhen?: readonly string[];
+  /** Upper-case abbreviations matched case-sensitively on the original text («ИМ», never «им»). */
+  abbreviations?: readonly RegExp[];
 }
 
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
   cardiology: [
-    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард"] },
+    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард", "акш", "мкш"], notWhen: NON_CORONARY_ISCHEMIA, abbreviations: [MI_ABBREVIATION] },
     { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
     { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
     { id: "af", label: "Фибрилляция предсердий", catalogTopics: ["atrial_fibrillation"], pubmed: "\"atrial fibrillation\"[tiab]", keywords: ["фп", "фибрилляц", "трепетан", "антикоагул"] },
@@ -80,7 +89,7 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "fibroids", label: "Миома матки", catalogTopics: [], pubmed: "leiomyoma[tiab] OR \"uterine fibroids\"[tiab]", keywords: ["миом"] },
   ],
   neurology: [
-    { id: "stroke", label: "Инсульт", catalogTopics: [], pubmed: "stroke[tiab]", keywords: ["инсульт", "онмк"] },
+    { id: "stroke", label: "Инсульт", catalogTopics: [], pubmed: "stroke[tiab]", keywords: ["инсульт", "онмк", "инфаркт мозг", "инфаркт головн мозг"] },
     { id: "epilepsy", label: "Эпилепсия", catalogTopics: [], pubmed: "epilep*[tiab]", keywords: ["эпилеп", "судорог"] },
     { id: "headache", label: "Мигрень и головная боль", catalogTopics: [], pubmed: "migraine[tiab] OR headache[tiab]", keywords: ["мигрен", "головн бол", "цефалг"] },
     { id: "ms", label: "Рассеянный склероз", catalogTopics: [], pubmed: "\"multiple sclerosis\"[tiab]", keywords: ["рассеян склероз"] },
@@ -215,7 +224,7 @@ const concept = (id: string, label: string, stems: string, term: string): Pubmed
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
-  concept("stroke", "инсульт", "инсульт|онмк|тиа(?![\\p{L}])", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
+  concept("stroke", "инсульт", "инсульт|онмк|тиа(?![\\p{L}])|инфаркт\\p{L}*\\s+(?:головного\\s+)?мозг", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),
   concept("bleeding", "кровотечения", "кровотеч|геморраг", "bleeding[tiab] OR hemorrhag*[tiab]"),
   concept("sglt2", "иНГЛТ-2", "ингл|sglt|глифлозин|дапаглифлозин|эмпаглифлозин", "SGLT2[tiab] OR \"sodium-glucose\"[tiab] OR gliflozin*[tiab]"),
@@ -228,6 +237,14 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
   concept("ablation", "абляция", "абляц|изоляц.{0,12}легочн", "ablation[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
+  // Coronary bypass only: gastric, ventriculoperitoneal and vascular shunts are separate concepts below.
+  concept("cabg", "коронарное шунтирование", "акш(?![\\p{L}])|мкш(?![\\p{L}])|аортокоронарн|маммарокоронарн|коронарн\\p{L}*\\s+шунтир|шунтировани\\p{L}*\\s+коронарн", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
+  concept("gastric_bypass", "бариатрическая хирургия", "шунтировани\\p{L}*\\s+желуд|желудочн\\p{L}*\\s+шунтир|гастрошунтир|бариатрическ", "\"gastric bypass\"[tiab] OR \"bariatric surgery\"[tiab]"),
+  concept("vp_shunt", "вентрикулоперитонеальное шунтирование", "вентрикуло-?перитонеальн|впш(?![\\p{L}])", "\"ventriculoperitoneal shunt\"[tiab]"),
+  concept("cv_events", "сердечно-сосудистые события", "(?:сердечно-?сосудист|кардиоваскулярн)\\p{L}*(?:\\s+\\p{L}+)?\\s+событи|mace(?![\\p{L}])", "\"major adverse cardiovascular events\"[tiab] OR MACE[tiab] OR \"cardiovascular events\"[tiab]"),
+  concept("hypoglycemia", "гипогликемия", "гипогликеми", "hypoglycemia[tiab] OR hypoglycaemia[tiab]"),
+  concept("insulin_therapy", "инсулинотерапия", "инсулинотерап|(?:терапи|лечени)\\p{L}*\\s+инсулин|базальн\\p{L}*\\s+инсулин|инсулин(?:ы|ов|ом|а|у)?(?![\\p{L}])", "insulin[tiab]"),
+  concept("insulin_resistance", "инсулинорезистентность", "инсулинорезист", "\"insulin resistance\"[tiab]"),
   concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
   concept("ckd", "ХБП", "хбп|почечн|рскф", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
@@ -260,16 +277,26 @@ export function sourceLabels(ids: readonly string[]): string[] {
   return ids.map(id => sourceById(id)?.label).filter((label): label is string => Boolean(label));
 }
 
+function maskPhrases(normalized: string, phrases: readonly string[] | undefined): string {
+  if (!phrases?.length) return normalized;
+  return normalized.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${phrases.join("|")})`, "gu"), match => " ".repeat(match.length));
+}
+
 /** Map arbitrary Russian/English text to topic ids using keyword stems. */
 export function topicsMentioned(specialty: SpecialtyId, text: string): string[] {
-  const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+  const original = text.normalize("NFKC");
+  const normalized = original.toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
   return TOPICS[specialty]
-    .filter(topic => topic.keywords.some(keyword => {
-      const parts = keyword.split(" ");
-      return parts.every(part => {
-        if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(normalized);
-        return normalized.includes(part);
+    .filter(topic => {
+      if (topic.abbreviations?.some(pattern => pattern.test(original))) return true;
+      const value = maskPhrases(normalized, topic.notWhen);
+      return topic.keywords.some(keyword => {
+        const parts = keyword.split(" ");
+        return parts.every(part => {
+          if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(value);
+          return value.includes(part);
+        });
       });
-    }))
+    })
     .map(topic => topic.id);
 }

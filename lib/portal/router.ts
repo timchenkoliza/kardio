@@ -1,3 +1,4 @@
+import { clinicalEventKind, eventsWordMeansProfessionalEvents } from "@/lib/agents/clinical-terms";
 import type { RoutedIntent, IntentKind } from "@/lib/agents/intent";
 import { detectRiskSignals, type RiskSignals } from "@/lib/agents/risk-rules";
 import type { AgentId } from "@/lib/agents/types";
@@ -42,9 +43,12 @@ const word = (source: string) => re(`(?<![${L}])(?:${source})`);
 /** `once`: the rule scores its weight once, however many of its synonyms match. */
 interface Rule { job: PortalJob; weight: number; patterns: RegExp[]; once?: boolean }
 
+/** «события» counts for the events job only when it means congresses and schools (lib/agents/clinical-terms.ts). */
+const EVENTS_WORD = word("событи");
+
 const RULES: readonly Rule[] = [
   { job: "materials", weight: 5, patterns: [word("мо(?:их|ем|и|ём) (?:материал|файл|документ|заметк)"), word("в сохран[её]нн"), word("загруженн"), word("мой (?:файл|документ)"), word("по моему (?:файлу|документу)")] },
-  { job: "events", weight: 4, patterns: [word("событи"), word("конференц"), word("конгресс"), word("вебинар"), word("мероприят"), word("школ[аыуе](?![" + L + "])"), word("форум"), word("симпозиум"), word("зарегистрир"), word("в календар"), word("съезд")] },
+  { job: "events", weight: 4, patterns: [EVENTS_WORD, word("конференц"), word("конгресс"), word("вебинар"), word("мероприят"), word("школ[аыуе](?![" + L + "])"), word("форум"), word("симпозиум"), word("зарегистрир"), word("в календар"), word("съезд")] },
   { job: "learning", weight: 4, patterns: [word("обучени"), word("курс(?:ы|ов)? (?:по|для|повышени)"), word("учебн"), word("лекци"), word("нмо"), word("баллы"), word("аккредитац"), word("подготов" + `${L}*` + " к (?:экзамен|аккредитац|сертификац)"), word("хочу (?:разобраться|освежить|изучить|подтянуть)"), word("что почитать"), word("с чего начать изучени")] },
   { job: "guidelines", weight: 4, patterns: [word("клиническ" + `${L}*` + " рекомендац"), word("рекомендаци"), word("гайдлайн"), word("guideline"), word("клинреком"), word("кр(?![" + L + "])"), word("стандарт" + `${L}*` + " (?:медицинск|оказани)"), word("порядок оказани"), word("рубрикатор"), word("приказ" + `${L}*` + " минздрав"), re("\\b(?:ESC|AHA|ACC|NICE|ADA|EASD|GINA|GOLD|KDIGO|ACOG|FIGO|AAP|ILAE|EAN|EULAR|IDSA)\\b")] },
   { job: "research", weight: 3, once: true, patterns: [word("разб(?:ери|ерите|ор|рать)" + " (?:эт" + `${L}*` + " )?(?:исследовани|стать|публикаци|рки|испытани|метаанализ)"), word("что показали (?:исследовани|испытани|рки|метаанализ)"), re("(?<![\\p{L}])(?:исследовани|испытани)[еяюи]\\s+[A-Z0-9]{2,}(?:-[A-Z0-9]+)*(?:-[A-Z][a-z]+)?(?![A-Za-z0-9-])"), word("исследуй"), word("исследовани(?:я|й|ям|ях)"), word("доказательн"), word("доказательств"), word("метаанализ"), word("рки"), word("сравни"), word("обзор литератур"), word("что известно"), word("какие данные"), word("pubmed"), word("найди (?:данные|статьи|публикации)"), word("эффективн" + `${L}*` + " .{1,40} (?:vs|против|по сравнению)")] },
@@ -81,12 +85,18 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
     current.hits.push(hit);
     scores.set(job, current);
   };
+  // «события» in «частота сердечно-сосудистых событий» is an end point, not a congress.
+  const clinicalEvents = clinicalEventKind(value, text);
+  const professionalEvents = eventsWordMeansProfessionalEvents(value, text);
   for (const rule of RULES) for (const pattern of rule.patterns) {
+    if (pattern === EVENTS_WORD && !professionalEvents) continue;
     const match = value.match(pattern) ?? text.match(pattern);
     if (!match) continue;
     add(rule.job, rule.weight, match[0].trim());
     if (rule.once) break;
   }
+  // Outcome events (end points) make it an evidence question; adverse events stay with the drug label.
+  if (clinicalEvents === "outcome" && !professionalEvents) add("research", 4, "клинические исходы");
   const drugCue = hasDrugCue(text);
   if (drugs.length) add("drug", 3 + (drugCue ? 2 : 0), drugs.map(item => item.ru).join(", "));
   else if (drugCue) add("drug", 3, "вопрос о препарате");
