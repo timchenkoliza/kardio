@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import { ArrowRight, Bell, BellRing, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 
@@ -42,4 +42,21 @@ export function ResetViewButton({ runId }: { runId: string }) {
     setBusy(false);
     if (response?.refined?.applied) router.refresh();
   }}>{busy ? <Loader2 size={14} className="ws-spin" aria-hidden="true" /> : null}Показать всё</button>;
+}
+
+/**
+ * «Следить» on a drug: adds it to «Мои препараты» (or removes it). The agent
+ * then reports confirmed regulatory changes for it, and once a month says
+ * explicitly that nothing changed.
+ */
+export function WatchDrugButton({ inn, label, watched: initiallyWatched, from }: { inn: string; label: string; watched: boolean; from: "drug_result" | "comparison" | "settings" }) {
+  const { command } = useWorkspace();
+  const [watched, setWatched] = useState(initiallyWatched);
+  const [busy, setBusy] = useState(false);
+  return <button type="button" className="ws-button is-small is-quiet" aria-pressed={watched} disabled={busy} data-watch={inn} onClick={async () => {
+    setBusy(true);
+    const response = await command(watched ? { action: "unwatchDrug", inn } : { action: "watchDrug", inn, from }, { refresh: false });
+    setBusy(false);
+    if (response) setWatched(!watched);
+  }}>{watched ? <BellRing size={14} aria-hidden="true" /> : <Bell size={14} aria-hidden="true" />}{watched ? `Слежу: ${label}` : `Следить: ${label}`}</button>;
 }

@@ -25,6 +25,9 @@ interface CompactProfile {
   pv: string | null;
   fs?: string | null;
   fv?: string | null;
+  /** Watchlist as [inn, ru] pairs. */
+  wl?: Array<[string, string]>;
+  bp?: 0 | 1;
 }
 
 export function encodeProfileMirror(profile: UserProfile): string {
@@ -40,6 +43,8 @@ export function encodeProfileMirror(profile: UserProfile): string {
     pv: profile.previousVisitAt,
     fs: profile.firstSeenAt,
     fv: profile.firstValueAt,
+    wl: profile.watchlist.map(drug => [drug.inn, drug.ru]),
+    bp: profile.backgroundPaused ? 1 : 0,
   };
   let encoded = Buffer.from(JSON.stringify(compact), "utf8").toString("base64url");
   if (encoded.length > MAX_COOKIE_CHARS) {
@@ -72,6 +77,8 @@ export function decodeProfileMirror(value: string | undefined | null, specialty:
       previousVisitAt: compact.pv ?? null,
       firstSeenAt: compact.fs ?? null,
       firstValueAt: compact.fv ?? null,
+      watchlist: (Array.isArray(compact.wl) ? compact.wl : []).filter((pair): pair is [string, string] => Array.isArray(pair) && typeof pair[0] === "string" && typeof pair[1] === "string").map(([inn, ru]) => ({ inn, ru, addedAt: now, from: "settings" as const })),
+      backgroundPaused: compact.bp === 1,
       updatedAt: now,
     }, specialty, now);
   } catch {

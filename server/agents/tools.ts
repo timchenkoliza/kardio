@@ -19,6 +19,8 @@ import { retrieveDocument as retrieveCatalogDocument, searchMedical as searchCat
 import { filterCatalogForResearch, pubmedAllowedForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
+import { checkWatchlist as checkWatchlistService, WATCH_CONNECTORS } from "./services/drug-watch";
+import { searchDrugRecallsLive } from "./adapters/openfda-enforcement";
 
 /**
  * Tool layer: capability interfaces shared by all agents. Agents never talk to
@@ -183,5 +185,15 @@ export function readAbstracts(ctx: AgentContext, pmids: readonly string[]): Prom
     if (!pmids.length) return { items: [], status: "ok", note: null };
     const result = await ctx.abstracts(pmids);
     return { items: result.abstracts, status: result.status === "ok" ? "ok" : "unavailable", note: result.error };
+  });
+}
+
+/** checkWatchlist(): «Мои препараты» — FDA recalls and label changes, regulatory snapshot (server/agents/services/drug-watch.ts). */
+export function checkWatchlist(ctx: AgentContext): Promise<ToolOutput<ResultDraft>> {
+  return timedTool("findDrugChanges", [WATCH_CONNECTORS.recalls, WATCH_CONNECTORS.labels, WATCH_CONNECTORS.snapshot], async () => {
+    const result = await checkWatchlistService(ctx, { recalls: ctx.drugRecalls ?? ((inn, since) => searchDrugRecallsLive(inn, since)) });
+    const failed = [...new Set([...result.failed.recalls, ...result.failed.labels])];
+    // An unanswered source is reported, and the run is partial: the scheduler retries, «no changes» is not claimed.
+    return { items: result.drafts, status: failed.length ? "unavailable" : "ok", note: failed.length ? `openFDA не ответил для: ${failed.join(", ")}; повторим при следующей проверке` : null };
   });
 }

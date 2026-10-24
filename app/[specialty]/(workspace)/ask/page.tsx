@@ -102,6 +102,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
   const finished = isFinished(run);
   const profile = await loadProfile(sessionId, specialty);
   const views = withNewFlags(results, profile).map(result => ({ ...result, newSinceLastSeen: false }));
+  const watchlist = profile.watchlist.map(drug => drug.inn);
   const organic = views.filter(result => !result.partner);
   const partner = views.filter(result => result.partner);
   const key = `${sessionId}:${run.id}`;
@@ -140,7 +141,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         {run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
       </div>}
       {showExperience
-        ? <ExperienceView run={run} experience={run.experience!} results={views} />
+        ? <ExperienceView run={run} experience={run.experience!} results={views} watchlist={watchlist} />
         : finished && phase !== "expired" ? <JobResult job={job} run={run} results={organic} partner={partner} specialty={specialty} adapter={adapter} /> : null}
       {phase === "failed" && run.input.text && <RetryRun text={run.input.text} job={retryJob} />}
     </div>

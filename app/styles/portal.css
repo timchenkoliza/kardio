@@ -243,3 +243,11 @@
   .pt-compare-table tbody th { width: 100%; background: var(--ws-surface); border-radius: var(--ws-radius-card) var(--ws-radius-card) 0 0; }
   .pt-compare-table td::before { content: attr(data-label); display: block; margin-bottom: var(--ws-space-4); color: var(--ws-text-secondary); font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
 }
+
+/* ---------- «Мои препараты» and background checks (settings) ---------- */
+.ws-watchlist { display: flex; flex-direction: column; gap: var(--ws-space-12); }
+.ws-watch-item { display: flex; align-items: center; gap: var(--ws-space-8); min-height: var(--ws-touch-target); }
+.ws-watch-item > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ws-watch-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--ws-space-8); }
+.ws-watch-add .ws-field { flex: 1 1 14rem; min-width: 0; }
+.ws-watch-add select { width: 100%; min-height: var(--ws-touch-target); }

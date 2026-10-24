@@ -1,7 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { AGENT_DEFINITIONS, AGENT_ORDER } from "./definitions";
 import { DEFAULT_ANSWER_MODE, isAnswerMode } from "@/lib/portal/answer-mode";
-import type { AgentId, AgentPreference, AgentResult, AgentResultView, AgentSubscription, ProfileIdentity, UserProfile } from "./types";
+import { WATCHLIST_LIMIT, type AgentId, type AgentPreference, type AgentResult, type AgentResultView, type AgentSubscription, type ProfileIdentity, type UserProfile, type WatchedDrug } from "./types";
 import { FREQUENCY_OPTIONS } from "./vocabulary";
 
 export function defaultSubscription(agentId: AgentId, now: string): AgentSubscription {
@@ -30,8 +30,26 @@ export function defaultProfile(specialty: SpecialtyId, now = new Date().toISOStr
     previousVisitAt: null,
     firstSeenAt: null,
     firstValueAt: null,
+    watchlist: [],
+    backgroundPaused: false,
     updatedAt: now,
   };
+}
+
+/** Drugs of a stored watchlist that still exist as valid entries (deduplicated by INN, capped). */
+export function normalizeWatchlist(value: unknown): WatchedDrug[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: WatchedDrug[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const entry = item as Partial<WatchedDrug>;
+    if (typeof entry.inn !== "string" || !entry.inn.trim() || typeof entry.ru !== "string" || seen.has(entry.inn)) continue;
+    seen.add(entry.inn);
+    out.push({ inn: entry.inn.trim().slice(0, 80), ru: entry.ru.trim().slice(0, 80), addedAt: typeof entry.addedAt === "string" ? entry.addedAt : new Date(0).toISOString(), from: entry.from === "comparison" || entry.from === "settings" ? entry.from : "drug_result" });
+    if (out.length >= WATCHLIST_LIMIT) break;
+  }
+  return out;
 }
 
 /** Repair a persisted profile against the current agent catalog (forward compatible). */
@@ -66,6 +84,8 @@ export function normalizeProfile(value: Partial<UserProfile> | null | undefined,
     previousVisitAt: typeof value.previousVisitAt === "string" ? value.previousVisitAt : null,
     firstSeenAt: typeof value.firstSeenAt === "string" ? value.firstSeenAt : null,
     firstValueAt: typeof value.firstValueAt === "string" ? value.firstValueAt : null,
+    watchlist: normalizeWatchlist(value.watchlist),
+    backgroundPaused: value.backgroundPaused === true,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : now,
   };
 }

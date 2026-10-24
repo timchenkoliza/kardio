@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { actionRequests, agentProfiles, agentResults, agentRuns, materialCollections, userMaterials } from "@/db/agent-schema";
+import { actionRequests, agentProfiles, agentResults, agentRuns, agentSchedules, materialCollections, userMaterials } from "@/db/agent-schema";
+import { nextCheckAt } from "@/lib/agents/schedule";
 import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, MaterialCollection, UserProfile } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { LIMITS, type WorkspaceStore } from "./types";
@@ -14,8 +15,14 @@ export class PostgresWorkspaceStore implements WorkspaceStore {
   }
 
   async saveProfile(sessionId: string, profile: UserProfile) {
-    await db.insert(agentProfiles).values({ sessionId, specialty: profile.specialty, profile, updatedAt: new Date() })
-      .onConflictDoUpdate({ target: [agentProfiles.sessionId, agentProfiles.specialty], set: { profile, updatedAt: new Date() } });
+    const now = new Date();
+    await db.insert(agentProfiles).values({ sessionId, specialty: profile.specialty, profile, updatedAt: now })
+      .onConflictDoUpdate({ target: [agentProfiles.sessionId, agentProfiles.specialty], set: { profile, updatedAt: now } });
+    // The background schedule is derived from the profile: every save re-arms (or pauses) it.
+    // Lease and failure counters belong to the scheduler and are not touched here.
+    const next = nextCheckAt(profile, now);
+    await db.insert(agentSchedules).values({ sessionId, specialty: profile.specialty, nextCheckAt: next, paused: profile.backgroundPaused, updatedAt: now })
+      .onConflictDoUpdate({ target: [agentSchedules.sessionId, agentSchedules.specialty], set: { nextCheckAt: next, paused: profile.backgroundPaused, updatedAt: now } });
   }
 
   async listResults(sessionId: string, specialty: SpecialtyId, agentId?: AgentId) {

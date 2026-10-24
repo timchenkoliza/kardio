@@ -3,7 +3,7 @@ import { routeIntent, type RoutedIntent } from "@/lib/agents/intent";
 import { effectivePreference, preferenceDigest } from "@/lib/agents/profile";
 import { resolveAnswerMode, type AnswerMode } from "@/lib/portal/answer-mode";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
-import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunExperience, RunProgress, RunTrigger, UserProfile } from "@/lib/agents/types";
+import type { ActionRequest, AgentId, AgentResult, AgentRun, Material, PlanStep, RunExperience, RunProgress, RunTrigger, ToolUse, UserProfile } from "@/lib/agents/types";
 import type { ContentObject, Source, SpecialtyId } from "@/lib/domain/types";
 import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { diffManifests, isEmptyPatch } from "@/lib/mesh/patch";
@@ -12,6 +12,7 @@ import { decideStrategy } from "@/lib/mesh/strategy";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
+import { searchDrugRecallsLive, type DrugRecallResult } from "./adapters/openfda-enforcement";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
 import { fetchPubmedAbstracts, type PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
 import type { AgentContext, RunProgressSink } from "./context";
@@ -40,6 +41,7 @@ export interface SupervisorDeps {
   pubmed?: (query: PubmedQuery) => Promise<PubmedSearchResult>;
   abstracts?: (pmids: readonly string[]) => Promise<PubmedAbstractsResult>;
   drugLabel?: (genericName: string) => Promise<DrugLabelResult>;
+  drugRecalls?: (inn: string, since: Date) => Promise<DrugRecallResult>;
   now?: () => Date;
   /** True when the profile was restored from the browser mirror after a cold start. */
   rehydrated?: boolean;
@@ -159,6 +161,25 @@ export function requestApproval(args: { specialty: SpecialtyId; agentId: AgentId
 }
 
 /** persistResult(): merge by stable key; first-seen time is never rewritten. */
+/** Monitoring agents whose findings stay visible while one of their sources is down. */
+const CARRY_OVER_AGENTS: ReadonlySet<AgentId> = new Set(["whats_new", "guidelines", "drugs", "events"]);
+export const CARRY_OVER_NOTICE = "Часть источников сейчас не ответила — их прежние находки сохранены до следующей успешной проверки.";
+
+/** Ids of the previous run's findings that came from connectors which failed in this run. */
+async function carryOverFindings(args: { deps: SupervisorDeps; specialty: SpecialtyId; agentId: AgentId; runId: string; toolsUsed: readonly ToolUse[]; existing: readonly AgentResult[]; current: readonly string[] }): Promise<string[]> {
+  const failed = new Set(args.toolsUsed.filter(use => use.status === "failed" || use.status === "unavailable").flatMap(use => use.connectorIds));
+  if (!failed.size) return [];
+  const previous = (await args.deps.store.listRuns(args.deps.sessionId, args.specialty, args.agentId, 8))
+    .find(item => item.id !== args.runId && item.completedAt && (item.status === "completed" || item.status === "partial"));
+  if (!previous) return [];
+  const current = new Set(args.current);
+  const byId = new Map(args.existing.map(result => [result.id, result]));
+  return previous.resultIds.filter(id => {
+    const result = byId.get(id);
+    return Boolean(result && !current.has(id) && !result.dismissed && failed.has(result.source.connectorId));
+  });
+}
+
 export function mergeResults(args: { drafts: readonly ResultDraft[]; existing: readonly AgentResult[]; runId: string; now: string; lastSeenAt: string | null; rehydrated: boolean; keyPrefix: string }): { results: AgentResult[]; newCount: number } {
   const byKey = new Map(args.existing.map(result => [result.key, result]));
   let newCount = 0;
@@ -372,6 +393,7 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     pubmed: deps.pubmed ?? (query => searchPubmedLive(query)),
     abstracts: deps.abstracts ?? (pmids => fetchPubmedAbstracts(pmids)),
     drugLabel: deps.drugLabel ?? (name => lookupDrugLabelLive(name)),
+    drugRecalls: deps.drugRecalls ?? ((inn, since) => searchDrugRecallsLive(inn, since)),
     inputText,
     job: request.job ?? null,
     // The mode persisted with the run wins: execution re-reads what the physician asked for.
@@ -431,6 +453,15 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   }
   // The status reflects the executor's own sources; what the finishing step could read is reported per record.
   run.status = toolStatuses.some(status => status === "unavailable" || status === "failed") ? "partial" : "completed";
+  // A source that is temporarily down never empties what a background check already found:
+  // findings of the failed connectors stay current until that source answers again.
+  if (run.status === "partial" && CARRY_OVER_AGENTS.has(request.agentId) && !inputText) {
+    const carried = await carryOverFindings({ deps, specialty: request.specialty, agentId: request.agentId, runId, toolsUsed: executed.toolsUsed, existing, current: run.resultIds });
+    if (carried.length) {
+      run.resultIds = [...run.resultIds, ...carried];
+      run.riskNotices = [...new Set([...run.riskNotices, CARRY_OVER_NOTICE])];
+    }
+  }
   run.completedAt = new Date().toISOString();
   run.durationMs = Date.now() - started;
   if (closed) {

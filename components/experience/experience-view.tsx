@@ -8,12 +8,13 @@ import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
 import { COMPARISON_ROWS } from "@/lib/mesh/compiler";
+import { DRUGS } from "@/lib/portal/lexicon";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { CERTAINTY_LABEL, certaintyOf, DRUG_SECTION_ORDER, DRUG_SECTION_TITLE, drugSectionGroup, editorialVerification, isRussian, localizeItem, physicianSafe, type Certainty, type DrugSectionGroup } from "@/lib/presentation/physician";
 import { nbsp } from "@/lib/ui/typography";
 import { StateBadge } from "@/components/portal/for-you";
-import { FollowupJobButton, ResetViewButton, SaveResultButton } from "@/components/portal/result-actions";
+import { FollowupJobButton, ResetViewButton, SaveResultButton, WatchDrugButton } from "@/components/portal/result-actions";
 import { TrackedLink } from "@/components/portal/tracked-link";
 
 /**
@@ -33,6 +34,15 @@ interface Ctx {
   index: Index;
   job: PortalJob;
   resultFor: (documentId: string, module: ManifestModule) => AgentResultView | null;
+  /** INNs in «Мои препараты» (null when the page does not offer following drugs). */
+  watchlist: ReadonlySet<string> | null;
+}
+
+/** INN of a drug document when it is a drug the lexicon knows (only those can be followed). */
+function watchableInn(document: GraphDocument | undefined): { inn: string; label: string } | null {
+  const inn = typeof document?.attributes.inn === "string" ? document.attributes.inn : null;
+  const drug = inn ? DRUGS.find(item => item.inn === inn) : null;
+  return drug ? { inn: drug.inn, label: drug.ru } : null;
 }
 
 /** Section headings as the physician reads them, per result family. */
@@ -361,6 +371,7 @@ function DrugDocument({ entry, documentId, ctx }: { entry: ManifestModule; docum
       <TrackedLink className="ws-button is-small" href={document.url} external events={["source_opened"]} resultId={result?.id} resultKind={result?.kind}>{us ? "Инструкция на DailyMed" : "Инструкция на МЕДИ РУ"}<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
       <TrackedLink className="ws-button is-small" href="https://grls.rosminzdrav.ru/" external events={["source_opened"]}>Проверить в ГРЛС<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
       {result && <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />}
+      {ctx.watchlist && watchableInn(document) && <WatchDrugButton inn={watchableInn(document)!.inn} label={watchableInn(document)!.label} watched={ctx.watchlist.has(watchableInn(document)!.inn)} from="drug_result" />}
     </div>
   </article>;
 }
@@ -447,6 +458,9 @@ function Comparison({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }
       {docs.map((document, column) => document && <TrackedLink key={document.id} className="ws-button is-small" href={document.url} external events={["source_opened"]} resultId={ctx.resultFor(document.id, entry)?.id} resultKind={ctx.resultFor(document.id, entry)?.kind}>{`Инструкция: ${labels[column]}`}<ExternalLink size={13} aria-hidden="true" /></TrackedLink>)}
       <TrackedLink className="ws-button is-small" href="https://grls.rosminzdrav.ru/" external events={["source_opened"]}>Проверить в ГРЛС<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
     </div>
+    {ctx.watchlist && <div className="pt-card-actions" data-watch-actions="comparison">
+      {stringList(entry.props.drugs).map(inn => DRUGS.find(drug => drug.inn === inn)).filter((drug): drug is (typeof DRUGS)[number] => Boolean(drug)).map(drug => <WatchDrugButton key={drug.inn} inn={drug.inn} label={drug.ru} watched={ctx.watchlist!.has(drug.inn)} from="comparison" />)}
+    </div>}
   </Section>;
 }
 
@@ -557,7 +571,7 @@ const RENDERERS: Partial<Record<ModuleFamily, (props: { module: ManifestModule; 
   notices: ({ ctx }) => <Notices ctx={ctx} />,
 };
 
-export function ExperienceView({ run, experience, results, job }: { run: AgentRun; experience: RunExperience; results: AgentResultView[]; job?: PortalJob }) {
+export function ExperienceView({ run, experience, results, job, watchlist = null }: { run: AgentRun; experience: RunExperience; results: AgentResultView[]; job?: PortalJob; watchlist?: readonly string[] | null }) {
   // A refinement view withholds documents outside it; nothing is rewritten.
   const graph = applyView(experience.graph, experience.manifest.view);
   const index = graphIndex(graph);
@@ -569,6 +583,7 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
     graph,
     index,
     job: job ?? graph.family,
+    watchlist: watchlist ? new Set(watchlist) : null,
     resultFor: (documentId, entry) => {
       const key = entry.resultKeys.find(item => item.endsWith(`mesh:${documentId}`)) ?? `${run.agentId}:mesh:${documentId}`;
       return byKey.get(key) ?? null;

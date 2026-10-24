@@ -278,7 +278,7 @@ export async function catalogFor(specialty: SpecialtyId) {
   return { content, sources };
 }
 
-export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration"; text?: string | null; routed?: ReturnType<typeof routeTask> | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null; answerMode?: AnswerMode | null }): Promise<RunOutcome> {
+export async function executeRun(sessionId: string, specialty: SpecialtyId, agentId: AgentId, options: { trigger: "manual" | "composer" | "schedule_catchup" | "configuration" | "scheduled"; text?: string | null; routed?: ReturnType<typeof routeTask> | null; job?: PortalJob | null; intent?: NormalizedIntent | null; run?: AgentRun | null; answerMode?: AnswerMode | null }): Promise<RunOutcome> {
   const store = workspaceStore();
   const profile = await loadProfile(sessionId, specialty);
   const catalog = await catalogFor(specialty);

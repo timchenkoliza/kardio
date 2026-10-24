@@ -4,6 +4,9 @@ import { ArrowUpRight } from "lucide-react";
 import { ModeBadge } from "@/components/workspace/mode-badge";
 import { AnswerModeCard, IdentityCard, InterestsEditor, SpecialtyCard } from "@/components/workspace/profile-settings";
 import { PartnerToggle, ResetSeenButton } from "@/components/workspace/settings-controls";
+import { BackgroundChecksToggle, WatchlistEditor } from "@/components/workspace/watchlist-settings";
+import { DRUGS } from "@/lib/portal/lexicon";
+import { scheduleStatus } from "@/server/agents/scheduler";
 import { formatDateRu } from "@/lib/agents/format";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
 import type { SourceStanding } from "@/lib/agents/source-policy";
@@ -49,6 +52,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
   const storage = store.kind;
   const [materials, runs] = sessionId ? await Promise.all([store.listMaterials(sessionId, specialty), store.listRuns(sessionId, specialty, undefined, 200)]) : [[], []];
   const questions = runs.filter(run => run.input.text && run.trigger !== "schedule_catchup" && run.trigger !== "configuration").length;
+  // Background checks run only with durable storage and a configured scheduler; otherwise they catch up on visit.
+  const schedulerConfigured = storage === "postgres" && Boolean(process.env.CRON_SECRET?.trim());
+  const schedule = schedulerConfigured && sessionId ? await scheduleStatus(sessionId, specialty).catch(() => null) : null;
+  const backgroundLine = !schedulerConfigured
+    ? (storage === "memory" ? "Фоновые проверки выключены: постоянное хранилище не подключено. Агенты обновляют подборку, когда вы открываете портал." : "Расписание сервера не настроено. Агенты обновляют подборку, когда вы открываете портал.")
+    : profile.backgroundPaused ? "Фоновые проверки на паузе."
+    : schedule?.nextCheckAt ? `Следующая проверка — ${formatDateRu(schedule.nextCheckAt, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) ?? schedule.nextCheckAt}${schedule.lastCheckedAt ? `; последняя — ${formatDateRu(schedule.lastCheckedAt, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}` : ""}.`
+    : "Проверки начнутся после выбора тем или препаратов.";
 
   return <div className="ws-page ws-settings" id="profile">
     <header className="ws-page-head">
@@ -74,6 +85,18 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
             <div><dt>Открыто источников</dt><dd>{percent(metrics.evidenceCtr)}</dd></div>
             <div><dt>Сохранено находок</dt><dd>{percent(metrics.saveRate)}</dd></div>
           </dl>
+        </section>
+
+        <section className="pt-profile-card" id="watchlist" aria-labelledby="ws-watchlist-title">
+          <h2 id="ws-watchlist-title">{nbsp("Мои препараты")}</h2>
+          <WatchlistEditor watchlist={profile.watchlist} options={DRUGS.map(drug => ({ inn: drug.inn, ru: drug.ru }))} />
+        </section>
+
+        <section className="pt-profile-card" id="background" aria-labelledby="ws-background-title">
+          <h2 id="ws-background-title">{nbsp("Фоновые проверки")}</h2>
+          <BackgroundChecksToggle paused={profile.backgroundPaused} available={schedulerConfigured} />
+          <p className="ws-muted" data-background={schedulerConfigured ? (profile.backgroundPaused ? "paused" : "on") : "visit_only"}>{nbsp(backgroundLine)}</p>
+          {schedule?.lastError && !profile.backgroundPaused && <p className="ws-muted">{nbsp(`Последняя проверка завершилась не полностью: ${schedule.lastError}. Повторим автоматически.`)}</p>}
         </section>
 
         <section className="pt-profile-card" id="partner" aria-labelledby="ws-partner-settings">

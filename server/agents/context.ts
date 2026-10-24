@@ -7,6 +7,7 @@ import type { AnswerMode } from "@/lib/portal/answer-mode";
 import type { PortalJob } from "@/lib/portal/jobs";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import type { DrugLabelResult } from "./adapters/openfda";
+import type { DrugRecallResult } from "./adapters/openfda-enforcement";
 import type { PubmedQuery, PubmedSearchResult } from "./adapters/pubmed";
 import type { PubmedAbstractsResult } from "./adapters/pubmed-abstracts";
 
@@ -26,6 +27,8 @@ export interface AgentContext {
   abstracts: (pmids: readonly string[]) => Promise<PubmedAbstractsResult>;
   /** Drug label lookup (openFDA). */
   drugLabel: (genericName: string) => Promise<DrugLabelResult>;
+  /** FDA recall records for one INN since a date (openFDA enforcement); live when absent. */
+  drugRecalls?: (inn: string, since: Date) => Promise<DrugRecallResult>;
   inputText: string | null;
   /** Physician job when the run was started from the portal. */
   job: PortalJob | null;

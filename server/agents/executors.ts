@@ -172,13 +172,17 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
 
 async function drugs(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
-  builder.note("Определили, что отслеживать", `${topicsDetail(ctx)} · ${ctx.lastSeenAt ? "изменения с прошлого просмотра" : `первый запуск: последние ${ctx.preference.horizonDays} дней`}`);
+  builder.note("Определили, что отслеживать", `${topicsDetail(ctx)}${ctx.profile.watchlist.length ? ` · мои препараты: ${countLabel(ctx.profile.watchlist.length, ["препарат", "препарата", "препаратов"])}` : ""} · ${ctx.lastSeenAt ? "изменения с прошлого просмотра" : `первый запуск: последние ${ctx.preference.horizonDays} дней`}`);
+  const watched = ctx.profile.watchlist.length ? builder.record("Проверили мои препараты: отзывы и инструкции FDA, регуляторные сообщения", await tools.checkWatchlist(ctx), items => items.some(item => item.category === "NO_CHANGES") ? "изменений не найдено" : countLabel(items.length, ["изменение", "изменения", "изменений"])) : [];
+  if (ctx.profile.watchlist.length) builder.note("Росздравнадзор и ГРЛС", "Не подключены: решения российского регулятора и статус регистрации проверяйте по ссылкам в карточках");
   const changes = builder.record("Проверили регистрации, ограничения и рекомендации", await tools.findDrugChanges(ctx), items => countLabel(items.length, ["изменение", "изменения", "изменений"]));
   const term = drugStudyTerm(ctx);
   const window = pubmedWindow(ctx, 30);
   const articles = builder.record("Искали новые рандомизированные исследования", await tools.searchPubmed(ctx, { term, ...window, retmax: 4, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
   const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(ctx), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
-  const drafts = await finishWithChecks(builder, ctx, [...changes, ...drugStudyDrafts(ctx, articles), ...partner]);
+  // A watched drug's signal and the same topic signal are one finding.
+  const watchedKeys = new Set(watched.map(item => item.key));
+  const drafts = await finishWithChecks(builder, ctx, [...watched, ...changes.filter(item => !watchedKeys.has(item.key)), ...drugStudyDrafts(ctx, articles), ...partner]);
   builder.notices.push("Агент сообщает об изменениях и не подбирает терапию.");
   return { intent: "track_drugs", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
 }

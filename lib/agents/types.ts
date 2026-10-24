@@ -179,7 +179,8 @@ export interface AgentResultView extends AgentResult {
  * `completedAt` means it finished with limited evidence.
  */
 export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed" | "blocked";
-export type RunTrigger = "manual" | "composer" | "schedule_catchup" | "configuration";
+/** `scheduled`: a background check started by the server scheduler, outside any open tab. */
+export type RunTrigger = "manual" | "composer" | "schedule_catchup" | "configuration" | "scheduled";
 
 export interface PlanStep {
   id: string;
@@ -301,6 +302,18 @@ export interface ProfileIdentity {
   experienceYears: number | null;
 }
 
+/** A drug the physician follows for regulatory and safety changes («Мои препараты»). */
+export interface WatchedDrug {
+  /** English INN as in the lexicon (stable id). */
+  inn: string;
+  ru: string;
+  addedAt: string;
+  /** Where the physician pressed «Следить» (drug card, comparison, settings). */
+  from: "drug_result" | "comparison" | "settings";
+}
+
+export const WATCHLIST_LIMIT = 30;
+
 export interface UserProfile {
   version: 1;
   specialty: SpecialtyId;
@@ -319,6 +332,10 @@ export interface UserProfile {
   firstSeenAt: string | null;
   /** First result page with at least one source-supported finding (activation). */
   firstValueAt: string | null;
+  /** «Мои препараты»: drugs followed for safety and regulatory changes (≤ WATCHLIST_LIMIT). */
+  watchlist: WatchedDrug[];
+  /** The physician paused background checks outside the open tab. */
+  backgroundPaused: boolean;
   updatedAt: string;
 }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { countLabel } from "@/lib/agents/format";
-import { AGENT_IDS, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
+import { AGENT_IDS, WATCHLIST_LIMIT, type ActionRequest, type AgentId, type AgentPreference, type Material, type UserProfile } from "@/lib/agents/types";
+import { DRUGS } from "@/lib/portal/lexicon";
 import { CONTENT_TYPE_OPTIONS, DELIVERY_OPTIONS, FORMAT_OPTIONS, GOAL_OPTIONS, SOURCE_OPTIONS, TOPICS } from "@/lib/agents/vocabulary";
 import { SPECIALTY_IDS, type SpecialtyId } from "@/lib/domain/types";
 import { HttpError } from "@/server/http";
@@ -75,6 +76,10 @@ export const agentCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("confirmAction"), specialty, actionId }).strict(),
   z.object({ action: z.literal("cancelAction"), specialty, actionId }).strict(),
   z.object({ action: z.literal("setPartnerContent"), specialty, enabled: z.boolean() }).strict(),
+  // «Мои препараты»: only drugs the lexicon knows (stable INN ids), at most WATCHLIST_LIMIT.
+  z.object({ action: z.literal("watchDrug"), specialty, inn: z.string().refine(value => DRUGS.some(drug => drug.inn === value), "Unknown drug"), from: z.enum(["drug_result", "comparison", "settings"]) }).strict(),
+  z.object({ action: z.literal("unwatchDrug"), specialty, inn: z.string().min(2).max(80) }).strict(),
+  z.object({ action: z.literal("setBackgroundPaused"), specialty, paused: z.boolean() }).strict(),
   z.object({ action: z.literal("learningProgress"), specialty, resultId, done: z.boolean() }).strict(),
 ]);
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
@@ -331,6 +336,32 @@ export async function executeAgentCommand(sessionId: string, command: AgentComma
       const profile = await loadProfile(sessionId, specialtyId);
       profile.partnerContent = command.enabled;
       await saveProfile(sessionId, profile);
+      return { ok: true, profileChanged: true };
+    }
+    case "watchDrug": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      if (profile.watchlist.some(drug => drug.inn === command.inn)) return { ok: true, profileChanged: false, notices: ["Препарат уже в «Моих препаратах»"] };
+      if (profile.watchlist.length >= WATCHLIST_LIMIT) throw new HttpError(409, `В «Моих препаратах» не больше ${WATCHLIST_LIMIT} позиций. Уберите один из препаратов, чтобы добавить новый.`);
+      const drug = DRUGS.find(item => item.inn === command.inn)!;
+      profile.watchlist = [...profile.watchlist, { inn: drug.inn, ru: drug.ru, addedAt: now, from: command.from }];
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
+      return { ok: true, profileChanged: true, notices: [`«${drug.ru}» добавлен в «Мои препараты». Изменения проверяются раз в сутки${workspaceStore().kind === "postgres" ? " в фоне" : " при открытии портала"}.`] };
+    }
+    case "unwatchDrug": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      const before = profile.watchlist.length;
+      profile.watchlist = profile.watchlist.filter(drug => drug.inn !== command.inn);
+      if (profile.watchlist.length === before) return { ok: true, profileChanged: false };
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "drugs", count: profile.watchlist.length });
+      return { ok: true, profileChanged: true };
+    }
+    case "setBackgroundPaused": {
+      const profile = await loadProfile(sessionId, specialtyId);
+      profile.backgroundPaused = command.paused;
+      await saveProfile(sessionId, profile);
+      await recordAgentEvent(sessionId, "agent_configured", { specialty: specialtyId, agentId: "all", count: command.paused ? 0 : 1 });
       return { ok: true, profileChanged: true };
     }
     case "setAnswerMode": {
