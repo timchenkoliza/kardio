@@ -1,3 +1,4 @@
+import { SPECIALTY_CALCULATORS } from "@/lib/calculators/catalog";
 import { describe, expect, it } from "vitest";
 import { defaultProfile } from "@/lib/agents/profile";
 import type { AgentResult, Material } from "@/lib/agents/types";
@@ -80,8 +81,11 @@ describe("agent gallery", () => {
     expect(galleryHref(GALLERY.find(agent => agent.id === "drug")!, "neurology")).toBe("/neurology/ask?job=drug");
     expect(galleryHref(GALLERY.find(agent => agent.id === "materials")!, "therapy")).toBe("/therapy/materials");
     expect(galleryHref(GALLERY.find(agent => agent.id === "calculators")!, "cardiology")).toBe("/cardiology/tools");
-    // Cardiology risk scores are not offered to other specialties.
-    expect(galleryHref(GALLERY.find(agent => agent.id === "calculators")!, "neurology")).toBeNull();
+    // Every specialty has its own calculators (B15); cardiology risk scores lead only in cardiology.
+    expect(galleryHref(GALLERY.find(agent => agent.id === "calculators")!, "neurology")).toBe("/neurology/tools");
+    expect(SPECIALTY_CALCULATORS.neurology[0]).toBe("gcs");
+    expect(SPECIALTY_CALCULATORS.pediatrics).not.toContain("cha2ds2va");
+    expect(SPECIALTY_CALCULATORS.cardiology[0]).toBe("cha2ds2va");
     for (const agent of GALLERY) expect(`${agent.name} ${agent.can} ${agent.sources} ${agent.help}`).not.toMatch(CARDIOLOGY_CLINICAL);
   });
 });
