@@ -256,9 +256,12 @@ export function trustLabel(state: CapabilityState, options: { showcase?: boolean
   }
 }
 
-/** Claim verification in editorial language (no «частично», no internal notes). */
+/**
+ * Claim verification in editorial language (no «частично», no internal notes).
+ * It says the shown text was found in the source — never that the source answers the question.
+ */
 export function editorialVerification(status: VerificationStatus): { label: string; tone: "supported" | "check" } {
-  return status === "SUPPORTED" ? { label: "Подтверждено источником", tone: "supported" } : { label: "Требует сверки", tone: "check" };
+  return status === "SUPPORTED" ? { label: "Совпадает с текстом источника", tone: "supported" } : { label: "Требует сверки", tone: "check" };
 }
 
 export type Certainty = "high" | "moderate" | "low" | "very_low";
@@ -305,8 +308,14 @@ export function drugSectionGroup(heading: string | null | undefined): DrugSectio
   // «Противопоказания» contains «показания»: it is matched first.
   if (/противопоказ|contraindicat/.test(value)) return "contraindications";
   if (/показан|indication/.test(value)) return "indications";
+  // «Передозировка» contains «доз»: it is a safety section, matched before dosing.
+  if (/передозир|overdos/.test(value)) return "safety";
   if (/дозир|способ применения|доз|dosage|administration/.test(value)) return "dosing";
   if (/взаимодейств|interaction/.test(value)) return "interactions";
+  // «Особые указания» are the label's warnings, not a section about special populations.
+  if (/особые указания|special warning/.test(value)) return "safety";
+  // «С осторожностью» lists the patients who need caution (renal or hepatic impairment, the elderly).
+  if (/с осторожн/.test(value)) return "populations";
   if (/беремен|лактац|кормлен|дет|пожил|почеч|печен|особ|pregnan|lactation|pediatric|geriatric|population/.test(value)) return "populations";
   if (/предупрежд|мер[ыа] предосторож|побочн|нежелательн|передозир|рамке|warning|precaution|adverse|overdos|boxed|изменени/.test(value)) return "safety";
   return "other";

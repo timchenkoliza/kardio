@@ -12,8 +12,12 @@ async function expectNoOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 }
 
-test("composer: states, a separate mode control, and the mode stored with the run", async ({ page }) => {
+test("composer: states, no depth choice before the question, the profile default stored with the run", async ({ page }) => {
   test.setTimeout(150_000);
+  // UX-01: depth is a profile default, never a choice before the question.
+  await page.goto("/cardiology/settings");
+  await page.getByRole("radiogroup", { name: "Режим ответа по умолчанию" }).getByRole("radio", { name: /Короткий ответ/ }).click();
+  await expect(page.locator(".pt-profile-saved").first()).toBeVisible();
   await page.goto("/cardiology");
   const composer = page.locator("form.pt-composer");
   await expect(composer).toHaveAttribute("data-state", "idle");
@@ -25,23 +29,20 @@ test("composer: states, a separate mode control, and the mode stored with the ru
   await expect(composer).toHaveAttribute("data-state", "typing");
   await expect(page.locator(".pt-composer .ws-composer-run")).toBeEnabled();
 
-  const modes = page.getByRole("radiogroup", { name: "Режим ответа" });
-  await expect(modes.getByRole("radio")).toHaveCount(3);
-  await expect(modes.getByRole("radio", { name: /Полный ответ/ })).toHaveAttribute("aria-checked", "true");
-  await modes.getByRole("radio", { name: /Короткий ответ/ }).click();
-  await expect(modes.getByRole("radio", { name: /Короткий ответ/ })).toHaveAttribute("aria-checked", "true");
-  // Suggestions and quick agents sit outside the mode control and never change it.
+  await expect(page.getByRole("radiogroup", { name: "Режим ответа" })).toHaveCount(0);
+  // Suggestions and quick tasks are queries and jobs, never a depth.
   await expect(page.locator('.pt-suggestions[data-kind="query"] .pt-suggestion').first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Частые задачи" }).getByRole("link")).toHaveCount(3);
 
   await page.locator(".pt-composer .ws-composer-run").click();
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=run-/u, { timeout: 45_000 });
   await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
-  await expect(page.locator(".pt-mode-chip")).toHaveAttribute("data-answer-mode", "short");
-  await expect(page.locator(".pt-mode-chip")).toHaveText("Короткий ответ");
+  await expect(page.locator(".pt-ask")).toHaveAttribute("data-answer-mode", "short");
+  // The depth was not chosen for this question, so it is not shown as a choice on the answer.
+  await expect(page.locator(".pt-mode-chip")).toHaveCount(0);
 });
 
-test("profile: identity, default mode and sources persist after refresh and reach the home composer", async ({ page }) => {
+test("profile: identity, default mode and sources persist after refresh; the home asks no depth", async ({ page }) => {
   await page.goto("/cardiology/settings");
   await expect(page.getByRole("heading", { level: 1, name: "Профиль и настройки" })).toBeVisible();
   await page.getByRole("button", { name: "Изменить" }).click();
@@ -60,7 +61,7 @@ test("profile: identity, default mode and sources persist after refresh and reac
   await expect(page.locator('.pt-source[data-source="nejm"]')).toHaveAttribute("data-state", "excluded");
 
   await page.goto("/cardiology");
-  await expect(page.getByRole("radiogroup", { name: "Режим ответа" }).getByRole("radio", { name: /Режим исследования/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radiogroup", { name: "Режим ответа" })).toHaveCount(0);
   await expect(page.locator(".ws-profile-entry, .ws-tabbar").first()).toBeVisible();
 });
 
@@ -139,7 +140,7 @@ for (const viewport of VIEWPORTS) {
       }
     } else {
       expect(box?.width ?? 0).toBeGreaterThanOrEqual(880);
-      await expect(page.locator(".ws-sidebar .ws-nav-item")).toHaveText(["Главное", "Агенты", "Мои материалы", "Обезличивание"]);
+      await expect(page.locator(".ws-sidebar .ws-nav-item")).toHaveText(["Главное", "История", "Мои материалы", "Обезличивание"]);
     }
     await context.close();
   });

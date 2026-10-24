@@ -157,6 +157,7 @@
 
 .pt-trust,
 .pt-curated,
+.pt-relevance,
 .pt-certainty {
   display: inline-flex;
   align-items: center;
@@ -173,6 +174,10 @@
 .pt-trust[data-tone="curated"],
 .pt-curated { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
 .pt-trust[data-tone="check"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
+/* Relevance to the question is its own label, next to (never instead of) the text-match check. */
+.pt-verify-why { color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
+.pt-relevance[data-relevance="all"] { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
+.pt-relevance[data-relevance="partial"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
 .pt-certainty[data-certainty="high"] { background: var(--ws-success-soft); color: var(--ws-success); }
 .pt-certainty[data-certainty="moderate"] { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
 .pt-certainty[data-certainty="low"],
@@ -226,8 +231,15 @@
 .pt-item-media figcaption { padding: var(--ws-space-8) var(--ws-space-12); background: var(--ws-canvas); color: var(--ws-text-secondary); font-size: var(--font-size-metadata); line-height: var(--ws-leading-metadata); }
 .pt-item-note { margin: 0; font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 
-/* «Оригинал»: source wording, collapsed by default */
-.pt-original { min-width: 0; border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
+/* «Оригинал»: source wording, collapsed by default; «Шире вопроса» uses the same disclosure */
+.pt-original,
+.pt-widened { min-width: 0; border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
+.pt-widened { margin-top: var(--ws-space-12); }
+.pt-widened > .pt-widened-title { margin: 0; padding: var(--ws-space-8) var(--ws-space-12) 0; font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-label); }
+.pt-widened > p,
+.pt-widened > .pt-drug-sections,
+.pt-widened > .pt-answers { margin: 0; padding: 0 var(--ws-space-12) var(--ws-space-12); }
+.pt-widened > summary,
 .pt-original > summary {
   display: flex;
   align-items: center;
@@ -241,9 +253,12 @@
   list-style: none;
   cursor: pointer;
 }
-.pt-original > summary::-webkit-details-marker { display: none; }
+.pt-original > summary::-webkit-details-marker,
+.pt-widened > summary::-webkit-details-marker { display: none; }
+.pt-widened > summary::before,
 .pt-original > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 160ms ease; }
-.pt-original[open] > summary::before { transform: rotate(45deg); }
+.pt-original[open] > summary::before,
+.pt-widened[open] > summary::before { transform: rotate(45deg); }
 .pt-original-body { display: flex; flex-direction: column; gap: var(--ws-space-8); padding: 0 var(--ws-space-12) var(--ws-space-12); color: var(--ws-text-secondary); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); overflow-wrap: anywhere; }
 .pt-original-body p { margin: 0; }
 .pt-original-body .pt-quote p { color: var(--ws-text-secondary); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }

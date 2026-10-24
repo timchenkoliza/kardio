@@ -1,7 +1,7 @@
 import { DRUG_CHANGE_LABEL, formatDateRu } from "@/lib/agents/format";
 import { withNewFlags } from "@/lib/agents/profile";
 import type { AgentId, AgentResult, AgentRun, DrugChangeType, Material, UserProfile } from "@/lib/agents/types";
-import { topicLabels } from "@/lib/agents/vocabulary";
+import { topicById, topicLabels } from "@/lib/agents/vocabulary";
 import type { ContentObject, SpecialtyId } from "@/lib/domain/types";
 import { mediaKey, selectCardMedia } from "@/lib/media/derivatives";
 import { stateForOrigin, type ForYouCard, type ForYouKind } from "@/lib/portal/cards";
@@ -111,26 +111,32 @@ function sourceName(result: AgentResult): string {
   return result.source.source;
 }
 
-/** Topic-scoped scenarios: the card topic, never an empty request. */
+/**
+ * New tasks on the card's topic, offered on the material page. Each starts a
+ * NEW search on the topic and says so; none of them acts on the material
+ * itself (there is no «Кратко»: the material page is the short form, and
+ * nothing here can honestly shorten a source further).
+ */
 export function scenariosFor(kind: ForYouKind, topic: string): ForYouCard["scenarios"] {
   if (!topic) return [];
   if (kind === "event" || kind === "partner" || kind === "saved_topic") return [];
   if (kind === "drug_signal") return [
     { label: "Справка по препарату", job: "drug" as PortalJob, text: topic },
-    { label: "Разбор исследований", job: "research" as PortalJob, text: topic },
+    { label: "Исследования по теме", job: "research" as PortalJob, text: topic },
   ];
   return [
-    { label: "Кратко", job: "answer" as PortalJob, text: topic },
-    { label: "Разбор исследований", job: "research" as PortalJob, text: topic },
-    { label: "Практические рекомендации", job: "guidelines" as PortalJob, text: topic },
+    { label: "Исследования по теме", job: "research" as PortalJob, text: topic },
+    { label: "Рекомендации по теме", job: "guidelines" as PortalJob, text: topic },
   ];
 }
 
 export function resultCard(result: AgentResult & { newSinceLastSeen?: boolean }, specialty: SpecialtyId, isNew: boolean, options: { used?: Set<string> } = {}): ForYouCard {
   const kind = kindFor(result);
-  const topicAttr = typeof result.attributes.topic === "string" ? result.attributes.topic : null;
+  // A topic stored by its vocabulary id («ah») is shown by its name.
+  const topicAttr = typeof result.attributes.topic === "string" ? topicById(specialty, result.attributes.topic)?.label ?? result.attributes.topic : null;
   const label = kind === "publication" && typeof result.attributes.studyType === "string" ? result.attributes.studyType : result.kind === "drug_change" && result.category && result.category in DRUG_CHANGE_LABEL ? DRUG_CHANGE_LABEL[result.category as DrugChangeType].title : LABEL[kind];
-  const localized = localizeItem({ title: result.title, summary: result.summary, typeLabel: label, topic: topicAttr ?? specialties[specialty].name, tags: topicAttr ? [topicAttr] : [] });
+  // Only a topic the result states names its subject: the specialty is not what an unrecognised document is about.
+  const localized = localizeItem({ title: result.title, summary: result.summary, typeLabel: label, topic: topicAttr, tags: topicAttr ? [topicAttr] : [] });
   const why = physicianSafe(whyItMatters(result));
   const href = internalHref(result, specialty);
   const state = stateForOrigin(result.source.dataOrigin);
@@ -296,7 +302,9 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
   const isNew = (result: AgentResult) => Boolean(previousVisitAt) && result.createdAt > (previousVisitAt as string);
   const live = (result: AgentResult) => result.kind !== "event" || typeof result.attributes.endDate !== "string" || new Date(`${result.attributes.endDate}T23:59:59Z`).getTime() >= now.getTime();
 
-  const organic = withNewFlags(FEED_AGENTS.flatMap(agentId => currentResults(args.results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null)), profile)
+  // A switched-off check («Выключить проверку») contributes nothing to «Для вас».
+  const enabled = (agentId: AgentId) => profile.subscriptions[agentId]?.enabled !== false;
+  const organic = withNewFlags(FEED_AGENTS.filter(enabled).flatMap(agentId => currentResults(args.results.filter(result => result.agentId === agentId), latest.get(agentId) ?? null)), profile)
     .filter(result => !result.partner && !result.dismissed && live(result) && result.category !== "needs_check");
   const seen = new Set<string>();
   const unique = organic.filter(result => {
@@ -316,7 +324,8 @@ export function buildForYou(args: { specialty: SpecialtyId; profile: UserProfile
     .slice(0, 1)
     .map(result => resultCard(result, specialty, isNew(result), { used }));
 
-  const learningRun = args.runs.find(run => run.agentId === "learning" && run.status !== "running");
+  // The feed's learning step is the background check's, not an answer to a learning question (N-08).
+  const learningRun = enabled("learning") ? args.runs.find(run => run.agentId === "learning" && run.status !== "running" && run.trigger !== "composer") : undefined;
   // The learning step should add something: skip a reading already shown as an update card.
   const shownUrls = new Set(updates.map(card => card.source.url).filter(Boolean));
   const learning = learningRun ? currentResults(args.results.filter(result => result.agentId === "learning"), learningRun).filter(result => result.attributes.done !== true && !shownUrls.has(result.source.sourceUrl)).sort((a, b) => a.rank - b.rank)[0] : undefined;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { isRussian } from "@/lib/presentation/physician";
-import { isSpecialty, specialties } from "@/lib/specialty";
+import { isSpecialty } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
 import { CardMediaView, dateLabel, renderableMedia, TrustBadge } from "@/components/portal/for-you";
 import { SaveResultButton } from "@/components/portal/result-actions";
@@ -42,10 +42,15 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
   const media = renderableMedia(card.media);
   const russianQuotes = quotes.filter(quote => isRussian(quote.text));
   const originalQuotes = quotes.filter(quote => !isRussian(quote.text));
+  // The short form is only a real finding: a line of publication metadata is not a «Ключевая мысль».
+  // Neither a metadata line nor a templated «почему важно» («…опубликованные за последние два года», change counts) is a key thought.
+  const template = (text: string) => /^(?:Документ:|Национальный документ:|Опубликовано в журнале|Уверенность доказательств|Клинические рекомендации, опубликованные за последние|Новая публикация по|\d+ содержательн)/u.test(text);
+  const keyText = card.summary && !template(card.summary) ? card.summary : card.whyItMatters && !template(card.whyItMatters) ? card.whyItMatters : null;
+  const authorsWords = !keyText && !russianQuotes.length ? originalQuotes.slice(0, 1) : [];
   const hasOriginal = Boolean(card.original || originalQuotes.length);
 
   return <div className="ws-page pt-item" data-item-kind={card.kind}>
-    <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />К ленте</Link>
+    <Link className="ws-back" href={`/${specialty}#fy-${card.id}`}><ArrowLeft size={15} aria-hidden="true" />К ленте</Link>
     <article className="pt-item-card" aria-labelledby="pt-item-title">
       <header className="pt-item-head">
         <div className="pt-card-meta">
@@ -65,8 +70,12 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
       <div className="pt-item-grid">
         <div className="pt-item-main">
           <section className="pt-item-section pt-item-key" aria-labelledby="pt-item-key">
-            <h2 id="pt-item-key" className="pt-subtitle">Ключевая мысль</h2>
-            <p>{nbsp(card.summary ?? card.whyItMatters ?? `Материал по специальности «${specialties[specialty].name}». Подробности — в первоисточнике.`)}</p>
+            <h2 id="pt-item-key" className="pt-subtitle">{keyText ? "Ключевая мысль" : "Краткого изложения на русском нет"}</h2>
+            {keyText
+              ? <p>{nbsp(keyText)}</p>
+              : authorsWords.length
+                ? <><p className="pt-derived">Вывод авторов (на английском, дословно):</p>{authorsWords.map(quote => <blockquote key={quote.text.slice(0, 40)} className="pt-quote" lang="en"><p>{quote.text}</p></blockquote>)}</>
+                : <p>{nbsp(`${card.summary ? `${card.summary} ` : ""}Содержание — в первоисточнике по кнопке выше.`)}</p>}
           </section>
           <section className="pt-item-section" aria-labelledby="pt-item-short">
             <h2 id="pt-item-short" className="pt-subtitle">Коротко</h2>
@@ -84,9 +93,9 @@ export default async function ItemPage({ params }: { params: Promise<{ specialty
             {russianQuotes.map(quote => <blockquote key={quote.text.slice(0, 40)} className="pt-quote"><p>{nbsp(quote.text)}</p></blockquote>)}
           </section>}
           {card.scenarios.length > 0 && <section className="pt-item-section" aria-labelledby="pt-item-next">
-            <h2 id="pt-item-next" className="pt-subtitle">Что сделать с этим материалом</h2>
-            <p className="ws-muted">{nbsp(`Агенты разберут тему «${card.scenarios[0].text}» по источникам — ответ откроется здесь же.`)}</p>
-            <div className="pt-card-actions"><ScenarioButtons scenarios={card.scenarios} primaryFirst /></div>
+            <h2 id="pt-item-next" className="pt-subtitle">Новый поиск по теме</h2>
+            <p className="ws-muted">{nbsp(`Запустит новый поиск по теме «${card.scenarios[0].text}» — не по этому материалу. Результат откроется на отдельной странице, этот материал останется в ленте.`)}</p>
+            <div className="pt-card-actions"><ScenarioButtons scenarios={card.scenarios} origin={{ href: `/${specialty}/item/${encodeURIComponent(id)}`, label: card.title }} /></div>
           </section>}
           {hasOriginal && <details className="pt-original">
             <summary>Оригинал</summary>

@@ -10,6 +10,7 @@ import { diffManifests, isEmptyPatch } from "@/lib/mesh/patch";
 import { pinnedSession } from "@/lib/mesh/session-context";
 import { decideStrategy } from "@/lib/mesh/strategy";
 import type { PortalJob } from "@/lib/portal/jobs";
+import { EXCLUDED_IN_PROFILE, NOT_FOR_SPECIALTY } from "@/lib/portal/run-outcome";
 import type { BrowserDriver } from "@/server/mesh/browser/drivers";
 import { lookupDrugLabelLive, type DrugLabelResult } from "./adapters/openfda";
 import { searchPubmedLive, type PubmedQuery, type PubmedSearchResult } from "./adapters/pubmed";
@@ -158,6 +159,9 @@ export function requestApproval(args: { specialty: SpecialtyId; agentId: AgentId
   return actions;
 }
 
+/** Background checks that fill «Для вас» (their results belong to the check, not to a question). */
+const FEED_CHECKS: readonly AgentId[] = ["whats_new", "guidelines", "drugs", "events"];
+
 /** persistResult(): merge by stable key; first-seen time is never rewritten. */
 export function mergeResults(args: { drafts: readonly ResultDraft[]; existing: readonly AgentResult[]; runId: string; now: string; lastSeenAt: string | null; rehydrated: boolean; keyPrefix: string }): { results: AgentResult[]; newCount: number } {
   const byKey = new Map(args.existing.map(result => [result.key, result]));
@@ -263,7 +267,7 @@ function progressBase(run: AgentRun): RunProgress {
  * returned to the browser already exists in storage. Unsafe input is
  * blocked here (a terminal run); everything else is queued.
  */
-export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; answerMode?: AnswerMode | null; now?: Date }): Promise<AgentRun> {
+export async function createRun(store: WorkspaceStore, sessionId: string, request: { agentId: AgentId; specialty: SpecialtyId; profile: UserProfile; trigger: RunTrigger; text: string; job?: PortalJob | null; explicitJob?: boolean; followup?: boolean; context?: NonNullable<AgentRun["input"]["context"]>; answerMode?: AnswerMode | null; continuation?: AgentRun["input"]["continuation"]; origin?: AgentRun["input"]["origin"]; now?: Date }): Promise<AgentRun> {
   const now = request.now ?? new Date();
   const preference = effectivePreference(request.profile, request.agentId);
   const risk = checkRisk(request.text);
@@ -275,7 +279,7 @@ export async function createRun(store: WorkspaceStore, sessionId: string, reques
     startedAt: now.toISOString(),
     completedAt: risk.allowed ? null : now.toISOString(),
     status: risk.allowed ? "queued" : "blocked",
-    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}), answerMode: resolveAnswerMode(request.profile, request.answerMode) },
+    input: { text: risk.sanitizedText.slice(0, 1200), preferenceDigest: preferenceDigest(preference), explicitJob: Boolean(request.explicitJob), followup: Boolean(request.followup), ...(request.context ? { context: request.context } : {}), answerMode: resolveAnswerMode(request.profile, request.answerMode), ...(request.continuation ? { continuation: { ...request.continuation, followup: checkRisk(request.continuation.followup).sanitizedText.slice(0, 300) } } : {}), ...(request.origin ? { origin: request.origin } : {}) },
     intent: request.job ?? null,
     plan: risk.allowed ? [] : [{ id: "step-1", label: "Проверили запрос на безопасность", tool: "riskCheck", status: "blocked", detail: risk.blockedReason, connectorIds: [] }],
     toolsUsed: [],
@@ -313,7 +317,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
       startedAt: nowIso,
       completedAt: null,
       status: "running",
-      input: { text: null, preferenceDigest: preferenceDigest(preference) },
+      // The depth asked for (a review's «Что получить») stays on the run, so every door shows it the same way.
+      input: { text: null, preferenceDigest: preferenceDigest(preference), ...(request.answerMode ? { answerMode: request.answerMode } : {}) },
       intent: request.job ?? routed?.intent ?? null,
       plan: [],
       toolsUsed: [],
@@ -404,7 +409,10 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
   // Progress writes end before the final state is computed: nothing late can overwrite it.
   const closed = await writer?.close();
   const validation = validateEvidence(executed.drafts);
-  const merged = mergeResults({ drafts: validation.kept, existing, runId, now: nowIso, lastSeenAt: ctx.lastSeenAt, rehydrated: Boolean(deps.rehydrated), keyPrefix: request.agentId });
+  // A question asked on a feed check's capability («Что нового по ХСН?») keeps its own results: it never rewrites
+  // the check's findings, their reasons or what «Для вас» shows.
+  const keyPrefix = request.trigger === "composer" && FEED_CHECKS.includes(request.agentId) ? `${request.agentId}:q:${runId}` : request.agentId;
+  const merged = mergeResults({ drafts: validation.kept, existing, runId, now: nowIso, lastSeenAt: ctx.lastSeenAt, rehydrated: Boolean(deps.rehydrated), keyPrefix });
   await deps.store.upsertResults(deps.sessionId, merged.results);
 
   if (preference.delivery.includes("save")) {
@@ -416,7 +424,6 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     await deps.store.upsertResults(deps.sessionId, merged.results);
   }
 
-  const toolStatuses = executed.toolsUsed.map(use => use.status);
   run.plan = executed.plan;
   run.toolsUsed = executed.toolsUsed;
   run.synthesis = executed.synthesis;
@@ -430,7 +437,8 @@ export async function runAgent(deps: SupervisorDeps, request: { agentId: AgentId
     await deps.store.upsertResults(deps.sessionId, merged.results);
   }
   // The status reflects the executor's own sources; what the finishing step could read is reported per record.
-  run.status = toolStatuses.some(status => status === "unavailable" || status === "failed") ? "partial" : "completed";
+  // A source the physician excluded, or one that does not exist for the specialty yet, did not fail.
+  run.status = executed.toolsUsed.some(use => (use.status === "unavailable" || use.status === "failed") && !EXCLUDED_IN_PROFILE.test(use.note ?? "") && !NOT_FOR_SPECIALTY.test(use.note ?? "")) ? "partial" : "completed";
   run.completedAt = new Date().toISOString();
   run.durationMs = Date.now() - started;
   if (closed) {

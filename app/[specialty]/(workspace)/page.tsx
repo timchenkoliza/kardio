@@ -12,6 +12,7 @@ import { CatchUpRunner } from "@/components/workspace/lifecycle";
 import { ForYouList } from "@/components/portal/for-you";
 import { PortalInput } from "@/components/portal/portal-input";
 import { QuickAgents } from "@/components/portal/quick-agents";
+import { RecentQuestions } from "@/components/portal/recent-questions";
 import { TopicNudge } from "@/components/portal/topic-nudge";
 import { pageSession } from "@/server/agents/page-session";
 import { workspaceStore } from "@/server/agents/store";
@@ -82,9 +83,12 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     <section className="pt-hero" aria-labelledby="pt-title">
       <h1 id="pt-title">{nbsp(`Ответы и обновления — ${adapter.audienceDative}`)}</h1>
       <p className="pt-lead">{nbsp("Спросите своими словами: препарат, рекомендация, диагноз или тема. Ответ собирается из рекомендаций, обзоров и официальных инструкций — у каждого утверждения есть источник и дата.")}</p>
-      <PortalInput specialty={specialty} suggestions={homeSuggestions(specialty, profile.interests.topics)} answerMode={profile.answerMode} showModes />
+      {/* No depth choice before the question: the profile default is used, and depth is chosen on the result. */}
+      <PortalInput specialty={specialty} suggestions={homeSuggestions(specialty, profile.interests.topics)} answerMode={profile.answerMode} pubmedExcluded={profile.interests.excludedSources.includes("pubmed")} />
       <QuickAgents specialty={specialty} />
     </section>
+
+    <RecentQuestions specialty={specialty} runs={runs} more />
 
     {pending > 0 && <Link className="ws-pending-banner" href={`/${specialty}/agents`}><BellRing size={18} aria-hidden="true" /><span>{countLabel(pending, ["действие ждёт", "действия ждут", "действий ждут"])} вашего подтверждения</span><ArrowRight size={16} aria-hidden="true" /></Link>}
 
@@ -94,12 +98,12 @@ export default async function Home({ params, searchParams }: { params: Promise<{
           <h2 id="pt-foryou-title" className="ws-section-title">{nbsp("Для вас")}</h2>
           <p className="ws-muted">{status}{forYou.topics.length ? ` · темы: ${forYou.topics.slice(0, 3).join(", ")}` : ""}</p>
         </div>
-        <Link className="ws-text-link" href={`/${specialty}/settings`}>{forYou.topics.length ? "Изменить темы" : "Выбрать темы"}<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link className="ws-text-link" href={`/${specialty}/settings#topics`}>{forYou.topics.length ? "Изменить темы" : "Выбрать темы"}<ArrowRight size={15} aria-hidden="true" /></Link>
       </div>
       {forYou.cards.length
         ? <ForYouList cards={forYou.cards} />
         : <p className="ws-empty">{catchUpDue ? "Источники проверяются — подборка появится через несколько секунд." : `Свежих материалов по специальности «${adapter.name}» за последние две недели не нашлось. Задайте вопрос выше — ответ соберётся из источников.`}</p>}
-      {!forYou.personalised && forYou.cards.length > 0 && <TopicNudge topics={topicsFor(specialty)} chosen={profile.interests.topics} trustedSources={profile.interests.trustedSources} />}
+      {!forYou.personalised && forYou.cards.length > 0 && <TopicNudge topics={topicsFor(specialty)} chosen={profile.interests.topics} trustedSources={profile.interests.trustedSources} excludedSources={profile.interests.excludedSources} />}
     </section>
   </div>;
 }

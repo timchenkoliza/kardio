@@ -1,8 +1,8 @@
-import { countLabel } from "@/lib/agents/format";
+import { countLabel, matchedSource, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { stableId, truncate } from "@/lib/agents/text";
 import type { AgentId, EventFormatPref } from "@/lib/agents/types";
 import { describeStudyIdentifiers, hasStudyIdentifiers, pubmedTermForIdentifiers, studyIdentifierCount, studyIdentifiersIn, type StudyIdentifiers } from "@/lib/agents/study-identifiers";
-import { pubmedConceptsIn, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
+import { pubmedConceptsIn, specificTopicTerms, topicById, topicLabels, topicsMentioned } from "@/lib/agents/vocabulary";
 import { conceptsIn, pubmedTermFor } from "@/lib/portal/lexicon";
 import { specialties } from "@/lib/specialty";
 import { entrezDate, type PubmedArticle } from "./adapters/pubmed";
@@ -15,6 +15,7 @@ import { factCheck as factCheckEvidence } from "./services/fact-check";
 import { materialEvidenceId, materialProvenance } from "./services/material";
 import { CLINICAL_PUBLICATION_TYPES } from "./adapters/pubmed";
 import * as tools from "./tools";
+import { byQuestionInTitle, titleNamesTopic } from "./topic-match";
 import { finishWithChecks, PlanBuilder, topicsDetail, type ExecutorResult } from "./plan";
 import { evidenceAnswer } from "@/server/mesh/executor";
 import { learning } from "./executor-learning";
@@ -129,15 +130,28 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
   });
 
   const questionTerm = concepts.length ? pubmedTermFor(concepts) : null;
-  const topicTerm = tools.pubmedTermForTopics(ctx);
+  // A guideline is «по вашей теме» when its title names the topic: a tinnitus guideline that mentions hypertension in its abstract is not.
+  const topicTerm = tools.pubmedTermForTopics(ctx)?.replace(/\[tiab\]/g, "[ti]") ?? null;
   const term = questionTerm ?? topicTerm ?? tools.specialtyScopeTerm(ctx);
   const years = question ? 5 : 2;
   const minDate = entrezDate(new Date(Date.UTC(ctx.now.getUTCFullYear() - years, ctx.now.getUTCMonth(), ctx.now.getUTCDate())));
   const articles = builder.record("Искали опубликованные рекомендации в PubMed", await tools.searchPubmed(ctx, { term, minDate, maxDate: entrezDate(ctx.now), retmax: question ? 6 : 4, publicationTypes: GUIDELINE_PUBLICATION_TYPES, sort: question ? "relevance" : "pub_date" }), items => countLabel(items.length, ["документ", "документа", "документов"]) + ` за ${years} ${years === 2 ? "года" : "лет"}`);
   const conclusions = question && articles.length ? builder.record("Прочитали рефераты рекомендаций", await tools.readAbstracts(ctx, articles.slice(0, 4).map(article => article.pmid)), items => countLabel(items.filter(item => item.conclusion).length, ["вывод", "вывода", "выводов"])) : [];
   const byPmid = new Map(conclusions.map(item => [item.pmid, item]));
-  const scopeReason = questionTerm ? `По вопросу: ${concepts.map(item => item.label).join(", ")}` : topicTerm ? `Темы: ${topicLabels(ctx.specialty, ctx.preference.topics).join(", ")}` : `Специальность: ${specialties[ctx.specialty].name}`;
-  const publications: ResultDraft[] = articles.map(article => {
+  const otherTopicTerms = specificTopicTerms(ctx.specialty);
+  // A document whose title names only a more specific topic than the chosen ones («pulmonary hypertension» for АГ) is not «по вашей теме».
+  const onTopic = (title: string) => !topicTerm || ctx.preference.topics.some(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? "", otherTopicTerms));
+  // The reason names the topics this document's title matches, not every topic in the profile.
+  const scopeReason = (title: string) => {
+    if (questionTerm) return `По вопросу: ${concepts.map(item => item.label).join(", ")}`;
+    if (!topicTerm) return `Специальность: ${specialties[ctx.specialty].name}`;
+    const matched = ctx.preference.topics.filter(id => titleNamesTopic(title, topicById(ctx.specialty, id)?.pubmed ?? "", otherTopicTerms));
+    const labels = topicLabels(ctx.specialty, matched.length ? matched : ctx.preference.topics);
+    return `${labels.length > 1 ? "Темы" : "Тема"}: ${labels.join(", ")}`;
+  };
+  const offTopic = articles.filter(article => !onTopic(article.title));
+  if (offTopic.length) builder.note("Отложили документы о другой теме", `${countLabel(offTopic.length, ["документ", "документа", "документов"])} — в названии более узкая тема, чем выбранная: ${offTopic.slice(0, 3).map(article => `«${truncate(article.title, 90)}»`).join("; ")}`);
+  const publications: ResultDraft[] = articles.filter(article => onTopic(article.title)).map(article => {
     const abstract = byPmid.get(article.pmid);
     const bibliographic = factCheckEvidence(evidenceFromPubmed(article, ctx.nowIso));
     const quote = abstract?.conclusion ? factCheckEvidence({ ...evidenceFromQuote({ connectorId: "pubmed", sourceName: `${article.journal} · ${article.sortDate?.slice(0, 4) ?? ""}`.trim(), sourceUrl: article.url, publisher: article.journalFull ?? article.journal, retrievedAt: ctx.nowIso, publishedAt: article.sortDate, claim: abstract.conclusion, quote: abstract.sections.find(section => section.label === abstract.conclusionLabel)?.text ?? abstract.conclusion, quoteLanguage: "en", quoteKind: "verbatim", level: "guideline", secondary: false, verifyIn: null, dataOrigin: "runtime_api" }), provenance: { ...pubmedProvenance(article, ctx.nowIso), journal: article.journal } }) : null;
@@ -149,7 +163,7 @@ async function guidelines(ctx: AgentContext): Promise<ExecutorResult> {
       category: "guideline_publication",
       title: truncate(article.title, 220),
       summary: [studyTypeLabel(article.publicationTypes), article.journal, article.pubDate].filter(Boolean).join(" · "),
-      reasonShown: [scopeReason, "Международная публикация: статус в РФ сверяйте с рубрикатором Минздрава"],
+      reasonShown: [scopeReason(article.title), "Международная публикация: статус в РФ сверяйте с рубрикатором Минздрава"],
       observedAt: article.sortDate,
       evidence: quote ? [quote, bibliographic] : [bibliographic],
       source: pubmedProvenance(article, ctx.nowIso),
@@ -179,7 +193,7 @@ async function drugs(ctx: AgentContext): Promise<ExecutorResult> {
   const articles = builder.record("Искали новые рандомизированные исследования", await tools.searchPubmed(ctx, { term, ...window, retmax: 4, journals: tools.trustedJournals(ctx) }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
   const partner = builder.record("Подобрали партнёрский материал отдельно от выдачи", await tools.matchPartnerContent(ctx), items => items.length ? "1 материал, помечен как партнёрский" : "Совпадений нет");
   const drafts = await finishWithChecks(builder, ctx, [...changes, ...drugStudyDrafts(ctx, articles), ...partner]);
-  builder.notices.push("Агент сообщает об изменениях и не подбирает терапию.");
+  builder.notices.push("Здесь только сообщения об изменениях: терапия не подбирается.");
   return { intent: "track_drugs", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis: null, notices: builder.notices };
 }
 
@@ -250,7 +264,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const builder = new PlanBuilder();
   const question = ctx.inputText?.trim() || topicLabels(ctx.specialty, ctx.preference.topics).join(", ");
   if (!question) {
-    builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в настройках агента");
+    builder.note("Нужен вопрос", "Сформулируйте вопрос или выберите темы в профиле");
     return { intent: "research_question", plan: builder.plan, toolsUsed: [], drafts: [], synthesis: null, notices: [] };
   }
   const identifiers = studyIdentifiersIn(question);
@@ -273,7 +287,8 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const describeArticles = (items: unknown[]) => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + (concepts.length ? ` · запрос: ${concepts.map(item => item.label).join(", ")}` : "");
   let articles = builder.record("Искали публикации в PubMed", await tools.searchPubmed(ctx, { term, retmax: 6, journals }), describeArticles);
   let conceptMatched = concepts.length > 0;
-  if (!articles.length && conceptTerm && broadTerm && builder.toolsUsed.at(-1)?.status === "ok") {
+  // A PubMed skipped by the review's own filters («Только РФ») is not widened: there was no search to widen.
+  if (!articles.length && conceptTerm && broadTerm && builder.toolsUsed.at(-1)?.status === "ok" && !/PubMed пропущен/u.test(builder.toolsUsed.at(-1)?.note ?? "")) {
     articles = builder.record("Расширили поиск в PubMed до тем вопроса", await tools.searchPubmed(ctx, { term: broadTerm, retmax: 6, journals }), items => countLabel(items.length, ["публикация", "публикации", "публикаций"]));
     conceptMatched = false;
   }
@@ -298,16 +313,30 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     rank: 0,
   }));
   const pubmedDrafts: ResultDraft[] = articles.map(article => pubmedFindingDraft(ctx, questionKey, question, article, pubmedReason));
-  const drafts = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
+  const checked = await finishWithChecks(builder, ctx, [...catalogDrafts, ...pubmedDrafts]);
+  // After the ranking by source strength, a title that names more of the question («пожилые», «антикоагулянты») comes first;
+  // the strength ranking breaks ties.
+  // Only PubMed records move, within their own places: catalog records (РКО) keep the place their source strength gives them.
+  const ranked = checked.filter(draft => !draft.partner).sort((a, b) => a.rank - b.rank);
+  const reordered = byQuestionInTitle(ranked.filter(draft => draft.source.connectorId === "pubmed"), concepts.map(item => item.term), questionTopics.map(id => topicById(ctx.specialty, id)?.pubmed ?? "").filter(Boolean));
+  let next = 0;
+  const organicDrafts = ranked.map(draft => draft.source.connectorId === "pubmed" ? reordered[next++] : draft).map((draft, index) => ({ ...draft, rank: index + 1 }));
+  const drafts = [...organicDrafts, ...checked.filter(draft => draft.partner)];
   const pubmedUse = builder.toolsUsed.find(use => use.tool === "searchPubmed");
   const gaps = [
-    pubmedUse && pubmedUse.status !== "ok" ? `PubMed: ${pubmedUse.note ?? "недоступен"}` : null,
-    "Полные тексты статей не загружались — агент не пересказывает выводы исследований",
+    // The note names PubMed itself («PubMed исключён в вашем профиле»): no «PubMed: PubMed…».
+    pubmedUse && pubmedUse.status !== "ok" ? (/^PubMed/u.test(pubmedUse.note ?? "") ? pubmedUse.note : `PubMed: ${pubmedUse.note ?? "недоступен"}`) : null,
+    "Полные тексты статей не загружались — выводы исследований не пересказываются",
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);
-  const keyFacts = drafts.filter(draft => draft.evidence.some(item => item.verificationStatus === "SUPPORTED")).slice(0, 4).map(draft => `— ${truncate(draft.title, 120)} (${draft.source.source})`);
+  // Every record whose citation or text matched, with the check it still needs (the journal outside the physicians' list).
+  // Every record whose citation or text matched, each with the check its label names on screen («версию сверьте», «журнал вне списка врачей»).
+  const keyFacts = drafts.filter(draft => draft.evidence.some(item => matchedSource(item.verificationStatus, [item]))).map(draft => {
+    const checks = verificationLabelFor(weakestVerification(draft.evidence.map(item => item.verificationStatus)), draft.evidence).label.split(" · ").slice(1);
+    return `— ${truncate(draft.title, 120)} (${draft.source.source})${checks.length ? ` · ${checks.join(" · ")}` : ""}`;
+  });
   const synthesis = drafts.length
-    ? [`По вопросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `С подтверждённым источником:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
+    ? [`По запросу «${truncate(question, 120)}» найдено: ${countLabel(hits.length, ["материал", "материала", "материалов"])} в каталоге и ${countLabel(articles.length, ["публикация", "публикации", "публикаций"])} в PubMed.`, keyFacts.length ? `Источник сверен:\n${keyFacts.join("\n")}` : "Подтверждённых источником находок нет.", `Чего не хватает: ${gaps.join("; ")}.`].join("\n\n")
     : `По вопросу «${truncate(question, 120)}» в доверенных источниках ничего не найдено. Чего не хватает: ${gaps.join("; ")}.`;
   builder.note("Собрали проверяемый обзор", "Только найденное, с источниками; без выводов сверх них");
   return { intent: "research_question", plan: builder.plan, toolsUsed: builder.toolsUsed, drafts, synthesis, notices: builder.notices };
@@ -385,7 +414,7 @@ async function materials(ctx: AgentContext): Promise<ExecutorResult> {
       category: hit.material.kind,
       title: hit.material.title,
       summary: hit.snippet,
-      reasonShown: [`Совпадения: ${hit.matchedTerms.slice(0, 4).join(", ")}`, hit.material.ownership === "USER_UPLOADED" ? "Ваш документ" : hit.material.ownership === "GENERATED" ? "Сохранённый результат агента" : "Сохранённая ссылка"],
+      reasonShown: [`Совпадения: ${hit.matchedTerms.slice(0, 4).join(", ")}`, hit.material.ownership === "USER_UPLOADED" ? "Ваш документ" : hit.material.ownership === "GENERATED" ? "Сохранённый результат" : "Сохранённая ссылка"],
       observedAt: hit.material.createdAt,
       evidence: [{
         id: materialEvidenceId(hit.material, hit.snippet),

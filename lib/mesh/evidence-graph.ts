@@ -1,5 +1,7 @@
 import type { ClaimKind, CoverageState, EvidenceGraph, GraphConflict, GraphDocument, GraphFreshness, GraphRelation, GraphSource, NormalizedClaim, NormalizedDocument, SourceResult } from "./evidence";
+import { conditionLabel } from "@/lib/portal/labels";
 import type { NormalizedIntent } from "./intent";
+import { detectDomain } from "./domain-graph";
 import { REQUIREMENT_LABEL, type EvidenceRequirement } from "./jobs";
 import type { ExecutionPlan } from "./planner";
 import type { SourceDescriptor, SourceId, SourceStatusReport } from "./sources";
@@ -83,6 +85,45 @@ export function topicTerms(intent: NormalizedIntent): string[] {
   }
   if (intent.context.subtype) words.add(intent.context.subtype.id.split("/").at(-1)!);
   return [...words];
+}
+
+/**
+ * What the question asks about its topic («длительность», «нетяжёлое течение»), one word group per
+ * modifier: a conclusion that speaks about it answers the question more directly than one that does not.
+ */
+/** How conclusions word what was asked, beyond the search term itself. */
+const ASKED_FORMS: Record<string, readonly string[]> = {
+  "modifier:duration": ["shorter", "short course", " days", "-day", "длительн", " дней"],
+  "modifier:dose": ["dosing", "dosage", " mg"],
+  "modifier:safety": ["harm", "bleeding", "tolerab", "safe"],
+};
+
+/** Asked groups worded only by these forms: the search term's own words are too broad («rapid diagnostics» in a stewardship review), and a call for «standardised diagnostic criteria» says nothing about how to diagnose. */
+const ASKED_ONLY: Record<string, readonly string[]> = {
+  "modifier:diagnosis": ["diagnostic accuracy", "accuracy", "sensitivity", "specificity", "ultrasound", "radiograph", "imaging", "biomarker", "диагностик"],
+};
+
+export function askedTerms(intent: NormalizedIntent): string[][] {
+  // Quoted phrases stay whole («short course»), so a generic word («course») never stands for the modifier.
+  const words = (term: string) => [...term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z-]*)/gu)].map(match => (match[1] ?? match[2]).toLowerCase()).filter(word => word.length >= 4);
+  // Only what is asked («длительность»), not the context it is asked in («антибиотики»): the context is already in the search.
+  // A conclusion says it in its own words («a shorter course», «5 days»), so each asked group also accepts those forms.
+  return intent.entities.concepts.filter(item => item.kind === "modifier" && item.asked).map(concept => [...new Set(ASKED_ONLY[concept.id] ?? [...words(concept.term), ...(ASKED_FORMS[concept.id] ?? [])])]).filter(group => group.length);
+}
+
+/** The conditions the search actually used, in the physician's words (shown above the answer). */
+export function searchConditions(intent: NormalizedIntent): string[] {
+  const labels = [
+    ...(intent.context.nosology ? [intent.context.nosology.label] : []),
+    ...(intent.context.subtype ? [intent.context.subtype.label] : []),
+    // The topic the disease was recognised from is the disease itself; any other topic («Кардиоренальные связи») is a condition of its own.
+    ...intent.entities.concepts.filter(concept => !(intent.context.nosology && concept.kind === "topic" && detectDomain(concept.label, intent.context.specialty).nosology?.id === intent.context.nosology.id)).map(concept => concept.label),
+  ];
+  // «внебольничная» is already in «внебольничная пневмония»: a label inside an earlier one is not repeated.
+  // Abbreviations keep their case («иНГЛТ-2», «ХСН»), as in the research review's «Искали по».
+  const shown = labels.map(conditionLabel);
+  const lower = shown.map(label => label.toLocaleLowerCase("ru-RU"));
+  return shown.filter((_, index) => lower.indexOf(lower[index]) === index && !lower.slice(0, index).some(earlier => earlier.includes(lower[index])));
 }
 
 export function buildEvidenceGraph(args: {
@@ -174,7 +215,7 @@ export function buildEvidenceGraph(args: {
     job: intent.job.primary,
     family: intent.job.family,
     specialty: intent.context.specialty,
-    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent) },
+    context: { nosology: intent.context.nosology?.id ?? null, subtype: intent.context.subtype?.id ?? null, drugs: intent.entities.drugs.map(drug => drug.inn), terms: topicTerms(intent), asked: askedTerms(intent), conditions: searchConditions(intent) },
     sources,
     documents: graphDocuments,
     versions: [...documents.values()].map(document => ({ documentId: document.id, ...document.version })),

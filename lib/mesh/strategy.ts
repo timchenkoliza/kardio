@@ -28,6 +28,8 @@ const DISAGREEMENT_GAP = 0.1;
 const SESSION_TOPIC_CONFIDENCE = 0.5;
 /** Comparing this many drugs at once is large enough to show the plan first. */
 const PLAN_PREVIEW_DRUGS = 3;
+/** Jobs whose sources compare several drugs; learning, events, updates and materials never stop for a plan. */
+const PLAN_PREVIEW_JOBS: ReadonlySet<PortalJob> = new Set(["answer", "drug", "guidelines", "research"]);
 
 export interface StrategyInput {
   text: string;
@@ -90,14 +92,18 @@ function withEntities(text: string, entities: readonly SessionEntity[]): string 
 }
 
 function planPreviewFor(intent: NormalizedIntent, text: string): PlanPreview | null {
-  if (intent.entities.drugs.length < PLAN_PREVIEW_DRUGS) return null;
-  const names = intent.entities.drugs.map(drug => drug.ru).join(", ");
+  if (intent.entities.drugs.length < PLAN_PREVIEW_DRUGS || !PLAN_PREVIEW_JOBS.has(intent.job.family)) return null;
+  const [first, ...rest] = intent.entities.drugs.map(drug => drug.ru);
   const steps = [
-    `Открою российские инструкции: ${names}`,
-    intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях",
-    "Подберу свежие сравнительные обзоры и метаанализы",
-    "Покажу, где источники расходятся, с датами и ссылками",
-  ];
+    // One instruction is opened per answer; the rest are named for ГРЛС, not promised.
+    [...intent.requirements, ...intent.optional].includes("russian_drug_reference") ? `Открою российскую инструкцию: ${first}${rest.length ? `; инструкции ${rest.join(", ")} — по ссылке на ГРЛС` : ""}` : null,
+    // Only what the planned sources do: guidelines when the job asks for them, reviews when PubMed may answer.
+    intent.requirements.some(item => /guideline/u.test(item)) ? (intent.context.nosology ? `Найду позицию каждого препарата в рекомендациях: ${intent.context.nosology.label.toLocaleLowerCase("ru-RU")}` : "Найду позицию препаратов в клинических рекомендациях") : null,
+    [...intent.requirements, ...intent.optional].includes("current_research") ? "Подберу свежие сравнительные обзоры и метаанализы, если они включены в ваших источниках" : null,
+    "Если источники расходятся — покажу где, с датами и ссылками",
+  ].filter((step): step is string => Boolean(step));
+  // A plan of one generic step says nothing the result will not: run directly.
+  if (steps.length < 2) return null;
   return planPreviewSchema.parse({ schema: "kardio.plan-preview/0.1", id: `plan-${requestSignature(intent).replace(/[^a-z0-9|_-]/giu, "")}-${intent.entities.drugs.length}`.slice(0, 80), title: "Я проверю", steps, reason: "multi_entity_comparison", original: { text, specialty: intent.context.specialty } });
 }
 

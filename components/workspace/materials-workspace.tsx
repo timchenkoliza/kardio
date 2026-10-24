@@ -63,11 +63,11 @@ function Onboarding({ onMode }: { onMode: (mode: AddMode) => void }) {
       <Mascot variant="materials" size={72} />
       <div>
         <h2 id="pt-mat-start" className="pt-subtitle">Соберите свою базу</h2>
-        <p className="ws-muted">Агент «Мои материалы» отвечает только по тому, что вы сохранили сами, и ссылается на ваш документ.</p>
+        <p className="ws-muted">Вопрос по материалам ищет ответ только в том, что вы сохранили сами, и ссылается на ваш документ.</p>
       </div>
     </div>
     <ol className="pt-mat-steps">
-      <li><strong>Сохраните ответ</strong><span>Кнопка «Сохранить» есть у каждого ответа агентов и материала в ленте.</span></li>
+      <li><strong>Сохраните ответ</strong><span>Кнопка «Сохранить» есть у ответов и у материалов ленты.</span></li>
       <li><strong>Добавьте ссылку</strong><span>Для PubMed и ссылок с DOI название, журнал и дата подтянутся сами.</span></li>
       <li><strong>Загрузите файл или заметку</strong><span>TXT, MD, CSV, HTML и DOCX — с поиском по тексту.</span></li>
     </ol>
@@ -194,7 +194,7 @@ export function MaterialsWorkspace({ specialty, materials, collections, lastAnsw
         <label>Ссылка<input type="url" required value={url} onChange={event => setUrl(event.target.value)} placeholder="https://pubmed.ncbi.nlm.nih.gov/…" maxLength={2000} /></label>
         <p className="ws-muted">Для PubMed и ссылок с DOI название, журнал и дата подтянутся сами. Для других сайтов добавьте своё название.</p>
         <label>Название<input value={title} onChange={event => setTitle(event.target.value)} maxLength={200} placeholder="Необязательно" /></label>
-        <label>Заметка<textarea value={note} onChange={event => setNote(event.target.value)} maxLength={4000} rows={3} placeholder="О чём материал — по заметке его найдёт агент" /></label>
+        <label>Заметка<textarea value={note} onChange={event => setNote(event.target.value)} maxLength={4000} rows={3} placeholder="О чём материал — по заметке его найдёт поиск по материалам" /></label>
         <button type="submit" className="ws-button is-primary" disabled={pending}><Plus size={15} aria-hidden="true" />Сохранить ссылку</button>
       </form>}
       {mode === "note" && <form className="ws-add-form" onSubmit={event => void addNote(event)}>

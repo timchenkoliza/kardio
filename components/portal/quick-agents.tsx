@@ -28,6 +28,6 @@ export function QuickAgents({ specialty }: { specialty: SpecialtyId }) {
         <span className="pt-shortcut-tip" aria-hidden="true">{card.help}</span>
       </Link>)}
     </nav>
-    <p className="pt-hero-more"><Link className="ws-text-link" href={`/${specialty}/agents`}>Все агенты: консилиум, мероприятия, ваши материалы<ArrowRight size={15} aria-hidden="true" /></Link></p>
+    <p className="pt-hero-more"><Link className="ws-text-link" href={`/${specialty}/agents`}>Все задачи: что нового, мероприятия, обучение, калькуляторы<ArrowRight size={15} aria-hidden="true" /></Link></p>
   </div>;
 }

@@ -1,3 +1,5 @@
+import { matchedSource, verificationLabelFor } from "./format";
+import { researchConditions } from "./research-answer";
 import type { AgentResult, AgentRun, VerificationStatus } from "./types";
 import type { ResearchMode } from "./research-options";
 
@@ -16,18 +18,19 @@ export interface ResearchSourceBuckets {
 }
 
 function isDirectlyUsedInSynthesis(result: AgentResult): boolean {
-  return result.evidence.some(item => item.verificationStatus === "SUPPORTED");
+  // A citation that matched its source counts, whatever check it still needs (journal, version): that is said on the record.
+  return result.evidence.some(item => matchedSource(item.verificationStatus, [item]));
 }
 
 /**
- * The current brief synthesis uses up to four SUPPORTED findings.
- * We mirror that exact boundary instead of pretending partially checked or
- * merely retrieved records were directly used. Article-table mode treats all
+ * The brief synthesis names every record whose citation or text matched its
+ * source («Источник сверен»); the «used» bucket is that same set, so a record
+ * is never named in the synthesis and listed as «не использованы» below it. Article-table mode treats all
  * shown rows as directly used because the rows themselves are the output.
  */
 export function researchSourceBuckets(results: readonly AgentResult[], mode: ResearchMode): ResearchSourceBuckets {
   const ordered = [...results].sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt));
-  const used = mode === "articles" ? ordered : ordered.filter(isDirectlyUsedInSynthesis).slice(0, 4);
+  const used = mode === "articles" ? ordered : ordered.filter(isDirectlyUsedInSynthesis);
   const ids = new Set(used.map(item => item.id));
   return { used, additional: ordered.filter(item => !ids.has(item.id)) };
 }
@@ -39,7 +42,9 @@ function yearFrom(result: AgentResult): string | null {
 }
 
 function sourceName(result: AgentResult): string {
-  return result.source.publisher ?? result.source.source ?? "Источник";
+  // A PubMed record is cited by its journal; PubMed is only the way to it (its URL).
+  const journal = typeof result.attributes.journal === "string" ? result.attributes.journal.trim() : "";
+  return journal || result.source.publisher || result.source.source || "Источник";
 }
 
 function accessedDate(iso: string): string {
@@ -80,7 +85,8 @@ export function formatResearchCitation(result: AgentResult, style: ResearchCitat
 export function orderResearchSources(results: readonly AgentResult[], order: ResearchBibliographyOrder): AgentResult[] {
   const unique = new Map<string, AgentResult>();
   for (const result of results) {
-    const key = result.source.sourceUrl ?? `${result.source.source}:${result.title}`;
+    // One document once: three catalog cards from one rubricator page are three records, not one URL.
+    const key = `${result.source.sourceUrl ?? result.source.source}::${result.title}`;
     if (!unique.has(key)) unique.set(key, result);
   }
   const items = [...unique.values()];
@@ -118,8 +124,15 @@ function reportLines(args: BuildResearchExportArgs): string[] {
   ].filter((line, index, all) => line !== "" || all[index - 1] !== "");
 
   if (run.synthesis) lines.push("Сводка", "", run.synthesis, "");
+  // The file says what the screen says: what was searched and which words of the question were not.
+  const search = researchConditions(run);
+  if (search.conditions.length || search.unmatched.length) lines.push(`${search.conditions.length ? `Искали по: ${search.conditions.join(" · ")}.` : "Тему вопроса не распознали."}${search.unmatched.length ? ` Не учтено в поиске: ${search.unmatched.map(words => `«${words}»`).join(", ")}.` : ""}`, "");
   lines.push("Найденные материалы", "");
-  for (const [index, result] of results.entries()) lines.push(`${index + 1}. ${result.title}`, result.summary, "");
+  // Each record carries the same check label as on screen («Сверены данные публикации · журнал вне списка врачей»).
+  for (const [index, result] of results.entries()) {
+    const status = weakestResearchVerification(result);
+    lines.push(`${index + 1}. ${result.title}`, result.summary, ...(status ? [`Проверка: ${verificationLabelFor(status, result.evidence).label}`] : []), "");
+  }
 
   if (includeBibliography) {
     lines.push("Источники, использованные в сводке", "");

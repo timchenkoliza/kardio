@@ -358,6 +358,8 @@
   --ws-quick-gap: 16px;
   --ws-quick-mascot: 80px;
   --ws-quick-mascot-halo: 96px;
+  --ws-quick-mascot-compact: 48px;
+  --ws-quick-mascot-halo-compact: 56px;
   --ws-quick-mobile-width: 296px;
   --ws-mascot-tilt: 1.5deg;
   --ws-mascot-lift: 2px;

@@ -3,6 +3,7 @@ import { ArrowRight, CircleAlert, Clock3 } from "lucide-react";
 import { AGENT_DEFINITIONS } from "@/lib/agents/definitions";
 import { formatRelativeRu } from "@/lib/agents/format";
 import type { AgentCardState } from "@/lib/agents/types";
+import { nbsp } from "@/lib/ui/typography";
 import { AgentIcon } from "./agent-icon";
 import { AgentRunButton } from "./agent-run-button";
 
@@ -12,7 +13,7 @@ const STATE_LABEL: Record<AgentCardState["state"], string> = {
   fresh: "Есть новое",
   stale: "Пора обновить",
   failed: "Ошибка запуска",
-  disabled: "Выключен",
+  disabled: "Выключена",
 };
 
 export function AgentCard({ card, now, variant = "grid" }: { card: AgentCardState; specialty: string; now: string; variant?: "grid" | "row" }) {
@@ -21,11 +22,12 @@ export function AgentCard({ card, now, variant = "grid" }: { card: AgentCardStat
   return <article className={`ws-agent-card is-${card.state} ws-agent-card-${variant}`} data-agent={card.agentId} aria-labelledby={`agent-${card.agentId}-title`}>
     <div className="ws-agent-card-top">
       <span className="ws-agent-icon"><AgentIcon icon={definition.icon} /></span>
-      <span className={`ws-state ws-state-${card.state}`}>{card.state === "fresh" && card.newResults > 0 ? `${card.newResults} новых` : STATE_LABEL[card.state]}</span>
+      {/* «Готов» on every card says nothing: only the exceptions are labelled. */}
+      {card.state !== "ready" && <span className={`ws-state ws-state-${card.state}`}>{card.state === "fresh" && card.newResults > 0 ? `${card.newResults} новых` : STATE_LABEL[card.state]}</span>}
     </div>
-    <h3 id={`agent-${card.agentId}-title`}><Link href={card.primaryAction.href}>{definition.name}</Link></h3>
+    <h3 id={`agent-${card.agentId}-title`}><Link href={card.primaryAction.href}>{nbsp(definition.name)}</Link></h3>
     <p className="ws-agent-job">{definition.job}</p>
-    <p className="ws-agent-headline">{card.state === "failed" && <CircleAlert size={15} aria-hidden="true" />}{card.headline}</p>
+    <p className="ws-agent-headline">{card.state === "failed" && <CircleAlert size={15} aria-hidden="true" />}{card.state === "disabled" ? "Выключена — её находки в «Для вас» не показываются" : card.headline}</p>
     {card.highlights.length > 0 && <ul className="ws-highlights" aria-label="Главное из сводки">{card.highlights.map(title => <li key={title}>{title}</li>)}</ul>}
     {card.breakdown.length > 0 && <ul className="ws-breakdown" aria-label="Из чего состоит результат">
       {card.breakdown.slice(0, 4).map(item => <li key={item.label}><strong>{item.count}</strong> {item.label}</li>)}

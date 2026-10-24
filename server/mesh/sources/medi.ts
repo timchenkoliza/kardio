@@ -1,6 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { NOSOLOGIES, nosologyById, subtypeById, titleMatchesNosology, type NosologyNode } from "@/lib/mesh/domain-graph";
 import type { EntityRef, NormalizedClaim, NormalizedDocument, SemanticChunk, SourceResult } from "@/lib/mesh/evidence";
+import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { SourceDescriptor, SourceStatusReport } from "@/lib/mesh/sources";
 import { normalizeQuery, type DrugEntry } from "@/lib/portal/lexicon";
 import { absoluteUrl, excerpt, findAll, parseDocument, requireOne, sectionText, sentences, textOf, type DomDocument, type DomElement } from "../browser/dom";
@@ -181,6 +182,42 @@ export interface InstructionPage {
   indications: Array<{ heading: string | null; text: string }>;
 }
 
+/** What a question about a population looks for inside a long section: renal, hepatic, age and weight adjustments. */
+const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?![\p{L}])|рСКФ|пожил|старше\s*\d|печен|масс\p{L}* тела/iu;
+
+/** A verbatim excerpt that starts at the first sentence the question is about, when the section opens with something else. */
+function focusedExcerpt(text: string, focus: RegExp | null): { text: string; truncated: boolean } {
+  if (focus) {
+    const at = sentences(text).find(sentence => focus.test(sentence));
+    const from = at ? text.indexOf(at) : -1;
+    if (from > 0) {
+      // It stops before the next numbered indication («3. Лечение тромбоза…»): that text is about another condition.
+      const rest = text.slice(from);
+      const next = rest.slice(1).search(/\s\d{1,2}\.\s+[А-ЯЁ]/u);
+      return { text: excerpt(next > 0 ? rest.slice(0, next + 1).trim() : rest, MAX_EXCERPT).text, truncated: true };
+    }
+  }
+  return excerpt(text, MAX_EXCERPT);
+}
+
+/** Populations a question names: «беременность» may be recognised as a search concept rather than a population. */
+export function populationsNamed(intent: NormalizedIntent): string[] {
+  const fromConcepts = intent.entities.concepts.filter(concept => concept.id === "concept:pregnancy").map(() => "pregnancy");
+  return [...new Set([...intent.context.populations, ...fromConcepts])];
+}
+
+/** Instruction sections that answer each asked section of a question (`askedSections`). */
+const SECTIONS_ASKED: Readonly<Record<string, readonly string[]>> = {
+  contraindications: ["contraindications"],
+  indications: ["indications"],
+  dosing: ["dosing"],
+  interactions: ["interactions"],
+  safety: ["warnings", "caution", "adverse"],
+  // Renal, hepatic and age adjustments are stated under dosing and «С осторожностью»; pregnancy and children
+  // sections are kept only when the question names that population.
+  populations: ["dosing", "caution"],
+};
+
 const INSTRUCTION_SECTIONS: ReadonlyArray<{ id: string; match: RegExp }> = [
   { id: "indications", match: /^Показания/u },
   { id: "contraindications", match: /^Противопоказания/u },
@@ -343,7 +380,7 @@ export function normalizeListing(listing: ListingPage, page: PageSnapshot, drug:
   return document;
 }
 
-export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, args: { drug: DrugEntry; listingDate: string | null; nosology: NosologyNode | null; safety: readonly string[]; job: string }): NormalizedDocument {
+export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, args: { drug: DrugEntry; listingDate: string | null; nosology: NosologyNode | null; safety: readonly string[]; job: string; sections?: readonly string[]; populations?: readonly string[] }): NormalizedDocument {
   const id = `medi:${new URL(page.finalUrl).pathname}`;
   const drugRef = drugEntity(args.drug.inn, args.drug.ru);
   const product: EntityRef = { id: `product:medi:${new URL(page.finalUrl).pathname.split("/").filter(Boolean).pop()}`, kind: "product", label: raw.title, codes: { inn: args.drug.inn, ...(raw.registration ? { registration: raw.registration } : {}) } };
@@ -351,6 +388,11 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
   if (args.job === "drug_reference") { wanted.add("dosing"); wanted.add("warnings"); wanted.add("caution"); }
   if (args.safety.includes("pregnancy_sections")) wanted.add("pregnancy");
   if (args.safety.includes("pediatric_sections")) wanted.add("children");
+  // The sections the question names are kept, whatever the task («Апиксабан: противопоказания и взаимодействия»).
+  for (const section of args.sections ?? []) for (const id of SECTIONS_ASKED[section] ?? []) wanted.add(id);
+  // A named population keeps its own section («Апиксабан при беременности» → «Применение при беременности»).
+  if (args.populations?.some(population => population === "pregnancy" || population === "lactation")) wanted.add("pregnancy");
+  if (args.populations?.includes("children")) wanted.add("children");
   const doc: Pick<NormalizedDocument, "id" | "url" | "title" | "retrievedAt" | "publishedAt"> = { id, url: page.finalUrl, title: raw.title, retrievedAt: page.fetchedAt, publishedAt: args.listingDate };
   const chunks = raw.sections.map(section => makeChunk({ documentId: id, path: [section.heading], fullText: section.text, maxChars: MAX_EXCERPT, keepText: wanted.has(section.id), entityIds: [drugRef.id] }));
   const claims: NormalizedClaim[] = [];
@@ -364,10 +406,12 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
     const entityIds = [drugRef.id, ...nosologyIds.map(nosologyId => `nosology:${nosologyId}`)];
     claims.push(quoteClaim({ document: doc, chunk: indicationChunk, kind: "indication", quote, entityIds, covers: nosologyIds.flatMap(nosologyId => coverageOf(text, nosologyId)), verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
   }
-  const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", dosing: "dosing", pregnancy: "warning", children: "warning" };
+  const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", adverse: "warning", overdose: "warning", dosing: "dosing", pregnancy: "warning", children: "warning" };
   raw.sections.forEach((section, index) => {
     if (section.id === "indications" || !wanted.has(section.id)) return;
-    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: excerpt(section.text, MAX_EXCERPT).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
+    // A population question reads dosing and «С осторожностью» from the sentence about that population, not from the section's first line.
+    const focus = args.sections?.includes("populations") && (section.id === "dosing" || section.id === "caution") ? POPULATION_FOCUS : null;
+    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: focusedExcerpt(section.text, focus).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
   });
   const nosologyRef = args.nosology ? nosologyEntity(args.nosology.id) : null;
   return {
@@ -504,7 +548,7 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       const page = await tool.open(product.url);
       try {
         const raw = tool.extract(page, instructionExtractor);
-        documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary }));
+        documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary, sections: request.intent.sections, populations: populationsNamed(request.intent) }));
         return documents;
       } catch (error) {
         // Only a patient leaflet moves on to the next product; a real layout change fails at once.
@@ -599,7 +643,7 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       if (url.includes("/instrukciya/")) {
         const raw = tool.extract(page, instructionExtractor);
         const drug = intent?.entities.drugs[0] ?? { inn: raw.inn || raw.title, ru: raw.inn || raw.title, stems: [raw.inn || raw.title] };
-        return normalizeInstruction(raw, page.snapshot, { drug, listingDate: null, nosology: nosologyById(intent?.context.nosology?.id), safety: intent?.safety ?? [], job: intent?.job.primary ?? "drug_reference" });
+        return normalizeInstruction(raw, page.snapshot, { drug, listingDate: null, nosology: nosologyById(intent?.context.nosology?.id), safety: intent?.safety ?? [], job: intent?.job.primary ?? "drug_reference", sections: intent?.sections, populations: intent ? populationsNamed(intent) : [] });
       }
       return null;
     },

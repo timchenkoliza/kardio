@@ -36,15 +36,15 @@ test("primary home is one professional input, three jobs and «Для вас» �
   await expect(shortcuts.nth(1)).toContainText("Клинические рекомендации");
   await expect(shortcuts.nth(2)).toContainText("Разбор по исследованиям");
   await expect(page.getByRole("heading", { level: 2, name: /Для\s+вас/ })).toBeVisible();
-  // One input, not a catalogue: the home never asks to pick an agent first. The gallery is a primary
-  // section of its own («Агенты»), reached from the navigation and from one quiet link under the jobs.
+  // One input, not a catalogue: the home never asks to pick a task first. The task catalogue is one quiet
+  // link under the jobs («Все задачи»); the navigation is the physician's own work, not the system's agents.
   await expect(page.locator(".ws-agent-card")).toHaveCount(0);
   await expect(page.locator("main .pt-gallery")).toHaveCount(0);
-  await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveCount(1);
-  await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveAttribute("href", "/pediatrics/agents");
+  await expect(page.locator("main").getByRole("link", { name: /агент/iu })).toHaveCount(0);
+  await expect(page.locator("main").getByRole("link", { name: /Все задачи/u })).toHaveAttribute("href", "/pediatrics/agents");
   const nav = page.getByRole("navigation", { name: "Основная навигация" });
-  await expect(nav.getByRole("link")).toHaveText(["Главное", "Агенты", "Мои материалы", "Обезличивание"]);
-  await expect(nav.getByRole("link", { name: "Агенты" })).toHaveAttribute("href", "/pediatrics/agents");
+  await expect(nav.getByRole("link")).toHaveText(["Главное", "История", "Мои материалы", "Обезличивание"]);
+  await expect(nav.getByRole("link", { name: "История" })).toHaveAttribute("href", "/pediatrics/history");
   await expect(nav.getByRole("link", { name: "Главное" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("footer")).toContainText(/© \d{4} ООО «Яндекс»/);
 });

@@ -1,0 +1,12 @@
+ux03-therapy-390 status=200 url=/therapy/ask?run=run-623298ea-5730-4bc3-aeff-190776568d68 height=3371 overflowX=0 ms=10300
+ux04-followup-390 status=200 url=/therapy/ask?run=run-58dfab9b-9356-438a-aea4-f251b45fa3f0 height=861 overflowX=0 ms=2430
+ux05-atorvastatin-390 status=200 url=/cardiology/ask?run=run-7a48eb31-c717-4650-baf9-37b6fd0cf4ec height=8230 overflowX=0 ms=11112
+ux08-hsn-changes-390 status=200 url=/cardiology/ask?run=run-e6b17227-600d-47a8-ae53-0cafe136f4cc height=4503 overflowX=0 ms=6115
+ux03-therapy-768 status=200 url=/therapy/ask?run=run-83f69051-6ce5-42f4-ab7d-640dbf57da18 height=2735 overflowX=0 ms=1734
+ux04-followup-768 status=200 url=/therapy/ask?run=run-a8fd345a-5eef-4c4e-b27d-f2e6b7b11815 height=1024 overflowX=0 ms=2416
+ux05-atorvastatin-768 status=200 url=/cardiology/ask?run=run-b1a20eb1-d739-491c-b9f9-39d98ca32f53 height=5205 overflowX=0 ms=1667
+ux08-hsn-changes-768 status=200 url=/cardiology/ask?run=run-c71d15d1-41e6-406a-99f1-ef233ba6c0c7 height=3453 overflowX=0 ms=1619
+ux03-therapy-1440 status=200 url=/therapy/ask?run=run-26547586-9b03-4af1-8e54-e3b7202ad7dd height=2585 overflowX=0 ms=1701
+ux04-followup-1440 status=200 url=/therapy/ask?run=run-10c9408a-e88f-4bf9-bc5e-44444cac32b5 height=900 overflowX=0 ms=2388
+ux05-atorvastatin-1440 status=200 url=/cardiology/ask?run=run-a3c0dde0-12a6-462c-be0f-d3a1f40855aa height=4467 overflowX=0 ms=1764
+ux08-hsn-changes-1440 status=200 url=/cardiology/ask?run=run-db1c7066-a104-4e55-8f88-f60bf310f333 height=3194 overflowX=0 ms=1625

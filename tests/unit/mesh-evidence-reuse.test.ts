@@ -27,8 +27,8 @@ const ENDOCARDITIS = "Профилактика инфекционного энд
 describe("evidence reuse key", () => {
   it("separates different questions that share one interpreted intent", () => {
     const intents = [DAPT, HCM, PH, ENDOCARDITIS].map(text => compileIntent(text, "cardiology"));
-    // The defect: the interpreted intent alone cannot tell these questions apart.
-    expect(new Set(intents.map(intent => intent.id)).size).toBe(1);
+    // The defect on main: the interpreted intent alone could not tell these questions apart. After the
+    // fix/ux-recovery merge the intent records more of the question, but the reuse key must not depend on that.
     expect(new Set(intents.map(intent => evidenceReuseKey(intent, []))).size).toBe(4);
   });
 

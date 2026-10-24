@@ -20,12 +20,14 @@ function presentationForContent(content: ContentObject, featured: boolean): Edit
   }
 }
 
-export function EditorialContentCard({ content, specialty, featured = false, position, presentation }: {
+export function EditorialContentCard({ content, specialty, featured = false, position, presentation, save = true }: {
   content: ContentObject;
   specialty: SpecialtyId;
   featured?: boolean;
   position?: number;
   presentation?: EditorialPresentation;
+  /** The legacy archive's own save list; off in the workspace, where saving goes to «Мои материалы». */
+  save?: boolean;
 }) {
   const partner = isPartner(content);
   const exceptionalState = content.currentness !== "current";
@@ -54,7 +56,7 @@ export function EditorialContentCard({ content, specialty, featured = false, pos
           <span className="source-mark" aria-hidden="true">{content.source.name.slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
           <span><strong>{content.source.name}</strong><small>{partner ? "Партнёрский материал" : kindLabel[content.kind]}</small></span>
         </div>
-        <ContentSaveButton contentId={content.id} specialty={specialty} compact />
+        {save && <ContentSaveButton contentId={content.id} specialty={specialty} compact />}
       </div>
 
       <div className={hasVisual ? "editorial-card-main with-media" : "editorial-card-main text-only"}>

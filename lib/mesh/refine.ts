@@ -1,4 +1,4 @@
-import { normalizeQuery } from "@/lib/portal/lexicon";
+import { DRUGS, normalizeQuery } from "@/lib/portal/lexicon";
 import type { ClaimKind, EvidenceGraph, GraphDocument } from "./evidence";
 import type { EvidenceRequirement } from "./jobs";
 import type { ExperienceManifest, ManifestView, ModuleFamily } from "./manifest";
@@ -131,6 +131,40 @@ export function classifyDelta(text: string, context: ExperienceContext, named: {
     if (focus) return { kind: "focus", params: { focus: focus.id } };
   }
   return null;
+}
+
+/** «Что изменилось в рекомендациях», «что нового», «обновления»: the question itself asks for a comparison. */
+const CHANGE_QUESTION = new RegExp(`${L}(?:что\\s+(?:\\p{L}+\\s+)?(?:изменил|нового|поменял)|изменени\\p{L}*\\s+(?:в\\s+)?(?:рекомендац|клиническ)|обновлени\\p{L}*\\s+(?:в\\s+)?(?:рекомендац|клиническ)|нов\\p{L}*\\s+(?:редакц|верси))`, "u");
+
+/**
+ * The view a question opens with: «что изменилось в рекомендациях» is answered
+ * as a comparison with the previous version (or says that none is stated) —
+ * the same view the refinement «сравни с прошлой версией» applies, so «Показать
+ * всё» resets it the same way.
+ */
+export function openingView(text: string, family: string): ManifestView | null {
+  if (family === "guidelines" && CHANGE_QUESTION.test(normalizeQuery(text))) return { ...EMPTY_VIEW, comparison: "previous_version" };
+  return null;
+}
+
+export type AskedSection = "contraindications" | "indications" | "dosing" | "interactions" | "safety" | "populations";
+const ASKED_SECTIONS: ReadonlyArray<{ id: AskedSection; pattern: RegExp }> = [
+  { id: "contraindications", pattern: new RegExp(`${L}противопоказ`, "u") },
+  { id: "indications", pattern: new RegExp(`${L}показани`, "u") },
+  { id: "dosing", pattern: new RegExp(`${L}(?:дозир|доз[ыаеуо]?(?![\\p{L}])|способ\\p{L}* применени|режим\\p{L}* при[её]м)`, "u") },
+  { id: "interactions", pattern: new RegExp(`${L}взаимодейств`, "u") },
+  // «предупреждения», «предупреждения и …», «… о кровотечениях» — the section; «предупреждение инсульта» — prevention.
+  { id: "safety", pattern: new RegExp(`${L}(?:побочн|нежелательн|безопасност|особ\\p{L}* (?:указани|предупрежден)|мер\\p{L}* предосторожност|предупрежден\\p{L}* в рамке|предупрежден\\p{L}*(?=\\s*(?:$|[,.:;!?)]|(?:о|об|у|при|по|для|к)(?![\\p{L}])|и(?=\\s+(?:противопоказ|мер|особ|взаимодейств|побочн|нежелательн|передозир))))|передозир)`, "u") },
+  { id: "populations", pattern: new RegExp(`${L}(?:беременн|лактац|кормящ|почечн|почк|почек|печёночн|печеночн|печен|пожил|дет(?:и|ей|ям|ск))`, "u") },
+];
+
+/** Sections of the instruction a drug question names («Аторвастатин: противопоказания»), in the order asked. */
+export function askedSections(text: string): AskedSection[] {
+  const value = normalizeQuery(text);
+  // «предупреждения апиксабана» names the drug's section; «предупреждение инсульта» is prevention.
+  // «предупреждения апиксабана», not «предупреждение ривароксабаном тромбоза» (the drug as the means of prevention).
+  const drugWarnings = new RegExp(`предупрежден\\p{L}*\\s+(?:${DRUGS.flatMap(drug => drug.stems).join("|")})(?!\\p{L}*(?:ом|ем)(?![\\p{L}]))`, "u").test(value);
+  return ASKED_SECTIONS.filter(item => item.pattern.test(value) || (item.id === "safety" && drugWarnings)).map(item => item.id);
 }
 
 export function focusKinds(focus: string): ClaimKind[] {

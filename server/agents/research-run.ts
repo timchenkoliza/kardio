@@ -35,6 +35,9 @@ function structuredEvidenceNote(args: { attempted: number; enriched: number; ful
  * queued run). Scenario settings are applied before retrieval, the top
  * PubMed records are read and structured, and the plan says what happened.
  */
+/** The depth a review was asked in, kept on the run: every door (the scenario, «История», /ask) shows it the same way. */
+const ANSWER_MODE_FOR: Record<ResearchRunOptions["mode"], AnswerMode> = { articles: "short", brief: "full", academic: "research" };
+
 export async function executeResearchRun(
   sessionId: string,
   specialty: SpecialtyId,
@@ -108,7 +111,7 @@ export async function executeResearchRun(
 
   const outcome = await runAgent(
     { store, sessionId, catalog, rehydrated, finishing },
-    { agentId: "research", specialty, profile, trigger: "composer", text, routed, run: queued.run ?? null, job: queued.job ?? null, intent: queued.intent ?? null, answerMode: queued.answerMode ?? null },
+    { agentId: "research", specialty, profile, trigger: "composer", text, routed, run: queued.run ?? null, job: queued.job ?? null, intent: queued.intent ?? null, answerMode: queued.answerMode ?? ANSWER_MODE_FOR[options.mode] },
   );
 
   if (rehydrated) markRehydrationConsumed(sessionId, specialty);

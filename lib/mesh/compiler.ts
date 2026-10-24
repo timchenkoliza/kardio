@@ -110,13 +110,40 @@ function priorityRank(user: Partial<UserContext> | undefined): (document: GraphD
   };
 }
 
-function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, "takeaway" | "priorityClaims" | "user">> = {}): string[] {
+/** Sentences about the document or future work («the panel formulated», «further research is needed») are not an answer. */
+const NOT_A_FINDING = /^(?:the (?:panel|committee|working group)|this (?:review|guideline|document|update) (?:summarizes|provides|describes|presents))|^(?:however, )?(?:further|future) (?:research|studies|efforts|trials|evidence)|^(?:our|these) (?:findings|results) (?:suggest|highlight|underscore) the need|need for further (?:evidence|research|studies)/iu;
+function informative(claim: NormalizedClaim): boolean {
+  return claim.kind !== "review_conclusion" || !NOT_A_FINDING.test(claim.statement.trim());
+}
+
+/** Publications a widened search found with only part of the question's conditions: never the answer itself. */
+export function widenedDocuments(graph: EvidenceGraph): GraphDocument[] {
+  return graph.documents.filter(document => document.attributes.questionMatch === "partial");
+}
+
+function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, "takeaway" | "priorityClaims" | "moduleProps" | "user">> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
   const priority = priorityRank(input.user);
+  const widened = new Set(widenedDocuments(graph).map(document => document.id));
+  const askedSections = Array.isArray(input.moduleProps?.drug_reference?.asked) ? input.moduleProps.drug_reference.asked as string[] : [];
   const family = graph.family === "guidelines" ? "guideline" : graph.family === "drug" ? "drug" : "answer";
   const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
   const subtype = graph.context.subtype;
+  // A conclusion that speaks about what was asked («duration») comes before newer ones that do not.
+  // A word group every conclusion mentions («antibiotic») does not tell them apart; a rare one («duration») does.
+  const asked = graph.context.asked ?? [];
+  const claimText = (claim: NormalizedClaim) => `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+  const weights = asked.map(group => 1 / Math.max(1, graph.claims.filter(claim => group.some(word => claimText(claim).includes(word))).length));
+  const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
   const relevant = (claim: NormalizedClaim) => claim.verification !== "UNSUPPORTED"
+    && !widened.has(claim.documentId)
+    // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
+    && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
+    // A question that names instruction sections is answered from them: no indications or document metadata instead.
+    && (!askedSections.length || ((claim.kind !== "indication" || askedSections.includes("indications")) && claim.kind !== "guideline_metadata" && claim.kind !== "currentness"))
+    && informative(claim)
+    // When the question asks something specific («длительность»), a review conclusion that never speaks about it is not the answer.
+    && (claim.kind !== "review_conclusion" || !asked.length || onAsked(claim) > 0)
     && (claim.kind !== "indication" || !nosology || family === "drug" || claim.entityIds.includes(nosology))
     && (claim.kind !== "product_listing" || graph.job === "inn_lookup");
   const onSubtype = (claim: NormalizedClaim) => Number(Boolean(subtype && (claim.covers.includes(subtype) || claim.entityIds.includes(`subtype:${subtype}`))));
@@ -129,8 +156,8 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   }
   for (const [kind, cap] of input.takeaway ?? TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
-      // On the asked subtype first, Russian sources before international, the physician's priority sources, newer first, then source relevance.
-      .sort((a, b) => onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
+      // On what was asked first, then the asked subtype, Russian sources before international, the physician's priority sources, newer first, then source relevance.
+      .sort((a, b) => onAsked(b) - onAsked(a) || onTopic(b) - onTopic(a) || onSubtype(b) - onSubtype(a)
         || Number(docs.get(a.documentId)?.jurisdiction !== "RU") - Number(docs.get(b.documentId)?.jurisdiction !== "RU")
         || priority(docs.get(a.documentId)) - priority(docs.get(b.documentId))
         || DATE(docs.get(b.documentId)).localeCompare(DATE(docs.get(a.documentId)))
@@ -159,11 +186,16 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
   switch (family) {
     case "key_takeaway": {
       const claimIds = takeawayClaims(graph, input);
-      if (!claimIds.length) return null;
-      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps } };
+      const widened = widenedDocuments(graph);
+      const unmatched = [...new Set(widened.flatMap(document => String(document.attributes.unmatchedConditions ?? "").split(", ").filter(Boolean)))].join(", ");
+      // Nothing answers the question as asked: the first thing the physician reads says so, not a neighbour's conclusion.
+      const reviews = graph.documents.filter(document => document.kind === "review" || document.kind === "guideline_publication");
+      if (!claimIds.length) return widened.length || (graph.family === "answer" && reviews.length) ? { ...base, emphasis: "primary", documentIds: (widened.length ? widened : reviews).map(document => document.id), props: { gaps: graph.gaps, noDirectAnswer: true, unmatched: unmatched || null } } : null;
+      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null } };
     }
     case "recommendation_delta": {
-      const docs = graph.documents.filter(document => document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication").sort(byDate);
+      // A guideline publication from a widened search is not a version of the asked guideline: it goes to «Шире вопроса».
+      const docs = graph.documents.filter(document => (document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication") && document.attributes.questionMatch !== "partial").sort(byDate);
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       // Russian guideline: every statement about it; society summaries: the three most on-topic assertions (the rest is one click away).
@@ -187,9 +219,9 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       return { ...base, emphasis: graph.family === "drug" ? "primary" : "secondary", documentIds: docs.map(document => document.id), claimIds, resultKeys: keysFor(docs.map(document => document.id)), props: { boundary: docs.some(document => document.jurisdiction !== "RU") || docs.some(document => document.authority !== "official"), jurisdictions: [...new Set(docs.map(document => document.jurisdiction))] } };
     }
     case "evidence": {
-      // Every found publication stays; the physician's priority journals and sources go first.
+      // Every found publication stays: partial matches of a widened search last; the physician's priority journals and sources go first among the rest.
       const priority = priorityRank(input.user);
-      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && graph.family !== "guidelines")).sort((a, b) => priority(a) - priority(b) || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
+      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && (graph.family !== "guidelines" || document.attributes.questionMatch === "partial"))).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || priority(a) - priority(b) || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       return { ...base, documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "review_conclusion").map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { language: "en" } };

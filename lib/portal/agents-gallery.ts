@@ -30,12 +30,11 @@ export const GALLERY: readonly GalleryAgent[] = [
   { id: "drug", name: "Справка по препарату", role: "Фармаколог-справочник", can: "Показания, дозирование, противопоказания и безопасность — из официальной инструкции", sources: "Инструкции МЕДИ РУ и FDA, сообщения регуляторов; статус в России — по ссылке на ГРЛС", help: "Проверяю инструкцию, дозирование и безопасность", job: "drug", availableIn: null },
   { id: "guidelines", name: "Клинические рекомендации", role: "Методист по рекомендациям", can: "Актуальные рекомендации по теме и что изменилось между версиями", sources: "Рекомендации профессиональных обществ и публикации PubMed; рубрикатор Минздрава — по ссылке", help: "Сверяю текущую и предыдущую версии", job: "guidelines", availableIn: null },
   { id: "research", name: "Разбор по\u00a0исследованиям", role: "Аналитик доказательств", can: "Исследования по вопросу или конкретная статья по PMID и DOI: результат из текста статьи, вывод авторов, ссылка на первоисточник", sources: "PubMed и журналы, проверенные врачами; статья по идентификатору — из любого журнала", help: "Читаю статьи и показываю, откуда цифры", job: "research", availableIn: null },
-  { id: "consilium", name: "Консилиум", role: "Сводит позиции источников", can: "Сопоставляет выводы рекомендаций и обзоров по сложному вопросу и показывает, где они расходятся", sources: "Рекомендации и обзоры; продукт не решает, кто прав, — решение остаётся за вами", help: "Собираю позиции источников и показываю расхождения", job: "answer", availableIn: null },
   { id: "calculators", name: "Калькуляторы", role: "Шкалы риска", can: "Справочные шкалы риска с расчётом в браузере — данные никуда не отправляются", sources: "Формулы шкал из рекомендаций профессиональных обществ", help: "Считаю баллы по шкале прямо в браузере", job: null, availableIn: ["cardiology"] },
   { id: "events", name: "Мероприятия и НМО", role: "Календарь специальности", can: "Конференции и школы по теме с датами, форматом и организатором", sources: "Афиши организаторов и портал НМО; регистрация — только после вашего подтверждения", help: "Ищу события и сверяю даты", job: "events", availableIn: null },
   { id: "materials", name: "Мои материалы", role: "Личная библиотека", can: "Отвечает только по вашим файлам, ссылкам и заметкам — со ссылкой на документ", sources: "Только то, что вы добавили сами; другим пользователям недоступно", help: "Ищу только в вашей личной библиотеке", job: "materials", availableIn: null },
   { id: "learning", name: "Обучение", role: "Наставник", can: "Следующий шаг в обучении по вашей специальности и вопросам — с объяснением, почему он", sources: "Обзоры и рекомендации по специальности", help: "Подбираю, что изучить дальше", job: "learning", availableIn: null },
-  { id: "updates", name: "Что нового", role: "Обозреватель специальности", can: "Новые исследования, рекомендации и сигналы по препаратам с прошлого визита", sources: "PubMed, рекомендации обществ, регуляторы", help: "Смотрю, что появилось с вашего прошлого визита", job: "updates", availableIn: null },
+  { id: "updates", name: "Что нового", role: "Обозреватель специальности", can: "Новые исследования, рекомендации и сигналы по препаратам с прошлого визита — то, что попадает в «Для вас». Здесь же частота и состав проверки; темы — в профиле", sources: "PubMed, рекомендации обществ, регуляторы", help: "Смотрю, что появилось с вашего прошлого визита", job: "updates", availableIn: null },
 ];
 
 export function galleryAvailable(agent: GalleryAgent, specialty: SpecialtyId): boolean {
@@ -47,6 +46,8 @@ export function galleryHref(agent: GalleryAgent, specialty: SpecialtyId): string
   if (!galleryAvailable(agent, specialty)) return null;
   if (agent.id === "materials") return `/${specialty}/materials`;
   if (agent.id === "calculators") return `/${specialty}/tools`;
+  // One «Что нового»: the same check that fills «Для вас», with its settings and «Проверить сейчас».
+  if (agent.id === "updates") return `/${specialty}/agents/whats-new`;
   // The research scenario has its own settings (what to get, sources, type): open it, not the bare input.
   if (agent.id === "research") return researchScenarioHref(specialty);
   return agent.job ? askHref(specialty, { job: agent.job }) : null;

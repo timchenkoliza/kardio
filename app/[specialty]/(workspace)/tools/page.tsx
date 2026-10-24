@@ -12,7 +12,7 @@ export default async function ToolsPage({ params }: { params: Promise<{ specialt
   const { specialty } = await params;
   if (!isSpecialty(specialty)) notFound();
   return <div className="ws-page pt-tools">
-    <Link className="ws-back" href={`/${specialty}/agents`}><ArrowLeft size={15} aria-hidden="true" />Агенты</Link>
+    <Link className="ws-back" href={`/${specialty}/agents`}><ArrowLeft size={15} aria-hidden="true" />Все задачи</Link>
     <header className="pt-ask-head">
       <Mascot variant="calculators" size={64} />
       <div>
@@ -22,6 +22,6 @@ export default async function ToolsPage({ params }: { params: Promise<{ specialt
     </header>
     {specialty === "cardiology"
       ? <CardiologyCalculators />
-      : <p className="ws-empty">{nbsp(`Калькуляторы для специальности «${specialties[specialty].name}» готовим. Пока задайте вопрос на главной — агенты найдут рекомендации и инструкции по теме.`)}</p>}
+      : <p className="ws-empty">{nbsp(`Калькуляторы для специальности «${specialties[specialty].name}» готовим. Пока задайте вопрос на главной — найдём рекомендации и инструкции по теме.`)}</p>}
   </div>;
 }

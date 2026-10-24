@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, CheckCircle2, CircleAlert, ExternalLink } from "lucide-react";
 import { ContentOpenTracker } from "@/components/content-open-tracker";
-import { ContentSaveButton } from "@/components/content-actions";
+import { SaveLinkButton } from "@/components/portal/save-link-button";
 import { EditorialContentCard } from "@/components/editorial-content-card";
 import { EditorialMedia } from "@/components/editorial-media";
 import { ProductProvider } from "@/components/product-provider";
@@ -13,6 +13,8 @@ import { relatedContent } from "@/lib/ui/feed";
 import { currentnessLabel, kindLabel, publicationLabel, sourceTypeLabel, specialtyLabel } from "@/lib/ui/labels";
 import { getContent, listContent } from "@/server/repositories/catalog";
 import { readState, SESSION_COOKIE } from "@/server/services/state";
+import { pageSession } from "@/server/agents/page-session";
+import { workspaceStore } from "@/server/agents/store";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,10 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
   if (!content) notFound();
 
   const related = relatedContent(content, catalog, 3);
+  // «Сохранить» writes to «Мои материалы» like every other save: the document's link with its title.
+  const saveUrl = content.canonicalUrl ?? content.source.url ?? null;
+  const sessionId = await pageSession(specialty);
+  const saved = Boolean(saveUrl && sessionId && (await workspaceStore().listMaterials(sessionId, specialty)).some(material => material.url === saveUrl));
   const StatusIcon = content.currentness === "current" ? CheckCircle2 : CircleAlert;
 
   return (
@@ -47,7 +53,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
                   <span>{sourceTypeLabel(content.source.type)} · {specialtyLabel[specialty]}</span>
                 </div>
               </div>
-              <ContentSaveButton contentId={content.id} specialty={specialty} />
+              {saveUrl && <SaveLinkButton url={saveUrl} title={content.title} saved={saved} />}
             </header>
 
             <div className="detail-title-block">
@@ -74,7 +80,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
 
             <section className="source-evidence-panel">
               <div>
-                <span className="eyebrow">Проверяемость</span>
+                <span className="eyebrow">Первоисточник</span>
                 <h2>Перейти к первоисточнику</h2>
                 <p>Мы показываем материал вместе с источником и статусом актуальности. Отсутствующие даты, версии или права не додумываются.</p>
               </div>
@@ -99,7 +105,7 @@ export default async function ContentDetail({ params }: { params: Promise<{ spec
           {related.length > 0 && (
             <section className="related-section" aria-labelledby="related-title">
               <div className="section-heading"><span className="eyebrow">Следующий шаг</span><h2 id="related-title">Связанные материалы</h2><p>По общей теме, источнику или типу материала.</p></div>
-              <div className="related-grid">{related.map(item => <EditorialContentCard key={item.id} content={item} specialty={specialty} />)}</div>
+              <div className="related-grid">{related.map(item => <EditorialContentCard key={item.id} content={item} specialty={specialty} save={false} />)}</div>
             </section>
           )}
       </div>
