@@ -146,3 +146,60 @@ describe("the long instruction of the reviewer's question compiles: passages lea
     expect(text).toContain("15-29 мл/мин): при фибрилляции предсердий применяют дозу 2,5 мг два раза в сутки");
   });
 });
+
+/**
+ * R1 round 3 (C Р3-4): in the real dosing section the mild-to-moderate renal sentence comes right before the severe one,
+ * and the severe one carries a list of rules with the atrial-fibrillation dose last. Joined, the two were cut at the span
+ * before the AF rule. Written for the test, in the observed order and lengths; no MEDI text is stored.
+ */
+const LIST_FILLER = "описанный для этой тестовой фикстуры режим с условием, которое здесь только занимает место";
+const RENAL_DOSING = [
+  "Внутрь, вне зависимости от приёма пищи.",
+  "У пациентов с нарушением функции почек лёгкой или средней степени тяжести при отсутствии соответствия другим критериям снижения дозы коррекция дозы не требуется; это правило в фикстуре сопровождается пояснением о массе тела и возрасте пациентов.",
+  `У пациентов с нарушением функции почек тяжёлой степени (клиренс креатинина 15-29 мл/мин) следует соблюдать следующие рекомендации: - для профилактики после плановой операции ${LIST_FILLER}; - для лечения тромбоза глубоких вен и ТЭЛА ${LIST_FILLER}; - у пациентов с фибрилляцией предсердий следует применять дозу 2,5 мг два раза в сутки.`,
+  "У пациентов с клиренсом креатинина менее 15 мл/мин и у пациентов на диализе препарат применять не рекомендуется.",
+].join(" ");
+const renalRaw: InstructionPage = { ...raw, sections: [{ id: "contraindications", heading: "Противопоказания", text: CONTRAINDICATIONS, html: "" }, { id: "dosing", heading: "Способ применения и дозы", text: RENAL_DOSING, html: "" }] };
+
+describe("«КК 25»: the severe renal rule keeps its AF dose (R1 round 3, C Р3-4)", () => {
+  it("the fixture's mild sentence and the severe rule together are longer than the source's excerpt limit", () => {
+    const start = RENAL_DOSING.indexOf("У пациентов с нарушением функции почек лёгкой");
+    const end = RENAL_DOSING.indexOf("два раза в сутки.") + "два раза в сутки.".length;
+    expect(end - start).toBeGreaterThan(LIMIT);
+  });
+
+  it.each(["Апиксабан при КК 25 мл/мин: дозирование", "Апиксабан у пожилых при КК 25 мл/мин: дозирование", "Пожилой пациент с КК 25: сколько апиксабана давать?"])("%s", question => {
+    const intent = compileIntent(question, "cardiology");
+    expect(instructionFocus(intent)).toContain("renal");
+    const document = normalizeInstruction(renalRaw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary, sections: intent.sections, populations: populationsNamed(intent), focus: instructionFocus(intent) });
+    const passages = document.claims.filter(claim => claim.covers.includes(POPULATION_PASSAGE)).map(claim => claim.quote ?? "");
+    // One passage holds the threshold and its AF dose; another holds «менее 15 мл/мин».
+    expect(passages.some(quote => quote.includes("15-29 мл/мин") && quote.includes("2,5 мг два раза в сутки"))).toBe(true);
+    expect(passages.some(quote => quote.includes("менее 15 мл/мин"))).toBe(true);
+    for (const quote of passages) {
+      expect(quote.length).toBeLessThanOrEqual(LIMIT);
+      expect(`${CONTRAINDICATIONS} ${RENAL_DOSING}`).toContain(quote.replace(/…$/u, ""));
+    }
+  });
+});
+
+describe("«а при беременности?»: the pregnancy sentence, not the first population sentence (R1 round 3, A №1)", () => {
+  const PREGNANCY_CONTRAINDICATIONS = [
+    "Повышенная чувствительность к компонентам препарата.",
+    "Заболевания печени в активной фазе и повышение активности печёночных ферментов неясного генеза.",
+    "Беременность и период грудного вскармливания; применение у женщин детородного возраста без надёжной контрацепции.",
+    "Возраст до 18 лет.",
+  ].join(" ");
+  const PREGNANCY_SECTION = "Применение препарата во время беременности противопоказано; в тестовой фикстуре это предложение заменяет текст раздела.";
+  const statinRaw: InstructionPage = { ...raw, title: "Аторвастатин 20 мг (Аторвастатин)", inn: "аторвастатин", sections: [{ id: "contraindications", heading: "Противопоказания", text: PREGNANCY_CONTRAINDICATIONS, html: "" }, { id: "pregnancy", heading: "Применение при беременности и в период грудного вскармливания", text: PREGNANCY_SECTION, html: "" }] };
+
+  it("the pregnancy section is the population passage; the liver sentence is not", () => {
+    const intent = compileIntent("Аторвастатин: противопоказания при беременности", "cardiology");
+    expect(instructionFocus(intent)).toEqual(["pregnancy"]);
+    const document = normalizeInstruction(statinRaw, page, { drug: intent.entities.drugs[0], listingDate: null, nosology: null, safety: intent.safety, job: intent.job.primary, sections: intent.sections, populations: populationsNamed(intent), focus: instructionFocus(intent) });
+    const passages = document.claims.filter(claim => claim.covers.includes(POPULATION_PASSAGE)).map(claim => claim.quote ?? "");
+    expect(passages.length).toBeGreaterThan(0);
+    expect(passages[0]).toBe(PREGNANCY_SECTION);
+    expect(passages.join(" ")).not.toMatch(/Заболевания печени/u);
+  });
+});

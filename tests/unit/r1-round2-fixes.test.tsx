@@ -21,6 +21,7 @@ import { askedSections } from "@/lib/mesh/refine";
 import { excludedJournalsGap } from "@/lib/mesh/source-preferences";
 import { runOutcome } from "@/lib/portal/run-outcome";
 import { ExperienceView } from "@/components/experience/experience-view";
+import { RunTrace } from "@/components/workspace/run-trace";
 import { WorkspaceProvider } from "@/components/workspace/workspace-provider";
 import { cleanSection } from "@/server/agents/adapters/openfda";
 import type { PubmedArticle } from "@/server/agents/adapters/pubmed";
@@ -315,5 +316,139 @@ describe("A round 2 №3, №4: what the question names decides what answers it"
     const delta = manifest.modules.find(entry => entry.family === "recommendation_delta");
     expect(delta).toBeDefined();
     expect(delta!.documentIds).not.toContain(af.id);
+  });
+});
+
+describe("R1 round 3 (A №3, B N3-1, C Р3-2): a dose question whose only points are dosing keeps «Коротко»", () => {
+  it("«Коротко» opens with «Дозу… не подбираем» and the label boundary, without a dosing point; the saved answer says the same", async () => {
+    const TEXT = "Мой пациент 67 лет: какую дозу эмпаглифлозина назначить при ХСН?";
+    const { graph } = await compiled(TEXT, "cardiology", { job: "drug", articles: [HFPEF_REVIEW], abstracts: [HFPEF_ABSTRACT] });
+    // Only the instruction's dosing section is left to answer with (as for bisoprolol, asked about dosing only).
+    const instruction = graph.documents.find(document => document.kind === "drug_instruction")!;
+    const dosingOnly = { ...graph, documents: graph.documents.filter(document => document.id === instruction.id), claims: graph.claims.filter(claim => claim.documentId === instruction.id && claim.kind === "dosing") } as EvidenceGraph;
+    expect(dosingOnly.claims.length).toBeGreaterThan(0);
+    const registry = createSourceRegistry({ browserDriver: new FixtureDriver(), site: { minIntervalMs: 0 } });
+    const intent = compileIntent(TEXT, "cardiology");
+    const output = compileExperience({ graph: dosingOnly, user: { signals: ["specialty", PATIENT_DOSE_SIGNAL], topics: [] }, modules: intent.modules, policy: { descriptors: descriptors(registry) }, scenario: intent.context.scenario, resultKeys: {} });
+    expect(output.manifest.compiler.fallback).toBe(false);
+    const takeaway = output.manifest.modules.find(entry => entry.family === "key_takeaway");
+    expect(takeaway).toMatchObject({ claimIds: [], props: { patientDose: true, doseOnly: true } });
+    const experience = { intentId: "i", manifest: output.manifest, graph: dosingOnly, plan: { id: "p", steps: 1, invocations: 1, reused: false } };
+    const html = view(runOf(TEXT), experience);
+    const block = html.match(/data-module="key_takeaway"[\s\S]*?<\/section>/u)?.[0] ?? "";
+    expect(block).toContain(PATIENT_DOSE_LINE);
+    expect(block).not.toMatch(/Дозирование ·|Прямого ответа не нашлось/u);
+    // The card still holds the section, closed, as reference.
+    expect(html).toContain('data-dose-reference="true"');
+    const material = materialFromAnswer({ ...runOf(TEXT), experience } as AgentRun, "2026-10-25T00:00:00.000Z");
+    expect(material.text).toMatch(/Дозу для описанного пациента не подбираем/u);
+    expect(material.text).not.toMatch(/Прямого ответа не нашлось/u);
+  });
+});
+
+describe("R1 round 3: what a coronary question names", () => {
+  function review(pmid: string, title: string, conclusion: string): { article: PubmedArticle; abstract: PubmedAbstract } {
+    return {
+      article: { ...fakeArticle(pmid, title), journal: "Circulation", publicationTypes: ["Meta-Analysis"], sortDate: "2024-05-01" },
+      abstract: { pmid, sections: [{ label: "CONCLUSIONS", text: conclusion }], conclusion, conclusionLabel: "CONCLUSIONS" },
+    };
+  }
+
+  it("A №4: a meta-analysis of PCI vs CABG for left main disease answers the left-main question", async () => {
+    const leftMain = review("39100001", "PCI versus CABG for left main disease: a pooled analysis of 4 randomized trials", "In left main disease, PCI and CABG had similar rates of death at 5 years.");
+    const text = "ЧКВ или АКШ при поражении ствола левой коронарной артерии";
+    const { output, graph, experience } = await compiled(text, "cardiology", { job: "answer", articles: [leftMain.article], abstracts: [leftMain.abstract] });
+    const takeaway = output.manifest.modules.find(entry => entry.family === "key_takeaway")!;
+    expect(takeaway.props.noDirectAnswer).toBeUndefined();
+    expect(takeaway.claimIds.map(id => graph.claims.find(claim => claim.id === id)!.statement)).toEqual([leftMain.abstract.conclusion]);
+    expect(view(runOf(text), experience)).not.toMatch(/Тема вопроса в выводе не названа/u);
+  });
+
+  it("A №5: «ДАТТ» is searched as dual antiplatelet therapy", () => {
+    for (const text of ["Сколько длится ДАТТ после ЧКВ?", "Длительность двойной антитромбоцитарной терапии после стентирования"]) {
+      const concept = compileIntent(text, "cardiology").entities.concepts.find(item => item.id === "concept:dapt");
+      expect(concept?.term, text).toMatch(/"dual antiplatelet"\[tiab\]/u);
+    }
+  });
+});
+
+describe("R1 round 3, A №3: the review's first cards are about what the question names", () => {
+  function result(id: string, rank: number, title: string, attributes: Record<string, string>, connectorId = "pubmed"): AgentResultView {
+    return { id, key: id, agentId: "research", specialty: "cardiology", kind: "research_finding", category: "study", title, summary: "", reasonShown: [], observedAt: "2024-01-01", evidence: [], source: { connectorId, source: connectorId === "pubmed" ? "PubMed" : "РКО", sourceUrl: `https://example.org/${id}` }, actions: [], attributes, partner: null, rank, createdAt: "2026-10-25T00:00:00.000Z", runId: "run-r3" } as unknown as AgentResultView;
+  }
+
+  it("left main: the RCT and the registry that name left main, PCI and CABG come before a general IHD guideline; the RCT first", () => {
+    const results = [
+      result("c1", 1, "Стабильная ишемическая болезнь сердца: клинические рекомендации", {}, "catalog"),
+      result("p1", 2, "PCI versus CABG for left main disease in the SWEDEHEART registry", { journal: "Eur Heart J", publicationTypes: "Observational Study", "authorsConclusion.text": "In left main disease, PCI was associated with higher mortality than CABG." }),
+      result("p2", 3, "Myocardial infarction in adults with congenital heart disease", { journal: "Eur Heart J", publicationTypes: "Observational Study", "authorsConclusion.text": "MI risk was higher in adults with congenital heart disease." }),
+      result("p3", 5, "PCI versus CABG for unprotected left main stenosis: 10-year outcomes of the NOBLE trial", { journal: "Lancet", publicationTypes: "Randomized Controlled Trial", "authorsConclusion.text": "At 10 years, PCI and CABG had similar all-cause mortality in left main disease." }),
+    ];
+    const run = runOf("ЧКВ или АКШ при поражении ствола левой коронарной артерии", { agentId: "research", toolsUsed: [{ tool: "searchPubmed", status: "ok", note: null, durationMs: 1, connectorIds: ["pubmed"] }] } as Partial<AgentRun>);
+    const answer = buildResearchAnswer(run, results);
+    expect(answer.studies.map(study => study.id)).toEqual(["p3", "p1", "c1"]);
+  });
+});
+
+describe("R1 round 3, C Р3-1 / A №1, №2 / C Р3-5: masking — the missed forms, and drugs and terms left alone", () => {
+  it("«Фамилия Имя», a surname in another case or with a comma before the age, «ул» without a dot, a street in the nominative", () => {
+    const cases: ReadonlyArray<[string, RegExp]> = [
+      ["Смирнов Алексей, 1956 г.р., Садовая 12-4: апиксабан при ХБП", /Смирнов|Алексей|Садовая|12-4|1956/u],
+      ["Смирнов Алексей 70 лет: ФП", /Смирнов|Алексей/u],
+      ["Иванов Иван 1956 года рождения, ХСН", /Иванов|Иван\b|1956/u],
+      ["Сидоровой 72 лет: апиксабан", /Сидоров/u],
+      ["Иванов, 67 лет, ФВ 30%", /Иванов/u],
+      ["ул Ленина 5 кв 3: апиксабан", /Ленина|кв 3/u],
+    ];
+    for (const [text, leak] of cases) expect(deidentify(text).text, text).not.toMatch(leak);
+    const tool = redactDirectIdentifiers(cases.map(([text]) => text).join("\n"));
+    expect(tool.redactedText).not.toMatch(/Смирнов|Садовая|Сидоров|Ленина/u);
+  });
+
+  it("drug names, laboratory values, eponyms and anatomy are never a name or an address", () => {
+    for (const text of ["Аспирин 5 лет после инфаркта: продолжать?", "Варфарин 2 года после ТЭЛА", "Инсулин 10 лет при СД2", "Аторвастатин 75 лет и старше: первичная профилактика", "Дигоксин 80 лет", "Розувастатин 75 лет", "Варфарина 2-3 МНО", "Эпилепсия Кожевникова 10 лет", "Эффективная площадь отверстия при аортальном стенозе: критерии тяжести", "Болезнь Паркинсона 5 лет: леводопа"]) {
+      const masked = deidentify(text);
+      expect(masked.text, text).toBe(text);
+      expect(masked.redactions, text).toEqual([]);
+    }
+  });
+
+  it("a capitalised word left next to a placeholder asks the physician to check", () => {
+    // A first name the rules do not know («Рустам») next to a masked year of birth.
+    expect(redactDirectIdentifiers("Рустам 1956 г.р., ХСН").status).toBe("needs_review");
+    expect(redactDirectIdentifiers("Пациентка Петрова Анна Сергеевна, 1950 г.р.").status).toBe("clean");
+  });
+});
+
+describe("R1 round 3, C Р3-3 / Р3-6 / A №6: a described patient, not a population", () => {
+  it("more wordings of one patient are patient-specific prescribing", () => {
+    for (const text of ["Пациент, 67 лет, ФВ 30% — доза бисопролола?", "У моей пациентки 80 лет ФП и КК 28 — сколько апиксабана?", "67-летний пациент с ФВ 30%: доза бисопролола", "Бабушка 85 лет, ФП: доза апиксабана"]) {
+      expect(detectRiskSignals(text), text).toMatchObject({ prescribing: true, patientSpecific: true });
+    }
+  });
+
+  it("a population with a weight or a «сколько» about duration is neither", () => {
+    for (const text of ["Апиксабан у пациентов весом 60 кг и менее: доза", "Дозирование эноксапарина у пациентов весом 120 кг", "Сколько месяцев давать ДАТТ после стентирования?", "Сколько дней принимать антибиотики при пневмонии", "у 70-летних пациентов с ФП"]) {
+      expect(detectRiskSignals(text), text).toMatchObject({ prescribing: false, patientSpecific: false });
+    }
+  });
+});
+
+describe("R1 round 3, C Р3-7 / B N3-2: trace and headline say what happened", () => {
+  it("PubMed searched for a named PMID from an excluded journal is not «не запрашивали»", () => {
+    const run = runOf("PMID 41936368", { agentId: "research", toolsUsed: [{ tool: "searchPubmed", status: "ok", note: "журнал исключён в вашем профиле (The Lancet) — публикация показана, потому что вы назвали её сами", durationMs: 1, connectorIds: ["pubmed"] }] } as Partial<AgentRun>);
+    const html = renderToStaticMarkup(<RunTrace run={run} connectors={[{ id: "pubmed", name: "PubMed", mode: "LIVE", dataOrigin: "live", snapshotAt: null } as never]} now="2026-10-25T00:00:00.000Z" />);
+    expect(html).not.toMatch(/не запрашивали/u);
+  });
+
+  it("every search skipped by the review's filters: the headline names the filters, never «уточните вопрос»", () => {
+    const run = runOf("Дапаглифлозин при ХСН с сохранённой ФВ", { agentId: "research", toolsUsed: [
+      { tool: "searchMedical", status: "ok", note: "Каталог специальности пропущен: при фильтре разбора «только международные», «только клинрекомендации» в нём нет материалов", durationMs: 1, connectorIds: ["catalog"] },
+      { tool: "searchPubmed", status: "ok", note: "PubMed пропущен: выбран поиск только по клиническим рекомендациям", durationMs: 1, connectorIds: ["pubmed"] },
+    ] } as Partial<AgentRun>);
+    const answer = buildResearchAnswer(run, []);
+    expect(answer.headline).toMatch(/^Поиск не выполнялся: Каталог специальности пропущен/u);
+    expect(answer.headline).not.toMatch(/Уточните заболевание/u);
+    expect(runOutcome(run).note).toMatch(/PubMed пропущен/u);
   });
 });
