@@ -158,7 +158,7 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
     && !widened.has(claim.documentId)
     // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
     && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
-    && (claim.kind !== "review_conclusion" || nosology || !topics.length || namesTopics(claim))
+    && (claim.kind !== "review_conclusion" || Boolean(nosology) || !topics.length || namesTopics(claim))
     // A question that names instruction sections is answered from them: no indications or document metadata instead.
     && (!askedSections.length || ((claim.kind !== "indication" || askedSections.includes("indications")) && claim.kind !== "guideline_metadata" && claim.kind !== "currentness"))
     && informative(claim)
