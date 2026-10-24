@@ -1,3 +1,4 @@
+import { resultFormat } from "@/server/agents/services/material";
 import { deflateRawSync, crc32 } from "node:zlib";
 import { beforeEach, describe, expect, it } from "vitest";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
@@ -66,7 +67,9 @@ describe("my materials: upload → parse → index → personal retrieval", () =
     expect(results.every(item => item.source.ownership === "USER_UPLOADED")).toBe(true);
   });
 
-  it("saves an agent result with its provenance as GENERATED material", async () => {
+  // R1 B-7: a saved publication, guideline or instruction is filed as what it is (a public source of its format);
+  // only a compiled answer is «Сохранённый ответ» (GENERATED).
+  it("saves an agent result with its provenance, filed by what it is", async () => {
     await executeAgentCommand(SESSION, { action: "setInterests", specialty: "cardiology", topics: ["ah"], trustedSources: ["rko"], excludedSources: [], runAgents: false });
     const run = await executeAgentCommand(SESSION, { action: "runAgent", specialty: "cardiology", agentId: "drugs" });
     const store = workspaceStore();
@@ -74,7 +77,8 @@ describe("my materials: upload → parse → index → personal retrieval", () =
     const target = (await store.listResults(SESSION, "cardiology", "drugs")).find(result => latest?.resultIds.includes(result.id) && !result.partner);
     expect(target).toBeDefined();
     const saved = await executeAgentCommand(SESSION, { action: "saveResult", specialty: "cardiology", resultId: target!.id });
-    expect(saved.material?.ownership).toBe("GENERATED");
+    expect(saved.material?.ownership).toBe(saved.material?.format === "result" ? "GENERATED" : "PUBLIC_SOURCE");
+    expect(saved.material?.format).toBe(resultFormat(target!));
     expect(saved.material?.provenance?.sourceUrl).toBe(target!.source.sourceUrl);
     expect((await store.getResult(SESSION, target!.id))?.savedMaterialId).toBe(saved.material?.id);
   });

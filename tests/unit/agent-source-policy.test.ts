@@ -23,7 +23,9 @@ describe("physician source validation (B2D)", () => {
     expect(assessSource({ url: "https://www.bmj.com/content/391/bmj-2026" }).standing).toBe("conditional");
     expect(assessSource({ url: "https://scardio.ru/rekomendacii" }).standing).toBe("unreviewed");
     expect(assessSource({ url: "https://pubmed.ncbi.nlm.nih.gov/123/", journal: "Nat Med" }).standing).toBe("approved");
-    expect(assessSource({ url: "https://pubmed.ncbi.nlm.nih.gov/123/", journal: "Eur Heart J" }).standing).toBe("reviewed_not_whitelisted");
+    // R1 C-7: a journal the physicians did not assess is «не оценивался», not the standing of PubMed's own row.
+    expect(assessSource({ url: "https://pubmed.ncbi.nlm.nih.gov/123/", journal: "Eur Heart J" }).standing).toBe("unreviewed");
+    expect(assessSource({ url: "https://pubmed.ncbi.nlm.nih.gov/123/" }).standing).toBe("reviewed_not_whitelisted");
     expect(assessJournal("Lancet Neurol")?.standing).toBe("conditional");
     expect(approvedJournals()).toEqual(expect.arrayContaining(["Nat Med", "Cochrane Database Syst Rev", "BMJ"]));
   });

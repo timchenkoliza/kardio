@@ -185,19 +185,75 @@ export interface InstructionPage {
 /** What a question about a population looks for inside a long section: renal, hepatic, age and weight adjustments. */
 const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?![\p{L}])|рСКФ|пожил|старше\s*\d|печен|масс\p{L}* тела/iu;
 
-/** A verbatim excerpt that starts at the first sentence the question is about, when the section opens with something else. */
-function focusedExcerpt(text: string, focus: RegExp | null): { text: string; truncated: boolean } {
-  if (focus) {
-    const at = sentences(text).find(sentence => focus.test(sentence));
-    const from = at ? text.indexOf(at) : -1;
-    if (from > 0) {
-      // It stops before the next numbered indication («3. Лечение тромбоза…»): that text is about another condition.
-      const rest = text.slice(from);
-      const next = rest.slice(1).search(/\s\d{1,2}\.\s+[А-ЯЁ]/u);
-      return { text: excerpt(next > 0 ? rest.slice(0, next + 1).trim() : rest, MAX_EXCERPT).text, truncated: true };
-    }
+/** What each population a question names looks for in an instruction section. */
+const FOCUS_PATTERNS: Readonly<Record<string, string>> = {
+  renal: "почеч|почк|клиренс|(?<![\\p{L}])КК(?![\\p{L}])|рСКФ|диализ",
+  elderly: "пожил|старше\\s*\\d|\\d+\\s*лет\\s+и\\s+старше|возраст\\p{L}*\\s*(?:≥|>|от)?\\s*\\d",
+};
+
+/**
+ * The focus of a population question in an instruction: the populations it names («пожилых с ХБП» → renal and age
+ * sentences), or every population adjustment when it names none of them by concept («при сниженной функции почек»).
+ */
+export function instructionFocus(intent: Pick<NormalizedIntent, "entities"> | null | undefined): string[] {
+  const ids = intent?.entities.concepts.map(concept => concept.id ?? "") ?? [];
+  return [
+    ...(ids.some(id => /cardiorenal|ckd|kidney|renal/u.test(id)) ? ["renal"] : []),
+    ...(ids.includes("concept:elderly") ? ["elderly"] : []),
+  ];
+}
+
+/** A focused part of a section, at most this long; all parts of one excerpt together at most TOTAL. */
+const FOCUS_SPAN = 640;
+const FOCUS_TOTAL = 1600;
+
+/**
+ * A verbatim excerpt for a population question: every passage of the section the question is about, in the
+ * section's order, joined by «…» (the renal contraindication of apixaban is the 9th sentence of a long list, the
+ * 15–29 ml/min dose rule comes after the age rule). `keepStart` keeps the section's opening too (contraindications).
+ * Each passage runs from a sentence about the population to the end of its paragraph, within FOCUS_SPAN.
+ */
+function focusedExcerpt(text: string, focus: RegExp | null, options: { keepStart?: boolean } = {}): { text: string; truncated: boolean } {
+  if (!focus) return excerpt(text, MAX_EXCERPT);
+  const units: Array<{ text: string; at: number }> = [];
+  let cursor = 0;
+  // A numbered indication («… выше. 3. Лечение тромбоза…») starts a unit of its own: its number goes with it.
+  const split = sentences(text).flatMap(item => item.split(/(?<=[.;:])\s+(?=\d{1,2}\.\s+[А-ЯЁ])/u));
+  const numbered = split.map((item, index) => {
+    const own = item.replace(/\s\d{1,2}\.$/u, "");
+    const carried = index > 0 ? split[index - 1].match(/\s(\d{1,2}\.)$/u)?.[1] : undefined;
+    return carried ? `${carried} ${own}` : own;
+  });
+  for (const sentence of numbered) {
+    const at = text.indexOf(sentence, cursor);
+    if (at < 0) continue;
+    units.push({ text: sentence, at });
+    cursor = at + sentence.length;
   }
-  return excerpt(text, MAX_EXCERPT);
+  const start = options.keepStart ? excerpt(text, MAX_EXCERPT) : null;
+  let covered = start ? start.text.replace(/…$/u, "").length : 0;
+  let total = start?.text.length ?? 0;
+  const parts: string[] = [];
+  for (let index = 0; index < units.length; index += 1) {
+    const unit = units[index];
+    if (unit.at < covered || !focus.test(unit.text)) continue;
+    let end = index;
+    // A passage stops before the next numbered indication («3. Лечение тромбоза…»): that text is about another condition.
+    // It also stops before a paragraph about another population («Пациенты с печёночной недостаточностью»).
+    const otherPopulation = (next: string) => /^(?:Пациенты|У пациентов|Применение у пациентов|Пожилые|Дети|Беременн)/u.test(next) && !focus.test(next);
+    while (end + 1 < units.length && !/^\d{1,2}\.\s+[А-ЯЁ]/u.test(units[end + 1].text) && !otherPopulation(units[end + 1].text) && units[end + 1].at + units[end + 1].text.length - unit.at <= FOCUS_SPAN) end += 1;
+    let part = text.slice(unit.at, units[end].at + units[end].text.length);
+    if (part.length > FOCUS_SPAN) part = excerpt(part, FOCUS_SPAN).text;
+    if (total + part.length > FOCUS_TOTAL) break;
+    parts.push(part);
+    total += part.length;
+    covered = units[end].at + units[end].text.length;
+    index = end;
+  }
+  if (!parts.length) return start ?? excerpt(text, MAX_EXCERPT);
+  const joined = [...(start ? [start.text.replace(/…$/u, "")] : []), ...parts].join(" … ");
+  // Shortened unless the passages are the whole section.
+  return { text: joined, truncated: joined.length < text.length };
 }
 
 /** Populations a question names: «беременность» may be recognised as a search concept rather than a population. */
@@ -380,7 +436,7 @@ export function normalizeListing(listing: ListingPage, page: PageSnapshot, drug:
   return document;
 }
 
-export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, args: { drug: DrugEntry; listingDate: string | null; nosology: NosologyNode | null; safety: readonly string[]; job: string; sections?: readonly string[]; populations?: readonly string[] }): NormalizedDocument {
+export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, args: { drug: DrugEntry; listingDate: string | null; nosology: NosologyNode | null; safety: readonly string[]; job: string; sections?: readonly string[]; populations?: readonly string[]; focus?: readonly string[] }): NormalizedDocument {
   const id = `medi:${new URL(page.finalUrl).pathname}`;
   const drugRef = drugEntity(args.drug.inn, args.drug.ru);
   const product: EntityRef = { id: `product:medi:${new URL(page.finalUrl).pathname.split("/").filter(Boolean).pop()}`, kind: "product", label: raw.title, codes: { inn: args.drug.inn, ...(raw.registration ? { registration: raw.registration } : {}) } };
@@ -409,9 +465,12 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
   const KIND: Record<string, NormalizedClaim["kind"]> = { contraindications: "contraindication", caution: "warning", warnings: "warning", adverse: "warning", overdose: "warning", dosing: "dosing", pregnancy: "warning", children: "warning" };
   raw.sections.forEach((section, index) => {
     if (section.id === "indications" || !wanted.has(section.id)) return;
-    // A population question reads dosing and «С осторожностью» from the sentence about that population, not from the section's first line.
-    const focus = args.sections?.includes("populations") && (section.id === "dosing" || section.id === "caution") ? POPULATION_FOCUS : null;
-    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: focusedExcerpt(section.text, focus).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
+    // A population question reads dosing, «С осторожностью» and contraindications from the passages about that population,
+    // not from the section's first lines (R1 C-4: the renal contraindication of apixaban was cut from the excerpt).
+    const kinds = (args.focus ?? []).filter(kind => FOCUS_PATTERNS[kind]);
+    const populationFocus = kinds.length ? new RegExp(kinds.map(kind => FOCUS_PATTERNS[kind]).join("|"), "iu") : POPULATION_FOCUS;
+    const focused = args.sections?.includes("populations") && (section.id === "dosing" || section.id === "caution" || section.id === "contraindications");
+    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: focusedExcerpt(section.text, focused ? populationFocus : null, { keepStart: section.id === "contraindications" }).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
   });
   const nosologyRef = args.nosology ? nosologyEntity(args.nosology.id) : null;
   return {
@@ -548,7 +607,7 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       const page = await tool.open(product.url);
       try {
         const raw = tool.extract(page, instructionExtractor);
-        documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary, sections: request.intent.sections, populations: populationsNamed(request.intent) }));
+        documents.push(normalizeInstruction(raw, page.snapshot, { drug, listingDate: product.date, nosology: nosologyById(request.intent.context.nosology?.id), safety: request.intent.safety, job: request.intent.job.primary, sections: request.intent.sections, populations: populationsNamed(request.intent), focus: instructionFocus(request.intent) }));
         return documents;
       } catch (error) {
         // Only a patient leaflet moves on to the next product; a real layout change fails at once.
@@ -643,7 +702,7 @@ export function createMediAdapter(deps: MediDeps = {}): SourceAdapter {
       if (url.includes("/instrukciya/")) {
         const raw = tool.extract(page, instructionExtractor);
         const drug = intent?.entities.drugs[0] ?? { inn: raw.inn || raw.title, ru: raw.inn || raw.title, stems: [raw.inn || raw.title] };
-        return normalizeInstruction(raw, page.snapshot, { drug, listingDate: null, nosology: nosologyById(intent?.context.nosology?.id), safety: intent?.safety ?? [], job: intent?.job.primary ?? "drug_reference", sections: intent?.sections, populations: intent ? populationsNamed(intent) : [] });
+        return normalizeInstruction(raw, page.snapshot, { drug, listingDate: null, nosology: nosologyById(intent?.context.nosology?.id), safety: intent?.safety ?? [], job: intent?.job.primary ?? "drug_reference", sections: intent?.sections, populations: intent ? populationsNamed(intent) : [], focus: instructionFocus(intent) });
       }
       return null;
     },

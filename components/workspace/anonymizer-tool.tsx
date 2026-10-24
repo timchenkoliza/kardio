@@ -37,14 +37,15 @@ export const RULE_COPY: Record<RedactionRuleId, { label: string; category: strin
   snils: { label: "СНИЛС", category: "Документы", hint: "123-456-789 00 → [SNILS]" },
   oms: { label: "Полис ОМС", category: "Документы", hint: "16 цифр → [OMS]" },
   passport: { label: "Паспорт", category: "Документы", hint: "серия и номер → [PASSPORT]" },
-  fio: { label: "ФИО пациента", category: "Личные данные", hint: "«Пациент: …» → ФИО: [REDACTED]" },
-  address: { label: "Адрес", category: "Личные данные", hint: "«Адрес: …» → Адрес: [REDACTED]" },
-  birth_date: { label: "Дата рождения", category: "Личные данные", hint: "«Дата рождения: …» → [REDACTED]" },
+  record: { label: "Номер медкарты", category: "Документы", hint: "«медкарта № 123456», «история болезни 45/2021» → [НОМЕР КАРТЫ]" },
+  fio: { label: "ФИО пациента", category: "Личные данные", hint: "«Пациент: …», «Иванов И.И.» → [ФИО]" },
+  address: { label: "Адрес", category: "Личные данные", hint: "«Адрес: …», «ул. Ленина д. 5 кв. 3» → [АДРЕС]" },
+  birth_date: { label: "Дата рождения", category: "Личные данные", hint: "«Дата рождения: …», «1956 г.р.» → [ГОД РОЖДЕНИЯ]" },
 };
 
 export const PRESETS: ReadonlyArray<{ id: string; label: string; rules: readonly RedactionRuleId[] }> = [
   { id: "full", label: "Общий", rules: REDACTION_RULE_IDS },
-  { id: "documents", label: "Контакты и документы", rules: ["email", "phone", "snils", "oms", "passport"] },
+  { id: "documents", label: "Контакты и документы", rules: ["email", "phone", "snils", "oms", "passport", "record"] },
   { id: "personal", label: "Личные данные", rules: ["fio", "address", "birth_date"] },
 ];
 

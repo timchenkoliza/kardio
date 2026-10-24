@@ -140,7 +140,7 @@ function normalizeEffectMeasure(value: string): string {
 }
 
 function explicitPopulation(source: ResearchEvidenceField | undefined): ResearchStudyField | null {
-  if (!source) return null;
+  if (!source || isFragment(source.value)) return null;
   return normalizedField(source.value, "population", source, 0.96);
 }
 
@@ -165,12 +165,29 @@ function normalizedComparator(source: ResearchEvidenceField | undefined): Resear
   return normalizedField(compared?.[1] ?? source.value, "comparator", source, compared?.[1] ? 0.94 : 0.86);
 }
 
+/**
+ * A piece of a sentence, not a field value: it starts after a cut («) by 17% versus placebo», «94) to a similar
+ * extent», «of the trial was…») or ends inside a number («(hazard ratio (HR) 0»). An empty field is better than this.
+ */
+export function isFragment(value: string): boolean {
+  const text = value.trim();
+  if (!text) return true;
+  if (/^[)\],;:.%]/u.test(text) || /^\d+(?:\.\d+)?\s*[)\]%]/u.test(text)) return true;
+  if (/^(?:of|by|to|and|or|with|in|for|than|versus|vs)\s/u.test(text) || /^s\s/u.test(text)) return true;
+  const open = text.match(/\(/gu)?.length ?? 0;
+  const close = text.match(/\)/gu)?.length ?? 0;
+  if (open > close && /[\d(]$/u.test(text)) return true;
+  return /(?:\b(?:HR|OR|RR|CI)\)?|ratio|=|<|>)\s*\d?$/u.test(text);
+}
+
 function normalizedEndpoint(source: ResearchEvidenceField | undefined): ResearchStudyField | null {
   if (!source) return null;
-  const match = source.supportText.match(/\bprimary(?:\s+(?:efficacy|safety|composite|clinical))?\s+(?:end\s?point|outcome)(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*([^.;]{8,180})/iu);
-  if (match?.[1]) return normalizedField(match[1], "endpoint", source, 0.96);
+  // «The primary outcome of the trial was…»: the words between «outcome» and «was» belong to the lead, not to the value;
+  // a point inside a number («0.79») does not end the value.
+  const match = source.supportText.match(/\bprimary(?:\s+(?:efficacy|safety|composite|clinical))?\s+(?:end\s?point|outcome)(?:\s+of\s+(?:the|this)\s+(?:trial|study))?(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*((?:[^.;]|\.(?=\d)){8,180})/iu);
+  if (match?.[1] && !isFragment(match[1])) return normalizedField(match[1], "endpoint", source, 0.96);
   // The endpoint field is matched on «follow-up» too: a sentence that never names an endpoint or outcome is not one.
-  if (!/\b(?:end\s?points?|outcomes?)\b/iu.test(source.value)) return null;
+  if (!/\b(?:end\s?points?|outcomes?)\b/iu.test(source.value) || isFragment(source.value)) return null;
   return normalizedField(source.value, "endpoint", source, 0.88);
 }
 

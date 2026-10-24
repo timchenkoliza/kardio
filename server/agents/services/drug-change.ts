@@ -70,12 +70,30 @@ function officialEvidence(record: DrugChangeRecord, assessment: DrugChangeAssess
   return null;
 }
 
+/**
+ * A record about a guideline or journal the physician set to «Не использовать» («ESC 2026: …» with ESC excluded)
+ * is not shown: the profile promises the source is removed from the feeds too (R1 A-8). A third party's report of
+ * that source counts as that source.
+ */
+const EXCLUSION_MARKS: Readonly<Record<string, RegExp>> = {
+  esc: /(?<![\p{L}])ESC(?![\p{L}])|European Heart Journal|Eur Heart J/u,
+  nejm: /NEJM|New England Journal|N Engl J Med/u,
+  lancet: /Lancet/u,
+  aha: /(?<![\p{L}])(?:AHA|ACC)(?![\p{L}])|Circulation/u,
+  rko: /(?<![\p{L}])РКО(?![\p{L}])|Российского кардиологического общества/u,
+};
+
+function excludedByProfile(record: DrugChangeRecord, excluded: readonly string[]): boolean {
+  return excluded.some(id => EXCLUSION_MARKS[id]?.test(`${record.title} ${record.verifyIn ?? ""} ${record.source.name}`));
+}
+
 export function findDrugChanges(ctx: AgentContext): ResultDraft[] {
   if (ctx.specialty !== "cardiology") return [];
   if (ctx.preference.excludedSources.includes("regulators")) return [];
   const topics = ctx.preference.topics;
   const horizonStart = ctx.now.getTime() - ctx.preference.horizonDays * 86_400_000;
   return DRUG_CHANGES
+    .filter(record => !excludedByProfile(record, ctx.preference.excludedSources))
     .filter(record => !topics.length || record.topics.some(topic => topics.includes(topic)))
     .filter(record => new Date(`${record.changeDate}T00:00:00Z`).getTime() >= horizonStart)
     .map(record => drugChangeDraft(ctx, record, topics.filter(topic => record.topics.includes(topic))));
@@ -89,6 +107,7 @@ export function drugChangesForDrugs(ctx: AgentContext, russianNames: readonly st
   if (ctx.preference.excludedSources.includes("regulators") || !russianNames.length) return [];
   const names = russianNames.map(name => name.toLocaleLowerCase("ru-RU").replace(/ё/g, "е"));
   return DRUG_CHANGES
+    .filter(record => !excludedByProfile(record, ctx.preference.excludedSources))
     .filter(record => names.some(name => record.inn.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").includes(name)))
     .map(record => ({ ...drugChangeDraft(ctx, record, []), reasonShown: [`Препарат из вашего вопроса: ${record.inn}`] }));
 }

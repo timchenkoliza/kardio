@@ -22,6 +22,16 @@ export function SaveResultButton({ resultId, saved: initiallySaved }: { resultId
   </button>;
 }
 
+/** «Сохранить ответ»: the question, «Коротко» and the sources, kept as one material that leads back here. */
+export function SaveAnswerButton({ runId }: { runId: string }) {
+  const { command } = useWorkspace();
+  const [saved, setSaved] = useState(false);
+  if (saved) return <SavedLink />;
+  return <button type="button" className="ws-button is-small is-quiet" data-save-answer="true" onClick={async () => { const response = await command({ action: "saveAnswer", runId }, { refresh: false }); if (response) setSaved(true); }}>
+    <Bookmark size={14} aria-hidden="true" />Сохранить ответ
+  </button>;
+}
+
 /**
  * Next best action on a result: the same question, a different job. The text
  * is sent in the request body, never in a URL.

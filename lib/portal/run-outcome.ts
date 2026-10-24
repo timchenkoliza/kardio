@@ -17,6 +17,8 @@ export interface RunOutcome {
   tone: "ok" | "neutral" | "warning" | "danger";
   /** A repeat can help (network, timeout); not when the source page changed or refuses automated reading. */
   retryable?: boolean;
+  /** The state comes from the physician's source settings: the way out is the profile's «Источники», one link away. */
+  sourcesLink?: boolean;
 }
 
 /** Failures a repeat will not fix: the source page changed its structure or closed automated reading. */
@@ -28,6 +30,9 @@ export const EXCLUDED_IN_PROFILE = /исключ[её]н в (?:ваших ист
 export const NOT_FOR_SPECIALTY = /нет проверенной афиши/iu;
 /** Tool notes that are no failure: a repeat changes nothing. */
 const NOT_A_FAILURE = (note: string | null | undefined) => EXCLUDED_IN_PROFILE.test(note ?? "") || NOT_FOR_SPECIALTY.test(note ?? "");
+
+/** Tools that search for evidence; risk checks, ranking and fact checks are steps of every run, not searches. */
+const SEARCH_TOOLS = new Set(["searchPubmed", "searchMedical", "searchSources", "retrieveDocument", "searchEvents", "findDrugChanges", "lookupDrugLabel", "guidelineDiff", "searchUserMaterials", "generateLearningPlan"]);
 
 /** Tool notes and steps that mean nothing could be searched for (no topic, no recognised term). */
 const NOTHING_TO_SEARCH = /нет тем для поиска|нет распознанных терминов|не распознаны заболевание|тема не распознана/iu;
@@ -45,7 +50,7 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
     : run.toolsUsed.some(tool => (tool.status === "failed" || tool.status === "unavailable") && !NOT_A_FAILURE(tool.note));
   const searched = graph
     ? graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"))
-    : run.toolsUsed.some(tool => tool.status === "ok" || (tool.status === "partial" && !NOTHING_TO_SEARCH.test(tool.note ?? "")));
+    : run.toolsUsed.some(tool => SEARCH_TOOLS.has(tool.tool) && (tool.status === "ok" || (tool.status === "partial" && !NOTHING_TO_SEARCH.test(tool.note ?? ""))) && !/пропущен/u.test(tool.note ?? ""));
   // The executor's own last step says «no search» explicitly; older runs only have the tool note.
   const planNotRun = run.plan.some(step => step.status === "skipped" && NOTHING_TO_SEARCH.test(`${step.label} ${step.detail ?? ""}`));
   const nothingToSearch = planNotRun || (run.toolsUsed.some(tool => NOTHING_TO_SEARCH.test(tool.note ?? "")) && !searched);
@@ -68,14 +73,16 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   const noListing = run.toolsUsed.find(tool => NOT_FOR_SPECIALTY.test(tool.note ?? ""));
   // The listing's own text explains it and names the organisers' calendars: the state adds no second sentence.
   if (noListing) return { kind: "not_run", label: "Проверенной афиши пока нет", note: null, tone: "neutral" };
-  if (excludedStep && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${excludedStep.detail}.`, tone: "warning" };
+  if (excludedStep && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${excludedStep.detail}.`, tone: "warning", sourcesLink: true };
+  // The only source that could answer is excluded in the profile (a PMID with PubMed off): not checked, never «проверено».
+  const excludedTool = run.toolsUsed.find(tool => EXCLUDED_IN_PROFILE.test(tool.note ?? ""));
+  if (excludedTool && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${(excludedTool.note ?? "").replace(/\.$/u, "")} — включите его в источниках профиля, чтобы проверить.`, tone: "warning", sourcesLink: true };
   if (nothingToSearch) return { kind: "not_run", label: "Проверка не выполнялась", note: options.monitoring ? "Не выбраны темы, по которым проверять. Выберите темы в настройках — проверка запустится." : "В запросе не распознаны заболевание, препарат или тема — искать было нечего.", tone: "warning" };
   if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger", retryable: !structural };
   if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning", retryable: !structural };
   // A source excluded in the profile was not asked: «ничего не найдено» is said of the others only.
-  const excludedTool = run.toolsUsed.find(tool => EXCLUDED_IN_PROFILE.test(tool.note ?? ""));
   const excludedNote = excludedTool ? `${excludedTool.note} — проверены остальные источники.` : null;
   return options.monitoring
-    ? { kind: "not_found", label: "Проверено: изменений не найдено", note: excludedNote, tone: "neutral" }
-    : { kind: "not_found", label: "Проверено: ничего не найдено", note: excludedNote, tone: "neutral" };
+    ? { kind: "not_found", label: "Проверено: изменений не найдено", note: excludedNote, tone: "neutral", ...(excludedTool ? { sourcesLink: true } : {}) }
+    : { kind: "not_found", label: "Проверено: ничего не найдено", note: excludedNote, tone: "neutral", ...(excludedTool ? { sourcesLink: true } : {}) };
 }

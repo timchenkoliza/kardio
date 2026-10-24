@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import type { ActionRequest, AgentId, Material } from "@/lib/agents/types";
@@ -26,7 +27,8 @@ interface WorkspaceContextValue {
   pending: boolean;
   command: (body: Record<string, unknown>, options?: { refresh?: boolean; quiet?: boolean; timeoutMs?: number }) => Promise<CommandResponse | null>;
   upload: (form: FormData) => Promise<{ material: Material; notices: string[] } | null>;
-  notify: (message: string, tone?: "info" | "error") => void;
+  /** A toast; `link` is the one place it leads to («Открыть результат»). */
+  notify: (message: string, tone?: "info" | "error", link?: { href: string; label: string }) => void;
   pendingAction: ActionRequest | null;
   setPendingAction: (action: ActionRequest | null) => void;
 }
@@ -66,11 +68,11 @@ async function errorMessage(response: Response): Promise<string> {
 export function WorkspaceProvider({ specialty, children }: { specialty: SpecialtyId; children: ReactNode }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; link?: { href: string; label: string } } | null>(null);
   const [pendingAction, setPendingAction] = useState<ActionRequest | null>(null);
   const inflight = useRef(0);
 
-  const notify = useCallback((message: string, tone: "info" | "error" = "info") => setToast({ message, tone }), []);
+  const notify = useCallback((message: string, tone: "info" | "error" = "info", link?: { href: string; label: string }) => setToast({ message, tone, ...(link ? { link } : {}) }), []);
 
   const command = useCallback(async (body: Record<string, unknown>, options: { refresh?: boolean; quiet?: boolean; timeoutMs?: number } = {}) => {
     inflight.current += 1;
@@ -123,6 +125,7 @@ export function WorkspaceProvider({ specialty, children }: { specialty: Specialt
     {children}
     {toast && <div className={`ws-toast ${toast.tone === "error" ? "is-error" : ""}`} role={toast.tone === "error" ? "alert" : "status"}>
       <span>{toast.message}</span>
+      {toast.link && <Link className="ws-text-link" href={toast.link.href} onClick={() => setToast(null)}>{toast.link.label}</Link>}
       <button type="button" aria-label="Закрыть сообщение" onClick={() => setToast(null)}>×</button>
     </div>}
   </WorkspaceContext.Provider>;

@@ -152,8 +152,10 @@ export function planSources(args: {
     }
     if (!executable.length && !handoffs.length) {
       // The physician's own exclusion is named as such, not as a missing integration.
-      const byPhysician = rejected.some(item => item.requirement === requirement && item.reason === EXCLUDED_BY_PHYSICIAN);
-      if (required) unmet.push({ requirement, reason: byPhysician ? `источник ${EXCLUDED_BY_PHYSICIAN}` : `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
+      const byPhysician = rejected.filter(item => item.requirement === requirement && item.reason === EXCLUDED_BY_PHYSICIAN);
+      // Named, so the physician knows which setting to change (R1 A-8): «ESC, РКО — исключён в ваших источниках».
+      const names = [...new Set(byPhysician.map(item => args.sources.find(source => source.id === item.sourceId)?.name ?? item.sourceId))].join(", ");
+      if (required) unmet.push({ requirement, reason: byPhysician.length ? `${names || "источник"} — ${EXCLUDED_BY_PHYSICIAN}` : `нет подключённого источника: ${REQUIREMENT_LABEL[requirement]}` });
       return;
     }
     // Optional evidence is added only when it is cheap, or is an official hand-off.

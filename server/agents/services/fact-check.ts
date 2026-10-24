@@ -110,6 +110,9 @@ export function factCheck(evidence: Evidence, context: FactCheckContext = {}): E
   if (context.editorialStatus === "derived_from_source") { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push("Карточка составлена по документу — сверьте с полным текстом"); }
   if (context.dateUncertain) { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push("Дата указана не полностью"); }
   if (source?.standing === "reviewed_not_whitelisted") { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push(`Не в белом списке врачей: ${standingNote(source) ?? "источник"}`); }
+  // A journal the physicians did not assess (NEJM, Eur Heart J) is outside their list too — said as «не оценивался»,
+  // never with the standing of the catalogue (PubMed) it was found in (R1 C-7).
+  if (source?.standing === "unreviewed" && evidence.provenance.journal?.trim()) { status = weakestVerification([status, "PARTIALLY_SUPPORTED"]); notes.push(`Не в белом списке врачей: журнал ${evidence.provenance.journal} врачи не оценивали`); }
   if (source?.standing === "conditional" && source.condition) notes.push(`Врачи одобрили с условием: ${source.condition}`);
 
   return { ...evidence, verificationStatus: status, confidence, verificationNote: notes.length ? notes.join(". ") : null };

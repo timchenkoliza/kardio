@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Clock3 } from "lucide-react";
 import { AgentConfigPanel } from "@/components/workspace/agent-config-panel";
 import { AgentIcon } from "@/components/workspace/agent-icon";
@@ -11,22 +11,29 @@ import { ResearchComposer } from "@/components/workspace/research-composer";
 import { ResearchJobStatus } from "@/components/workspace/research-job-status";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
 import { researchModeLabel, researchOptionsForAnswerMode } from "@/lib/agents/research-options";
+import { askHref } from "@/lib/portal/jobs";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
 import { agentIdFromSlug } from "@/lib/agents/definitions";
 import { countLabel, DRUG_CHANGE_LABEL, formatRelativeRu } from "@/lib/agents/format";
 import { isConfigured } from "@/lib/agents/profile";
+import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
 import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
 import { runOutcome } from "@/lib/portal/run-outcome";
 import { isSpecialty } from "@/lib/specialty";
 import { nbsp } from "@/lib/ui/typography";
-import { filterPhysicianResearchResults, researchViewFromSearchParams, researchViewQuery } from "@/lib/ui/physician-research-view";
+import { filterPhysicianResearchResults, researchViewFromSearchParams } from "@/lib/ui/physician-research-view";
 import { pageSession } from "@/server/agents/page-session";
 import { getResearchJob } from "@/server/agents/research-jobs";
 import { workspaceStore } from "@/server/agents/store";
 import { getAgentDetail, MONITORING_AGENTS } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
+
+/** The profile's names of journals set to «Не использовать» («The Lancet»), for the composer's note. */
+function excludedJournalLabels(excluded: readonly string[]): string[] {
+  return SOURCE_OPTIONS.filter(option => excluded.includes(option.id) && option.pubmedJournal).map(option => option.label);
+}
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -61,6 +68,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const onDemand = agentId === "research";
   const requestedJobId = onDemand ? first(query.job) : undefined;
   const researchJob = onDemand && sessionId && requestedJobId ? await getResearchJob(sessionId, specialty, requestedJobId) : null;
+  // One address per review: a finished review opens on the result page, where it can be refined and saved
+  // («История» opens it there too). The scenario page is the question and its settings.
+  const shownRunId = onDemand ? first(query.run) ?? researchJob?.runId ?? null : null;
+  if (onDemand && shownRunId && /^run-[a-f0-9-]{36}$/u.test(shownRunId)) redirect(askHref(specialty, { run: shownRunId }));
   const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) ?? researchJob?.runId ?? null });
   const { definition, card, results, partner, runs, profile } = detail;
   // The research scenario opens on an empty question unless a run is asked for: a shortcut never lands on an old answer.
@@ -71,7 +82,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const fromRun = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? await workspaceStore().getRun(sessionId, fromRunId) : null;
   // A shown or repeated review keeps the «Что получить» it was asked in, unless the link names another.
   const runMode = (selectedRun ?? fromRun)?.input.answerMode;
-  const researchView = researchJob?.options ?? (onDemand && !first(query.mode) && runMode ? { ...requestedResearchView, mode: researchOptionsForAnswerMode(runMode).mode } : requestedResearchView);
+  // Without a mode in the link, the review opens in the run's mode, else in the profile's default («Разбор исследований по умолчанию»).
+  const defaultMode = runMode ?? profile.answerMode ?? null;
+  const researchView = researchJob?.options ?? (onDemand && !first(query.mode) && defaultMode ? { ...requestedResearchView, mode: researchOptionsForAnswerMode(defaultMode).mode } : requestedResearchView);
+  const modeFromProfile = onDemand && !first(query.mode) && !runMode && Boolean(profile.answerMode);
   const now = new Date().toISOString();
   const lastSeenAt = profile.subscriptions[agentId].lastSeenAt;
   const fresh = results.filter(result => result.newSinceLastSeen);
@@ -79,7 +93,6 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const researchResults = onDemand ? filterPhysicianResearchResults(results, researchView) : results;
   const tracksNew = MONITORING_AGENTS.includes(agentId);
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
-  const researchQuery = researchViewQuery(researchView);
   const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
   const fromText = fromRun?.input.text ?? "";
   const initialQuestion = fromText || first(query.q) || "";
@@ -88,7 +101,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
     {sessionId && <SeenMarker agentId={agentId} />}
-    <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
+    {/* «Повторить с другими источниками» came from a result: the way back is that result. */}
+    {fromRun
+      ? <Link className="ws-back" href={askHref(specialty, { run: fromRun.id })} data-back="result"><ArrowLeft size={15} aria-hidden="true" />К результату</Link>
+      : <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>}
     <header className="ws-agent-head">
       <span className="ws-agent-icon is-large"><AgentIcon icon={definition.icon} size={26} /></span>
       <div className="ws-agent-head-copy">
@@ -96,10 +112,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         {onDemand && selectedRun
           // With a result, the header names the question being answered; the description is on the empty scenario page.
           ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p><p className="ws-muted"><span className="pt-mode-chip" data-answer-mode={selectedRun.input.answerMode ?? undefined}>{`Что получить: ${researchModeLabel(researchView.mode)}`}</span></p></>
+          : showResearchJob && researchJob
+            // A background review in progress: the header names its question, never «Ещё не запускалась».
+            ? <p className="pt-question" data-job-question="true">Запрос: «{researchJob.question}»</p>
           : <>
             <p className="ws-agent-job">{definition.job}</p>
-            <p className="ws-muted">{definition.description}</p>
-            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускалась"} · {firstCheck && selectedRun && results.length ? `Первая проверка: ${countLabel(results.length, ["находка", "находки", "находок"])}` : card.headline}</p>
+            {/* On the scenario page the question comes first; the long description is one click away. */}
+            {onDemand ? <details className="ws-agent-about"><summary>Как это работает</summary><p className="ws-muted">{definition.description}</p></details> : <p className="ws-muted">{definition.description}</p>}
+            {!onDemand && <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускалась"} · {firstCheck && selectedRun && results.length ? `Первая проверка: ${countLabel(results.length, ["находка", "находки", "находок"])}` : card.headline}</p>}
           </>}
         {/* A switched-off check says so in its header, next to the one action that switches it on. */}
         {!onDemand && card.state === "disabled" && <p className="ws-agent-state" data-disabled="true"><span className="ws-state ws-state-disabled">Выключена</span>{nbsp(" Её находки не попадают в «Для вас».")}</p>}
@@ -109,7 +129,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     </header>
 
     {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}
-    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} /></section> : null}
+    {onDemand && !selectedRun && !showResearchJob ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} modeFromProfile={modeFromProfile} focusFilters={Boolean(fromRun)} pubmedExcluded={profile.interests.excludedSources.includes("pubmed")} excludedJournals={excludedJournalLabels(profile.interests.excludedSources)} /></section> : null}
 
     {/* The research scenario is configured in its composer (what to get, sources, type); topic settings do not change a typed question. */}
     {!onDemand && <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile)} />}
@@ -158,15 +178,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       </div>
       <aside className="ws-agent-aside">
         {selectedRun && (onDemand ? <details className="ws-trace-disclosure"><summary>Как искали и что было доступно</summary><RunTrace run={selectedRun} connectors={detail.connectors} now={now} /></details> : <RunTrace run={selectedRun} connectors={detail.connectors} now={now} monitoring={tracksNew} />)}
-        {onDemand && runs.length > 1 && <section className="ws-history" aria-labelledby="ws-history-title">
-          <h3 id="ws-history-title">Предыдущие вопросы</h3>
-          <ul>{runs.filter(run => run.input.text).slice(0, 8).map(run => <li key={run.id}><Link href={`/${specialty}/agents/${agent}?run=${encodeURIComponent(run.id)}&${researchQuery}`} aria-current={run.id === selectedRun?.id ? "true" : undefined}>{run.input.text}</Link><span>{countLabel(run.resultIds.length, ["источник", "источника", "источников"])} · {formatRelativeRu(run.startedAt)}</span></li>)}</ul>
-        </section>}
+        {/* Past reviews live in «История» with every other question: one list, one address per result. */}
+        {onDemand && runs.length > 1 && <p className="ws-muted ws-history-link"><Link className="ws-text-link" href={`/${specialty}/history`}>Предыдущие вопросы — в «Истории»</Link></p>}
       </aside>
     </div>
     {onDemand && selectedRun ? <section className="ws-section ws-agent-composer" aria-labelledby="ws-research-new-title">
       <h2 id="ws-research-new-title" className="ws-section-title">Новый разбор</h2>
-      <ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} />
+      <ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} pubmedExcluded={profile.interests.excludedSources.includes("pubmed")} excludedJournals={excludedJournalLabels(profile.interests.excludedSources)} />
     </section> : null}
   </div>;
 }

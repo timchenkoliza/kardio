@@ -229,7 +229,7 @@ const START = "(?<![\\p{L}\\p{N}])";
 const concept = (id: string, label: string, stems: string, term: string, cased?: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term, ...(cased ? { cased: new RegExp(`${START}(?:${cased})(?![\\p{L}\\p{N}])`, "u") } : {}) });
 
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
-  concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
+  concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab] OR warfarin[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
   concept("stroke", "инсульт", "(?:(?:остр\\p{L}*\\s+)?(?:ишемическ|геморрагическ|кардиоэмболическ|лакунарн)\\p{L}*\\s+)?инсульт|онмк|тиа(?![\\p{L}])|транзиторн\\p{L}*\\s+ишемическ\\p{L}*\\s+атак", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),

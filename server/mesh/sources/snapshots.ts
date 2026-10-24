@@ -125,7 +125,10 @@ export function createRegulatoryAdapter(): SourceAdapter {
         chunks, claims, entities: drugRef ? [drugRef] : [],
       };
     });
-    return { invocation: invocation(request, { sourceId: "regulatory_snapshot", outcome: documents.length ? "ok" : "empty", status: "SNAPSHOT", execution: "snapshot", started, documentIds: documents.map(document => document.id) }), documents };
+    // «Nothing found» is said of the editorial snapshot only: the registries themselves were not asked (R1 C-10).
+    const snapshotDate = DRUG_SNAPSHOT_RETRIEVED_AT.slice(0, 10).split("-").reverse().join(".");
+    const note = documents.length ? null : `в снимке редакции от ${snapshotDate} ничего не нашлось; реестры Росздравнадзора и FDA не запрашивались`;
+    return { invocation: invocation(request, { sourceId: "regulatory_snapshot", outcome: documents.length ? "ok" : "empty", status: "SNAPSHOT", execution: "snapshot", started, documentIds: documents.map(document => document.id), note }), documents };
   }
   return { ...REGULATORY_DESCRIPTOR, status: snapshotStatus, execute };
 }

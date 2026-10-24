@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BookOpen, ChevronDown, Database, FileText, FolderOpen, Globe, Plus, Radio, ShieldCheck, Stethoscope, X } from "lucide-react";
 import type { ProfileIdentity, UserInterests } from "@/lib/agents/types";
 import { SOURCE_OPTIONS, topicsFor } from "@/lib/agents/vocabulary";
@@ -119,36 +119,46 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
   const [picking, setPicking] = useState(false);
   const [saved, setSaved] = useState<"topics" | "sources" | null>(null);
   const vocabulary = topicsFor(specialty);
+  // The page shows what is stored now: a topic added on the home page while this page was open appears after a refresh,
+  // and returning with «Назад» asks for the stored profile again instead of showing the one cached before.
+  const router = useRouter();
+  useEffect(() => { router.refresh(); }, [router]);
+  const storedKey = JSON.stringify([interests.topics, interests.trustedSources, interests.excludedSources]);
+  const [shownKey, setShownKey] = useState(storedKey);
+  if (shownKey !== storedKey) {
+    // New stored values from the server: adjusted during render, as React recommends for props-derived state.
+    setShownKey(storedKey);
+    setTopics(interests.topics);
+    setTrusted(interests.trustedSources);
+    setExcluded(interests.excludedSources);
+  }
   const chosen = vocabulary.filter(topic => topics.includes(topic.id));
   const available = vocabulary.filter(topic => !topics.includes(topic.id));
 
-  async function persist(next: { topics?: string[]; trusted?: string[]; excluded?: string[] }, kind: "topics" | "sources") {
-    const payload = { topics: next.topics ?? topics, trustedSources: (next.trusted ?? trusted).filter(id => !(next.excluded ?? excluded).includes(id)), excludedSources: next.excluded ?? excluded };
+  // Each change is sent on its own: a topic added on the home page in another tab is never written back as removed,
+  // and a source change never touches the topics (R1 A-2, B-8; the other direction is B-02's «addTopic»).
+  async function send(payload: { action: "addTopic"; topic: string } | { action: "removeTopic"; topic: string } | { action: "setSourceState"; source: string; state: SourceState }, kind: "topics" | "sources") {
     setSaved(null);
-    const result = await command({ action: "setInterests", ...payload, runAgents: false });
+    const result = await command(payload);
     if (result) setSaved(kind);
   }
 
   function addTopic(id: string) {
-    const next = [...topics, id];
-    setTopics(next);
+    setTopics(current => [...new Set([...current, id])]);
     setPicking(false);
-    void persist({ topics: next }, "topics");
+    void send({ action: "addTopic", topic: id }, "topics");
   }
   function removeTopic(id: string) {
-    const next = topics.filter(item => item !== id);
-    setTopics(next);
-    void persist({ topics: next }, "topics");
+    setTopics(current => current.filter(item => item !== id));
+    void send({ action: "removeTopic", topic: id }, "topics");
   }
   function stateOf(id: string): SourceState {
     return excluded.includes(id) ? "excluded" : trusted.includes(id) ? "priority" : "neutral";
   }
   function setState(id: string, state: SourceState) {
-    const nextTrusted = state === "priority" ? [...new Set([...trusted, id])] : trusted.filter(item => item !== id);
-    const nextExcluded = state === "excluded" ? [...new Set([...excluded, id])] : excluded.filter(item => item !== id);
-    setTrusted(nextTrusted);
-    setExcluded(nextExcluded);
-    void persist({ trusted: nextTrusted, excluded: nextExcluded }, "sources");
+    setTrusted(current => state === "priority" ? [...new Set([...current, id])] : current.filter(item => item !== id));
+    setExcluded(current => state === "excluded" ? [...new Set([...current, id])] : current.filter(item => item !== id));
+    void send({ action: "setSourceState", source: id, state }, "sources");
   }
 
   return <>
@@ -167,8 +177,8 @@ export function InterestsEditor({ specialty, interests }: { specialty: Specialty
     </section>
 
     <section className="pt-profile-card" id="sources" aria-labelledby="pt-sources-title">
-      <h2 id="pt-sources-title">{nbsp("Источники и базы знаний")}</h2>
-      <p>«Приоритет» ставит находки источника выше в ответах и подборках, ничего не скрывая; версии клинических рекомендаций всегда идут от новой к старой. «Не использовать» убирает источник из ответов и подборок, ссылки для официальной проверки в ГРЛС и рубрикаторе Минздрава остаются.</p>
+      <h2 id="pt-sources-title">{nbsp(`Источники для специальности «${specialties[specialty].name}»`)}</h2>
+      <p>«Приоритет» ставит находки источника выше в ответах и подборках, ничего не скрывая, а в разборе исследований добавляет журнал источника к поиску; версии клинических рекомендаций всегда идут от новой к старой. «Не использовать» убирает источник из ответов, разбора исследований и подборок; ссылки для официальной проверки в ГРЛС и рубрикаторе Минздрава остаются. Настройки действуют в этой специальности.</p>
       <ul className="pt-sources">
         {SOURCE_OPTIONS.map(option => {
           const Icon = SOURCE_ICON[option.id] ?? Globe;
@@ -211,7 +221,7 @@ export function AnswerModeCard({ answerMode }: { answerMode: AnswerMode }) {
   return <section className="pt-profile-card" aria-labelledby="pt-answer-title">
     <h2 id="pt-answer-title">{nbsp("Разбор исследований по умолчанию")}</h2>
     <p>{nbsp("Что получать, когда вопрос уходит в разбор исследований. На остальные ответы этот выбор не влияет: они всегда начинаются с главного вывода, подробности свёрнуты.")}</p>
-    <AnswerModeControl value={mode} onChange={next => void choose(next)} legend="Режим ответа по умолчанию" name="default-answer-mode" disabled={pending} />
+    <AnswerModeControl value={mode} onChange={next => void choose(next)} legend="Что получить в разборе по умолчанию" name="default-answer-mode" disabled={pending} />
     <p className="ws-muted">{ANSWER_MODE_COPY[mode].detail}</p>
     {saved && <span className="pt-profile-saved" role="status">Сохранено</span>}
   </section>;

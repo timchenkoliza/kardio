@@ -128,7 +128,7 @@ function reportLines(args: BuildResearchExportArgs): string[] {
   const search = researchConditions(run);
   if (search.conditions.length || search.unmatched.length) lines.push(`${search.conditions.length ? `Искали по: ${search.conditions.join(" · ")}.` : "Тему вопроса не распознали."}${search.unmatched.length ? ` Не учтено в поиске: ${search.unmatched.map(words => `«${words}»`).join(", ")}.` : ""}`, "");
   lines.push("Найденные материалы", "");
-  // Each record carries the same check label as on screen («Сверены данные публикации · журнал вне списка врачей»).
+  // Each record carries the same check label as on screen («Сверены данные публикации · журнал не из списка врачей-экспертов»).
   for (const [index, result] of results.entries()) {
     const status = weakestResearchVerification(result);
     lines.push(`${index + 1}. ${result.title}`, result.summary, ...(status ? [`Проверка: ${verificationLabelFor(status, result.evidence).label}`] : []), "");

@@ -226,7 +226,7 @@ function pubmedFindingDraft(ctx: AgentContext, questionKey: string, question: st
 async function researchByIdentifiers(ctx: AgentContext, builder: PlanBuilder, question: string, identifiers: StudyIdentifiers): Promise<ExecutorResult> {
   const asked = describeStudyIdentifiers(identifiers);
   builder.note("Распознали публикацию в запросе", asked);
-  const articles = builder.record("Нашли публикацию в PubMed по идентификатору", await tools.searchPubmed(ctx, { term: pubmedTermForIdentifiers(identifiers), retmax: studyIdentifierCount(identifiers), sort: "relevance" }), items => items.length ? countLabel(items.length, ["публикация", "публикации", "публикаций"]) : "не найдена");
+  const articles = builder.record("Нашли публикацию в PubMed по идентификатору", await tools.searchPubmed(ctx, { term: pubmedTermForIdentifiers(identifiers), retmax: studyIdentifierCount(identifiers), sort: "relevance", named: true }), items => items.length ? countLabel(items.length, ["публикация", "публикации", "публикаций"]) : "не найдена");
   const questionKey = question.toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
   const approved = new Set(tools.trustedJournals(ctx).map(journal => journal.toLocaleLowerCase("en-US")));
   const drafts = await finishWithChecks(builder, ctx, articles.map(article => {
@@ -284,7 +284,8 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
   const broadTerm = [topicTerm ? `(${topicTerm})` : null, englishTerms ? `(${englishTerms})` : null].filter(Boolean).join(" AND ") || null;
   const term = [broadTerm, conceptTerm].filter(Boolean).join(" AND ") || null;
   const journals = tools.trustedJournals(ctx);
-  const describeArticles = (items: unknown[]) => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + (concepts.length ? ` · запрос: ${concepts.map(item => item.label).join(", ")}` : "");
+  // The journals the search was limited to are recorded with the step: the result names them first, not only in «Ограничения».
+  const describeArticles = (items: unknown[]) => countLabel(items.length, ["публикация", "публикации", "публикаций"]) + (concepts.length ? ` · запрос: ${concepts.map(item => item.label).join(", ")}` : "") + (journals.length ? ` · журналы поиска: ${journals.join(", ")}` : "");
   let articles = builder.record("Искали публикации в PubMed", await tools.searchPubmed(ctx, { term, retmax: 6, journals }), describeArticles);
   let conceptMatched = concepts.length > 0;
   // A PubMed skipped by the review's own filters («Только РФ») is not widened: there was no search to widen.
@@ -330,7 +331,7 @@ async function research(ctx: AgentContext): Promise<ExecutorResult> {
     ctx.specialty !== "cardiology" ? "Для этой специальности нет проверенного каталога" : null,
   ].filter(Boolean);
   // Every record whose citation or text matched, with the check it still needs (the journal outside the physicians' list).
-  // Every record whose citation or text matched, each with the check its label names on screen («версию сверьте», «журнал вне списка врачей»).
+  // Every record whose citation or text matched, each with the check its label names on screen («версию сверьте», «журнал не из списка врачей-экспертов»).
   const keyFacts = drafts.filter(draft => draft.evidence.some(item => matchedSource(item.verificationStatus, [item]))).map(draft => {
     const checks = verificationLabelFor(weakestVerification(draft.evidence.map(item => item.verificationStatus)), draft.evidence).label.split(" · ").slice(1);
     return `— ${truncate(draft.title, 120)} (${draft.source.source})${checks.length ? ` · ${checks.join(" · ")}` : ""}`;

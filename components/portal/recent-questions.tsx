@@ -27,8 +27,9 @@ export function recentQuestions(runs: readonly AgentRun[], limit = MAX_RECENT): 
  * Where a past question opens: its result page, for every task (the research
  * review renders there too, with the way back to its material and the follow-up).
  */
-export function recentHref(specialty: SpecialtyId, run: AgentRun): string {
-  return askHref(specialty, { run: run.id });
+export function recentHref(specialty: SpecialtyId, run: AgentRun, from: "history" | null = null): string {
+  // Opened from «История», the result's way back is «История» (R1 B-9).
+  return `${askHref(specialty, { run: run.id })}${from ? `&from=${from}` : ""}`;
 }
 
 /**
@@ -36,7 +37,7 @@ export function recentHref(specialty: SpecialtyId, run: AgentRun): string {
  * line is the question as typed, what kind of result it is, when, and what the
  * search established — the result itself opens with its context.
  */
-export function RecentQuestions({ specialty, runs, limit = MAX_RECENT, title = "Последние вопросы", more = false }: { specialty: SpecialtyId; runs: readonly AgentRun[]; limit?: number; title?: string; more?: boolean }) {
+export function RecentQuestions({ specialty, runs, limit = MAX_RECENT, title = "Последние вопросы", more = false, from = null }: { specialty: SpecialtyId; runs: readonly AgentRun[]; limit?: number; title?: string; more?: boolean; from?: "history" | null }) {
   const recent = recentQuestions(runs, limit);
   if (!recent.length) return null;
   return <section className="ws-history pt-recent" aria-labelledby="pt-recent-title">
@@ -50,7 +51,7 @@ export function RecentQuestions({ specialty, runs, limit = MAX_RECENT, title = "
         const root = run.input.continuation?.question ?? "";
         const question = run.input.continuation ? `${run.input.continuation.followup} — уточнение к «${root.length > 70 ? `${root.slice(0, 67)}…` : root}»` : run.input.text!;
         return <li key={run.id}>
-          <Link href={recentHref(specialty, run)}>{question}</Link>
+          <Link href={recentHref(specialty, run, from)}>{question}</Link>
           <span>{JOBS[jobForRun(run)].label} · {formatRelativeRu(run.completedAt ?? run.startedAt)}{outcome.kind !== "found" ? ` · ${outcome.label.toLocaleLowerCase("ru-RU")}` : ""}</span>
         </li>;
       })}

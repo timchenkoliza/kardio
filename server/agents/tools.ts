@@ -18,6 +18,7 @@ import { matchPartnerContent as matchPartner } from "./services/partner";
 import { retrieveDocument as retrieveCatalogDocument, searchMedical as searchCatalog, searchSources as searchCatalogSources, sourcePreferenceMatches, type CatalogHit } from "./services/search";
 import { filterCatalogForResearch, pubmedAllowedForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
+import { matchesJournal, meshSourcePreference } from "@/lib/mesh/source-preferences";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
 
 /**
@@ -77,10 +78,22 @@ export function pubmedTermForTopics(ctx: AgentContext, topics: readonly string[]
  */
 export function trustedJournals(ctx: AgentContext): string[] {
   const chosen = ctx.preference.trustedSources.map(id => SOURCE_OPTIONS.find(option => option.id === id)?.pubmedJournal).filter((value): value is string => Boolean(value));
-  return [...new Set([...approvedJournals(), ...chosen])];
+  // «Не использовать» wins over the physicians' approval: an excluded journal is never searched first.
+  const excluded = excludedJournals(ctx);
+  return [...new Set([...approvedJournals(), ...chosen])].filter(journal => !matchesJournal(journal, excluded));
 }
 
-export function searchPubmed(ctx: AgentContext, args: { term: string | null; minDate?: string; maxDate?: string; retmax?: number; journals?: string[]; publicationTypes?: string[]; sort?: "pub_date" | "relevance" }): Promise<ToolOutput<PubmedArticle>> {
+/** PubMed journals of the options the physician set to «Не использовать» («The Lancet» → «Lancet»). */
+export function excludedJournals(ctx: AgentContext): string[] {
+  return meshSourcePreference(ctx.preference.excludedSources).journals;
+}
+
+/** The options' own names of the excluded journals, as the profile shows them («The Lancet»). */
+function excludedJournalNames(ctx: AgentContext, journals: readonly string[]): string {
+  return SOURCE_OPTIONS.filter(option => ctx.preference.excludedSources.includes(option.id) && option.pubmedJournal && journals.some(journal => matchesJournal(journal, [option.pubmedJournal!]))).map(option => option.label).join(", ");
+}
+
+export function searchPubmed(ctx: AgentContext, args: { term: string | null; minDate?: string; maxDate?: string; retmax?: number; journals?: string[]; publicationTypes?: string[]; sort?: "pub_date" | "relevance"; named?: boolean }): Promise<ToolOutput<PubmedArticle>> {
   return timedTool("searchPubmed", ["pubmed"], async () => {
     if (ctx.agentId === "research") {
       const researchOptions = researchRunOptionsFor(ctx.profile);
@@ -90,8 +103,17 @@ export function searchPubmed(ctx: AgentContext, args: { term: string | null; min
     }
     if (ctx.preference.excludedSources.includes("pubmed")) return { items: [], status: "unavailable", note: "PubMed исключён в вашем профиле" };
     if (!args.term) return { items: [], status: "partial", note: "Нет тем для поиска" };
-    const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals: args.journals, publicationTypes: args.publicationTypes, ...(args.sort ? { sort: args.sort } : {}) });
-    return { items: result.articles, status: result.status === "ok" ? "ok" : result.status === "unavailable" ? "unavailable" : "failed", note: result.error };
+    const excluded = excludedJournals(ctx);
+    const journals = args.journals?.filter(journal => !matchesJournal(journal, excluded));
+    const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals, publicationTypes: args.publicationTypes, ...(args.sort ? { sort: args.sort } : {}) });
+    const status = result.status === "ok" ? "ok" as const : result.status === "unavailable" ? "unavailable" as const : "failed" as const;
+    const inExcluded = result.articles.filter(article => matchesJournal(article.journal, excluded));
+    if (!inExcluded.length) return { items: result.articles, status, note: result.error };
+    const names = excludedJournalNames(ctx, inExcluded.map(article => article.journal));
+    // A publication the physician named by PMID or DOI is shown, and said to be from an excluded journal.
+    if (args.named) return { items: result.articles, status, note: [result.error, `журнал исключён в вашем профиле (${names}) — публикация показана, потому что вы назвали её сами`].filter(Boolean).join("; ") };
+    // The same note as on the answer path: what was withheld, and from which journals.
+    return { items: result.articles.filter(article => !inExcluded.includes(article)), status, note: [result.error, `скрыты публикации журналов, исключённых в ваших источниках (${names}): ${inExcluded.length}`].filter(Boolean).join("; ") };
   });
 }
 

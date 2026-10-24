@@ -447,7 +447,7 @@ describe("D-7: the research review says what was checked and puts the asked popu
 describe("Round 8: labels say what was checked, the review names what it did not search, topics are named in titles", () => {
   it("N8-1: a citation from a journal outside the physicians' list is checked, and says the journal's standing apart", () => {
     const evidence = [{ claim: "Опубликовано: «Switching from warfarin to DOACs in frail elderly patients» — Eur Heart J", verificationNote: "Не в белом списке врачей: PubMed — Каталог статей, не знак качества" }];
-    expect(verificationLabelFor("PARTIALLY_SUPPORTED", evidence).label).toBe("Сверены данные публикации · журнал вне списка врачей");
+    expect(verificationLabelFor("PARTIALLY_SUPPORTED", evidence).label).toBe("Сверены данные публикации · журнал не из списка врачей-экспертов");
     expect(verificationLabelFor("PARTIALLY_SUPPORTED", [{ claim: evidence[0].claim, verificationNote: "Текст совпадает с источником не полностью" }]).label).toBe("Данные публикации совпадают частично");
   });
 
@@ -493,10 +493,10 @@ describe("Round 9: every place of the review says the same, by the reason a reco
   it("N8-1: the comparison, the run summary and the export count a matched citation as matched", () => {
     const citation = { claim: "Опубликовано: «Trial» — Eur Heart J", verificationStatus: "PARTIALLY_SUPPORTED" as const, verificationNote: "Не в белом списке врачей: PubMed — Каталог статей, не знак качества" };
     expect(matchedSource(citation.verificationStatus, [citation])).toBe(true);
-    expect(verificationSummary([{ evidence: [citation] } as unknown as Parameters<typeof verificationSummary>[0][number]])).toBe("сверены данные публикации — 1; нужна сверка — журнал вне списка врачей: 1");
+    expect(verificationSummary([{ evidence: [citation] } as unknown as Parameters<typeof verificationSummary>[0][number]])).toBe("сверены данные публикации — 1; нужна сверка — журнал не из списка врачей-экспертов: 1");
     const result = { id: "r", rank: 1, createdAt: "2026-10-23T00:00:00.000Z", title: "Trial", observedAt: "2026", attributes: {}, partner: null, kind: "research_finding", source: { publisher: "Eur Heart J", source: "PubMed", publishedAt: "2026" }, evidence: [{ ...citation, evidenceLevel: "peer_reviewed", confidence: 1 }], actions: [] } as unknown as Parameters<typeof ResearchComparison>[0]["results"][number];
     const html = renderToStaticMarkup(<ResearchComparison results={[result, { ...result, id: "r2", title: "Trial 2" }]} />);
-    expect(html).toContain("Сверены данные публикации · журнал вне списка врачей");
+    expect(html).toContain("Сверены данные публикации · журнал не из списка врачей-экспертов");
     expect(html).not.toContain("совпадают частично");
   });
 

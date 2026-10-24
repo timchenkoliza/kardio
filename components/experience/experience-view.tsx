@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { ExternalLink, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatDateRu, weakestVerification } from "@/lib/agents/format";
+import { RISK_COPY } from "@/lib/agents/risk-rules";
 import type { AgentResultView, AgentRun, RunExperience } from "@/lib/agents/types";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { EvidenceGraph, GraphDocument, NormalizedClaim, SourceOutcome } from "@/lib/mesh/evidence";
+import { conclusionNamesTopics } from "@/lib/mesh/compiler";
 import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
@@ -210,8 +213,10 @@ function Gaps({ graph }: { graph: EvidenceGraph }) {
   const drugs = graph.context.drugs.length > 0;
   const guidelines = graph.family === "guidelines" || graph.documents.some(document => document.kind === "guideline");
   const gaps = graph.gaps.map(physicianSafe).filter((gap): gap is string => Boolean(gap));
+  // A gap the physician's own settings made has its way back one click away (R1 A-8).
+  const bySettings = gaps.some(gap => /исключ[её]н[аоы]? в ваших источниках/u.test(gap));
   return <>
-    {gaps.length > 0 && <p>{nbsp(`Чего не хватает: ${gaps.join("; ")}.`)}</p>}
+    {gaps.length > 0 && <p>{nbsp(`Чего не хватает: ${gaps.join("; ")}.`)}{bySettings && <> <Link className="ws-text-link" href={`/${graph.specialty}/settings#sources`} data-sources-link="true">Изменить источники</Link></>}</p>}
     {drugs && <p>{nbsp("Официальный статус регистрации и инструкции в России проверяйте в ГРЛС.")}</p>}
     {guidelines && <p>{nbsp("Действующую версию клинических рекомендаций проверяйте в рубрикаторе Минздрава.")}</p>}
   </>;
@@ -259,9 +264,12 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
 /** A publication whose read conclusion never names the asked disease is off the question, whatever the search matched. */
 function offTopic(document: GraphDocument, ctx: Pick<Ctx, "graph">): boolean {
   const nosology = ctx.graph.context.nosology;
-  if (!nosology || document.attributes.questionMatch === undefined) return false;
+  if (document.attributes.questionMatch === undefined) return false;
   const claims = ctx.graph.claims.filter(claim => claim.documentId === document.id && claim.kind === "review_conclusion");
-  return claims.length > 0 && !claims.some(claim => claim.entityIds.includes(`nosology:${nosology}`));
+  if (!claims.length) return false;
+  // Without a nosology, the question's disease topics («кардиомиопатии») are named in the title or the conclusion.
+  if (!nosology) return !claims.some(claim => conclusionNamesTopics(ctx.graph, claim, document));
+  return !claims.some(claim => claim.entityIds.includes(`nosology:${nosology}`));
 }
 
 /** Whether a publication answers the question as asked — separate from whether its text was matched. */
@@ -287,27 +295,44 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
     </section>;
   }
   const widened = Number(entry.props.widened ?? 0);
+  // A dose asked for a described patient (R1 C-3): the instruction's dosing section is reference, never the answer.
+  const patientDose = ctx.run.riskNotices.includes(RISK_COPY.prescribing) && ctx.run.riskNotices.includes(RISK_COPY.patientSpecific);
+  const isDosing = (claimId: string) => {
+    const claim = ctx.index.claim.get(claimId);
+    if (!claim) return false;
+    const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
+    return claim.kind === "dosing" || drugSectionGroup(chunk?.heading) === "dosing";
+  };
+  const claimIds = patientDose ? entry.claimIds.filter(claimId => !isDosing(claimId)) : entry.claimIds;
   return <section className="pt-synthesis pt-takeaway" aria-labelledby={id} data-module="key_takeaway" data-answer="direct">
     <h2 id={id} className="pt-subtitle">{nbsp(heading(entry, ctx.job))}</h2>
+    {patientDose && <p className="pt-patient-dose" data-patient-dose="true">{nbsp("Дозу для описанного пациента не подбираем: раздел о дозировании — в карточке инструкции ниже, решение остаётся за вами.")}</p>}
     <SearchConditions ctx={ctx} />
     <ol className="pt-takeaway-list">
-      {entry.claimIds.map(claimId => {
+      {claimIds.map((claimId, position) => {
         const claim = ctx.index.claim.get(claimId);
         const document = claim ? ctx.index.document.get(claim.documentId) : undefined;
         if (!claim || !document) return null;
+        // The main answer can be kept: «Сохранить» once per document, at its first point (R1 B-7).
+        const firstOfDocument = claimIds.findIndex(id => ctx.index.claim.get(id)?.documentId === document.id) === position;
+        const result = firstOfDocument ? ctx.resultFor(document.id, entry) : null;
         const source = sourceName(document);
         const version = versionDate(document, source);
         // An instruction excerpt names its section and says when the section was shortened.
         const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
         const instruction = document.kind === "drug_instruction" || document.kind === "drug_label";
         const section = instruction ? DRUG_SECTION_TITLE[drugSectionGroup(chunk?.heading)] : null;
-        // Each instruction excerpt names its product: a dose rule of one anticoagulant is never read as another's.
-        const product = instruction ? document.title.split(/[,(]/u)[0].trim() : null;
+        // Each instruction excerpt names its product as titled, with its form and substance («Эликвис 2,5 мг (Апиксабан)»,
+        // «Бисопролол (bisoprolol fumarate)»): a dose rule of one product is never read as another's.
+        const product = instruction ? document.title.replace(/:\s*инструкция[^:]*$/iu, "").trim() : null;
         return <li key={claimId}>
           <p className="pt-takeaway-source">{nbsp(`${section ? `${section} · ` : ""}${product ? `${product} · ` : ""}${source}${document.version.label ? ` · ${document.version.label}` : ""}${version ? ` · ${version}` : ""}`)} <RelevanceTag document={document} ctx={ctx} /> <VerificationTag status={claim.verification} note={claim.verificationNote} /></p>
           <Claim claim={claim} ctx={ctx} named open={claim.kind === "review_conclusion"} />
           {instruction && chunk?.truncated && <p className="ws-muted" data-truncated="true">{nbsp("Раздел сокращён — полный текст в инструкции по ссылке ниже и в ГРЛС.")}</p>}
-          {document.sourceId === "pubmed" && <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
+          {(document.sourceId === "pubmed" || result) && <div className="pt-takeaway-actions">
+            {document.sourceId === "pubmed" && <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]}>Открыть в PubMed<ExternalLink size={13} aria-hidden="true" /></TrackedLink>}
+            {result && <SaveResultButton resultId={result.id} saved={Boolean(result.savedMaterialId)} />}
+          </div>}
         </li>;
       })}
     </ol>
@@ -639,12 +664,22 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
   const graph = applyView(experience.graph, experience.manifest.view);
   const index = graphIndex(graph);
   const byKey = new Map(results.map(result => [result.key, result]));
-  const view = viewLabel(experience.manifest.view);
-  // The Skill's line is written for the run in progress («Сверяем…»); on a finished answer it says what was done.
+  // A comparison is said to be shown only when the versions module compared versions; otherwise it says what it showed.
+  const compared = experience.manifest.modules.some(entry => entry.family === "recommendation_delta" && entry.props.comparison === "previous_version");
+  const deltaShown = experience.manifest.modules.some(entry => entry.family === "recommendation_delta");
+  const askedComparison = experience.manifest.view?.comparison === "previous_version";
+  const shownView = askedComparison && !compared && experience.manifest.view ? { ...experience.manifest.view, comparison: null } : experience.manifest.view;
+  const baseView = viewLabel(shownView);
+  const missingVersion = askedComparison && !compared ? "предыдущую версию не нашли — показано текущее состояние" : null;
+  const view = baseView && missingVersion ? `${baseView} · ${missingVersion}` : baseView ?? (missingVersion ? `П${missingVersion.slice(1)}` : null);
+  // The Skill's line is written for the run in progress («Сверяем…»); on a finished answer it says what was done —
+  // «Сравнили» only when there was something to compare.
   const PAST: Record<string, string> = { "Открываем": "Открыли", "Сверяем": "Сверили", "Сравниваем": "Сравнили" };
   const finished = run.status === "completed" || run.status === "partial";
   const line = experience.manifest.execution?.class === "skill" ? experience.manifest.execution.explanation ?? null : null;
-  const explanation = line && finished ? line.replace(/^(Открываем|Сверяем|Сравниваем)/u, verb => PAST[verb] ?? verb) : line;
+  const explanation = line && finished
+    ? (/^Сравниваем/u.test(line) && deltaShown && !compared ? "Предыдущую версию не нашли — показано текущее состояние рекомендаций и срок пересмотра." : line.replace(/^(Открываем|Сверяем|Сравниваем)/u, verb => PAST[verb] ?? verb))
+    : line;
   const ctx: Ctx = {
     run,
     graph,

@@ -121,6 +121,21 @@ export function widenedDocuments(graph: EvidenceGraph): GraphDocument[] {
   return graph.documents.filter(document => document.attributes.questionMatch === "partial");
 }
 
+/**
+ * A question about a topic without a nosology («Гипертрофическая кардиомиопатия: лечение»): a review answers it only
+ * when its title or conclusion names each disease topic («cardiomyopathy», «myocarditis»); otherwise it is a neighbour
+ * of the search («intravenous iron after childbirth»), never the answer. True when the question sets no topic.
+ */
+export function conclusionNamesTopics(graph: Pick<EvidenceGraph, "context">, claim: Pick<NormalizedClaim, "statement" | "quote">, document: Pick<GraphDocument, "title"> | undefined): boolean {
+  const topics = graph.context.topics ?? [];
+  if (graph.context.nosology || !topics.length) return true;
+  const text = `${document?.title ?? ""} ${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+  return topics.every(group => group.some(word => text.includes(word)));
+}
+
+/** A statement as compared for repeats: case, spacing and punctuation aside. */
+const sameText = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
 function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, "takeaway" | "priorityClaims" | "moduleProps" | "user">> = {}): string[] {
   const docs = new Map(graph.documents.map(document => [document.id, document]));
   const priority = priorityRank(input.user);
@@ -135,10 +150,13 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   const claimText = (claim: NormalizedClaim) => `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
   const weights = asked.map(group => 1 / Math.max(1, graph.claims.filter(claim => group.some(word => claimText(claim).includes(word))).length));
   const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
+  const topics = graph.context.topics ?? [];
+  const namesTopics = (claim: NormalizedClaim) => conclusionNamesTopics(graph, claim, docs.get(claim.documentId));
   const relevant = (claim: NormalizedClaim) => claim.verification !== "UNSUPPORTED"
     && !widened.has(claim.documentId)
     // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
     && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
+    && (claim.kind !== "review_conclusion" || nosology || !topics.length || namesTopics(claim))
     // A question that names instruction sections is answered from them: no indications or document metadata instead.
     && (!askedSections.length || ((claim.kind !== "indication" || askedSections.includes("indications")) && claim.kind !== "guideline_metadata" && claim.kind !== "currentness"))
     && informative(claim)
@@ -164,7 +182,10 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
         || Number(docs.get(a.documentId)?.attributes.relevance ?? 0) - Number(docs.get(b.documentId)?.attributes.relevance ?? 0));
     // Document metadata is already in each item's source line; it is shown only for a document with nothing else picked.
     const pool = kind === "guideline_metadata" ? candidates.filter(claim => !picked.some(id => graph.claims.find(item => item.id === id)?.documentId === claim.documentId)) : candidates;
-    for (const claim of pool.filter(item => !picked.includes(item.id)).slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
+    // The same conclusion published twice (a Cochrane review and its update) is one point of the answer.
+    const said = new Set(picked.map(id => sameText(graph.claims.find(item => item.id === id)?.statement ?? "")));
+    const fresh = pool.filter(item => !picked.includes(item.id) && !said.has(sameText(item.statement)) && (said.add(sameText(item.statement)), true));
+    for (const claim of fresh.slice(0, cap)) if (picked.length < TAKEAWAY_MAX) picked.push(claim.id);
   }
   return picked;
 }

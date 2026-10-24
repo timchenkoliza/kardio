@@ -16,7 +16,7 @@ test("composer: states, no depth choice before the question, the profile default
   test.setTimeout(150_000);
   // UX-01: depth is a profile default, never a choice before the question.
   await page.goto("/cardiology/settings");
-  await page.getByRole("radiogroup", { name: "Режим ответа по умолчанию" }).getByRole("radio", { name: /Короткий ответ/ }).click();
+  await page.getByRole("radiogroup", { name: "Что получить в разборе по умолчанию" }).getByRole("radio", { name: /Найти статьи/ }).click();
   await expect(page.locator(".pt-profile-saved").first()).toBeVisible();
   await page.goto("/cardiology");
   const composer = page.locator("form.pt-composer");
@@ -50,14 +50,14 @@ test("profile: identity, default mode and sources persist after refresh; the hom
   await page.getByLabel("Место работы").fill("ГКБ №52");
   await page.getByRole("button", { name: "Сохранить" }).click();
   await expect(page.locator(".pt-identity-copy strong")).toHaveText("Василий Иванов");
-  await page.getByRole("radiogroup", { name: "Режим ответа по умолчанию" }).getByRole("radio", { name: /Режим исследования/ }).click();
+  await page.getByRole("radiogroup", { name: "Что получить в разборе по умолчанию" }).getByRole("radio", { name: /Академическая основа/ }).click();
   await expect(page.locator(".pt-profile-saved").first()).toBeVisible();
   await page.locator('.pt-source[data-source="nejm"] select').selectOption("excluded");
   await expect(page.locator('.pt-source[data-source="nejm"]')).toHaveAttribute("data-state", "excluded");
 
   await page.reload();
   await expect(page.locator(".pt-identity-copy strong")).toHaveText("Василий Иванов");
-  await expect(page.getByRole("radiogroup", { name: "Режим ответа по умолчанию" }).getByRole("radio", { name: /Режим исследования/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radiogroup", { name: "Что получить в разборе по умолчанию" }).getByRole("radio", { name: /Академическая основа/ })).toHaveAttribute("aria-checked", "true");
   await expect(page.locator('.pt-source[data-source="nejm"]')).toHaveAttribute("data-state", "excluded");
 
   await page.goto("/cardiology");

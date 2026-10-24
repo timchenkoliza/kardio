@@ -134,6 +134,9 @@ export function assessSource(input: { url?: string | null; journal?: string | nu
   const byJournal = assessJournal(input.journal);
   if (byJournal) return byJournal;
   const host = hostOf(input.url);
+  // A publication's standing is its journal's: a journal the physicians did not assess is «не оценивался», never
+  // the standing of the catalogue it was found in (PubMed's own row) (R1 C-7).
+  if (input.journal?.trim()) return assessment(null, host);
   if (!host) return assessment(null, null);
   const rows = rowsByHost.get(host);
   if (!rows?.length) return assessment(null, host);

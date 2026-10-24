@@ -26,7 +26,8 @@ export function ResearchJobWatcher({ specialty }: { specialty: SpecialtyId }) {
 
     const readSeen = (): Set<string> => {
       try {
-        const raw = sessionStorage.getItem(storageKey);
+        // Shared by every tab of this browser: a finished review is announced once, not in each new tab.
+        const raw = localStorage.getItem(storageKey);
         return new Set(raw ? JSON.parse(raw) as string[] : []);
       } catch {
         return new Set(fallbackSeen.current);
@@ -35,7 +36,7 @@ export function ResearchJobWatcher({ specialty }: { specialty: SpecialtyId }) {
 
     const writeSeen = (seen: Set<string>) => {
       fallbackSeen.current = new Set(seen);
-      try { sessionStorage.setItem(storageKey, JSON.stringify([...seen].slice(-40))); } catch { /* fallback ref is enough */ }
+      try { localStorage.setItem(storageKey, JSON.stringify([...seen].slice(-40))); } catch { /* fallback ref is enough */ }
     };
 
     const poll = async () => {
@@ -53,7 +54,8 @@ export function ResearchJobWatcher({ specialty }: { specialty: SpecialtyId }) {
         });
         if (recentUnseen) {
           const message = notificationText(recentUnseen);
-          notify(message.text, message.tone);
+          // The announcement leads to the result, on the same page as from «История».
+          notify(message.text, message.tone, recentUnseen.runId ? { href: `/${specialty}/ask?run=${encodeURIComponent(recentUnseen.runId)}`, label: "Открыть результат" } : undefined);
         }
         for (const job of terminal) seen.add(job.id);
         writeSeen(seen);
