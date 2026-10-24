@@ -1,5 +1,5 @@
 import type { ClaimKind, CoverageState, EvidenceGraph, GraphConflict, GraphDocument, GraphFreshness, GraphRelation, GraphSource, NormalizedClaim, NormalizedDocument, SourceResult } from "./evidence";
-import { TOPICS } from "@/lib/agents/vocabulary";
+import { PUBMED_CONCEPTS, TOPICS } from "@/lib/agents/vocabulary";
 import { conditionLabel } from "@/lib/portal/labels";
 import type { NormalizedIntent } from "./intent";
 import { detectDomain } from "./domain-graph";
@@ -219,19 +219,22 @@ export function buildEvidenceGraph(args: {
     gaps.push(`${REQUIREMENT_LABEL[requirement]} — ${notes.length ? notes.join("; ") : "источники ничего не нашли"}`);
   }
 
-  // A guideline question about a drug: when no guideline or society document states anything about the drug or its
-  // class, the physician reads that first — not a 2016 sentence about «no specific treatment» as the current position (R1 C-5).
+  // A guideline question about a drug: when no guideline or society document states a position on the drug or its class
+  // — for the asked phenotype, when one is asked — the physician reads that first, not a 2016 sentence about «no specific
+  // treatment» as the current position, nor a class statement about another phenotype (R1 C-5).
   if (intent.job.family === "guidelines" && intent.entities.drugs.length) {
-    const words = topicTerms(intent);
     const guidelineKinds = new Set(["guideline", "society_guideline_summary", "guideline_publication"]);
     const positions = [...claims.values()].filter(claim => guidelineKinds.has(documents.get(claim.documentId)?.kind ?? "") && (claim.kind === "guideline_statement" || claim.kind === "society_assertion" || claim.kind === "review_conclusion"));
-    const phenotype = intent.context.subtype?.label ?? intent.context.nosology?.label ?? null;
+    const subtype = intent.context.subtype;
+    const phenotype = subtype?.label ?? intent.context.nosology?.label ?? null;
+    const fold = (text: string) => text.normalize("NFKC").toLowerCase().replace(/ё/gu, "е");
+    const onSubtype = (claim: NormalizedClaim, text: string) => !subtype || claim.covers.includes(subtype.id) || claim.entityIds.includes(`subtype:${subtype.id}`) || text.includes(fold(subtype.label));
     for (const drug of intent.entities.drugs) {
-      const named = positions.some(claim => {
-        const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
-        return claim.entityIds.includes(`drug:${drug.inn}`) || words.some(word => text.includes(word));
-      });
-      if (!named) gaps.push(`позиции действующих рекомендаций по препарату «${drug.ru}»${phenotype ? ` при ${phenotype}` : ""} в показанных источниках нет`);
+      // The drug by name, or its class as the lexicon knows it («эмпаглифлозин» → «иНГЛТ-2», SGLT2, «глифлозин»).
+      const classes = PUBMED_CONCEPTS.filter(concept => concept.match.test(fold(drug.ru)));
+      const namesDrug = (claim: NormalizedClaim, text: string) => claim.entityIds.includes(`drug:${drug.inn}`) || text.includes(fold(drug.inn)) || text.includes(fold(drug.ru)) || classes.some(concept => concept.match.test(text));
+      const stated = positions.some(claim => { const text = fold(`${claim.statement} ${claim.quote ?? ""}`); return namesDrug(claim, text) && onSubtype(claim, text); });
+      if (!stated) gaps.push(`позиции действующих рекомендаций по препарату «${drug.ru}»${phenotype ? ` при ${phenotype}` : ""} в показанных источниках нет`);
     }
   }
 
