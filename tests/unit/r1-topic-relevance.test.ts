@@ -45,10 +45,21 @@ async function answer(text: string, specialty: SpecialtyId, items: ReturnType<ty
 }
 
 describe("relevance of a review to a topic without a nosology (R1 A-1)", () => {
-  it("the question's topic is a word group of its own search term", async () => {
+  it("the question's topic is named by what the question wrote: the key and its qualifier, never the topic's other disease", async () => {
     const { graph } = await answer("Гипертрофическая кардиомиопатия: лечение", "cardiology", []);
     expect(graph.context.nosology).toBeNull();
-    expect(graph.context.topics?.[0]).toEqual(expect.arrayContaining(["cardiomyopathy", "myocarditis"]));
+    expect(graph.context.topics).toEqual([["кардиомиопат", "cardiomyopath"], ["hypertrophic", "гипертрофическ"]]);
+    expect(graph.context.topics?.flat()).not.toContain("myocarditis");
+  });
+
+  it("R1 round 2: a conclusion about ICI myocarditis is not the answer on hypertrophic or dilated cardiomyopathy", async () => {
+    const ici = review("37884625", "Thymus alterations and susceptibility to immune checkpoint inhibitor myocarditis", "Thymic alterations are associated with ICI myotoxicities.", "2023-05-01");
+    for (const question of ["Гипертрофическая кардиомиопатия: лечение", "Дилатационная кардиомиопатия: лечение"]) {
+      const { takeaway } = await answer(question, "cardiology", [ici]);
+      expect(takeaway?.props.noDirectAnswer, question).toBe(true);
+    }
+    const { statements } = await answer("Гипертрофическая кардиомиопатия: лечение", "cardiology", [ici, HCM]);
+    expect(statements).toEqual([HCM.abstract.conclusion]);
   });
 
   it("only conclusions that name the topic are the answer", async () => {

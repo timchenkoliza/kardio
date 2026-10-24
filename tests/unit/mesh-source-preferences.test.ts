@@ -101,7 +101,9 @@ describe("«Не использовать» removes the source from the plan and
     const out = await evidenceAnswer(ctx);
     const pubmedDocs = out.experience!.graph.documents.filter(document => document.sourceId === "pubmed");
     expect(pubmedDocs.map(document => document.attributes.pmid)).toEqual([HFPEF_REVIEW.pmid]);
-    expect(out.plan.find(item => item.connectorIds.includes("pubmed"))?.detail).toMatch(/скрыты публикации журналов, исключённых в ваших источниках: 1/u);
+    expect(out.plan.find(item => item.connectorIds.includes("pubmed"))?.detail).toMatch(/скрыты публикации журналов, исключённых в ваших источниках \(NEJM\): 1/u);
+    // The exclusion is named on the answer itself, with the way back (R1 A round 2 №3).
+    expect(out.experience!.graph.gaps).toContain("NEJM — исключён в ваших источниках: публикации журнала не показываем (скрыто: 1)");
   });
 });
 
