@@ -41,11 +41,11 @@ test("a run survives refresh, another tab, another instance and reopening later"
   await expect(page.locator(CONTENT_MODULES).first()).toBeVisible({ timeout: 60_000 });
   const firstModuleMs = Date.now() - t0;
   // The follow-up input keeps what the physician typed while modules arrive.
-  await page.getByRole("textbox", { name: "Следующий вопрос" }).fill("черновик уточнения");
+  await page.getByRole("textbox", { name: "Уточнение или новый вопрос" }).fill("черновик уточнения");
 
   await expect(page.locator('[data-run-state="done"]')).toBeVisible({ timeout: 90_000 });
   const completeMs = Date.now() - t0;
-  await expect(page.getByRole("textbox", { name: "Следующий вопрос" })).toHaveValue("черновик уточнения");
+  await expect(page.getByRole("textbox", { name: "Уточнение или новый вопрос" })).toHaveValue("черновик уточнения");
   const modules = await page.locator("[data-module]").evaluateAll(nodes => nodes.map(node => node.getAttribute("data-module")));
   expect(modules).toContain("sources");
   expect(modules.at(-1)).toBe("next_actions");

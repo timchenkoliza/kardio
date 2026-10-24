@@ -222,6 +222,25 @@ export interface AgentRun {
     context?: { entities: string[]; answered: { id: string; optionId: string | null } | null; planConfirmed: string | null } | null;
     /** How deep the physician asked to go (request override or profile default); shapes execution. */
     answerMode?: AnswerMode;
+    /**
+     * A follow-up typed on a result that continues its question («А если течение нетяжёлое?»):
+     * `text` above is the question with the follow-up added; this keeps what the physician typed
+     * and the question it continues, for the result header and the way back.
+     */
+    continuation?: {
+      /** The result the follow-up was typed under (the previous step). */
+      runId: string;
+      followup: string;
+      /** The physician's original question and its result. */
+      question: string;
+      rootRunId?: string;
+      /** Earlier follow-ups between the original question and this one. */
+      steps?: string[];
+      /** A condition the follow-up replaced («взрослые → дети»), never silently. */
+      replaced?: string | null;
+    } | null;
+    /** The material a new search on its topic was started from (internal path and title): the way back. */
+    origin?: { href: string; label: string } | null;
   };
   intent: string | null;
   plan: PlanStep[];
@@ -318,6 +337,8 @@ export interface UserProfile {
   version: 1;
   specialty: SpecialtyId;
   interests: UserInterests;
+  /** When the topics last changed: the feed's checks rerun on the next visit, wherever the topics were edited. */
+  topicsChangedAt?: string | null;
   /** Default depth of an answer; a request may override it. */
   answerMode: AnswerMode;
   identity: ProfileIdentity;

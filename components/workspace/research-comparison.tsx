@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { VERIFICATION_LABEL } from "@/lib/agents/format";
+import { verificationLabelFor } from "@/lib/agents/format";
 import { buildResearchComparison, normalizedStudyField, type ResearchComparisonColumn } from "@/lib/agents/research-comparison";
 import type { ResearchStudyFieldId } from "@/lib/agents/research-study-normalization";
 import type { AgentResultView } from "@/lib/agents/types";
@@ -35,8 +35,8 @@ const STUDY_ROWS: ReadonlyArray<{ label: string; field: ResearchStudyFieldId }> 
 
 type ComparisonRow = { label: string; render: (index: number) => ReactNode };
 
-function verificationLabel(status: AgentResultView["evidence"][number]["verificationStatus"]): string {
-  return VERIFICATION_LABEL[status].label;
+function verificationLabel(column: ResearchComparisonColumn): string {
+  return verificationLabelFor(column.verificationStatus, [column]).label;
 }
 
 function textAccess(column: ResearchComparisonColumn): string {
@@ -86,7 +86,7 @@ export function ResearchComparison({ results }: { results: AgentResultView[] }) 
     { label: "Источник", render: (index: number) => columns[index]?.source ?? "—" },
     { label: "Дата", render: (index: number) => columns[index]?.date ?? "—" },
     { label: "Уровень", render: (index: number) => LEVEL_LABEL[columns[index]?.evidenceLevel ?? "unknown"] ?? columns[index]?.evidenceLevel ?? "—" },
-    { label: "Проверка", render: (index: number) => columns[index] ? verificationLabel(columns[index]!.verificationStatus) : "—" },
+    { label: "Проверка", render: (index: number) => columns[index] ? verificationLabel(columns[index]!) : "—" },
     { label: "Доступный текст", render: (index: number) => columns[index] ? textAccess(columns[index]!) : "—" },
     ...studyRows(columns, distinct),
     ...(showClaim ? [{ label: "Что подтверждает", render: (index: number) => columns[index]?.claim ?? "—" }] : []),
@@ -110,7 +110,7 @@ export function ResearchComparison({ results }: { results: AgentResultView[] }) 
           <div><dt>Источник</dt><dd>{column.source}</dd></div>
           <div><dt>Дата</dt><dd>{column.date ?? "—"}</dd></div>
           <div><dt>Уровень</dt><dd>{LEVEL_LABEL[column.evidenceLevel] ?? column.evidenceLevel}</dd></div>
-          <div><dt>Проверка</dt><dd>{verificationLabel(column.verificationStatus)}</dd></div>
+          <div><dt>Проверка</dt><dd>{verificationLabel(column)}</dd></div>
           <div><dt>Доступный текст</dt><dd>{textAccess(column)}</dd></div>
           {STUDY_ROWS.map(row => {
             const field = distinct[columns.indexOf(column)]?.get(row.field);

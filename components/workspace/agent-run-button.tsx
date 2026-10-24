@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Power, RefreshCw } from "lucide-react";
 import type { AgentId } from "@/lib/agents/types";
 import { useWorkspace } from "./workspace-provider";
 
@@ -20,5 +20,13 @@ export function AgentRunButton({ agentId, compact = false, label = "Запуст
   }
   return <button type="button" className={compact ? "ws-icon-button ws-run-button" : "ws-button"} aria-label={compact ? `${label}` : undefined} title={label} disabled={running} onClick={() => void run()}>
     <RefreshCw size={compact ? 16 : 15} className={running ? "ws-spin" : undefined} aria-hidden="true" />{!compact && <span>{running ? "Работает…" : label}</span>}
+  </button>;
+}
+
+/** A switched-off check is switched on in one click, where «Запустить сейчас» stands when it is on. */
+export function AgentEnableButton({ agentId }: { agentId: AgentId }) {
+  const { command, pending } = useWorkspace();
+  return <button type="button" className="ws-button" disabled={pending} onClick={() => void command({ action: "setAgentEnabled", agentId, enabled: true })}>
+    <Power size={15} aria-hidden="true" /><span>Включить</span>
   </button>;
 }

@@ -1,19 +1,20 @@
 import { CircleCheck, CircleDashed, CircleSlash, CircleX } from "lucide-react";
 import { countLabel, formatRelativeRu } from "@/lib/agents/format";
 import type { AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
+import { runOutcome } from "@/lib/portal/run-outcome";
 import { ModeBadge } from "./mode-badge";
 
 const STEP_ICON = { done: CircleCheck, skipped: CircleDashed, failed: CircleX, blocked: CircleSlash } as const;
-const STATUS_LABEL: Record<AgentRun["status"], string> = { queued: "В очереди", running: "Выполняется", completed: "Готово", partial: "Готово частично", failed: "Ошибка", blocked: "Остановлено проверкой безопасности" };
-
 /** "Как получен результат": the plan in plain language plus which sources were reachable. */
-export function RunTrace({ run, connectors, now, showSynthesis = true, showConnectors = true }: { run: AgentRun; connectors: ConnectorDescriptor[]; now: string; showSynthesis?: boolean; showConnectors?: boolean }) {
+export function RunTrace({ run, connectors, now, showSynthesis = true, showConnectors = true, monitoring = false }: { run: AgentRun; connectors: ConnectorDescriptor[]; now: string; showSynthesis?: boolean; showConnectors?: boolean; monitoring?: boolean }) {
+  // The header states what was established, not that the process ended («Готово» only when something was found).
+  const outcome = runOutcome(run, { monitoring });
   const used = new Set(run.toolsUsed.flatMap(use => use.connectorIds));
   const shown = connectors.filter(connector => used.has(connector.id) || connector.mode === "UNAVAILABLE");
   return <section className="ws-trace" aria-labelledby={`trace-${run.id}`}>
     <div className="ws-trace-head">
       <h3 id={`trace-${run.id}`}>Как получен результат</h3>
-      <span className={`ws-run-status is-${run.status}`}>{STATUS_LABEL[run.status]}</span>
+      <span className={`ws-run-status is-${run.status}`} data-outcome={outcome.kind} data-tone={outcome.tone}>{outcome.label}</span>
     </div>
     <p className="ws-trace-meta">{formatRelativeRu(run.completedAt ?? run.startedAt, new Date(now))}{run.durationMs !== null ? ` · ${(run.durationMs / 1000).toFixed(1)} с` : ""} · {countLabel(run.resultIds.length, ["находка", "находки", "находок"])}{run.newResultCount ? `, новых ${run.newResultCount}` : ""}</p>
     {run.input.text && <p className="ws-trace-question">Задача: «{run.input.text}»</p>}

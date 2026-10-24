@@ -42,7 +42,8 @@ describe("«Для вас» in every launch specialty", () => {
       expect(isRussian(card.title)).toBe(true);
       expect(hasEnglishProse(`${card.title} ${card.summary ?? ""} ${card.whyItMatters ?? ""}`)).toBe(false);
       expect(`${card.title} ${card.summary} ${card.tags.join(" ")} ${card.source.name}`).not.toMatch(CARDIOLOGY_CLINICAL);
-      expect(card.scenarios.map(item => item.label)).toEqual(["Кратко", "Разбор исследований", "Практические рекомендации"]);
+      // UX-09: no card action pretends to act on the material while starting a new search.
+      expect(card.scenarios.map(item => item.label)).toEqual(["Исследования по теме", "Рекомендации по теме"]);
     }
   });
 
@@ -77,7 +78,10 @@ describe("«Для вас» in every launch specialty", () => {
 
 describe("agent gallery", () => {
   it("launches each available agent in the same tab, never as an external link", () => {
-    expect(GALLERY.map(agent => agent.id)).toEqual(["drug", "guidelines", "research", "consilium", "calculators", "events", "materials", "learning", "updates"]);
+    // «Консилиум» was the same answer job under another name (UX-02, A-08): one task, one name.
+    expect(GALLERY.map(agent => agent.id)).toEqual(["drug", "guidelines", "research", "calculators", "events", "materials", "learning", "updates"]);
+    // «Что нового» is the check that fills «Для вас», with its settings — not a second, separate page.
+    expect(galleryHref(GALLERY.find(agent => agent.id === "updates")!, "therapy")).toBe("/therapy/agents/whats-new");
     expect(galleryHref(GALLERY.find(agent => agent.id === "drug")!, "neurology")).toBe("/neurology/ask?job=drug");
     expect(galleryHref(GALLERY.find(agent => agent.id === "materials")!, "therapy")).toBe("/therapy/materials");
     expect(galleryHref(GALLERY.find(agent => agent.id === "calculators")!, "cardiology")).toBe("/cardiology/tools");

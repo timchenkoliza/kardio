@@ -10,6 +10,8 @@ import { compileIntent, type NormalizedIntent } from "@/lib/mesh/intent";
 import { REQUIREMENT_LABEL } from "@/lib/mesh/jobs";
 import type { ManifestExecution } from "@/lib/mesh/manifest";
 import { excludedByPhysician, planSources, type ExecutionPlan } from "@/lib/mesh/planner";
+import { askedSections, openingView, viewDirectives } from "@/lib/mesh/refine";
+import { drugSectionGroup } from "@/lib/presentation/physician";
 import { compileWithSkill, executionRecord } from "@/lib/mesh/skill-compile";
 import type { IntentSkill } from "@/lib/mesh/skills/types";
 import { meshSourcePreference } from "@/lib/mesh/source-preferences";
@@ -266,7 +268,9 @@ async function gather(ctx: AgentContext, env: SourceEnv, intent: NormalizedInten
   if (args.record) await recordMeshEvent(sessionId, "source_plan_created", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, rejected: plan.rejected.length, unmet: plan.unmet.length });
   const store = knowledgeStore();
   const key = evidenceReuseKey(intent, ctx.preference.excludedSources);
-  const reusable = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
+  const cached = args.knowledge ? store.fresh(key, ctx.now, REUSE_MS) : null;
+  // An answer with a silent source is not reused: «Повторить» must actually ask that source again.
+  const reusable = cached && !cached.results.some(result => result.invocation.outcome === "failed" || result.invocation.outcome === "unavailable") ? cached : null;
   let results: SourceResult[];
   let skipped: string[] = [];
   if (reusable && reusable.plan.steps.map(step => step.sourceId).join() === plan.steps.map(step => step.sourceId).join()) {
@@ -294,6 +298,9 @@ export interface EvidenceAnswerResult extends ExecutorResult {
   /** Shadow comparison to run after the primary result is saved (never delays the physician). */
   shadow: (() => Promise<ShadowComparison | null>) | null;
 }
+
+/** Instruction excerpts that may lead «Коротко» for a question naming sections. */
+const ASKED_TAKEAWAY_MAX = 3;
 
 export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerResult> {
   const question = ctx.inputText?.trim() ?? "";
@@ -328,11 +335,26 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
   const drafts = draftsFromDocuments(ctx, documents, connectorOf);
   const resultKeys = Object.fromEntries(drafts.map(draft => [String(draft.attributes.documentId), `${ctx.agentId}:${draft.key}`]));
   const base: Omit<CompileInput, "graph"> = { user: userContext(ctx), modules: intent.modules, policy: { descriptors: sources }, scenario: intent.context.scenario, resultKeys, answerMode: ctx.answerMode ?? null };
+  // The question opens with what it asked for: the named instruction sections first, «что изменилось» as a comparison.
+  const opening = openingView(question, intent.job.family);
+  // A question about a named drug's safety or a population is answered from those sections, whatever the task
+  // («Апиксабан у пожилых… сниженной функцией почек: что известно о безопасности?» routes to guidelines).
+  const named = intent.entities.drugs.length ? askedSections(question) : [];
+  // Safety is also answered by contraindications; a population by the dosing section, where renal, hepatic and age adjustments are stated.
+  const asked = [...named, ...(named.includes("safety") && !named.includes("contraindications") ? ["contraindications" as const] : []), ...(named.includes("populations") && !named.includes("dosing") ? ["dosing" as const] : [])];
+  const directives = opening ? viewDirectives(graph, null, opening, graph) : { moduleProps: {}, priorityClaims: [] as string[] };
+  // At most three instruction excerpts lead «Коротко», the named sections first: the rest of the instruction is in its card below,
+  // and the studies on the question keep their place near the top.
+  const groupOf = (claim: (typeof graph.claims)[number]) => drugSectionGroup(claim.chunkId ? graph.chunks.find(item => item.id === claim.chunkId)?.heading : undefined);
+  // A named population is the most specific part of the question: its sections lead.
+  const leading: readonly string[] = named.includes("populations") ? ["populations", "dosing", ...asked.filter(group => group !== "populations" && group !== "dosing")] : asked;
+  const askedClaims = leading.flatMap(group => graph.claims.find(claim => groupOf(claim) === group)?.id ?? []).slice(0, ASKED_TAKEAWAY_MAX);
+  const shaping = { moduleProps: { ...directives.moduleProps, ...(asked.length ? { drug_reference: { ...(directives.moduleProps.drug_reference ?? {}), asked } } : {}) }, priorityClaims: [...askedClaims, ...directives.priorityClaims], view: opening };
   let output: CompileOutput;
   let flow: FlowRun | null = null;
   let skillFallback: string | null = null;
   if (primarySkill && strategy) {
-    const shaped = compileWithSkill(base, graph, primarySkill, strategy.flow);
+    const shaped = compileWithSkill(base, graph, primarySkill, strategy.flow, shaping);
     output = shaped.output;
     flow = shaped.flow;
     graph = shaped.graph;
@@ -345,7 +367,8 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
     }
     if (skillFallback) await recordMeshEvent(sessionId, "experience_fallback_used", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, reason: skillFallback.slice(0, 80), skillId: primarySkill.id });
   } else {
-    output = compileExperience({ ...base, graph, ...extras });
+    // A named section is the whole takeaway: the rest of the instruction stays one click away.
+    output = compileExperience({ ...base, graph, ...extras, ...shaping, ...(askedClaims.length ? { takeaway: [] } : {}) });
   }
   await recordMeshEvent(sessionId, "experience_manifest_compiled", { specialty: ctx.specialty, job: intent.job.primary, planId: plan.id, modules: output.manifest.modules.length, findings: output.report.findings.length, blocking: output.rejected?.blocking ?? 0 });
   if (output.fallback) {
@@ -356,7 +379,20 @@ export async function evidenceAnswer(ctx: AgentContext): Promise<EvidenceAnswerR
 
   const trace = traceFor(plan, results, registry, skipped, reused);
   trace.plan.unshift({ id: "step-0", label: "Разобрали запрос", tool: null, status: "done", detail: [...intent.job.reasons, ...(primarySkill ? [primarySkill.experiencePolicy.explanation] : [])].join(" · "), connectorIds: [] });
-  trace.plan.push({ id: `step-${trace.plan.length + 1}`, label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] });
+  // The last step says what actually happened: an answer, nothing found, sources that did not answer, or no search at all.
+  const searched = graph.sources.some(source => source.invoked && (source.outcome === "ok" || source.outcome === "empty"));
+  const broken = graph.sources.some(source => source.invoked && (source.outcome === "failed" || source.outcome === "unavailable"));
+  const excludedSources = [...new Set(plan.rejected.filter(item => /исключ[её]н в вашем профиле/u.test(item.reason)).map(item => registry[item.sourceId]?.name ?? item.sourceId))];
+  const final: PlanStep = graph.documents.length
+    ? { id: "", label: "Собрали ответ из источников", tool: null, status: "done", detail: `${countLabel(graph.claims.length, ["выдержка", "выдержки", "выдержек"])}${graph.conflicts.length ? ` · расхождений: ${graph.conflicts.length}` : ""}`, connectorIds: [] }
+    : !intent.vague && !searched && !broken && excludedSources.length
+      ? { id: "", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: `Подходящие источники исключены в вашем профиле: ${excludedSources.join(", ")}. Включите их, чтобы проверить`, connectorIds: [] }
+    : intent.vague || !searched && !broken
+      ? { id: "", label: "Поиск не выполнялся", tool: null, status: "skipped", detail: "В вопросе не распознаны заболевание, препарат или тема — искать было нечего", connectorIds: [] }
+      : broken && !searched
+        ? { id: "", label: "Ответ не собран", tool: null, status: "failed", detail: "Источники не ответили — результат не установлен", connectorIds: [] }
+        : { id: "", label: "Ответ не собран", tool: null, status: "done", detail: "Поиск выполнен, подходящих материалов не нашлось", connectorIds: [] };
+  trace.plan.push({ ...final, id: `step-${trace.plan.length + 1}` });
   const experience: RunExperience = { intentId: intent.id, manifest: output.manifest, graph, plan: { id: plan.id, steps: plan.steps.length, invocations: plan.budget.planned, reused } };
   const totalMs = Date.now() - started;
   const execution: RunExecution | null = strategy ? {

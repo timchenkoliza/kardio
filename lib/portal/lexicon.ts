@@ -1,5 +1,4 @@
 import type { SpecialtyId } from "@/lib/domain/types";
-import { stripVersionLabels } from "@/lib/agents/clinical-terms";
 import { PUBMED_CONCEPTS, TOPICS, topicsMentioned } from "@/lib/agents/vocabulary";
 
 /**
@@ -104,18 +103,35 @@ export function hasDrugCue(text: string): boolean {
 }
 
 /** Populations and settings that narrow a literature search. */
-const POPULATIONS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string }> = [
+const POPULATIONS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string; exclude?: string }> = [
   { id: "children", label: "дети", match: /(?<![\p{L}])(?:дет(?:и|ей|ям|ск)|ребен|ребён|младен|подрост|новорожд)/u, term: "child*[tiab] OR infant*[tiab] OR pediatric*[tiab] OR adolescen*[tiab]" },
   { id: "pregnancy", label: "беременность", match: /(?<![\p{L}])беременн/u, term: "pregnan*[tiab]" },
   { id: "lactation", label: "лактация", match: /(?<![\p{L}])(?:лактац|кормящ|грудн\p{L}* вскармлив)/u, term: "lactation[tiab] OR breastfeeding[tiab]" },
   { id: "elderly", label: "пожилые", match: /(?<![\p{L}])(?:пожил|старше\s*(?:65|70|75|80)|гериатр)/u, term: "elderly[tiab] OR older[tiab] OR aged[tiab]" },
+  // «У взрослых» does not require the word in the abstract: it excludes publications about children by title.
+  { id: "adults", label: "взрослые", match: /(?<![\p{L}])взросл/u, term: "", exclude: "child*[ti] OR pediatric*[ti] OR paediatric*[ti] OR infant*[ti] OR neonat*[ti] OR adolescen*[ti]" },
+];
+
+/**
+ * Qualifiers of a named condition that change which publications answer the
+ * question («внебольничная» пневмония is not hospital-acquired). They are
+ * subjects: kept when the search is relaxed.
+ */
+const QUALIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term: string }> = [
+  { id: "community_acquired", label: "внебольничная", match: /(?<![\p{L}])внебольничн/u, term: "\"community-acquired\"[tiab] OR \"community acquired\"[tiab]" },
+  { id: "hospital_acquired", label: "нозокомиальная", match: /(?<![\p{L}])(?:нозокомиальн|госпитальн\p{L}* пневмон)/u, term: "\"hospital-acquired\"[tiab] OR nosocomial[tiab] OR \"ventilator-associated\"[tiab]" },
 ];
 
 export interface QueryConcept {
   id: string;
   label: string;
+  /** OR of synonyms, AND-ed with the other concepts; empty for a concept that only excludes. */
   term: string;
   kind: "topic" | "concept" | "drug" | "population" | "modifier";
+  /** Title terms the concept rules out (NOT), e.g. children for a question about adults. */
+  exclude?: string;
+  /** A modifier that names the information asked for («длительность», «дозирование»), not the context («антибиотики»). */
+  asked?: boolean;
 }
 
 /**
@@ -131,10 +147,15 @@ const MODIFIERS: ReadonlyArray<{ id: string; label: string; match: RegExp; term:
   { id: "prevention", label: "профилактика", match: /(?<![\p{L}])(?:профилакт|предупрежд\p{L}* развити)/u, term: "prevention[tiab] OR preventive[tiab] OR prophyla*[tiab]" },
   { id: "screening", label: "скрининг", match: /(?<![\p{L}])скрининг/u, term: "screening[tiab]" },
   { id: "diagnosis", label: "диагностика", match: /(?<![\p{L}])(?:диагности|критери\p{L}* диагноз|дифференциальн)/u, term: "diagnosis[tiab] OR diagnostic[tiab]" },
-  { id: "safety", label: "безопасность", match: /(?<![\p{L}])(?:безопасност|побочн|нежелательн|осложнени)/u, term: "safety[tiab] OR adverse[tiab]" },
+  { id: "safety", label: "безопасность", match: /(?<![\p{L}])(?:безопас|побочн|нежелательн|осложнени)/u, term: "safety[tiab] OR adverse[tiab]" },
   { id: "interactions", label: "взаимодействия", match: /(?<![\p{L}])взаимодейств/u, term: "interaction*[tiab]" },
   { id: "dose", label: "дозирование", match: /(?<![\p{L}])(?:дозир|доз[аыуеой]?(?![\p{L}]))/u, term: "dose[tiab] OR dosing[tiab] OR dosage[tiab]" },
+  { id: "non_severe", label: "нетяжёлое течение", match: /(?<![\p{L}])(?:нетяж[её]л|не\s+тяж[её]л|л[её]гк\p{L}*\s+(?:течени|степен|форм))/u, term: "mild[tiab] OR \"non-severe\"[tiab] OR nonsevere[tiab] OR \"low-risk\"[tiab] OR outpatient*[tiab]" },
+  { id: "severe", label: "тяжёлое течение", match: /(?<![\p{L}])(?<!не\s)тяж[её]л/u, term: "severe[tiab] OR \"intensive care\"[tiab] OR ICU[tiab]" },
 ];
+
+/** Modifiers that name what is asked about the condition, as opposed to its context. */
+const ASKED_MODIFIERS: ReadonlySet<string> = new Set(["duration", "dose", "safety", "interactions", "diagnosis", "screening", "prevention"]);
 
 /**
  * Concepts named in a question, across all specialties' topic vocabularies:
@@ -148,8 +169,8 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
   const seenLabels = new Set<string>();
   const push = (concept: QueryConcept) => {
     const labelKey = concept.label.toLocaleLowerCase("ru-RU");
-    if (seenTerms.has(concept.term) || seenLabels.has(labelKey)) return;
-    seenTerms.add(concept.term);
+    if ((concept.term && seenTerms.has(concept.term)) || seenLabels.has(labelKey)) return;
+    if (concept.term) seenTerms.add(concept.term);
     seenLabels.add(labelKey);
     concepts.push(concept);
   };
@@ -171,39 +192,80 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
       push({ id: `${id}:${topic.id}`, label: topic.label, term: topic.pubmed, kind: "topic" });
     }
   }
-  for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value)) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });
+  for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value) || concept.cased?.test(text.normalize("NFKC"))) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });
   for (const drug of drugsIn(text)) push({ id: `drug:${drug.inn}`, label: drug.ru, term: `"${drug.inn}"[tiab]`, kind: "drug" });
-  for (const population of POPULATIONS) if (population.match.test(value)) push({ id: `population:${population.id}`, label: population.label, term: population.term, kind: "population" });
+  for (const qualifier of QUALIFIERS) if (qualifier.match.test(value) && concepts.length) push({ id: `concept:${qualifier.id}`, label: qualifier.label, term: qualifier.term, kind: "concept" });
+  for (const population of POPULATIONS) if (population.match.test(value)) push({ id: `population:${population.id}`, label: population.label, term: population.term, kind: "population", ...(population.exclude ? { exclude: population.exclude } : {}) });
   const subjects = concepts.filter(concept => concept.kind !== "population");
   for (const modifier of MODIFIERS) {
     if (!modifier.match.test(value)) continue;
     // «профилактика» is a modifier only when the question names what to prevent.
     if (modifier.id === "prevention" && concepts.some(concept => concept.id === "cardiology:prevention")) continue;
     if (!subjects.length) continue;
-    push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier" });
+    push({ id: `modifier:${modifier.id}`, label: modifier.label, term: modifier.term, kind: "modifier", ...(ASKED_MODIFIERS.has(modifier.id) ? { asked: true } : {}) });
   }
-  return concepts.slice(0, 7);
+  const distinct = withoutImplied(concepts);
+  // What is asked («безопасность», «длительность») and the drug it is asked about are never what the limit cuts: the rest give way first.
+  const kept = (concept: QueryConcept) => Boolean(concept.asked) || concept.kind === "drug";
+  const fixed = distinct.filter(kept);
+  const rest = distinct.filter(concept => !kept(concept)).slice(0, Math.max(0, 7 - fixed.length));
+  return distinct.filter(concept => fixed.includes(concept) || rest.includes(concept));
+}
+
+/** `inner` is one whole AND/OR operand of `outer` («"chronic kidney disease"[tiab]» in «… OR renal[tiab]»). */
+function operandOf(outer: string, inner: string): boolean {
+  if (outer === inner) return false;
+  const at = outer.indexOf(inner);
+  if (at < 0) return false;
+  const before = outer.slice(0, at);
+  const after = outer.slice(at + inner.length);
+  return (!before || /(?:\s(?:AND|OR)\s|\()$/u.test(before)) && (!after || /^(?:\s(?:AND|OR)\s|\))/u.test(after));
+}
+
+/**
+ * One disease named three ways («ХБП» → «Кардиоренальные связи», «Хроническая
+ * болезнь почек», «ХБП») takes one place among the conditions, not three. A
+ * condition another one already implies is dropped; the AND of what remains
+ * finds the same publications, so the search does not change.
+ */
+function withoutImplied(concepts: QueryConcept[]): QueryConcept[] {
+  const subject = (concept: QueryConcept) => (concept.kind === "topic" || concept.kind === "concept") && Boolean(concept.term);
+  const only = (term: string, connective: "AND" | "OR") => term.includes(` ${connective} `) && !term.includes(` ${connective === "AND" ? "OR" : "AND"} `);
+  // y implies x: y = x AND z, or x = y OR z.
+  const implies = (y: QueryConcept, x: QueryConcept) =>
+    (only(y.term, "AND") && operandOf(y.term, x.term)) || (only(x.term, "OR") && operandOf(x.term, y.term));
+  const subjects = concepts.filter(subject);
+  return concepts.filter(x => !subject(x) || !subjects.some(y => y !== x && implies(y, x)));
 }
 
 /** Latin words the physician typed (drug names, acronyms, English terms). */
+/** «v2.0», «ver. 3.1», «version 2», «rev. 4» label a document's version: never a search term. */
+const VERSION_LABEL = /(?<![A-Za-z])(?:v|ver|version|rev)\.?\s*\d+(?:\.\d+)*/giu;
+
 export function latinTermsIn(text: string): string[] {
-  // «v2.0», «ver. 3» are document versions, never search terms.
-  return [...new Set((stripVersionLabels(text).match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []).map(word => word.toLowerCase()))]
+  return [...new Set((text.replace(VERSION_LABEL, " ").match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []).map(word => word.toLowerCase()))]
     .filter(word => !DRUGS.some(drug => drug.inn.toLowerCase() === word))
     .slice(0, 4);
 }
 
+/** ` NOT (…)` for the concepts that rule publications out by title, or an empty string. */
+function exclusionFor(concepts: readonly QueryConcept[]): string {
+  const excluded = concepts.map(concept => concept.exclude).filter((value): value is string => Boolean(value));
+  return excluded.length ? ` NOT (${excluded.join(" OR ")})` : "";
+}
+
 /**
  * PubMed term for a question: clinical concepts are AND-ed (each concept is an
- * OR of synonyms). Returns null when nothing searchable was recognised — the
- * caller must say so instead of searching for an empty term.
+ * OR of synonyms); a population that excludes («взрослые») becomes NOT. Returns
+ * null when nothing searchable was recognised — the caller must say so instead
+ * of searching for an empty term.
  */
 export function pubmedTermFor(concepts: readonly QueryConcept[], latin: readonly string[] = []): string | null {
   const parts = [
-    ...concepts.map(concept => `(${concept.term})`),
+    ...concepts.filter(concept => concept.term).map(concept => `(${concept.term})`),
     ...latin.map(word => `${word}[tiab]`),
   ];
-  return parts.length ? parts.join(" AND ") : null;
+  return parts.length ? `${parts.join(" AND ")}${exclusionFor(concepts)}` : null;
 }
 
 /** Relaxed search: the question's subjects and populations without its modifiers. */
@@ -217,6 +279,6 @@ export function pubmedCoreTermFor(concepts: readonly QueryConcept[], latin: read
 export function pubmedBroadTermFor(concepts: readonly QueryConcept[], latin: readonly string[] = []): string | null {
   const core = [...concepts.filter(item => item.kind !== "population" && item.kind !== "modifier").map(item => `(${item.term})`), ...latin.map(word => `${word}[tiab]`)];
   if (core.length < 2) return null;
-  const populations = concepts.filter(item => item.kind === "population").map(item => `(${item.term})`);
-  return [`(${core.join(" OR ")})`, ...populations].join(" AND ");
+  const populations = concepts.filter(item => item.kind === "population" && item.term).map(item => `(${item.term})`);
+  return `${[`(${core.join(" OR ")})`, ...populations].join(" AND ")}${exclusionFor(concepts)}`;
 }

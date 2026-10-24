@@ -3,23 +3,27 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Clock3 } from "lucide-react";
 import { AgentConfigPanel } from "@/components/workspace/agent-config-panel";
 import { AgentIcon } from "@/components/workspace/agent-icon";
-import { AgentRunButton } from "@/components/workspace/agent-run-button";
+import { AgentEnableButton, AgentRunButton } from "@/components/workspace/agent-run-button";
 import { BulkActions } from "@/components/workspace/bulk-actions";
 import { SeenMarker } from "@/components/workspace/lifecycle";
 import { PendingActions } from "@/components/workspace/pending-actions";
 import { ResearchComposer } from "@/components/workspace/research-composer";
 import { ResearchJobStatus } from "@/components/workspace/research-job-status";
 import { ResearchAnswerView, ResearchMore } from "@/components/workspace/research-answer";
+import { researchModeLabel, researchOptionsForAnswerMode } from "@/lib/agents/research-options";
 import { ResultCard, ResultList } from "@/components/workspace/result-card";
 import { RunTrace } from "@/components/workspace/run-trace";
 import { agentIdFromSlug } from "@/lib/agents/definitions";
 import { countLabel, DRUG_CHANGE_LABEL, formatRelativeRu } from "@/lib/agents/format";
 import { isConfigured } from "@/lib/agents/profile";
 import { DRUG_CHANGE_TYPES, type AgentResultView } from "@/lib/agents/types";
+import { runOutcome } from "@/lib/portal/run-outcome";
 import { isSpecialty } from "@/lib/specialty";
+import { nbsp } from "@/lib/ui/typography";
 import { filterPhysicianResearchResults, researchViewFromSearchParams, researchViewQuery } from "@/lib/ui/physician-research-view";
 import { pageSession } from "@/server/agents/page-session";
 import { getResearchJob } from "@/server/agents/research-jobs";
+import { workspaceStore } from "@/server/agents/store";
 import { getAgentDetail, MONITORING_AGENTS } from "@/server/agents/workspace";
 
 export const dynamic = "force-dynamic";
@@ -28,14 +32,21 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function DrugSinceLastVisit({ results, lastSeenAt }: { results: AgentResultView[]; lastSeenAt: string | null }) {
-  const fresh = results.filter(result => result.newSinceLastSeen);
+function DrugSinceLastVisit({ results, lastSeenAt, unchecked = [], firstCheck = false }: { results: AgentResultView[]; lastSeenAt: string | null; unchecked?: readonly string[]; firstCheck?: boolean }) {
+  // The first check counts everything it found (opening the page before it ran is not a «previous view»);
+  // afterwards only what is new since the last view, with the total said too.
+  const first = firstCheck || !lastSeenAt;
+  const fresh = first ? results : results.filter(result => result.newSinceLastSeen);
   return <section className="ws-since" aria-labelledby="ws-since-title">
-    <h2 id="ws-since-title">{lastSeenAt ? `С прошлого просмотра · ${formatRelativeRu(lastSeenAt)}` : "Первый просмотр: изменения за выбранный период"}</h2>
+    <h2 id="ws-since-title">{first ? "Первая проверка: изменения за выбранный период" : `С прошлого просмотра · ${formatRelativeRu(lastSeenAt!)}`}</h2>
+    {!first && results.length > 0 && <p className="ws-muted" data-total={results.length}>{nbsp(`${fresh.length ? "Новое ниже" : "Новых изменений нет"} · всего в последней проверке: ${results.length}`)}</p>}
     <ul>{DRUG_CHANGE_TYPES.map(type => {
+      // A category the check did not search (no topics) is «не проверялось», never a zero that reads as «изменений нет».
+      if (unchecked.includes(type)) return <li key={type} data-unchecked="true"><strong>—</strong><span>{DRUG_CHANGE_LABEL[type].title} · не проверялось</span></li>;
       const count = fresh.filter(result => result.category === type).length;
       return <li key={type} className={count ? "has-items" : undefined}><strong>{count}</strong><span>{DRUG_CHANGE_LABEL[type].title}</span></li>;
     })}</ul>
+    {unchecked.length > 0 && <p className="ws-muted">{nbsp("Исследования ищутся только по выбранным темам. Выберите темы — проверка запустится по ним.")}</p>}
   </section>;
 }
 
@@ -50,12 +61,17 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const onDemand = agentId === "research";
   const requestedJobId = onDemand ? first(query.job) : undefined;
   const researchJob = onDemand && sessionId && requestedJobId ? await getResearchJob(sessionId, specialty, requestedJobId) : null;
-  const researchView = researchJob?.options ?? requestedResearchView;
   const detail = await getAgentDetail(sessionId, specialty, agentId, { runId: first(query.run) ?? researchJob?.runId ?? null });
   const { definition, card, results, partner, runs, profile } = detail;
   // The research scenario opens on an empty question unless a run is asked for: a shortcut never lands on an old answer.
   const requestedRun = Boolean(first(query.run) ?? researchJob?.runId);
   const selectedRun = onDemand && !requestedRun ? null : detail.selectedRun;
+  // «Повторить с другими источниками»: the question comes from the stored run (`?from=`), never as text in the URL.
+  const fromRunId = onDemand ? first(query.from) : undefined;
+  const fromRun = fromRunId && sessionId && /^run-[a-f0-9-]{36}$/u.test(fromRunId) ? await workspaceStore().getRun(sessionId, fromRunId) : null;
+  // A shown or repeated review keeps the «Что получить» it was asked in, unless the link names another.
+  const runMode = (selectedRun ?? fromRun)?.input.answerMode;
+  const researchView = researchJob?.options ?? (onDemand && !first(query.mode) && runMode ? { ...requestedResearchView, mode: researchOptionsForAnswerMode(runMode).mode } : requestedResearchView);
   const now = new Date().toISOString();
   const lastSeenAt = profile.subscriptions[agentId].lastSeenAt;
   const fresh = results.filter(result => result.newSinceLastSeen);
@@ -65,6 +81,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const pendingForAgent = detail.actions.filter(action => action.status === "pending_confirmation");
   const researchQuery = researchViewQuery(researchView);
   const showResearchJob = Boolean(onDemand && researchJob && !researchJob.runId);
+  const fromText = fromRun?.input.text ?? "";
+  const initialQuestion = fromText || first(query.q) || "";
+  const monitoringOutcome = !onDemand && selectedRun ? runOutcome(selectedRun, { monitoring: tracksNew }) : null;
+  const firstCheck = !onDemand && runs.filter(run => run.trigger !== "composer").length <= 1;
 
   return <div className="ws-page ws-agent-page" data-agent={agentId}>
     {sessionId && <SeenMarker agentId={agentId} />}
@@ -75,29 +95,37 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         <h1>{definition.name}</h1>
         {onDemand && selectedRun
           // With a result, the header names the question being answered; the description is on the empty scenario page.
-          ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p></>
+          ? <>{selectedRun.input.text && <p className="pt-question">Запрос: «{selectedRun.input.text}»</p>}<p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{formatRelativeRu(selectedRun.completedAt ?? selectedRun.startedAt)}</p><p className="ws-muted"><span className="pt-mode-chip" data-answer-mode={selectedRun.input.answerMode ?? undefined}>{`Что получить: ${researchModeLabel(researchView.mode)}`}</span></p></>
           : <>
             <p className="ws-agent-job">{definition.job}</p>
             <p className="ws-muted">{definition.description}</p>
-            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускался"} · {card.headline}</p>
+            <p className="ws-agent-meta"><Clock3 size={13} aria-hidden="true" />{card.lastRunAt ? `Последний запуск ${formatRelativeRu(card.lastRunAt)}` : "Ещё не запускалась"} · {firstCheck && selectedRun && results.length ? `Первая проверка: ${countLabel(results.length, ["находка", "находки", "находок"])}` : card.headline}</p>
           </>}
+        {/* A switched-off check says so in its header, next to the one action that switches it on. */}
+        {!onDemand && card.state === "disabled" && <p className="ws-agent-state" data-disabled="true"><span className="ws-state ws-state-disabled">Выключена</span>{nbsp(" Её находки не попадают в «Для вас».")}</p>}
       </div>
       {!onDemand && card.state !== "disabled" && <AgentRunButton agentId={agentId} />}
+      {!onDemand && card.state === "disabled" && <AgentEnableButton agentId={agentId} />}
     </header>
 
     {/* Before a run the settings and the question come first; with a result, the answer comes first and a new review follows it. */}
-    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} /></section> : null}
+    {onDemand && !selectedRun ? <section className="ws-agent-composer" aria-label="Новый разбор"><ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} /></section> : null}
 
     {/* The research scenario is configured in its composer (what to get, sources, type); topic settings do not change a typed question. */}
     {!onDemand && <AgentConfigPanel specialty={specialty} definition={definition} preference={profile.preferences[agentId]} inheritedTopics={profile.interests.topics} enabled={card.enabled} defaultOpen={!isConfigured(profile)} />}
     <PendingActions actions={pendingForAgent} />
 
-    {agentId === "drugs" && selectedRun && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} />}
+    {/* Counts by change type mean «checked, nothing new» only when the check ran; otherwise the state is said in words. */}
+    {!onDemand && selectedRun && monitoringOutcome && monitoringOutcome.kind !== "found" && monitoringOutcome.kind !== "not_found" && <div className="pt-outcome" role="status" data-outcome={monitoringOutcome.kind}>
+      <span className="ws-run-status" data-tone={monitoringOutcome.tone}>{monitoringOutcome.label}</span>
+      {monitoringOutcome.note && <p>{monitoringOutcome.note}</p>}
+    </div>}
+    {agentId === "drugs" && selectedRun && (monitoringOutcome?.kind === "found" || monitoringOutcome?.kind === "not_found") && <DrugSinceLastVisit results={results} lastSeenAt={lastSeenAt} firstCheck={firstCheck} unchecked={selectedRun.toolsUsed.some(tool => tool.tool === "searchPubmed" && /нет тем для поиска/iu.test(tool.note ?? "")) && !results.some(result => result.category === "IMPORTANT_NEW_STUDY") ? ["IMPORTANT_NEW_STUDY"] : []} />}
 
     <div className={`ws-agent-layout${onDemand ? " is-single" : ""}`}>
       <div className="ws-agent-results">
         {agentId === "events" && results.length > 0 && <BulkActions resultIds={results.map(result => result.id)} calendar />}
-        {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? "Выберите темы в настройках агента — он сразу запустится." : "Агент ещё не запускался. Нажмите «Запустить сейчас»."}</p>) : <>
+        {showResearchJob && researchJob ? <ResearchJobStatus job={researchJob} specialty={specialty} /> : !selectedRun ? (onDemand ? null : <p className="ws-empty">{card.state === "needs_setup" ? <>Выберите темы в профиле — проверка запустится по ним. <Link className="ws-text-link" href={`/${specialty}/settings#topics`}>Выбрать темы</Link></> : "Проверка ещё не запускалась. Нажмите «Запустить сейчас»."}</p>) : <>
           {onDemand && <ResearchAnswerView run={selectedRun} results={researchResults} mode={researchView.mode} />}
           {onDemand && <ResearchMore run={selectedRun} results={researchResults} specialty={specialty} mode={researchView.mode} />}
 
@@ -107,15 +135,21 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </section>}
 
 
-          {tracksNew && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
+          {/* The first check is one list «Найдено»: nothing was found «ранее». */}
+          {tracksNew && firstCheck && results.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
+            <h2 id="ws-fresh-title" className="ws-section-title">{`Найдено · ${results.length}`}</h2>
+            <ResultList results={results} specialty={specialty} emptyText="" />
+          </section>}
+          {tracksNew && !firstCheck && fresh.length > 0 && <section className="ws-section" aria-labelledby="ws-fresh-title">
             <h2 id="ws-fresh-title" className="ws-section-title">{lastSeenAt ? `Новое с прошлого просмотра · ${fresh.length}` : `Найдено · ${fresh.length}`}</h2>
             <ResultList results={fresh} specialty={specialty} emptyText="" />
           </section>}
-          {tracksNew && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
+          {tracksNew && !firstCheck && earlier.length > 0 && <section className="ws-section" aria-labelledby="ws-earlier-title">
             <h2 id="ws-earlier-title" className="ws-section-title">Ранее найдено · {earlier.length}</h2>
             <ResultList results={earlier} specialty={specialty} emptyText="" />
           </section>}
-          {!onDemand && !results.length && <p className="ws-empty">{selectedRun.status === "blocked" ? "Запрос остановлен проверкой безопасности — подробности справа." : "По текущим настройкам ничего не найдено. Попробуйте расширить темы или период."}</p>}
+          {!onDemand && !results.length && monitoringOutcome?.kind === "not_found" && <p className="ws-empty">{tracksNew ? "Проверка выполнена: по выбранным темам за выбранный период изменений не найдено." : "Проверка выполнена: по текущим настройкам ничего не найдено. Попробуйте расширить темы или период."}</p>}
+          {!onDemand && !results.length && selectedRun.status === "blocked" && <p className="ws-empty">Запрос остановлен проверкой безопасности — подробности справа.</p>}
           {partner.length > 0 && <section className="ws-section ws-partner-slot" aria-labelledby="ws-partner-title">
             <h2 id="ws-partner-title" className="ws-section-title">Партнёрский материал</h2>
             {partner.map(result => <ResultCard key={result.id} result={result} specialty={specialty} />)}
@@ -123,7 +157,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </>}
       </div>
       <aside className="ws-agent-aside">
-        {selectedRun && (onDemand ? <details className="ws-trace-disclosure"><summary>Как искали и что было доступно</summary><RunTrace run={selectedRun} connectors={detail.connectors} now={now} /></details> : <RunTrace run={selectedRun} connectors={detail.connectors} now={now} />)}
+        {selectedRun && (onDemand ? <details className="ws-trace-disclosure"><summary>Как искали и что было доступно</summary><RunTrace run={selectedRun} connectors={detail.connectors} now={now} /></details> : <RunTrace run={selectedRun} connectors={detail.connectors} now={now} monitoring={tracksNew} />)}
         {onDemand && runs.length > 1 && <section className="ws-history" aria-labelledby="ws-history-title">
           <h3 id="ws-history-title">Предыдущие вопросы</h3>
           <ul>{runs.filter(run => run.input.text).slice(0, 8).map(run => <li key={run.id}><Link href={`/${specialty}/agents/${agent}?run=${encodeURIComponent(run.id)}&${researchQuery}`} aria-current={run.id === selectedRun?.id ? "true" : undefined}>{run.input.text}</Link><span>{countLabel(run.resultIds.length, ["источник", "источника", "источников"])} · {formatRelativeRu(run.startedAt)}</span></li>)}</ul>
@@ -132,7 +166,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     </div>
     {onDemand && selectedRun ? <section className="ws-section ws-agent-composer" aria-labelledby="ws-research-new-title">
       <h2 id="ws-research-new-title" className="ws-section-title">Новый разбор</h2>
-      <ResearchComposer specialty={specialty} initialText={first(query.q) ?? ""} initialOptions={researchView} />
+      <ResearchComposer specialty={specialty} initialText={initialQuestion} initialOptions={researchView} />
     </section> : null}
   </div>;
 }

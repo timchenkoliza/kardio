@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, ShieldCheck } from "lucide-react";
-import { VERIFICATION_LABEL, weakestVerification } from "@/lib/agents/format";
+import { verificationLabelFor, weakestVerification } from "@/lib/agents/format";
+import { designLabel } from "@/lib/agents/research-answer";
 import type { AgentResultView, AgentRun, VerificationStatus } from "@/lib/agents/types";
 import type { PhysicianResearchMode, PhysicianResearchViewOptions } from "@/lib/ui/physician-research-view";
 
@@ -47,15 +48,15 @@ export function ResearchOverview({
     <div className="ws-research-overview-head">
       <div>
         <p className="ws-intro-meta">{modeTitle(options.mode)}</p>
-        <h2 id="research-overview-title" className="ws-section-title">Насколько можно доверять выдаче</h2>
+        <h2 id="research-overview-title" className="ws-section-title">Как сверены ссылки</h2>
       </div>
-      <span className={`ws-research-trust is-${coverage.tone}`}><ShieldCheck size={14} aria-hidden="true" />Проверяемость: {coverage.label}</span>
+      <span className={`ws-research-trust is-${coverage.tone}`}><ShieldCheck size={14} aria-hidden="true" />Сверка с источниками: {coverage.label}</span>
     </div>
-    <p className="ws-research-trust-note">{coverage.note} Это оценка проверяемости ссылок, а не качества дизайна исследования или силы клинической рекомендации.</p>
+    <p className="ws-research-trust-note">{coverage.note} Это доля утверждений, найденных в тексте источника. Она не говорит, отвечает ли работа на ваш вопрос, и не оценивает дизайн исследования или силу рекомендации.</p>
     <dl className="ws-research-metrics">
       <div><dt>Найдено</dt><dd>{results.length}</dd></div>
       <div><dt>Источников в выводах</dt><dd>{uniqueSources}</dd></div>
-      <div><dt>Подтверждено</dt><dd>{counts.supported}</dd></div>
+      <div><dt>Совпадает с источником</dt><dd>{counts.supported}</dd></div>
       <div><dt>Частично</dt><dd>{counts.partial}</dd></div>
     </dl>
     {options.mode !== "articles" && run.synthesis && <div className="ws-research-synthesis">
@@ -68,6 +69,15 @@ export function ResearchOverview({
 
 function resultVerification(result: AgentResultView): VerificationStatus | null {
   return result.evidence.length ? weakestVerification(result.evidence.map(item => item.verificationStatus)) : null;
+}
+
+/** The type in the physician's words: the study design PubMed states, never an internal category («publication»). */
+function typeLabel(result: AgentResultView): string {
+  const design = designLabel(typeof result.attributes.publicationTypes === "string" ? result.attributes.publicationTypes : null);
+  if (design) return design[0].toLocaleUpperCase("ru-RU") + design.slice(1);
+  if (typeof result.attributes.studyType === "string" && result.attributes.studyType) return result.attributes.studyType;
+  if (result.category === "guideline") return "Клинические рекомендации";
+  return result.category === "publication" ? "Публикация" : result.kind === "guideline_change" ? "Рекомендации" : "Материал";
 }
 
 export function ResearchResultsTable({ results }: { results: AgentResultView[] }) {
@@ -87,8 +97,8 @@ export function ResearchResultsTable({ results }: { results: AgentResultView[] }
         return <tr key={result.id}>
           <td data-label="Материал"><strong>{title}</strong><span>{result.summary}</span></td>
           <td data-label="Источник">{result.source.source}</td>
-          <td data-label="Тип">{result.category ?? result.kind}</td>
-          <td data-label="Проверка">{verification ? <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[verification].tone}`}>{VERIFICATION_LABEL[verification].label}</span> : "—"}</td>
+          <td data-label="Тип">{typeLabel(result)}</td>
+          <td data-label="Проверка">{verification ? <span className={`ws-verify ws-verify-${verificationLabelFor(verification, result.evidence).tone}`}>{verificationLabelFor(verification, result.evidence).label}</span> : "—"}</td>
         </tr>;
       })}</tbody>
     </table>

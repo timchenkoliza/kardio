@@ -17,7 +17,7 @@ test("the home shortcut and the job link open the configured scenario", async ({
   await expect(page.getByLabel("Источники")).toBeVisible();
   await expect(page.getByLabel("Тип")).toBeVisible();
   // Topic settings do not change a typed question, so the scenario does not show them.
-  await expect(page.getByRole("button", { name: "Настроить агента" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Настроить проверку" })).toHaveCount(0);
 });
 
 test("a named publication gets one compact answer, details collapsed, answer before the next question on a phone", async ({ page }) => {

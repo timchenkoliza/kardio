@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bookmark, BookmarkCheck, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
-import { DRUG_CHANGE_LABEL, VERIFICATION_LABEL, formatDateRu, weakestVerification } from "@/lib/agents/format";
+import { Bookmark, CalendarPlus, Check, ChevronDown, ExternalLink, EyeOff, Handshake, ShieldCheck, Ticket } from "lucide-react";
+import { SavedLink } from "@/components/portal/result-actions";
+import { DRUG_CHANGE_LABEL, formatDateRu, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import { STANDING_LABEL, type SourceStanding } from "@/lib/agents/source-policy";
 import type { AgentResultView, DrugChangeType, Evidence } from "@/lib/agents/types";
+import { physicianSafe } from "@/lib/presentation/physician";
 import { feedIllustrations, type AgentResultMedia } from "@/lib/ui/agent-result-media";
 import { FeedArt } from "./feed-art";
 import { ModeBadge } from "./mode-badge";
@@ -63,7 +65,7 @@ function SourceStandingNote({ standing, note }: { standing?: SourceStanding; not
 }
 
 function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) {
-  const verification = VERIFICATION_LABEL[item.verificationStatus];
+  const verification = verificationLabelFor(item.verificationStatus, [item]);
   const published = item.publicationDate ? (formatDateRu(item.publicationDate) ?? item.publicationDate) : null;
   return <li className="ws-evidence-item">
     <span className={`ws-verify ws-verify-${verification.tone}`}>{verification.label}</span>
@@ -76,7 +78,8 @@ function EvidenceItem({ item, onOpen }: { item: Evidence; onOpen: () => void }) 
       {item.provenance.version && <span> · {item.provenance.version}</span>}
       {item.provenance.standing && <> · <SourceStandingNote standing={item.provenance.standing} note={item.provenance.standingNote} /></>}
     </p>
-    {item.verificationNote && <p className="ws-evidence-note">{item.verificationNote}</p>}
+    {/* Internal policy notes («Не в белом списке…», connector states) never reach the physician. */}
+    {physicianSafe(item.verificationNote) && <p className="ws-evidence-note">{physicianSafe(item.verificationNote)}</p>}
   </li>;
 }
 
@@ -140,7 +143,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
       <div className="ws-result-meta">
         {result.newSinceLastSeen && <span className="ws-new">Новое</span>}
         <span className="ws-kind" data-art={artKind(result)}>{label ?? KIND_LABEL[result.kind]}</span>
-        {verification && <span className={`ws-verify ws-verify-${VERIFICATION_LABEL[verification].tone}`}><ShieldCheck size={13} aria-hidden="true" />{VERIFICATION_LABEL[verification].label}</span>}
+        {verification && <span className={`ws-verify ws-verify-${verificationLabelFor(verification, result.evidence).tone}`}><ShieldCheck size={13} aria-hidden="true" />{verificationLabelFor(verification, result.evidence).label}</span>}
       </div>
       <h3 className="ws-result-title" id={`r-${result.id}`}>
         {internal?.href ? <Link href={internal.href} onClick={() => opened(false)}>{result.title}</Link> : result.title}
@@ -167,7 +170,7 @@ export function ResultCard({ result, media = null }: { result: AgentResultView; 
         {result.actions.some(action => action.kind === "calendar") && <button type="button" className="ws-button is-small" disabled={pending} onClick={() => void prepare("calendar_write")}><CalendarPlus size={14} aria-hidden="true" />В календарь</button>}
         {result.actions.filter(action => action.kind === "registration").map(action => <button type="button" key={action.label} className="ws-button is-small is-accent" disabled={pending} onClick={() => void prepare("registration", action.href)}><Ticket size={14} aria-hidden="true" />{action.label}</button>)}
         {result.kind === "learning_module" && <button type="button" className={done ? "ws-button is-small is-done" : "ws-button is-small"} aria-pressed={done} onClick={() => void toggleDone()}><Check size={14} aria-hidden="true" />{done ? "Пройдено" : "Отметить пройденным"}</button>}
-        {result.actions.some(action => action.kind === "save") && <button type="button" className="ws-button is-small is-quiet" disabled={saved} onClick={() => void save()}>{saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}{saved ? "В материалах" : "Сохранить"}</button>}
+        {result.actions.some(action => action.kind === "save") && (saved ? <SavedLink /> : <button type="button" className="ws-button is-small is-quiet" onClick={() => void save()}><Bookmark size={14} aria-hidden="true" />Сохранить</button>)}
         <button type="button" className="ws-icon-button is-quiet" aria-label="Скрыть находку" title="Скрыть находку" onClick={() => { setHidden(true); void command({ action: "dismissResult", resultId: result.id }, { quiet: true, refresh: false }); }}><EyeOff size={15} /></button>
       </div>
     </div>

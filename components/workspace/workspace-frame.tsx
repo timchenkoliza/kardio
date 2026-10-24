@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { Bot, ChevronDown, ChevronRight, FolderOpen, LayoutGrid, Settings, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, History, LayoutGrid, ShieldCheck } from "lucide-react";
 import type { ProfileIdentity } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { launchSpecialtyList, specialties } from "@/lib/specialty";
@@ -11,16 +11,17 @@ import { WorkspaceProvider } from "./workspace-provider";
 import { ActionConfirmDialog } from "./action-confirm-dialog";
 import { ResearchJobWatcher } from "./research-job-watcher";
 
-export type WorkspaceSection = "home" | "agents" | "materials" | "anonymizer" | "settings" | "content";
+export type WorkspaceSection = "home" | "history" | "materials" | "anonymizer" | "settings" | "content";
 
 /**
- * Primary navigation: the one input (Главное), the capabilities behind it as a
- * gallery (Агенты — discovery and shortcuts, never a required step), the
- * physician's own library, and the profile. Every entry is internal, same tab.
+ * Primary navigation by what the physician works with, not by how the system
+ * is built: the question (Главное, with the task catalogue one link away),
+ * their own past questions (История), their library, a tool, and the profile —
+ * the one place for settings. Every entry is internal, same tab.
  */
-const NAV: Array<{ id: "home" | "agents" | "materials" | "anonymizer"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
+const NAV: Array<{ id: "home" | "history" | "materials" | "anonymizer"; label: string; short: string; path: string; icon: typeof LayoutGrid }> = [
   { id: "home", label: "Главное", short: "Главное", path: "", icon: LayoutGrid },
-  { id: "agents", label: "Агенты", short: "Агенты", path: "/agents", icon: Bot },
+  { id: "history", label: "История", short: "История", path: "/history", icon: History },
   { id: "materials", label: "Мои материалы", short: "Материалы", path: "/materials", icon: FolderOpen },
   { id: "anonymizer", label: "Обезличивание", short: "Обезличить", path: "/anonymizer", icon: ShieldCheck },
 ];
@@ -37,13 +38,14 @@ function ProfileAvatar({ size = "regular", name }: { size?: "regular" | "small";
 
 export function sectionFromPath(pathname: string, specialty: string): WorkspaceSection {
   const rest = pathname.replace(new RegExp(`^/${specialty}`), "");
-  if (rest.startsWith("/agents")) return "agents";
-  if (rest.startsWith("/ask") || rest.startsWith("/item")) return "home";
-  if (rest.startsWith("/tools")) return "agents";
+  // The task catalogue, scenarios, results and materials opened from the feed all start on Главное.
+  if (rest.startsWith("/history")) return "history";
+  if (rest.startsWith("/agents") || rest.startsWith("/ask") || rest.startsWith("/item") || rest.startsWith("/tools")) return "home";
   if (rest.startsWith("/materials")) return "materials";
   if (rest.startsWith("/anonymizer")) return "anonymizer";
   if (rest.startsWith("/settings")) return "settings";
-  if (rest.startsWith("/content")) return "content";
+  // A catalog document is a material opened from Главное, like /item.
+  if (rest.startsWith("/content")) return "home";
   return "home";
 }
 
@@ -69,7 +71,7 @@ function SpecialtySelect({ specialty, sectionPath }: { specialty: SpecialtyId; s
 
 export function WorkspaceFrame({ specialty, pendingActions = 0, identity = null, children }: { specialty: SpecialtyId; pendingActions?: number; identity?: ProfileIdentity | null; children: ReactNode }) {
   const section = sectionFromPath(usePathname() ?? `/${specialty}`, specialty);
-  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : section === "agents" ? "/agents" : section === "anonymizer" ? "/anonymizer" : "";
+  const sectionPath = section === "materials" ? "/materials" : section === "settings" ? "/settings" : section === "history" ? "/history" : section === "anonymizer" ? "/anonymizer" : "";
   const name = identity?.name ?? null;
 
   return <WorkspaceProvider specialty={specialty}>
@@ -78,9 +80,9 @@ export function WorkspaceFrame({ specialty, pendingActions = 0, identity = null,
 
       {/* Desktop: 280px structural sidebar */}
       <aside className="ws-sidebar">
+        {/* One way into settings: the profile card below (no second gear entry). */}
         <div className="ws-sidebar-head">
           <BrandLockup specialty={specialty} />
-          <Link href={`/${specialty}/settings`} className={section === "settings" ? "ws-sidebar-gear is-active" : "ws-sidebar-gear"} aria-label="Настройки"><Settings size={18} aria-hidden="true" /></Link>
         </div>
         <SpecialtySelect specialty={specialty} sectionPath={sectionPath} />
         <nav className="ws-nav" aria-label="Основная навигация">

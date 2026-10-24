@@ -67,7 +67,7 @@ export function ActionConfirmDialog() {
     {view.description && <details className="ws-dialog-details"><summary>Что входит</summary><pre>{view.description}</pre></details>}
     {view.status === "completed" && view.kind === "calendar_write" && view.artifactUrl && <p className="ws-dialog-result">Файл календаря скачивается. Если загрузка не началась — <a href={view.artifactUrl}>скачать .ics</a>.</p>}
     {view.status === "handed_off" && view.artifactUrl && view.kind !== "email" && <p className="ws-dialog-result">Страница открыта в новой вкладке. Если этого не произошло — <a href={view.artifactUrl} target="_blank" rel="noreferrer">открыть</a>.</p>}
-    {view.status === "handed_off" && view.kind === "email" && <p className="ws-dialog-result">Черновик открыт в вашей почтовой программе. Агент ничего не отправлял.</p>}
+    {view.status === "handed_off" && view.kind === "email" && <p className="ws-dialog-result">Черновик открыт в вашей почтовой программе. Мы ничего не отправляли.</p>}
     <div className="ws-dialog-actions">
       {view.status === "pending_confirmation" && !done ? <>
         <button type="button" className="ws-button is-primary" disabled={pending} onClick={() => void confirm()}>Подтвердить</button>

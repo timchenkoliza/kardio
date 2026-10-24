@@ -28,7 +28,7 @@ test("A: «Что изменилось в рекомендациях по ХСН
   await expect(page.locator("[data-clarification]")).toHaveCount(0);
   await expect(page.locator(CONTENT).first()).toBeVisible({ timeout: 60_000 });
   await done(page);
-  await expect(page.locator('[data-explanation="skill"]')).toHaveText("Сравниваем текущую и предыдущую версии рекомендаций");
+  await expect(page.locator('[data-explanation="skill"]')).toHaveText("Сравнили текущую и предыдущую версии рекомендаций");
   await expect(page.locator('[data-module="recommendation_delta"]')).toBeVisible();
   await expect(page.locator('[data-module="sources"]')).toBeAttached();
   // Internal machinery is never shown.
@@ -60,7 +60,7 @@ test("C: refinements patch the open result in place", async ({ page }) => {
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=run-/u, { timeout: 15_000 });
   const runUrl = page.url();
   await done(page);
-  const followup = page.getByRole("textbox", { name: "Следующий вопрос" });
+  const followup = page.getByRole("textbox", { name: "Уточнение или новый вопрос" });
   const before = Number(await page.locator(".pt-experience").getAttribute("data-manifest-version"));
   const takeawayId = await page.locator('[data-module="key_takeaway"] h2').getAttribute("id");
 
@@ -99,7 +99,10 @@ test("a large comparison shows the plan first; «Продолжить» runs it"
   const plan = page.locator("[data-plan]");
   await expect(plan).toBeVisible({ timeout: 15_000 });
   await expect(plan.getByText("Я проверю:")).toBeVisible();
-  await expect(plan.locator("li")).toHaveCount(4);
+  // The plan names only what the planned sources do (N20-4, N21 A): a comparison reads reviews, not instructions.
+  await expect(plan.locator("li")).toHaveCount(2);
+  await expect(plan.locator("li").first()).toContainText("обзоры");
+  await expect(plan).not.toContainText("инструкц");
   await plan.getByRole("button", { name: "Продолжить" }).click();
   await expect(page).toHaveURL(/\/cardiology\/ask\?run=run-/u, { timeout: 15_000 });
 });

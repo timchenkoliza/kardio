@@ -149,7 +149,14 @@ describe("execution strategy: Skill fast path, shadow first, dynamic otherwise",
     const text = "Сравни апиксабан, ривароксабан и дабигатран при ФП";
     const first = decideStrategy({ text, specialty: "cardiology" });
     expect(first.executionClass).toBe("dynamic");
-    expect(first.planPreview?.steps.length).toBeGreaterThanOrEqual(3);
+    // Only what the planned sources do (N20-4, N21 A). Since A2 a comparison of drugs by their instructions reads every
+    // instruction, so the plan names all of them; an outcome comparison opens none and names none.
+    expect(first.planPreview?.steps.length).toBeGreaterThanOrEqual(2);
+    expect(first.intent.job.primary).toBe("drug_comparison");
+    expect(first.planPreview?.steps[0]).toBe("Открою российские инструкции: апиксабан, ривароксабан, дабигатран");
+    const outcomes = decideStrategy({ text: "Сравни апиксабан, ривароксабан и дабигатран по кровотечениям при ФП", specialty: "cardiology" });
+    expect(outcomes.intent.job.primary).not.toBe("drug_comparison");
+    expect(outcomes.planPreview?.steps.join(" ") ?? "").not.toMatch(/российские инструкции/iu);
     expect(first.planPreview?.steps.join(" ")).not.toMatch(/skill|pubmed|medi|агент/iu);
     expect(decideStrategy({ text, specialty: "cardiology", planConfirmed: first.planPreview!.id }).planPreview).toBeNull();
   });

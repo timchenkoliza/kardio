@@ -55,7 +55,7 @@ export function labelDocument(label: DrugLabel, args: { inn: string; ru: string;
     publisher: label.manufacturer ?? "U.S. Food and Drug Administration", publishedAt: label.effectiveDate, retrievedAt: args.retrievedAt,
     version: { fingerprint: combineFingerprints(chunks.map(chunk => chunk.fingerprint)), label: label.version ? `версия ${label.version}` : null, date: label.effectiveDate },
     jurisdiction: "US", authority: "official", state: "LIVE",
-    attributes: { genericName: label.genericName || args.inn, brands: label.brandNames.join(", ") || null, setId: label.setId, productType: label.productType, sectionTitles: sections.map(section => section.ru).join("|"), truncated: sections.some(section => section.truncated) },
+    attributes: { inn: args.inn, genericName: label.genericName || args.inn, brands: label.brandNames.join(", ") || null, setId: label.setId, productType: label.productType, sectionTitles: sections.map(section => section.ru).join("|"), truncated: sections.some(section => section.truncated) },
     chunks, claims, entities: [drug],
   };
 }

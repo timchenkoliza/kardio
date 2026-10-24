@@ -10,6 +10,7 @@ import { shareLinkView } from "@/server/agents/commands";
 import { shareStore, sharingAvailable } from "@/server/sharing/store";
 import { DRUGS } from "@/lib/portal/lexicon";
 import { scheduleStatus } from "@/server/agents/scheduler";
+import { AGENT_DEFINITIONS, agentHref } from "@/lib/agents/definitions";
 import { formatDateRu } from "@/lib/agents/format";
 import { computeAgentMetrics } from "@/lib/agents/metrics";
 import type { SourceStanding } from "@/lib/agents/source-policy";
@@ -77,6 +78,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
         <IdentityCard identity={profile.identity} specialty={specialty} />
         <SpecialtyCard specialty={specialty} />
         <InterestsEditor specialty={specialty} interests={profile.interests} />
+        {/* The feed's checks have their own settings (what, how often, on/off); the profile is where they are listed. */}
+        <section className="pt-profile-card" id="feed" aria-labelledby="pt-feed-title">
+          <h2 id="pt-feed-title">{nbsp("Лента «Для вас»")}</h2>
+          <p>{nbsp("Ленту наполняют фоновые проверки. Темы для всех берутся из блока «Интересующие темы» выше; что отслеживать, как часто и включена ли проверка — на её странице.")}</p>
+          <ul className="ws-plain-list">{(["whats_new", "guidelines", "drugs", "events", "learning"] as const).map(id => <li key={id}><Link className="ws-text-link" href={agentHref(specialty, id)}>{AGENT_DEFINITIONS[id].name}</Link></li>)}</ul>
+        </section>
         <AnswerModeCard answerMode={profile.answerMode} />
       </div>
 
@@ -117,7 +124,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <PartnerToggle enabled={profile.partnerContent} />
         </section>
 
-        <section className="pt-profile-card" id="sources" aria-labelledby="ws-connectors-title">
+        <section className="pt-profile-card" id="connections" aria-labelledby="ws-connectors-title">
           <h2 id="ws-connectors-title">{nbsp("Источники и подключения")}</h2>
           <p>Что продукт действительно умеет читать и делать сейчас. «Онлайн» — запрос к источнику в момент вопроса; «Снимок» — реальные данные, собранные из источника на указанную дату; «Не подключено» — продукт прямо говорит, что не может это сделать, и даёт ссылку для самостоятельной проверки.</p>
           <ul className="ws-connectors">{connectors.map(connector => <li key={connector.id}>
@@ -128,7 +135,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
 
         <section className="pt-profile-card ws-validation" aria-labelledby="ws-validation-title">
           <h2 id="ws-validation-title">{nbsp("Источники, проверенные врачами")}</h2>
-          <p>{nbsp(`Список обновлён ${formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».`)}</p>
+          <p>{nbsp(`Список обновлён ${(formatDateRu(SOURCE_VALIDATION.updatedAt) ?? SOURCE_VALIDATION.updatedAt).replace(/\.$/u, "")}. Ответы поднимают рекомендованные источники выше, не используют отклонённые как доказательство, а выводы из остальных помечают «Требует сверки».`)}</p>
           {(["approved", "conditional", "reviewed_not_whitelisted", "rejected"] as const).map(standing => <details key={standing} open={standing === "approved"}>
             <summary>{STANDING_GROUP_TITLE[standing]} · {validation[standing].length}</summary>
             <ul>{validation[standing].map(row => <li key={`${row.host}-${row.brand}`}><strong>{row.brand}</strong><span>{row.host}{row.condition ? ` · ${row.condition}` : ""}</span>{row.note && <span>{row.note}</span>}</li>)}</ul>
@@ -150,7 +157,6 @@ export default async function SettingsPage({ params }: { params: Promise<{ speci
           <h2 id="ws-demo-title">Демонстрация</h2>
           <p>Отметки «новое» считаются от вашего прошлого визита. Чтобы показать механику ещё раз, можно сбросить отметки просмотра.</p>
           <ResetSeenButton />
-          <p className="ws-legacy-link"><Link href={`/${specialty}/agents`}>Агенты и фоновые проверки для «Для вас»<ArrowUpRight size={14} aria-hidden="true" /></Link></p>
           {(specialty === "cardiology" || specialty === "oncology") && <p className="ws-legacy-link"><Link href={`/${specialty}/legacy`}>Предыдущая версия интерфейса (архив)<ArrowUpRight size={14} aria-hidden="true" /></Link></p>}
         </section>
       </div>

@@ -264,6 +264,12 @@
 .pt-quick .pt-shortcut-figure .mascot { width: var(--ws-quick-mascot); height: var(--ws-quick-mascot); }
 .pt-quick .pt-shortcut > svg:last-child { display: none; }
 
+/* ---------- «Последние вопросы» on the home page: the way back to earlier results ---------- */
+
+.pt-recent .ws-section-title { margin: 0; }
+.pt-recent a { display: inline-flex; align-items: center; min-height: var(--ws-touch-target); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }
+.pt-recent li { gap: 0; }
+
 /* ---------- Mascot «Смузи»: one body, a role prop, one quiet motion preset ---------- */
 
 .mascot .sm-shadow { fill: var(--ws-mascot-shadow); }
@@ -567,7 +573,10 @@
   .pt-modes-track { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pt-suggestions-row { margin: 0; padding: 0 0 2px; }
   .pt-quick .pt-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; }
-  .pt-quick .pt-shortcut { flex: 1 1 auto; min-height: var(--ws-quick-min-height); }
+  /* Three narrow columns: the mascot sits above the text instead of squeezing it to a word per line. */
+  .pt-quick .pt-shortcut { flex: 1 1 auto; flex-direction: column-reverse; justify-content: flex-end; min-height: var(--ws-quick-min-height); }
+  .pt-quick .pt-shortcut-figure { margin-left: 0; width: var(--ws-quick-mascot-halo-compact); height: var(--ws-quick-mascot-halo-compact); }
+  .pt-quick .pt-shortcut-figure .mascot { width: var(--ws-quick-mascot-compact); height: var(--ws-quick-mascot-compact); }
   .pt-identity-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pt-anon-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .va-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -611,3 +620,19 @@
   .mascot .sm-figure,
   .mascot .sm-prop-group { animation: none !important; }
 }
+
+/* ---------- Feed groups: one heading per kind of material ---------- */
+
+.pt-feed-groups { display: flex; flex-direction: column; gap: var(--ws-space-24); }
+.pt-feed-group { display: flex; flex-direction: column; gap: var(--ws-space-12); }
+.pt-feed-group-title { margin: 0; font-size: var(--font-size-heading-3); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-heading-3); }
+.pt-feed-group-title .ws-muted { font-weight: var(--font-weight-regular); }
+
+/* ---------- Feed on phones: an illustration «к теме, не к конкретному случаю» never takes the first screen from the finding ---------- */
+
+@media (max-width: 767px) {
+  .pt-cards .pt-card-media { display: none; }
+}
+
+/* «К ленте» lands on the card: its title clears the sticky top bar */
+.pt-card-title { scroll-margin-top: calc(var(--ws-touch-target) + var(--ws-space-24)); }

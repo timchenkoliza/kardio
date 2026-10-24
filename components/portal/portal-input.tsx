@@ -8,6 +8,8 @@ import type { SpecialtyId } from "@/lib/domain/types";
 import type { ClarificationManifest, ClarificationOption, PlanPreview } from "@/lib/mesh/skills/types";
 import { DEFAULT_ANSWER_MODE, type AnswerMode } from "@/lib/portal/answer-mode";
 import { JOBS, type PortalJob } from "@/lib/portal/jobs";
+import { decideStrategy } from "@/lib/mesh/strategy";
+import { isDependentFollowup } from "@/lib/portal/continuation";
 import { routePortalIntent } from "@/lib/portal/router";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { AnswerModeControl } from "./answer-mode-control";
@@ -39,7 +41,7 @@ type SpeechWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionLi
  * previewed in plain language before submit; the physician never chooses an
  * agent. The mode travels with the request into run metadata.
  */
-export function PortalInput({ specialty, job = null, examples = [], suggestions = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId, answerMode = DEFAULT_ANSWER_MODE, showModes = false, forcedState = null }: {
+export function PortalInput({ specialty, job = null, examples = [], suggestions = [], label = "Что хотите узнать или сделать?", placeholder, followup = false, autoFocus = false, initialText = "", inputId = "pt-input", contextRunId, answerMode = DEFAULT_ANSWER_MODE, showModes = false, forcedState = null, pubmedExcluded = false }: {
   specialty: SpecialtyId;
   inputId?: string;
   job?: PortalJob | null;
@@ -58,6 +60,8 @@ export function PortalInput({ specialty, job = null, examples = [], suggestions 
   answerMode?: AnswerMode;
   /** Show the three-mode control under the input (home and job pages, not follow-ups). */
   showModes?: boolean;
+  /** PubMed is excluded in the profile: the route line does not promise it. */
+  pubmedExcluded?: boolean;
   /** Visual-audit only: render one state without interaction. */
   forcedState?: ComposerState | null;
 }) {
@@ -83,6 +87,10 @@ export function PortalInput({ specialty, job = null, examples = [], suggestions 
   const recognition = useRef<SpeechRecognitionLike | null>(null);
 
   const route = useMemo(() => text.trim().length >= 3 ? routePortalIntent(text, specialty, { job: lockedJob }) : null, [lockedJob, specialty, text]);
+  // The preview names the task the request will actually run as (the same decision as execution, Skills included).
+  const planned = useMemo(() => route ? decideStrategy({ text, specialty, job: lockedJob, session: null, answered: { id: "direct", optionId: null }, planConfirmed: "direct" }).intent.job.family : null, [lockedJob, route, specialty, text]);
+  // Under a result: say before sending whether this continues the question or starts a new one.
+  const continues = useMemo(() => Boolean(followup && contextRunId && text.trim().length >= 3 && isDependentFollowup(text, specialty)), [contextRunId, followup, specialty, text]);
   const blocked = Boolean(route?.risk.imageInterpretation || route?.risk.emergency);
   const target = route?.job ?? lockedJob;
   const state: ComposerState = forcedState ?? (blocked ? "disabled" : busy ? "submitting" : failed ? "error" : focused && text.trim() ? "typing" : focused ? "focused" : "idle");
@@ -190,7 +198,9 @@ export function PortalInput({ specialty, job = null, examples = [], suggestions 
       {busy && target && <span className="ws-route" role="status"><Loader2 size={14} className="ws-spin" aria-hidden="true" />{WAITING[target]}</span>}
       {failed && !busy && <span className="ws-risk is-blocking" role="alert">Не удалось запустить поиск<button type="button" className="ws-button pt-retry" onClick={() => void submit()}>Повторить</button></span>}
       {message && !busy && <span className="ws-route" role="status">{message}</span>}
-      {!busy && route && !blocked && <span className="ws-route"><JobIcon icon={JOBS[route.job].icon} size={14} />Покажем {JOBS[route.job].preview}{route.job === "research" ? " · PubMed и каталог специальности" : ""}{route.drugs.length && (route.job === "drug" || route.job === "answer") ? ` · ${route.drugs.map(drug => drug.ru).join(", ")}` : ""}{route.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
+      {!busy && continues && !blocked && <span className="ws-route" data-continues="true">Продолжим этот вопрос с новым условием — прежние условия сохранятся</span>}
+      {!busy && route && !blocked && !continues && route.vague && !route.concepts.length && <span className="ws-route" data-vague="true">Тема не распознана — добавьте заболевание, препарат (МНН) или тему, иначе искать будет нечего</span>}
+      {!busy && route && !blocked && !continues && !(route.vague && !route.concepts.length) && <span className="ws-route"><JobIcon icon={JOBS[planned ?? route.job].icon} size={14} />Покажем {JOBS[planned ?? route.job].preview}{(planned ?? route.job) === "research" ? (pubmedExcluded ? " · каталог специальности (PubMed исключён в вашем профиле)" : " · PubMed и каталог специальности") : ""}{route.drugs.length ? ` · ${route.drugs.map(drug => drug.ru).join(", ")}` : ""}{route.wantsCalendar ? " · календарь — после подтверждения" : ""}</span>}
       {route?.risk.imageInterpretation && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.imageInterpretation}</span>}
       {route?.risk.emergency && <span className="ws-risk is-blocking"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.emergency}</span>}
       {route?.risk.prescribing && <span className="ws-risk"><ShieldAlert size={14} aria-hidden="true" />{RISK_COPY.prescribing}</span>}

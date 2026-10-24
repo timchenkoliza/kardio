@@ -1,4 +1,7 @@
-import { countLabel } from "./format";
+import { unmatchedWords } from "@/lib/portal/unmatched";
+import { countLabel, isBibliographicOnly, matchedSource, outsideApprovedList, verificationLabelFor } from "./format";
+import { conditionLabel } from "@/lib/portal/labels";
+import { type PubmedConcept, pubmedConceptsIn, topicById, topicLabels, topicsMentioned } from "./vocabulary";
 import { researchStudyNormalizationFromAttributes, type ResearchStudyNormalization } from "./research-study-normalization";
 import { describeStudyIdentifiers, hasStudyIdentifiers, studyIdentifiersIn } from "./study-identifiers";
 import type { AgentResultView, AgentRun, ResultAttributeValue, VerificationStatus } from "./types";
@@ -37,6 +40,9 @@ export interface StudyDigest {
   conclusion: { text: string; label: string } | null;
   links: StudyLink[];
   verification: VerificationStatus | null;
+  /** The same check label as in the table and the export («Совпадает с источником · версию сверьте»). */
+  verificationLabel: string | null;
+  verificationTone: "supported" | "partial" | "unsupported" | "unknown" | null;
   outsideApprovedList: boolean;
   internalHref: string | null;
 }
@@ -50,6 +56,9 @@ export interface ResearchAnswer {
   practice: string;
   limitations: string[];
   totalFound: number;
+  /** What the search used and the words of the question it did not («Не учтено в поиске: катетерная аблация»). */
+  conditions?: string[];
+  unmatched?: string[];
 }
 
 const DESIGN_RU: ReadonlyArray<[RegExp, string]> = [
@@ -148,6 +157,8 @@ export function studyDigest(result: AgentResultView): StudyDigest {
     conclusion: conclusionText ? { text: conclusionText, label: text(result.attributes["authorsConclusion.label"]) ?? "Вывод авторов" } : null,
     links: linksFor(result),
     verification: weakest(result.evidence.map(item => item.verificationStatus)),
+    verificationLabel: result.evidence.length ? verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).label : null,
+    verificationTone: result.evidence.length ? verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).tone : null,
     outsideApprovedList: result.attributes.journalOutsideApprovedList === true,
     internalHref: internal,
   };
@@ -158,7 +169,109 @@ function depth(study: StudyDigest): number {
   return study.effect ? 0 : study.conclusion ? 1 : study.access && study.access !== "unavailable" ? 2 : 3;
 }
 
-const PRACTICE = "Выводы авторов приведены выше на языке оригинала. Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+const NOT_ADVICE = "Продукт не превращает их в рекомендацию и не подбирает лечение: применимость к вашей практике оценивает врач, сверяясь с клиническими рекомендациями.";
+
+/** How to read the result, for what was actually read: no «если тексты прочитаны» when none were. */
+function practiceFor(read: number): string {
+  return read
+    ? `Выводы авторов приведены выше на языке оригинала. ${NOT_ADVICE}`
+    : `Тексты статей не читались, поэтому выводов авторов здесь нет — они в самих статьях по ссылкам. ${NOT_ADVICE.replace("превращает их", "превращает найденное")}`;
+}
+
+/**
+ * The conditions a review searched by, built as the research run builds its PubMed term: the question's
+ * topics and recognised concepts (concepts are dropped when the run widened the search to its topics).
+ * Words the search did not use are named, as in the reference answer.
+ */
+const fold = (text: string) => text.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+
+export function researchConditions(run: AgentRun): { conditions: string[]; unmatched: string[] } {
+  const question = run.input.text ?? "";
+  if (!question.trim()) return { conditions: [], unmatched: [] };
+  // A widened search and a skipped PubMed («Только РФ», «Только клинрекомендации») did not use the concepts: the catalog is searched by topic.
+  // PubMed skipped, excluded or down: the catalog is searched by topic, so the concepts were not used either, nor were Latin words.
+  const pubmedUnused = (run.toolsUsed ?? []).some(use => use.tool === "searchPubmed" && (/PubMed пропущен/u.test(use.note ?? "") || use.status === "unavailable" || use.status === "failed"));
+  const widened = pubmedUnused || (run.plan ?? []).some(step => /Расширили поиск в PubMed до тем вопроса/u.test(step.label));
+  const questionTopics = topicsMentioned(run.specialty, question);
+  const topicTerms = questionTopics.map(id => topicById(run.specialty, id)?.pubmed ?? "");
+  // A concept that is a question topic under another name («ХБП» and the topic «Хроническая болезнь почек») is that topic;
+  // a compound topic («Кардиоренальные связи»: CKD AND cardiovascular) is not.
+  const conceptParts = (concept: PubmedConcept) => concept.term.split(" OR ").map(part => part.trim());
+  const topicNames = topicLabels(run.specialty, questionTopics).map(name => fold(name).split(/\s+/u));
+  const sameAsTopic = (concept: PubmedConcept) => topicTerms.some(term => term && !/ AND /u.test(term) && term.split(" OR ").every(part => conceptParts(concept).includes(part.trim())))
+    // «ИИ» inside the topic «ИИ в кардиологии» is that topic.
+    || topicNames.some(words => fold(concept.label).split(/\s+/u).every(word => words.includes(word)));
+  // The concept whose words chose a question topic is searched by that topic when PubMed is not used — only when the topic's
+  // own term covers it («ХБП» in «Кардиоренальные связи»), not a broader topic («антикоагулянты» → «Фибрилляция предсердий»).
+  const behindTopic = (concept: PubmedConcept) => (fold(question.normalize("NFKC")).match(new RegExp(concept.match.source, "gu")) ?? [])
+    .some(text => topicsMentioned(run.specialty, text).some(id => questionTopics.includes(id)
+      && (conceptParts(concept).some(part => fold(topicById(run.specialty, id)?.pubmed ?? "").includes(fold(part)))
+        // or the topic is named by the concept itself («беременность» → «Ведение беременности»).
+        || fold(topicById(run.specialty, id)?.label ?? "").split(/\s+/u).some(word => fold(concept.label).split(/\s+/u).some(own => own.length >= 6 && word.slice(0, own.length - 2) === own.slice(0, own.length - 2))))));
+  // The run's query takes at most 4 concepts; the rest were not searched and are named.
+  const searched = pubmedConceptsIn(question).filter(concept => !sameAsTopic(concept));
+  const all = pubmedConceptsIn(question, Infinity).filter(concept => !sameAsTopic(concept));
+  const label = (concept: PubmedConcept) => conditionLabel(concept.label);
+  const labels = [...topicLabels(run.specialty, questionTopics), ...(widened ? [] : searched.map(concept => concept.label))].map(conditionLabel);
+  const conditions = labels.filter((item, index) => labels.findIndex(other => fold(other) === fold(item)) === index);
+  // A widened search dropped the recognised concepts («пожилые пациенты», «антикоагулянты»): they are named, not presumed used.
+  // Written as in «Искали по», so the two lists read alike.
+  const used = (concept: PubmedConcept) => (!widened && searched.includes(concept)) || (pubmedUnused && behindTopic(concept));
+  // Named in the physician's own words when the concept's name is not theirs («апиксабан», not «антикоагулянты»):
+  // the words it matched, with an adjective written right before («катетерная аблация») and the words of the same
+  // phrase after it («изоляция лёгочных вен»), without an unpaired bracket («ТИА», not «ТИА)»).
+  const written = (concept: PubmedConcept): string[] => {
+    const source = question.normalize("NFKC");
+    const words = fold(concept.label).split(/\s+/u).filter(word => word.length >= 4);
+    if (words.some(word => fold(source).includes(word.slice(0, Math.max(4, word.length - 3))))) return [label(concept)];
+    const matches = [...fold(source).matchAll(new RegExp(concept.match.source, "gu")), ...(concept.cased ? [...source.matchAll(new RegExp(concept.cased.source, "gu"))] : [])];
+    const found = matches.map(match => {
+      let start = match.index ?? 0;
+      let end = start + match[0].length + (source.slice(start + match[0].length).match(/^[\p{L}\p{N}()-]*/u)?.[0].length ?? 0);
+      // Before the concept: only an adjective in agreement with it («катетерная аблация»), never a noun («ведение») or a comparative («безопаснее»).
+      const before = source.slice(0, start).match(/(\p{L}{3,}(?:ая|яя|ое|ые|ый|ий))\s+$/u);
+      if (before && !/^(?:старше|младше|моложе|[0-9])/u.test(fold(match[0]))) start -= before[0].length;
+      // After the concept: only the noun its last adjective belongs to («изоляция лёгочных» + «вен»), never a verb or a comparison.
+      const last = source.slice(start, end).split(/\s+/u).at(-1) ?? "";
+      const after = /(?:ых|их|ой|ей|ого|его|ая|ое|ые|ий|ый)$/u.test(last) ? source.slice(end).match(/^\s+(?!(?:при|у|с|со|для|на|в|во|по|и|или|после|до|от|без|к|о|об|за|более|менее|выше|ниже|против)(?![\p{L}]))\p{Ll}{3,}(?![\p{L}])/u)?.[0] ?? "" : "";
+      end += after.length;
+      let text = source.slice(start, end).replace(/[-(]+$/u, "");
+      // An unpaired bracket belongs to the sentence, not to the words («(ТИА):» → «ТИА»).
+      if ((text.match(/\)/gu) ?? []).length > (text.match(/\(/gu) ?? []).length) text = text.replace(/\)+$/u, "");
+      if ((text.match(/\(/gu) ?? []).length > (text.match(/\)/gu) ?? []).length) text = text.replace(/^\(+/u, "");
+      // Case word by word: abbreviations and Latin as written, other words in lower case («дозирование ПОАК»).
+      return text.split(/(\s+)/u).map(word => /[A-Za-z]|\p{Lu}.*\p{Lu}/u.test(word) ? word : word.toLocaleLowerCase("ru-RU")).join("");
+    });
+    // «Транзиторная ишемическая атака (ТИА)»: the abbreviation of a phrase named beside it is that phrase.
+    const initials = (text: string) => text.split(/\s+/u).map(word => word[0] ?? "").join("").toLocaleUpperCase("ru-RU");
+    const unique = [...new Set(found)].filter(item => !(/^\p{Lu}{2,6}$/u.test(item) && found.some(other => other !== item && initials(other) === item)));
+    return unique.length ? unique : [label(concept)];
+  };
+  const dropped = all.filter(concept => !used(concept)).flatMap(written).filter(item => !conditions.some(condition => fold(condition) === fold(item)));
+  // A word is known when the review accounts for it: its topics and the concepts it searched or names above, including
+  // the words of a multi-word key or concept matched on the whole question («искусственный интеллект», «минералокортикоидных»).
+  const normalized = question.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+  const matchedParts = [
+    // Only the keys that matched the question («митральн», not «аортальн стеноз» of the same topic).
+    ...questionTopics.flatMap(id => topicById(run.specialty, id)?.keywords ?? [])
+      .map(keyword => keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е").split(" "))
+      .filter(parts => parts.every(part => normalized.includes(part)))
+      .flat(),
+    ...pubmedConceptsIn(question, Infinity).flatMap(concept => (normalized.match(new RegExp(concept.match.source, "gu")) ?? []).flatMap(text => text.split(/[^\p{L}\p{N}-]+/u))),
+  ].filter(part => part.length >= 4 || /^[a-z]+$/u.test(part));
+  const known = (word: string) => {
+    const value = word.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+    // A word's own topic counts only if it survives in the whole question («гипертензия» in «лёгочная гипертензия» is not АГ).
+    // A concept counts by what it matched in the whole question, not by the word alone («гипогликемические препараты»).
+    return topicsMentioned(run.specialty, word).some(id => questionTopics.includes(id)) || matchedParts.some(part => part.length >= 4 ? value.includes(part) : value === part);
+  };
+  const named = unmatchedWords(question, [...conditions, ...dropped], run.specialty, known, { latinSearched: !pubmedUnused });
+  // A dropped concept already inside a named phrase («апиксабан» in «апиксабан 2,5 мг», «старше 75» in «старше 75 лет») is named once.
+  // Each word is named once: a dropped concept inside a named phrase, or a named phrase inside a dropped concept, is dropped.
+  const within = (inner: string, outer: string) => ` ${fold(outer)} `.includes(` ${fold(inner)} `);
+  const kept = dropped.filter((item, index) => !named.some(phrase => within(item, phrase)) && !dropped.some((other, at) => at !== index && other !== item && within(item, other)));
+  return { conditions, unmatched: [...kept, ...named.filter(phrase => !kept.some(item => item !== phrase && within(phrase, item)))] };
+}
 
 export function buildResearchAnswer(run: AgentRun, results: readonly AgentResultView[]): ResearchAnswer {
   const question = run.input.text ?? "";
@@ -173,15 +286,27 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     .map(entry => entry.digest);
 
   if (run.status === "blocked") {
-    return { kind: "blocked", headline: "Запрос остановлен проверкой безопасности: продукт не разбирает данные конкретного пациента и не назначает лечение.", studies: [], trust: [], practice: PRACTICE, limitations: [...run.riskNotices], totalFound: 0 };
+    return { kind: "blocked", headline: "Запрос остановлен проверкой безопасности: продукт не разбирает данные конкретного пациента и не назначает лечение.", studies: [], trust: [], practice: practiceFor(0), limitations: [...run.riskNotices], totalFound: 0 };
   }
 
   const read = digests.filter(study => study.access === "full_text" || study.access === "abstract");
+  const search = named ? { conditions: [], unmatched: [] } : researchConditions(run);
+  const pubmedCount = organic.filter(result => result.source.connectorId === "pubmed").length;
+  const catalogCount = organic.length - pubmedCount;
   const fullText = read.filter(study => study.access === "full_text").length;
   const withEffect = digests.filter(study => study.effect).length;
-  const statuses = organic.flatMap(result => result.evidence.map(item => item.verificationStatus));
-  const supported = statuses.filter(status => status === "SUPPORTED").length;
-  const partial = statuses.filter(status => status === "PARTIALLY_SUPPORTED").length;
+  const withEvidence = organic.filter(result => result.evidence.length);
+  const citationOnly = withEvidence.filter(result => isBibliographicOnly(result.evidence));
+  // A citation is checked when its label says so («Сверены данные публикации», with or without the journal's standing).
+  const citationChecked = citationOnly.filter(result => verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence).label.startsWith("Сверены данные публикации")).length;
+  const outsideList = organic.filter(result => outsideApprovedList(result.evidence)).length;
+  const quoted = withEvidence.filter(result => !isBibliographicOnly(result.evidence));
+  const quotedLabel = (result: AgentResultView) => verificationLabelFor(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence);
+  const quotedMatched = quoted.filter(result => matchedSource(weakest(result.evidence.map(item => item.verificationStatus)) ?? "UNKNOWN", result.evidence)).length;
+  // The checks still needed, as the labels name them («версию сверьте — 3», «карточка по документу — сверьте с полным текстом — 2»).
+  const checkCounts = new Map<string, number>();
+  for (const result of quoted) for (const check of quotedLabel(result).label.split(" · ").slice(1)) checkCounts.set(check, (checkCounts.get(check) ?? 0) + 1);
+  const quotedChecks = [...checkCounts.entries()].map(([check, count]) => `${check}: ${count}`);
   const designCounts = new Map<string, number>();
   for (const study of digests) {
     const design = primaryDesign(study.design);
@@ -190,18 +315,21 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const designs = [...designCounts.entries()].map(([design, count]) => `${design} — ${count}`);
 
   const trust = [
-    designs.length ? `Дизайн по данным PubMed: ${designs.slice(0, 4).join(", ")}.` : null,
+    designs.length ? `Дизайн: ${designs.join(", ")}.` : null,
     read.length ? `Прочитано: ${fullText ? `полный текст — ${fullText}` : ""}${fullText && read.length - fullText ? ", " : ""}${read.length - fullText ? `только аннотация — ${read.length - fullText}` : ""}.${withEffect ? " Цифры эффекта взяты из этого текста, у каждой есть цитата." : ""}` : null,
-    statuses.length ? `Сверка ссылок с источником: полностью — ${supported} из ${statuses.length}${partial ? `, подтверждены только данные публикации — ${partial}` : ""}. Это сверка ссылок, а не оценка качества исследования.` : null,
+    // What was checked, in its own terms: citations against PubMed, quotes against the text; the journal's standing is said apart.
+    citationOnly.length ? `Данные публикации сверены с PubMed — ${citationChecked} из ${citationOnly.length}${outsideList ? `; журнал вне списка, одобренного врачами, — ${outsideList}` : ""}.` : null,
+    quoted.length ? `Текст совпадает с источником — ${quotedMatched} из ${quoted.length}${quotedChecks.length ? `; ${quotedChecks.join("; ")}` : ""}.` : null,
+    citationOnly.length && quoted.length ? "Это сверка ссылок и текста, а не оценка качества исследования." : citationOnly.length ? "Это сверка ссылок, а не оценка качества исследования." : quoted.length ? "Это сверка текста с источником, а не оценка качества исследования." : null,
   ].filter((value): value is string => Boolean(value));
 
   const limitations = [
-    pubmedDown ? `PubMed: ${pubmedUse?.note ?? "недоступен во время запуска"}.` : null,
+    pubmedDown ? `PubMed: ${(pubmedUse?.note ?? "недоступен во время запуска").replace(/^PubMed\s+/u, "")}.` : null,
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
     digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
-    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
-    "Выводы авторов приводятся на языке оригинала, перевода нет.",
+    !named && organic.some(result => result.source.connectorId === "pubmed") ? `Поиск в PubMed ограничен журналами, проверенными врачами${outsideList ? ", и журналами источников из вашего профиля (приоритет в настройках — они помечены «журнал вне списка врачей»)" : ""}, и шестью самыми подходящими статьями${organic.some(result => result.source.connectorId !== "pubmed") ? "; остальные находки — из каталога специальности" : ""}.` : null,
+    read.length ? "Выводы авторов приводятся на языке оригинала, перевода нет." : null,
   ].filter((value): value is string => Boolean(value));
 
   if (pubmedDown && !organic.length) {
@@ -209,30 +337,32 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     const note = pubmedUse?.note ?? "";
     const excluded = /исключ/u.test(note);
     const headline = excluded
-      ? "PubMed исключён в источниках вашего профиля, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
+      ? "PubMed исключён в вашем профиле, поэтому разбор по PubMed не выполнялся. Включите его в профиле или в настройках разбора."
       : `PubMed не ответил${note ? ` (${note.replace(/\.$/u, "")})` : ""}, поэтому разбор не выполнен${named ? ` (${describeStudyIdentifiers(identifiers)})` : ""}. Повторите запрос позже.`;
-    return { kind: "unavailable", headline, studies: [], trust: [], practice: PRACTICE, limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0 };
+    // The catalog was still searched by the question's topics: say by what.
+    return { kind: "unavailable", headline, studies: [], trust: [], practice: practiceFor(read.length), limitations: limitations.filter(line => !line.startsWith("PubMed:")), totalFound: 0, ...(named ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
   if (named) {
     const asked = describeStudyIdentifiers(identifiers);
     if (!organic.length) {
       const skipped = pubmedUse?.status === "ok" && pubmedUse.note?.startsWith("PubMed пропущен");
-      return { kind: "not_found", headline: skipped ? `${pubmedUse?.note}: публикацию (${asked}) не искали.` : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на статью в PubMed.`, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
+      return { kind: "not_found", headline: skipped ? `${pubmedUse?.note}: публикацию (${asked}) не искали.` : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на статью в PubMed.`, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0 };
     }
     const study = digests[0];
     const result = study.effect ? `Основной результат по тексту статьи: ${study.effect}.` : study.conclusion ? "Величину эффекта в тексте найти не удалось — ниже вывод авторов." : "Текст статьи прочитать не удалось — доступны только данные PubMed.";
-    return { kind: "study", headline: `${study.design ? `${study.design[0].toLocaleUpperCase("ru-RU")}${study.design.slice(1)}, ` : ""}${study.journal}${study.year ? `, ${study.year}` : ""}. ${result}`, studies: digests.slice(0, 4), trust, practice: PRACTICE, limitations, totalFound: organic.length };
+    return { kind: "study", headline: `${study.design ? `${study.design[0].toLocaleUpperCase("ru-RU")}${study.design.slice(1)}, ` : ""}${study.journal}${study.year ? `, ${study.year}` : ""}. ${result}`, studies: digests.slice(0, 4), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length };
   }
   if (!organic.length) {
     const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
     const headline = noTopic
       ? "Не удалось понять тему вопроса: в PubMed не искали, в каталоге специальности совпадений нет. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
       : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
-    return { kind: "not_found", headline, studies: [], trust, practice: PRACTICE, limitations, totalFound: 0 };
+    // With nothing found the physician still sees what was searched and what was not («ХСН», not «СНнФВ»).
+    return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0, ...(noTopic ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
   const headline = [
-    `Нашли ${countLabel(organic.length, ["публикацию", "публикации", "публикаций"])} по вопросу.`,
-    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? "PubMed не ответил: ниже только материалы каталога специальности." : "Тексты публикаций не читались — ниже только данные PubMed и каталога.",
+    `Нашли ${[pubmedCount ? countLabel(pubmedCount, ["публикацию PubMed", "публикации PubMed", "публикаций PubMed"]) : null, catalogCount ? countLabel(catalogCount, ["материал каталога", "материала каталога", "материалов каталога"]) : null].filter(Boolean).join(" и ")} ${search.unmatched.length ? "по условиям поиска — не по всему вопросу" : "по вопросу"}.`,
+    read.length ? `Прочитали ${read.length}${withEffect ? `, величина эффекта указана в ${withEffect}` : ", величину эффекта в тексте найти не удалось"}.` : pubmedDown ? (/исключ/u.test(pubmedUse?.note ?? "") ? "PubMed исключён в вашем профиле: ниже только материалы каталога специальности." : "PubMed не ответил: ниже только материалы каталога специальности.") : (!organic.some(result => result.source.connectorId === "pubmed") ? "Ниже только материалы каталога специальности." : organic.some(result => result.source.connectorId !== "pubmed") ? "Тексты публикаций не читались — ниже только данные PubMed и каталога." : "Тексты публикаций не читались — ниже только данные PubMed."),
   ].join(" ");
-  return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: PRACTICE, limitations, totalFound: organic.length };
+  return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched };
 }

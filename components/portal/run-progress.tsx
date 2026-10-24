@@ -90,7 +90,7 @@ export function RunProgress({ runId, specialty, version, phase, pending, started
 }
 
 /** Re-asks the same question as a new run (a failed or expired run is kept as it was). */
-export function RetryRun({ text, job }: { text: string; job: PortalJob | null }) {
+export function RetryRun({ text, job, contextRunId }: { text: string; job: PortalJob | null; contextRunId?: string }) {
   const router = useRouter();
   const { command } = useWorkspace();
   const [busy, setBusy] = useState(false);
@@ -100,7 +100,7 @@ export function RetryRun({ text, job }: { text: string; job: PortalJob | null })
     setBusy(true);
     setFailed(false);
     // Quiet: the failure is said here, next to the button, not in a second toast.
-    const result = await command({ action: "ask", text, ...(job ? { job } : {}) }, { refresh: false, quiet: true, timeoutMs: 20_000 });
+    const result = await command({ action: "ask", text, ...(job ? { job } : {}), ...(contextRunId ? { contextRunId, followup: true } : {}) }, { refresh: false, quiet: true, timeoutMs: 20_000 });
     setBusy(false);
     if (!result?.runId) { setFailed(true); return; }
     startNavigation(() => router.push(result.redirect ?? `?run=${encodeURIComponent(result.runId!)}`));

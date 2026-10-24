@@ -28,25 +28,28 @@ async function expectNoHorizontalOverflow(page: Page) {
 test("configuring topics runs the background checks behind «Для вас»", async ({ page }) => {
   await setupInterests(page, ["ХСН", "Артериальная гипертензия"]);
   await page.goto("/cardiology/agents");
-  // The agents page is the gallery; the background checks behind «Для вас» sit in a disclosure under it.
-  await expect(page.getByRole("heading", { level: 1, name: /Агенты для специальности/ })).toBeVisible();
+  // The task catalogue («Все задачи»); the background checks behind «Для вас» sit in a disclosure under it.
+  await expect(page.getByRole("heading", { level: 1, name: /Все задачи/ })).toBeVisible();
   await page.locator(".pt-background > summary").filter({ hasText: "Фоновые проверки" }).click();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toBeVisible();
   await expect(page.locator('.ws-agent-card[data-agent="drugs"]')).toContainText(/регистрац/);
-  await expect(page.locator('.ws-agent-card[data-agent="whats_new"]')).toContainText(/по вашим темам|с вашего прошлого визита/);
+  // «Что нового» appears once, as a task card; the block lists only the other checks that fill «Для вас».
+  await expect(page.locator('.pt-background .ws-agent-card[data-agent="whats_new"]')).toHaveCount(0);
+  await expect(page.locator('.pt-agent[data-agent="updates"]')).toBeVisible();
+  await expect(page.locator(".pt-background .ws-agent-card")).toHaveCount(4);
   await page.goto("/cardiology");
   await expect(page.locator(".pt-card").first()).toBeVisible();
   // Every card explains itself: the reason it is shown is on the card's own page, one click away in the same tab.
   await page.locator(".pt-cards > article.pt-card .pt-card-link").first().click();
   await expect(page).toHaveURL(/\/cardiology\/(?:item|content)\//u);
   if (page.url().includes("/item/")) await expect(page.locator(".pt-item-facts")).toContainText("Почему вы это видите");
-  else await expect(page.locator("main")).toContainText("Проверяемость");
+  else await expect(page.locator("main")).toContainText("Сверка с источниками");
 });
 
 test("drug agent shows since-last-visit change detection with evidence", async ({ page }) => {
   await setupInterests(page, ["Артериальная гипертензия", "Кардиомиопатии"]);
   await page.goto("/cardiology/agents/drugs");
-  await expect(page.getByRole("heading", { level: 2, name: /Первый просмотр|С прошлого просмотра/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /Первая проверка|С прошлого просмотра/ })).toBeVisible();
   const registration = page.locator(".ws-result").filter({ hasText: "Баксдростат зарегистрирован в России" });
   await expect(registration).toBeVisible();
   await registration.getByText(/Утверждения и источники/).click();
@@ -54,8 +57,9 @@ test("drug agent shows since-last-visit change detection with evidence", async (
   await expect(registration.getByRole("link", { name: /Коммерсантъ/ }).first()).toHaveAttribute("href", "https://www.kommersant.ru/doc/8956362");
   await page.waitForTimeout(2000);
   await page.reload();
-  await expect(page.getByRole("heading", { level: 2, name: /С прошлого просмотра/ })).toBeVisible();
-  await expect(page.locator(".ws-since li.has-items")).toHaveCount(0);
+  // Until a second check runs, the counts describe the first check: never «0» next to the registration listed below (D-5).
+  await expect(page.getByRole("heading", { level: 2, name: /Первая проверка/ })).toBeVisible();
+  await expect(page.locator(".ws-since li.has-items").first()).toBeVisible();
 });
 
 test("events agent: discovery → relevance → confirmed calendar file", async ({ page }) => {
@@ -63,7 +67,7 @@ test("events agent: discovery → relevance → confirmed calendar file", async 
   await page.goto("/cardiology/agents/events");
   // Russian accredited events came from rnmo.ru, which the physicians rejected;
   // organiser-sourced congresses remain, so the test looks abroad.
-  await page.getByRole("button", { name: "Настроить агента" }).click();
+  await page.getByRole("button", { name: "Настроить проверку" }).click();
   await page.getByRole("group", { name: "Город и формат" }).getByRole("button", { name: "Зарубежные", exact: true }).click();
   await page.getByRole("button", { name: "Сохранить и запустить" }).click();
   const event = page.locator(".ws-result-event").first();

@@ -227,6 +227,8 @@
   line-height: var(--ws-leading-metadata);
   white-space: nowrap;
 }
+/* A verification label with its check («Сверены данные публикации · журнал вне списка врачей») wraps on a phone instead of leaving the card. */
+.ws-result-meta .ws-verify, .ws-evidence-item .ws-verify { white-space: normal; max-width: 100%; height: auto; }
 .ws-new,
 .ws-state-fresh { background: var(--ws-canvas); border: 1px solid var(--ws-accent-soft); color: var(--ws-accent-ink); }
 .ws-state-needs_setup { background: var(--ws-warning-soft); color: var(--ws-warning); }
@@ -241,7 +243,20 @@
 .ws-verify-unsupported { background: var(--ws-danger-soft); color: var(--ws-danger); }
 .ws-mode-mock { background: var(--ws-warning-soft); color: var(--ws-warning); }
 .ws-run-status { background: var(--ws-success-soft); color: var(--ws-success); }
-.ws-run-status.is-partial { background: var(--ws-warning-soft); color: var(--ws-warning); }
+.ws-run-status.is-partial,
+.ws-run-status[data-tone="warning"] { background: var(--ws-warning-soft); color: var(--ws-warning); }
+.ws-run-status[data-tone="neutral"] { background: var(--ws-surface); color: var(--ws-text-secondary); }
+.ws-run-status[data-tone="danger"] { background: var(--ws-danger-soft); color: var(--ws-danger); }
+/* What a finished run established, above the answer, when it is not simply «found» */
+.pt-outcome { display: flex; flex-direction: column; gap: var(--ws-space-4); margin: 0; padding: var(--ws-space-12) var(--ws-space-16); border-radius: var(--ws-radius-button); background: var(--ws-structural); }
+.pt-outcome p { margin: 0; }
+.pt-outcome .ws-run-status { align-self: flex-start; }
+/* On a phone the state is one compact block, so the first finding stays on the first screen. */
+@media (max-width: 767px) {
+  .pt-outcome { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--ws-space-4) var(--ws-space-8); padding: var(--ws-space-8) var(--ws-space-12); }
+  .pt-outcome p { font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
+}
+.pt-search-conditions { margin: 0; font-size: var(--font-size-caption); line-height: var(--ws-leading-caption); }
 .ws-run-status.is-failed,
 .ws-run-status.is-blocked { background: var(--ws-danger-soft); color: var(--ws-danger); }
 .ws-owner-user_uploaded { background: var(--ws-accent-wash); color: var(--ws-accent-ink); }
@@ -530,6 +545,7 @@
 .ws-agent-head > .ws-button { grid-column: 1 / -1; justify-self: start; }
 .ws-agent-head-copy { display: flex; flex-direction: column; gap: var(--ws-space-4); min-width: 0; }
 .ws-agent-head h1 { margin: 0; }
+.ws-agent-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ws-space-8); margin: 0; color: var(--ws-text-secondary); font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }
 .ws-agent-head .ws-agent-job { color: var(--ws-text); font-size: var(--font-size-body); line-height: var(--ws-leading-body); }
 .ws-agent-head .ws-muted { font-size: var(--font-size-body-compact); line-height: var(--ws-leading-body-compact); }
 .ws-agent-composer .ws-composer { max-width: none; }

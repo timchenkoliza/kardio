@@ -1,4 +1,4 @@
-import { countLabel } from "@/lib/agents/format";
+import { countLabel, verificationLabelFor, weakestVerification } from "@/lib/agents/format";
 import type { PlanStep, RunExperience, ToolUse } from "@/lib/agents/types";
 import { topicLabels } from "@/lib/agents/vocabulary";
 import type { AgentContext } from "./context";
@@ -42,12 +42,18 @@ export class PlanBuilder {
 }
 
 export function verificationSummary(drafts: readonly ResultDraft[]): string {
-  const evidence = drafts.flatMap(draft => draft.evidence);
-  const supported = evidence.filter(item => item.verificationStatus === "SUPPORTED").length;
-  const partial = evidence.filter(item => item.verificationStatus === "PARTIALLY_SUPPORTED").length;
-  const unknown = evidence.filter(item => item.verificationStatus === "UNKNOWN").length;
-  const unsupported = evidence.filter(item => item.verificationStatus === "UNSUPPORTED").length;
-  return [`${supported} подтверждено`, partial ? `${partial} частично` : null, unknown ? `${unknown} не удалось проверить` : null, unsupported ? `${unsupported} не подтверждено` : null].filter(Boolean).join(", ");
+  // By record and by what was checked, with the same labels as on screen: citations, text, and the checks still needed.
+  const counts = new Map<string, number>();
+  const checks = new Map<string, number>();
+  for (const draft of drafts) {
+    if (!draft.evidence.length) continue;
+    const [base, ...needed] = verificationLabelFor(weakestVerification(draft.evidence.map(item => item.verificationStatus)), draft.evidence).label.split(" · ");
+    counts.set(base, (counts.get(base) ?? 0) + 1);
+    for (const check of needed) checks.set(check, (checks.get(check) ?? 0) + 1);
+  }
+  const parts = [...counts.entries()].map(([label, count]) => `${label.toLocaleLowerCase("ru-RU")} — ${count}`);
+  const todo = [...checks.entries()].map(([check, count]) => `${check}: ${count}`);
+  return [parts.join(", "), todo.length ? `нужна сверка — ${todo.join("; ")}` : null].filter(Boolean).join("; ") || "нечего проверять";
 }
 
 export async function finishWithChecks(builder: PlanBuilder, ctx: AgentContext, drafts: ResultDraft[]): Promise<ResultDraft[]> {

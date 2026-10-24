@@ -1,6 +1,5 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { SourceId } from "@/lib/mesh/sources";
-import { MI_ABBREVIATION, NON_CORONARY_ISCHEMIA } from "./clinical-terms";
 import type { ContentTypePref, DeliveryChannel, EventFormatPref, Frequency, LearningGoal } from "./types";
 
 /**
@@ -20,27 +19,19 @@ export interface TopicOption {
    * asked from another specialty.
    */
   specialtyBound?: boolean;
-  /**
-   * Phrases that contain a keyword but mean something else (regex sources on
-   * normalized text). They are masked for this topic only: «ишемический инсульт»
-   * is not ИБС, yet it still matches the stroke topic.
-   */
-  notWhen?: readonly string[];
-  /** Upper-case abbreviations matched case-sensitively on the original text («ИМ», never «им»). */
-  abbreviations?: readonly RegExp[];
 }
 
 export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
   cardiology: [
-    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "ишем", "коронар", "инфаркт", "окс", "стенокард", "акш", "мкш"], notWhen: NON_CORONARY_ISCHEMIA, abbreviations: [MI_ABBREVIATION] },
-    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
-    { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
+    { id: "ihd", label: "ИБС", catalogTopics: ["stable_ischemic_heart_disease", "stemi", "nstemi"], pubmed: "\"coronary artery disease\"[tiab] OR \"myocardial infarction\"[tiab]", keywords: ["ибс", "коронар", "инфаркт", "окс", "стенокард", "инфаркт миокард", "ишем болезн сердц", "ишеми миокард", "ишемическ кардиомиопат", "безболев ишеми"] },
+    { id: "hf", label: "ХСН", catalogTopics: [], pubmed: "\"heart failure\"[tiab]", keywords: ["хсн", "сн", "снсфв", "сннфв", "снунфв", "снпфв", "снфв", "снснфв", "сердечн недостат", "сердечная недостаточность", "heart failure", "hfpef", "hfref"] },
+    { id: "ah", label: "Артериальная гипертензия", catalogTopics: ["arterial_hypertension"], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен", "ад", "гипертони болезн"] },
     { id: "af", label: "Фибрилляция предсердий", catalogTopics: ["atrial_fibrillation"], pubmed: "\"atrial fibrillation\"[tiab]", keywords: ["фп", "фибрилляц", "трепетан", "антикоагул"] },
     { id: "lipids", label: "Липидология", catalogTopics: [], pubmed: "dyslipidemia[tiab] OR \"lipoprotein(a)\"[tiab] OR LDL[tiab]", keywords: ["липид", "холестер", "лпнп", "статин", "дислипид"] },
     { id: "arrhythmia", label: "Нарушения ритма", catalogTopics: ["ventricular_arrhythmias", "bradyarrhythmias", "supraventricular_tachycardia"], pubmed: "arrhythmia[tiab] OR tachycardia[tiab]", keywords: ["аритм", "тахикард", "брадикард", "ритм"] },
-    { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид"] },
+    { id: "valves", label: "Клапанные пороки", catalogTopics: ["aortic_regurgitation"], pubmed: "\"valvular heart disease\"[tiab] OR \"aortic stenosis\"[tiab] OR regurgitation[tiab]", keywords: ["клапан", "порок", "аортальн", "митральн", "трикуспид", "аортальн стеноз"] },
     { id: "cardiomyopathy", label: "Кардиомиопатии", catalogTopics: ["hypertrophic_cardiomyopathy", "myocarditis"], pubmed: "cardiomyopathy[tiab] OR myocarditis[tiab]", keywords: ["кардиомиопат", "гкмп", "миокардит", "амилоид"] },
-    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "лёгочн", "лаг", "хтэлг"] },
+    { id: "ph", label: "Лёгочная гипертензия", catalogTopics: ["pulmonary_hypertension"], pubmed: "\"pulmonary hypertension\"[tiab]", keywords: ["легочн гипертенз", "легочн артериальн гипертенз", "легочн гипертон", "лаг", "хтэлг"] },
     { id: "metabolic", label: "Метаболический синдром", catalogTopics: ["metabolic_syndrome"], pubmed: "\"metabolic syndrome\"[tiab] OR obesity[tiab]", keywords: ["метаболич", "ожирен", "кардиометабол"], specialtyBound: true },
     { id: "cardiorenal", label: "Кардиоренальные связи", catalogTopics: [], pubmed: "\"chronic kidney disease\"[tiab] AND cardiovascular[tiab]", keywords: ["почк", "хбп", "кардиоренал", "нефро"], specialtyBound: true },
     { id: "endocarditis", label: "Инфекционный эндокардит", catalogTopics: ["infective_endocarditis"], pubmed: "endocarditis[tiab]", keywords: ["эндокардит"] },
@@ -48,8 +39,8 @@ export const TOPICS: Record<SpecialtyId, readonly TopicOption[]> = {
     { id: "ai", label: "ИИ в кардиологии", catalogTopics: ["ai_in_cardiology"], pubmed: "\"artificial intelligence\"[tiab] AND cardiology[tiab]", keywords: ["ии", "искусственн интеллект", "нейросет"], specialtyBound: true },
   ],
   therapy: [
-    { id: "ah", label: "Артериальная гипертензия", catalogTopics: [], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен"] },
-    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "сахарн диабет", "диабет 2"] },
+    { id: "ah", label: "Артериальная гипертензия", catalogTopics: [], pubmed: "hypertension[tiab]", keywords: ["аг", "гипертенз", "гипертони", "давлен", "ад", "гипертони болезн"] },
+    { id: "dm2", label: "Сахарный диабет 2 типа", catalogTopics: [], pubmed: "\"type 2 diabetes\"[tiab]", keywords: ["сд2", "диабет 2"] },
     { id: "copd", label: "ХОБЛ", catalogTopics: [], pubmed: "COPD[tiab] OR \"chronic obstructive pulmonary\"[tiab]", keywords: ["хобл"] },
     { id: "asthma", label: "Бронхиальная астма", catalogTopics: [], pubmed: "asthma[tiab]", keywords: ["астм"] },
     { id: "pneumonia", label: "Пневмония", catalogTopics: [], pubmed: "pneumonia[tiab]", keywords: ["пневмон"] },
@@ -166,7 +157,7 @@ export const FREQUENCY_OPTIONS: ReadonlyArray<{ id: Frequency; label: string; ho
 ];
 
 export const DELIVERY_OPTIONS: ReadonlyArray<{ id: DeliveryChannel; label: string; available: boolean; note: string }> = [
-  { id: "home", label: "На главной", available: true, note: "Результаты появляются в карточке агента" },
+  { id: "home", label: "На главной", available: true, note: "Находки появляются в ленте «Для вас»" },
   { id: "save", label: "Сохранять", available: true, note: "Новые находки сразу попадают в «Мои материалы»" },
   { id: "notification", label: "Уведомления", available: false, note: "Push и email-уведомления пока не подключены" },
   { id: "calendar", label: "Календарь", available: true, note: "Только через подтверждение: файл .ics для вашего календаря" },
@@ -194,6 +185,20 @@ export const GOAL_OPTIONS: ReadonlyArray<{ id: LearningGoal; label: string }> = 
   { id: "exam_prep", label: "Подготовка к аккредитации" },
 ];
 
+/** Narrower conditions named with a broader topic's word, whichever specialty is asking: «pulmonary hypertension» is not «hypertension». */
+const NARROWER_TERMS: readonly string[] = [
+  '"pulmonary arterial hypertension"[tiab]',
+  '"pulmonary hypertension"[tiab]',
+  '"portal hypertension"[tiab]',
+  '"intracranial hypertension"[tiab]',
+  '"ocular hypertension"[tiab]',
+];
+
+/** The specialty's topic terms plus the narrower forms: a title about a more specific condition does not count for a broader topic. */
+export function specificTopicTerms(specialty: SpecialtyId): string[] {
+  return [...new Set([...TOPICS[specialty].map(topic => topic.pubmed), ...NARROWER_TERMS].filter(Boolean))];
+}
+
 export function topicsFor(specialty: SpecialtyId): readonly TopicOption[] {
   return TOPICS[specialty];
 }
@@ -216,39 +221,44 @@ export interface PubmedConcept {
   label: string;
   match: RegExp;
   term: string;
+  /** An abbreviation that counts only as written in capitals («ИМ», not the pronoun «им»). */
+  cased?: RegExp;
 }
 
 const START = "(?<![\\p{L}\\p{N}])";
-const concept = (id: string, label: string, stems: string, term: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term });
+const concept = (id: string, label: string, stems: string, term: string, cased?: string): PubmedConcept => ({ id, label, match: new RegExp(`${START}(?:${stems})`, "u"), term, ...(cased ? { cased: new RegExp(`${START}(?:${cased})(?![\\p{L}\\p{N}])`, "u") } : {}) });
 
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
-  concept("stroke", "инсульт", "инсульт|онмк|тиа(?![\\p{L}])|инфаркт\\p{L}*\\s+(?:головного\\s+)?мозг", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
+  concept("stroke", "инсульт", "(?:(?:остр\\p{L}*\\s+)?(?:ишемическ|геморрагическ|кардиоэмболическ|лакунарн)\\p{L}*\\s+)?инсульт|онмк|тиа(?![\\p{L}])|транзиторн\\p{L}*\\s+ишемическ\\p{L}*\\s+атак|инфаркт\\p{L}*\\s+(?:головного\\s+)?мозг", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),
   concept("bleeding", "кровотечения", "кровотеч|геморраг", "bleeding[tiab] OR hemorrhag*[tiab]"),
   concept("sglt2", "иНГЛТ-2", "ингл|sglt|глифлозин|дапаглифлозин|эмпаглифлозин", "SGLT2[tiab] OR \"sodium-glucose\"[tiab] OR gliflozin*[tiab]"),
-  concept("glp1", "ГПП-1", "гпп|glp|семаглутид|тирзепатид|лираглутид", "\"GLP-1\"[tiab] OR semaglutide[tiab] OR tirzepatide[tiab]"),
+  concept("glp1", "ГПП-1", "гпп|аргпп|glp|семаглутид|тирзепатид|лираглутид", "\"GLP-1\"[tiab] OR semaglutide[tiab] OR tirzepatide[tiab]"),
   concept("statin", "статины", "статин|аторвастатин|розувастатин", "statin*[tiab] OR atorvastatin[tiab] OR rosuvastatin[tiab]"),
-  concept("pcsk9", "PCSK9 и инклисиран", "pcsk9|инклисиран|эволокумаб|алирокумаб", "PCSK9[tiab] OR inclisiran[tiab]"),
+  concept("pcsk9", "PCSK9 и инклисиран", "pcsk9|пцск|инклисиран|эволокумаб|алирокумаб", "PCSK9[tiab] OR inclisiran[tiab]"),
   concept("lpa", "липопротеин(а)", "липопротеин\\s*\\(?а|lp\\(a", "\"lipoprotein(a)\"[tiab]"),
-  concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
+  concept("mra", "антагонисты МКР", "финеренон|спиронолактон|эплеренон|антагонист.{0,20}минералокорт\\p{L}*(?:\\s+рецептор)?", "finerenone[tiab] OR spironolactone[tiab] OR \"mineralocorticoid receptor\"[tiab]"),
   concept("aldosterone_synthase", "ингибиторы альдостеронсинтазы", "баксдростат|лорундростат|альдостеронсинтаз", "baxdrostat[tiab] OR lorundrostat[tiab] OR \"aldosterone synthase\"[tiab]"),
   concept("myosin", "ингибиторы миозина", "мавакамтен|афикамтен|миозин", "mavacamten[tiab] OR aficamten[tiab] OR \"myosin inhibitor\"[tiab]"),
-  concept("ablation", "абляция", "абляц|изоляц.{0,12}легочн", "ablation[tiab]"),
+  concept("ablation", "абляция", "абляц|аблац|изоляц.{0,12}легочн", "ablation[tiab]"),
+  concept("mi", "инфаркт миокарда (ИМ)", "инфаркт\\p{L}*\\s+миокард", "\"myocardial infarction\"[tiab]", "ИМ|ОИМ"),
+  // Only coronary bypass: «АКШ», «аорто-/маммарокоронарное шунтирование», «шунтирование коронарных артерий», or
+  // «шунтирование» in one clause with a coronary word — never a named other shunt (gastric, portosystemic, ventricular…).
+  concept("cabg", "АКШ", "акш|мкш|(?:аорто|маммаро)?-?коронарн\\p{L}*\\s+шунтир|(?<!(?:бариатрическ|портосистемн|портокавальн|вентрикул\\p{L}*|экстра-интракраниальн|интракраниальн|экстракраниальн|ликворн|спленоренальн|мезентериальн|артериовенозн|желудочн|внутрипеченочн)\\p{L}*\\s)шунтир\\p{L}*(?![\\p{L}])(?!\\s+(?:желудк|кишечн|печен|почк|при\\s+гидроцефал|при\\s+впс))(?:\\s+коронарн|(?=[^.;!?]{0,50}?(?:ибс|ишемическ\\p{L}*\\s+болезн\\p{L}*\\s+сердц|инфаркт\\p{L}*\\s+миокард|(?<![\\p{L}])им(?![\\p{L}])|стенокард|многососуд|работающ\\p{L}*\\s+сердц|(?<![\\p{L}])ик(?![\\p{L}])|чкв|стентир|хсн|сердечн\\p{L}*\\s+недостаточн)))|(?:ибс|ишемическ\\p{L}*\\s+болезн\\p{L}*\\s+сердц|инфаркт\\p{L}*\\s+миокард|стенокард|чкв|стентир)[^.;!?]{0,50}?(?<!(?:бариатрическ|портосистемн|вентрикул\\p{L}*|экстра-интракраниальн|интракраниальн|желудочн)\\p{L}*\\s)шунтир(?!\\p{L}*\\s+(?:желудк|кишечн|печен|почк))", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
+  concept("pe", "ТЭЛА", "тэла|тромбоэмболи\\p{L}*\\s+легочн\\p{L}*(?![\\p{L}])(?!\\s+гипертенз)(?:\\s+артери\\p{L}*)?", "\"pulmonary embolism\"[tiab]"),
   concept("pci", "ЧКВ и стентирование", "чкв|стентир|чрескожн", "\"percutaneous coronary\"[tiab] OR PCI[tiab] OR stent*[tiab]"),
-  // Coronary bypass only: gastric, ventriculoperitoneal and vascular shunts are separate concepts below.
-  concept("cabg", "коронарное шунтирование", "акш(?![\\p{L}])|мкш(?![\\p{L}])|аортокоронарн|маммарокоронарн|коронарн\\p{L}*\\s+шунтир|шунтировани\\p{L}*\\s+коронарн", "\"coronary artery bypass\"[tiab] OR CABG[tiab]"),
-  concept("gastric_bypass", "бариатрическая хирургия", "шунтировани\\p{L}*\\s+желуд|желудочн\\p{L}*\\s+шунтир|гастрошунтир|бариатрическ", "\"gastric bypass\"[tiab] OR \"bariatric surgery\"[tiab]"),
-  concept("vp_shunt", "вентрикулоперитонеальное шунтирование", "вентрикуло-?перитонеальн|впш(?![\\p{L}])", "\"ventriculoperitoneal shunt\"[tiab]"),
-  concept("cv_events", "сердечно-сосудистые события", "(?:сердечно-?сосудист|кардиоваскулярн)\\p{L}*(?:\\s+\\p{L}+)?\\s+событи|mace(?![\\p{L}])", "\"major adverse cardiovascular events\"[tiab] OR MACE[tiab] OR \"cardiovascular events\"[tiab]"),
-  concept("hypoglycemia", "гипогликемия", "гипогликеми", "hypoglycemia[tiab] OR hypoglycaemia[tiab]"),
-  concept("insulin_therapy", "инсулинотерапия", "инсулинотерап|(?:терапи|лечени)\\p{L}*\\s+инсулин|базальн\\p{L}*\\s+инсулин|инсулин(?:ы|ов|ом|а|у)?(?![\\p{L}])", "insulin[tiab]"),
-  concept("insulin_resistance", "инсулинорезистентность", "инсулинорезист", "\"insulin resistance\"[tiab]"),
-  concept("tavi", "TAVI", "tavi|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
+  concept("tavi", "TAVI", "tavi|тави|тавр|транскатетерн", "TAVI[tiab] OR TAVR[tiab] OR transcatheter[tiab]"),
   concept("elderly", "пожилые пациенты", "пожил|старше\\s*(?:70|75|80)|70\\+|75\\+", "elderly[tiab] OR older[tiab] OR aged[tiab]"),
-  concept("ckd", "ХБП", "хбп|почечн|рскф", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
-  concept("diabetes", "сахарный диабет", "диабет|сд2", "diabet*[tiab]"),
+  concept("ckd", "ХБП", "хбп|почечн|рскф|(?:хроническ\\p{L}*\\s+)?болезн\\p{L}*\\s+почек", "\"chronic kidney disease\"[tiab] OR CKD[tiab] OR renal[tiab]"),
+  concept("dm1", "сахарный диабет 1 типа", "сд\\s*1(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+1(?:-?го)?\\s*тип\\p{L}*|1(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 1 diabetes\"[tiab]"),
+  concept("dm2", "сахарный диабет 2 типа", "сд\\s*2(?![\\p{N}])(?:-?го)?(?:\\s*тип\\p{L}*)?|(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*\\s+2(?:-?го)?\\s*тип\\p{L}*|2(?:-?го)?\\s*тип\\p{L}*\\s+(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*", "\"type 2 diabetes\"[tiab]"),
+  concept("diabetes", "сахарный диабет", "(?:сахарн\\p{L}*\\s+)?диабет\\p{L}*|сд2|сд(?![\\p{L}])", "diabet*[tiab]"),
+  // «гипогликемические препараты» are glucose-lowering drugs, not hypoglycaemia.
+  concept("hypoglycemia", "гипогликемия", "гипогликеми(?!ческ\\p{L}*\\s+(?:препарат|средств|терапи|агент|лекарств))", "hypoglyc*[tiab]"),
+  concept("insulin", "инсулин", "инсулинотерап|инсулин(?:а|у|ом|е|ы|ов)?(?![\\p{L}])", "insulin[tiab]"),
+  concept("birth", "роды", "(?<!(?:разн|нескольк|друг|эт|всех|двух|тр[её]х|многих|одн)\\p{L}*\\s)род(?:ы|ов|ах|ам|ами)(?![\\p{L}])|родоразрешени|послеродов", "delivery[tiab] OR childbirth[tiab] OR postpartum[tiab]"),
   concept("obesity", "ожирение", "ожирен", "obesity[tiab] OR obese[tiab]"),
   concept("pregnancy", "беременность", "беременн", "pregnan*[tiab]"),
   concept("hyperkalemia", "гиперкалиемия", "гиперкалием", "hyperkalemia[tiab] OR hyperkalaemia[tiab]"),
@@ -258,9 +268,13 @@ export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("ai", "ИИ", "искусственн.{0,6}интеллект|нейросет|ии(?![\\p{L}])", "\"artificial intelligence\"[tiab] OR \"machine learning\"[tiab] OR \"deep learning\"[tiab]"),
 ];
 
-export function pubmedConceptsIn(text: string): PubmedConcept[] {
+/** At most `limit` concepts go into one PubMed query (the research run's limit is 4). */
+export function pubmedConceptsIn(text: string, limit = 4): PubmedConcept[] {
   const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
-  return PUBMED_CONCEPTS.filter(item => item.match.test(normalized)).slice(0, 4);
+  const found = PUBMED_CONCEPTS.filter(item => item.match.test(normalized) || Boolean(item.cased?.test(text.normalize("NFKC"))));
+  // A stated diabetes type replaces the general concept: «type 1 diabetes», not any diabetes.
+  const typed = found.some(item => item.id === "dm1" || item.id === "dm2");
+  return found.filter(item => !(typed && item.id === "diabetes")).slice(0, limit);
 }
 
 /** Human label for a catalog ontology topic (e.g. "pulmonary_hypertension" → "Лёгочная гипертензия"). */
@@ -277,26 +291,44 @@ export function sourceLabels(ids: readonly string[]): string[] {
   return ids.map(id => sourceById(id)?.label).filter((label): label is string => Boolean(label));
 }
 
-function maskPhrases(normalized: string, phrases: readonly string[] | undefined): string {
-  if (!phrases?.length) return normalized;
-  return normalized.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${phrases.join("|")})`, "gu"), match => " ".repeat(match.length));
+/**
+ * Map arbitrary Russian/English text to topic ids using keyword stems. A key inside a word counts
+ * («дислипидемия» → «липид»), but not after a negating «не» («неклапанная» is not «клапан»). A topic whose
+ * matched words all belong to a multi-word key of another found topic is that narrower topic, not its own:
+ * «лёгочная гипертензия» is pulmonary hypertension, not arterial hypertension through «гипертенз».
+ */
+/** Abbreviations with another meaning in a context: «АД» in «атопический дерматит (АД)» is not blood pressure. */
+const AMBIGUOUS_KEYS: Readonly<Record<string, RegExp>> = {
+  ад: /атопическ/u,
+  // An infarction of another organ is not ИБС («инфаркт мозга», «лакунарный инфаркт», «инфаркты плаценты»).
+  инфаркт: /инфаркт\p{L}*\s+(?:мозг|мозжечк|плацент|почк|селезен|кишечн|легк|легочн|спинн|сетчатк)|(?:лакунарн|церебральн|ишемическ|геморрагическ|кардиоэмболическ|мозгов)\p{L}*\s+инфаркт/u,
+};
+
+export function topicsMentioned(specialty: SpecialtyId, text: string): string[] {
+  const normalized = text.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+  const words = normalized.match(/[\p{L}\p{N}-]+/gu) ?? [];
+  const hitsWord = (part: string, word: string) => part.length <= 3 ? new RegExp(`(^|[^\\p{L}\\p{N}])${part}([^\\p{L}\\p{N}]|$)`, "u").test(word) : word.includes(part) && !word.startsWith(`не${part}`);
+  const at = (part: string): number[] => words.flatMap((word, index) => hitsWord(part, word) ? [index] : []);
+  const match = (topic: TopicOption) => {
+    // Keys are compared the way the text is normalised («лёгочн» → «легочн»).
+    const found = topic.keywords.filter(keyword => !AMBIGUOUS_KEYS[keyword]?.test(normalized)).flatMap(keyword => {
+      const parts = keyword.toLocaleLowerCase("ru-RU").replace(/ё/g, "е").split(" ");
+      const positions = parts.map(at);
+      if (!positions.every(list => list.length)) return [];
+      // A multi-word key also records where its words stand together («лёгочная гипертензия»): only that phrase is the narrower topic.
+      const phrase = parts.length > 1 ? positions[0].filter(start => parts.every((part, offset) => start + offset < words.length && hitsWord(part, words[start + offset]))).flatMap(start => parts.map((_, offset) => start + offset)) : [];
+      return [{ words: positions.flat(), phrase: new Set(phrase) }];
+    });
+    return found.length ? { id: topic.id, words: new Set(found.flatMap(item => item.words)), phrases: found.map(item => item.phrase).filter(phrase => phrase.size) } : null;
+  };
+  const own = (TOPICS[specialty] ?? []).flatMap(topic => match(topic) ?? []);
+  // Narrower phrases of any specialty («легочн гипертенз» in cardiology) also stop a broader key in a specialty without that topic.
+  const narrower = (Object.keys(TOPICS) as SpecialtyId[]).flatMap(id => TOPICS[id].flatMap(topic => match(topic) ?? [])).flatMap(hit => hit.phrases.map(phrase => ({ id: hit.id, phrase })));
+  return own
+    .filter(hit => !narrower.some(other => other.id !== hit.id && phraseCovers(other.phrase, hit.words)))
+    .map(hit => hit.id);
 }
 
-/** Map arbitrary Russian/English text to topic ids using keyword stems. */
-export function topicsMentioned(specialty: SpecialtyId, text: string): string[] {
-  const original = text.normalize("NFKC");
-  const normalized = original.toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
-  return TOPICS[specialty]
-    .filter(topic => {
-      if (topic.abbreviations?.some(pattern => pattern.test(original))) return true;
-      const value = maskPhrases(normalized, topic.notWhen);
-      return topic.keywords.some(keyword => {
-        const parts = keyword.split(" ");
-        return parts.every(part => {
-          if (part.length <= 3) return new RegExp(`(^|[^\\p{L}])${part}([^\\p{L}]|$)`, "u").test(value);
-          return value.includes(part);
-        });
-      });
-    })
-    .map(topic => topic.id);
+function phraseCovers(phrase: ReadonlySet<number>, words: ReadonlySet<number>): boolean {
+  return phrase.size > words.size && [...words].every(index => phrase.has(index));
 }

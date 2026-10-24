@@ -1,16 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, Bell, BellRing, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 
+/** Saved state is a way to the saved copy («В материалах» opens «Мои материалы»), not a dead disabled button. */
+export function SavedLink() {
+  const { specialty } = useWorkspace();
+  return <Link className="ws-button is-small is-quiet" href={`/${specialty}/materials`} data-saved="true"><BookmarkCheck size={14} aria-hidden="true" />В материалах</Link>;
+}
+
 export function SaveResultButton({ resultId, saved: initiallySaved }: { resultId: string; saved: boolean }) {
   const { command } = useWorkspace();
   const [saved, setSaved] = useState(initiallySaved);
-  return <button type="button" className="ws-button is-small is-quiet" disabled={saved} onClick={async () => { const response = await command({ action: "saveResult", resultId }, { refresh: false }); if (response) setSaved(true); }}>
-    {saved ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />}{saved ? "В материалах" : "Сохранить"}
+  if (saved) return <SavedLink />;
+  return <button type="button" className="ws-button is-small is-quiet" onClick={async () => { const response = await command({ action: "saveResult", resultId }, { refresh: false }); if (response) setSaved(true); }}>
+    <Bookmark size={14} aria-hidden="true" />Сохранить
   </button>;
 }
 
