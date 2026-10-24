@@ -103,7 +103,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
       {forYou.cards.length
         ? <ForYouList cards={forYou.cards} />
         : <p className="ws-empty">{catchUpDue ? "Источники проверяются — подборка появится через несколько секунд." : `Свежих материалов по специальности «${adapter.name}» за последние две недели не нашлось. Задайте вопрос выше — ответ соберётся из источников.`}</p>}
-      {!forYou.personalised && forYou.cards.length > 0 && <TopicNudge topics={topicsFor(specialty)} chosen={profile.interests.topics} trustedSources={profile.interests.trustedSources} excludedSources={profile.interests.excludedSources} />}
+      {!forYou.personalised && forYou.cards.length > 0 && <TopicNudge topics={topicsFor(specialty)} chosen={profile.interests.topics} />}
     </section>
   </div>;
 }

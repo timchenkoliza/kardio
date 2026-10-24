@@ -83,7 +83,8 @@ test("B-02: adding a topic from the home nudge keeps an excluded source", async 
   const lancet = page.locator('.pt-source[data-source="lancet"] select');
   await lancet.selectOption("excluded");
   await expect(page.locator('.pt-source[data-source="lancet"]')).toHaveAttribute("data-state", "excluded");
-  await expect(page.getByText("Сохранено").first()).toBeVisible({ timeout: 15_000 });
+  // The sources card's own status: «Сохранено находок» elsewhere on the page also contains the word.
+  await expect(page.locator("#sources .pt-profile-saved, .pt-profile-card .pt-profile-saved").filter({ hasText: /^Сохранено$/u }).first()).toBeVisible({ timeout: 15_000 });
   await page.goto("/cardiology");
   const nudge = page.locator(".pt-nudge");
   test.skip(!(await nudge.count()), "the nudge is shown only before topics are chosen");

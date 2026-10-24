@@ -11,14 +11,15 @@ import { nbsp } from "@/lib/ui/typography";
  * Progressive profiling: one optional, explained step — never a wall before
  * value. Shown only after «Для вас» already has specialty-level content.
  */
-export function TopicNudge({ topics, chosen, trustedSources, excludedSources }: { topics: readonly TopicOption[]; chosen: readonly string[]; trustedSources: readonly string[]; excludedSources: readonly string[] }) {
+export function TopicNudge({ topics, chosen }: { topics: readonly TopicOption[]; chosen: readonly string[] }) {
   const router = useRouter();
   const { command } = useWorkspace();
   const [busy, setBusy] = useState<string | null>(null);
   async function add(id: string) {
     setBusy(id);
-    // Only the topic changes here: source preferences are sent back exactly as they are.
-    const response = await command({ action: "setInterests", topics: [...new Set([...chosen, id])], trustedSources: [...trustedSources], excludedSources: [...excludedSources], runAgents: true }, { refresh: false });
+    // Only the topic is sent: the server adds it to the stored profile, so source preferences
+    // changed a moment ago in another tab or page are never overwritten by this page's copy (B-02).
+    const response = await command({ action: "addTopic", topic: id, runAgents: true }, { refresh: false });
     setBusy(null);
     if (response) router.refresh();
   }
