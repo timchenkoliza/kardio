@@ -1,4 +1,5 @@
 import type { SpecialtyId } from "@/lib/domain/types";
+import type { SourceId } from "@/lib/mesh/sources";
 import type { ContentTypePref, DeliveryChannel, EventFormatPref, Frequency, LearningGoal } from "./types";
 
 /**
@@ -118,21 +119,27 @@ export interface SourceOption {
   label: string;
   /** Golden Set source ids or connector ids this preference maps to. */
   matches: string[];
-  /** PubMed journal filter applied when this source is trusted. */
+  /** PubMed journal (NLM abbreviation): a filter when trusted in research, excluded or ranked first in answers. */
   pubmedJournal: string | null;
+  /**
+   * Answer-path (source mesh) sources this option stands for as a whole.
+   * Resolved in one place for the planner, adapters and compiler: lib/mesh/source-preferences.ts.
+   */
+  meshSources: readonly SourceId[];
 }
 
 export const SOURCE_OPTIONS: readonly SourceOption[] = [
-  { id: "rko", label: "РКО", matches: ["src-rko", "src-rko-guidelines", "src-rko-video", "src-rko-esc", "rnmo-rko"], pubmedJournal: null },
-  { id: "rkj", label: "Российский кардиологический журнал", matches: ["src-rkj"], pubmedJournal: "Russ J Cardiol" },
-  { id: "esc", label: "ESC", matches: ["esc-guidelines", "esc-congresses", "src-rko-esc"], pubmedJournal: "Eur Heart J" },
-  { id: "pubmed", label: "PubMed", matches: ["pubmed"], pubmedJournal: null },
-  { id: "nejm", label: "NEJM", matches: ["journal-nejm"], pubmedJournal: "N Engl J Med" },
-  { id: "lancet", label: "The Lancet", matches: ["journal-lancet"], pubmedJournal: "Lancet" },
-  { id: "aha", label: "AHA / ACC", matches: ["aha-meetings"], pubmedJournal: "Circulation" },
-  { id: "regulators", label: "Регуляторы (Минздрав, FDA)", matches: ["regulatory-news"], pubmedJournal: null },
-  { id: "nmo", label: "Портал НМО", matches: ["rnmo-rko"], pubmedJournal: null },
-  { id: "telegram", label: "Телеграм-каналы", matches: ["telegram"], pubmedJournal: null },
+  { id: "rko", label: "РКО", matches: ["src-rko", "src-rko-guidelines", "src-rko-video", "src-rko-esc", "rnmo-rko"], pubmedJournal: null, meshSources: ["goldenset_catalog"] },
+  { id: "rkj", label: "Российский кардиологический журнал", matches: ["src-rkj"], pubmedJournal: "Russ J Cardiol", meshSources: [] },
+  { id: "esc", label: "ESC", matches: ["esc-guidelines", "esc-congresses", "src-rko-esc"], pubmedJournal: "Eur Heart J", meshSources: ["esc_guidelines_snapshot"] },
+  { id: "pubmed", label: "PubMed", matches: ["pubmed"], pubmedJournal: null, meshSources: ["pubmed"] },
+  { id: "nejm", label: "NEJM", matches: ["journal-nejm"], pubmedJournal: "N Engl J Med", meshSources: [] },
+  { id: "lancet", label: "The Lancet", matches: ["journal-lancet"], pubmedJournal: "Lancet", meshSources: [] },
+  { id: "aha", label: "AHA / ACC", matches: ["aha-meetings"], pubmedJournal: "Circulation", meshSources: [] },
+  // FDA labels (openFDA) are drug instructions, and ГРЛС / the rubricator are official hand-offs: neither is a regulatory message.
+  { id: "regulators", label: "Регуляторы (Минздрав, FDA)", matches: ["regulatory-news"], pubmedJournal: null, meshSources: ["regulatory_snapshot"] },
+  { id: "nmo", label: "Портал НМО", matches: ["rnmo-rko"], pubmedJournal: null, meshSources: [] },
+  { id: "telegram", label: "Телеграм-каналы", matches: ["telegram"], pubmedJournal: null, meshSources: [] },
 ];
 
 export const CONTENT_TYPE_OPTIONS: ReadonlyArray<{ id: ContentTypePref; label: string }> = [

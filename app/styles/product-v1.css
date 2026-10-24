@@ -82,6 +82,10 @@ button:disabled, select:disabled { cursor: wait; opacity: .65; }
 .save-button.saved { border-color: var(--color-accent); background: var(--color-accent-soft); color: var(--color-accent-ink); }
 .save-button.compact { min-height: 34px; width: 34px; padding: 0; border: 0; background: transparent; border-radius: var(--radius-sm); }
 .save-button.compact:hover, .save-button.compact.saved { background: var(--color-accent-soft); }
+/* DS R-05: a full 44 px target on phones and tablets; a narrow header can no longer squeeze it. */
+@media (max-width: 1023px) {
+  .save-button, .save-button.compact { min-width: var(--ws-touch-target); min-height: var(--ws-touch-target); }
+}
 
 .context-rail { position: sticky; top: 96px; display: grid; gap: 18px; }
 .context-module { padding: 22px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); }
