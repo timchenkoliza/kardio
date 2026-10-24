@@ -183,7 +183,9 @@ export async function continuationFor(sessionId: string, specialty: SpecialtyId,
   const previous = await workspaceStore().getRun(sessionId, contextRunId);
   if (!previous || previous.specialty !== specialty || !previous.input.text || previous.status === "blocked") return null;
   if (!isDependentFollowup(text, specialty)) return null;
-  const job = previous.input.explicitJob && isPortalJob(previous.intent) ? previous.intent : null;
+  // A follow-up under a research review continues the review, wherever it was started (R1 B-6): a review from the
+  // scenario page stores the agent's intent («research_question»), not the portal job, and is never «explicit».
+  const job = previous.input.explicitJob && isPortalJob(previous.intent) ? previous.intent : jobForRun(previous) === "research" ? "research" : null;
   // A chain keeps the original question and the steps in between; the header never shows the internal joined text.
   const before = previous.input.continuation;
   const continuation = {

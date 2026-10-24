@@ -23,6 +23,7 @@ import { ExperienceView } from "@/components/experience/experience-view";
 import { WorkspaceProvider } from "@/components/workspace/workspace-provider";
 import { sentencesOf } from "@/server/agents/adapters/pubmed-abstracts";
 import { executeAgentCommand } from "@/server/agents/commands";
+import { continuationFor } from "@/server/portal/manager";
 import { workspaceStore } from "@/server/agents/store";
 import * as tools from "@/server/agents/tools";
 import { findDrugChanges } from "@/server/agents/services/drug-change";
@@ -269,5 +270,20 @@ describe("A-2 / B-8: the profile page sends only what changed", () => {
     stored = (await workspaceStore().getProfile(SESSION, "pediatrics"))!.interests;
     expect(stored.topics).toEqual([]);
     expect(stored.excludedSources).toContain("lancet");
+  });
+});
+
+describe("B-6: a follow-up under a research review continues the review", () => {
+  it("a review started on the scenario page (agent intent, not explicit) keeps the research job", async () => {
+    const SESSION = "r1-research-followup";
+    const review = { ...runOf("ПОАК у пожилых с фибрилляцией предсердий"), id: "run-00000000-0000-4000-8000-000000000002", agentId: "research", intent: "research_question", input: { text: "ПОАК у пожилых с фибрилляцией предсердий", preferenceDigest: "", explicitJob: false } } as unknown as AgentRun;
+    await workspaceStore().saveRun(SESSION, review);
+    const continued = await continuationFor(SESSION, "cardiology", review.id, "а у женщин?");
+    expect(continued?.options.job).toBe("research");
+    expect(continued?.options.continuation).toMatchObject({ runId: review.id, followup: "а у женщин?", question: "ПОАК у пожилых с фибрилляцией предсердий" });
+    // A plain answer typed on the home page still lets the follow-up route by its own words.
+    const answer = { ...review, id: "run-00000000-0000-4000-8000-000000000003", agentId: "reference", intent: "answer" } as unknown as AgentRun;
+    await workspaceStore().saveRun(SESSION, answer);
+    expect((await continuationFor(SESSION, "cardiology", answer.id, "а у женщин?"))?.options.job ?? null).toBeNull();
   });
 });
