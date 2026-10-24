@@ -23,24 +23,40 @@ test("the home shortcut and the job link open the configured scenario", async ({
 test("a named publication gets one compact answer, details collapsed, answer before the next question on a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cardiology/agents/research");
-  await page.getByRole("textbox").first().fill("PMID 99999999");
-  await page.locator("form button[type=submit]").first().click();
-  await expect(page).toHaveURL(/run=/u, { timeout: 60_000 });
+  // R1 A-7: the question is on the first screen of a phone, before what to get and where to search.
+  const field = page.getByRole("textbox").first();
+  const fieldBox = (await field.boundingBox())!;
+  expect(fieldBox.y + fieldBox.height).toBeLessThanOrEqual(844);
+  await field.fill("PMID 99999999");
+  // Enter sends, as on the home page.
+  await field.press("Enter");
+  // R1 B-6: one address per review — the result page, as from «История».
+  await expect(page).toHaveURL(/\/cardiology\/ask\?run=/u, { timeout: 60_000 });
 
   const answer = page.locator("[data-research-answer]");
-  await expect(answer).toBeVisible();
+  await expect(answer).toBeVisible({ timeout: 60_000 });
   const kind = await answer.getAttribute("data-research-answer");
   // Not found when PubMed answers; unavailable when it does not. Never «study» for a PMID that does not exist.
   expect(["not_found", "unavailable"]).toContain(kind);
   await expect(answer.locator("img")).toHaveCount(0);
 
-  const newReview = page.getByRole("heading", { name: "Новый разбор" });
-  await expect(newReview).toBeVisible();
+  const next = page.getByRole("heading", { name: "Уточнить или спросить другое" });
+  await expect(next).toBeVisible();
   const answerTop = (await answer.boundingBox())!.y;
-  const composerTop = (await newReview.boundingBox())!.y;
-  expect(answerTop).toBeLessThan(composerTop);
+  const nextTop = (await next.boundingBox())!.y;
+  expect(answerTop).toBeLessThan(nextTop);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+
+  // The old scenario address of the same review opens the same result page.
+  const runId = new URL(page.url()).searchParams.get("run")!;
+  await page.goto(`/cardiology/agents/research?run=${runId}`);
+  await expect(page).toHaveURL(new RegExp(`/cardiology/ask\\?run=${runId}`, "u"));
+
+  // R1 B-9: opened from «История», the way back is «История».
+  await page.goto("/cardiology/history");
+  await page.getByRole("link", { name: "PMID 99999999" }).first().click();
+  await expect(page.locator('.ws-back[data-back="history"]')).toHaveText(/История/u);
 });
 
 test("the portal input sends a study review to the same scenario and the same answer", async ({ page }) => {

@@ -25,6 +25,7 @@ import { sentencesOf } from "@/server/agents/adapters/pubmed-abstracts";
 import { executeAgentCommand } from "@/server/agents/commands";
 import { workspaceStore } from "@/server/agents/store";
 import * as tools from "@/server/agents/tools";
+import { findDrugChanges } from "@/server/agents/services/drug-change";
 import { resetBrowserToolState } from "@/server/mesh/browser/tool";
 import { evidenceAnswer } from "@/server/mesh/executor";
 import { executePlan } from "@/server/mesh/execute";
@@ -75,12 +76,12 @@ describe("B-2 / A-3: a source excluded in the profile is named as the reason, wi
     const ctx = await testContext({ agentId: "reference", topics: [], profile, text, job: "answer", browserDriver: new FixtureDriver(), pubmed: fakePubmed([]) });
     const out = await evidenceAnswer(ctx);
     const final = out.plan.at(-1)!;
+    // The reviewer's case: PubMed is the only source this question has, so nothing was searched.
+    expect(out.experience?.graph.documents ?? []).toEqual([]);
     expect(`${final.label} ${final.detail}`).not.toMatch(/не распознаны/u);
-    if (!out.experience?.graph.documents.length) {
-      expect(final.detail).toMatch(/Подходящие источники исключены в вашем профиле: .*PubMed/u);
-      const outcome = runOutcome({ status: "completed", plan: out.plan, toolsUsed: out.toolsUsed, resultIds: [], experience: out.experience ?? null, error: null } as never);
-      expect(outcome).toMatchObject({ kind: "not_run", label: "Проверка не выполнялась", sourcesLink: true });
-    }
+    expect(final.detail).toMatch(/Подходящие источники исключены в вашем профиле: PubMed/u);
+    const outcome = runOutcome({ status: "completed", plan: out.plan, toolsUsed: out.toolsUsed, resultIds: [], experience: out.experience ?? null, error: null } as never);
+    expect(outcome).toMatchObject({ kind: "not_run", label: "Проверка не выполнялась", sourcesLink: true });
   });
 
   it("a PMID with PubMed excluded: «Проверка не выполнялась», not «Проверено: ничего не найдено»; no «в настройках разбора»", () => {
@@ -198,13 +199,53 @@ describe("C-3: a dose asked for a described patient", () => {
 });
 
 describe("C-5: a guideline question about a drug no guideline speaks of", () => {
-  it("the gap is named", async () => {
-    const { graph } = await acceptanceGraph();
-    const gaps = graph.gaps.join(" | ");
-    // The acceptance question names empagliflozin; its documents may or may not state a position: the line follows them.
-    const guidelineClaims = graph.claims.filter(claim => ["guideline", "society_guideline_summary", "guideline_publication"].includes(graph.documents.find(document => document.id === claim.documentId)?.kind ?? "") && /эмпаглифлозин|empagliflozin|sglt2|gliflozin|иНГЛТ/iu.test(`${claim.statement} ${claim.quote ?? ""}`));
-    if (guidelineClaims.length) expect(gaps).not.toMatch(/позиции действующих рекомендаций по препарату/u);
-    else expect(gaps).toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин»/u);
+  it("no guideline states a position on empagliflozin (or SGLT2) for HFpEF: the gap is named in «Коротко»", async () => {
+    // The fixtures hold the reviewer's case: КР 2016 «no specific treatment» for ХСН-сФВ, an ESC summary on SGLT2
+    // started in hospital (decompensated HF, not HFpEF) and the HFpEF definition — no position on the drug for HFpEF.
+    const { graph, registry, intent } = await acceptanceGraph();
+    expect(graph.gaps.join(" | ")).toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин» при /u);
+    const output = compileExperience({ graph, user: { signals: ["specialty"], topics: [] }, modules: intent.modules, policy: { descriptors: descriptors(registry) }, scenario: intent.context.scenario, resultKeys: {} });
+    const html = view(runOf("Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?"), { intentId: "i", manifest: output.manifest, graph, plan: { id: "p", steps: 1, invocations: 1, reused: false } });
+    expect(html.match(/data-module="key_takeaway"[\s\S]*?<\/section>/u)?.[0] ?? "").toMatch(/позиции действующих рекомендаций по препарату «эмпаглифлозин»/u);
+  });
+
+  it("a guideline statement on the class for the asked phenotype is a position: no gap", async () => {
+    const { graph, plan, execution, registry, intent, ctx } = await acceptanceGraph();
+    const guideline = graph.documents.find(document => document.kind === "guideline" || document.kind === "society_guideline_summary")!;
+    const results = execution.results.map(result => ({ ...result, documents: result.documents.map(document => document.id !== guideline.id ? document : { ...document, claims: [...document.claims, { ...document.claims[0], id: "claim-sglt2-hfpef", kind: "guideline_statement" as const, statement: "иНГЛТ-2 рекомендованы при ХСН с сохранённой ФВ (класс I).", quote: "иНГЛТ-2 рекомендованы при ХСН с сохранённой ФВ (класс I).", entityIds: [], covers: intent.context.subtype ? [intent.context.subtype.id] : [] }] }) }));
+    const statuses = await registryStatuses(registry);
+    const withPosition = buildEvidenceGraph({ id: "graph-c5", intent, plan, results, descriptors: descriptors(registry), statuses, now: ctx.nowIso });
+    expect(withPosition.gaps.join(" | ")).not.toMatch(/позиции действующих рекомендаций по препарату/u);
+  });
+});
+
+describe("A-8: the feed honours an excluded source", () => {
+  it("ESC set to «Не использовать»: no «ESC 2026: …» record in the drug feed", async () => {
+    const profile = profileWith("cardiology", ["hf"]);
+    const shown = findDrugChanges(await testContext({ agentId: "drugs", topics: ["hf"], profile }));
+    expect(shown.some(draft => /ESC/u.test(draft.title))).toBe(true);
+    profile.interests.excludedSources = ["esc"];
+    const excluded = findDrugChanges(await testContext({ agentId: "drugs", topics: ["hf"], profile }));
+    expect(excluded.some(draft => /ESC/u.test(draft.title))).toBe(false);
+    // Only the excluded source's records go; the rest of the feed stays as it was.
+    expect(excluded.map(draft => draft.key)).toEqual(shown.filter(draft => !/ESC|Eur Heart J|European Heart Journal/u.test(`${draft.title} ${JSON.stringify(draft.source)}`)).map(draft => draft.key));
+  });
+});
+
+describe("B-7: the whole answer can be saved", () => {
+  it("«Сохранить ответ» keeps the question, «Коротко» and the sources as one material that leads back to the result", async () => {
+    const SESSION = "r1-save-answer";
+    const { graph, registry, intent } = await acceptanceGraph();
+    const output = compileExperience({ graph, user: { signals: ["specialty"], topics: [] }, modules: intent.modules, policy: { descriptors: descriptors(registry) }, scenario: intent.context.scenario, resultKeys: {} });
+    const run = { ...runOf("Эмпаглифлозин при ХСН с сохранённой ФВ — что сейчас с рекомендациями?"), id: "run-00000000-0000-4000-8000-000000000001", experience: { intentId: "i", manifest: output.manifest, graph, plan: { id: "p", steps: 1, invocations: 1, reused: false } } } as AgentRun;
+    await workspaceStore().saveRun(SESSION, run);
+    const saved = await executeAgentCommand(SESSION, { action: "saveAnswer", specialty: "cardiology", runId: run.id });
+    expect(saved.material).toMatchObject({ format: "result", ownership: "GENERATED", origin: { runId: run.id } });
+    expect(saved.material?.title).toMatch(/^Ответ: Эмпаглифлозин/u);
+    expect(saved.material?.text).toMatch(/Коротко:/u);
+    // Saved once: a second click returns the same material.
+    const again = await executeAgentCommand(SESSION, { action: "saveAnswer", specialty: "cardiology", runId: run.id });
+    expect(again.material?.id).toBe(saved.material?.id);
   });
 });
 
