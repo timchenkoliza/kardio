@@ -186,8 +186,10 @@ function normalizedEndpoint(source: ResearchEvidenceField | undefined): Research
   // a point inside a number («0.79») does not end the value.
   const match = source.supportText.match(/\bprimary(?:\s+(?:efficacy|safety|composite|clinical))?\s+(?:end\s?point|outcome)(?:\s+of\s+(?:the|this)\s+(?:trial|study))?(?:\s+(?:was|were|included|comprised|consisted of))?\s*[:,-]?\s*((?:[^.;]|\.(?=\d)){8,180})/iu);
   if (match?.[1] && !isFragment(match[1])) return normalizedField(match[1], "endpoint", source, 0.96);
-  // The endpoint field is matched on «follow-up» too: a sentence that never names an endpoint or outcome is not one.
-  if (!/\b(?:end\s?points?|outcomes?)\b/iu.test(source.value) || isFragment(source.value)) return null;
+  // A whole sentence is the endpoint only when it defines one («The primary end point was …», «… outcome was a composite of …»):
+  // a sentence that reports a result about an outcome or discusses outcomes is left out (R1 A round 2).
+  const defines = /\b(?:primary|secondary|composite|co-primary)\s+(?:efficacy\s+|safety\s+)?(?:end\s?points?|outcomes?)(?:\s+of\s+(?:the|this)\s+(?:trial|study))?\s+(?:was|were|is|are|included|comprised|consisted of)\b|\b(?:end\s?points?|outcomes?)\s+(?:was|were)\s+(?:a|an|the)?\s*composite\b/iu;
+  if (!defines.test(source.value) || isFragment(source.value)) return null;
   return normalizedField(source.value, "endpoint", source, 0.88);
 }
 

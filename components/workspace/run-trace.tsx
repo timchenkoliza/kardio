@@ -1,7 +1,7 @@
 import { CircleCheck, CircleDashed, CircleSlash, CircleX } from "lucide-react";
 import { countLabel, formatRelativeRu } from "@/lib/agents/format";
 import type { AgentRun, ConnectorDescriptor } from "@/lib/agents/types";
-import { runOutcome } from "@/lib/portal/run-outcome";
+import { EXCLUDED_IN_PROFILE, runOutcome } from "@/lib/portal/run-outcome";
 import { ModeBadge } from "./mode-badge";
 
 const STEP_ICON = { done: CircleCheck, skipped: CircleDashed, failed: CircleX, blocked: CircleSlash } as const;
@@ -11,6 +11,8 @@ export function RunTrace({ run, connectors, now, showSynthesis = true, showConne
   const outcome = runOutcome(run, { monitoring });
   const used = new Set(run.toolsUsed.flatMap(use => use.connectorIds));
   const shown = connectors.filter(connector => used.has(connector.id) || connector.mode === "UNAVAILABLE");
+  // A source the physician excluded is not «Онлайн» for this run: it was not asked (R1 B round 2 N-3, C N-10).
+  const excluded = new Set(run.toolsUsed.filter(use => EXCLUDED_IN_PROFILE.test(use.note ?? "")).flatMap(use => use.connectorIds));
   return <section className="ws-trace" aria-labelledby={`trace-${run.id}`}>
     <div className="ws-trace-head">
       <h3 id={`trace-${run.id}`}>Как получен результат</h3>
@@ -26,6 +28,6 @@ export function RunTrace({ run, connectors, now, showSynthesis = true, showConne
     </ol>
     {run.riskNotices.length > 0 && <ul className="ws-notices">{run.riskNotices.map(notice => <li key={notice}>{notice}</li>)}</ul>}
     {showSynthesis && run.synthesis && <div className="ws-synthesis"><h4>Обзор</h4>{run.synthesis.split("\n\n").map(paragraph => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}</div>}
-    {showConnectors && shown.length > 0 && <div className="ws-sources-used"><h4>Источники и их состояние</h4><ul>{shown.map(connector => <li key={connector.id}><span>{connector.name}</span><ModeBadge mode={connector.mode} origin={connector.dataOrigin} snapshotAt={connector.snapshotAt} /></li>)}</ul></div>}
+    {showConnectors && shown.length > 0 && <div className="ws-sources-used"><h4>Источники и их состояние</h4><ul>{shown.map(connector => <li key={connector.id}><span>{connector.name}</span>{excluded.has(connector.id) ? <span className="ws-muted" data-excluded="true">исключён в вашем профиле — не запрашивали</span> : <ModeBadge mode={connector.mode} origin={connector.dataOrigin} snapshotAt={connector.snapshotAt} />}</li>)}</ul></div>}
   </section>;
 }

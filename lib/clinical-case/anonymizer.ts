@@ -4,8 +4,15 @@ type Rule = { label: string; pattern: RegExp; replacement: string };
 
 // A street name: one or two words or a number with a word («Ленина», «Красных Зорь», «8 Марта»), never the rest of the sentence.
 const STREET = String.raw`(?:\d{1,3}(?:-?(?:го|я|й))?\s+)?[А-ЯЁ][\p{L}-]+(?:\s+[А-ЯЁ][\p{L}-]+)?`;
-// House, building and flat after a street or on their own («д. 5», «д. 5/2 корп. 1», «кв. 3»).
-const HOUSE = String.raw`(?:,?\s*(?:д\.|дом)\s*\d+[а-яА-Я]?(?:\s*\/\s*\d+)?)?(?:,?\s*(?:корп\.|к\.|стр\.|строение)\s*\d+)?(?:,?\s*(?:кв\.|квартира)\s*\d+)?`;
+// House, building and flat after a street or on their own («д. 5», «д. 5/2 корп. 1», «кв. 3», «кв 7»).
+const HOUSE = String.raw`(?:,?\s*(?:д\.|дом)\s*\d+[а-яА-Я]?(?:\s*\/\s*\d+)?)?(?:,?\s*(?:корп\.|к\.|стр\.|строение)\s*\d+)?(?:,?\s*(?:кв\.?|квартира)\s*\d+)?`;
+// A house number, with a flat after a hyphen or a slash («32», «5-3», «12-45», «5/2»); never a range with a unit after it.
+const NUMBER = String.raw`\d{1,3}[а-яА-Я]?(?:\s*[-/]\s*\d{1,4})?(?![\p{N}])(?!\s*(?:%|мг|мкг|мл|мкмоль|ммоль|г\/|ед|лет|года|мм|кг|раз|мин|ч\b))`;
+// Street types, written before the name («ул. Ленина») or after it («Ленинский проспект»).
+const STREET_TYPE = String.raw`(?:ул\.|улица|пр-т|пр-кт|просп\.|проспект|пер\.|переулок|ш\.|шоссе|б-р|бульвар|наб\.|набережная|пл\.|площадь|проезд|мкр\.?|микрорайон)`;
+// A patronymic in any case («Иванович», «Ивановичу», «Сергеевна», «Сергеевной»).
+const PATRONYMIC = String.raw`[А-ЯЁ][а-яё]*(?:(?:ович|евич|ьич)(?:а|у|ем|е)?|(?:овн|евн|ичн|иничн)(?:а|ы|е|у|ой))`;
+const MONTHS = "января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря";
 // Surname suffixes, so that a single initial after a capitalised word is taken for a name only when the word is a surname.
 const SURNAME = String.raw`[А-ЯЁ][а-яё]+(?:ов|ев|ёв|ин|ын|ова|ева|ёва|ина|ына|ский|цкий|ская|цкая|ко|ук|юк|ич|ян|дзе|швили|ых|их)`;
 
@@ -20,14 +27,32 @@ const REDACTION_RULES: Rule[] = [
   { label: "fio", pattern: /(?<![\p{L}\p{N}])(?:ФИО|Пациент|Пациентка)\s*[:—-]\s*[^\n,;]{4,80}/giu, replacement: "ФИО: [REDACTED]" },
   // «ФИО» without a colon, followed by a name («ФИО Кузнецов Пётр»).
   { label: "fio", pattern: /(?<![\p{L}\p{N}])ФИО(?:\s+пациент\p{L}*)?\s+[А-ЯЁ][а-яё]+(?:[-‐][А-ЯЁ][а-яё]+)?(?:\s+[А-ЯЁ][а-яё]+|\s+[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.)?){0,2}/gu, replacement: "ФИО: [REDACTED]" },
+  // A role word with the name after it, in any case («Пациентка Петрова Анна Сергеевна», «больному Кузнецову»): the
+  // role stays, the name goes. Cyrillic names only: «Patient Reported Outcomes» is a term, not a person.
+  { label: "fio", pattern: /(?<![\p{L}])([Пп]ациент(?:ка|ки|ке|ку|кой|а|у|ом|е)?|[Бб]ольн(?:ой|ого|ому|ым|ом|ая|ую))\s+[А-ЯЁ][а-яё]+(?:[-‐][А-ЯЁ][а-яё]+)?(?:\s+[А-ЯЁ][а-яё]+){0,2}(?:\s+[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.)?)?/gu, replacement: "$1 [ФИО]" },
+  // A full name with a patronymic in any case, without a role word: «Петрова Анна Сергеевна», «Кузнецову Петру Ивановичу».
+  { label: "fio", pattern: new RegExp(String.raw`(?<![\p{L}])(?:[А-ЯЁ][а-яё]+\s+){1,2}${PATRONYMIC}(?:\s+[А-ЯЁ][а-яё]+)?(?![\p{L}])`, "gu"), replacement: "[ФИО]" },
+  // A surname with an age after it («Сидорова 72 лет»): the age stays.
+  { label: "fio", pattern: new RegExp(String.raw`(?<![\p{L}])${SURNAME}(?=\s+\d{1,3}\s*(?:лет|года|год)(?![\p{L}]))`, "gu"), replacement: "[ФИО]" },
   // A surname with two initials, either order («Иванов И.И.», «Иванов И. И.», «И.И. Иванов»), or a surname by its suffix with one initial («Петрова А.»).
   { label: "fio", pattern: new RegExp(String.raw`(?<![\p{L}])(?:[А-ЯЁ][а-яё]+(?:[-‐][А-ЯЁ][а-яё]+)?\s+[А-ЯЁ]\.\s?[А-ЯЁ]\.?|[А-ЯЁ]\.\s?[А-ЯЁ]\.\s?[А-ЯЁ][а-яё]{2,}(?:[-‐][А-ЯЁ][а-яё]+)?|${SURNAME}\s+[А-ЯЁ]\.)(?![\p{L}])`, "gu"), replacement: "[ФИО]" },
   { label: "address", pattern: /(?<![\p{L}\p{N}])(?:адрес|место жительства)\s*[:—-]\s*[^\n]{5,120}/giu, replacement: "Адрес: [REDACTED]" },
   // A street with its house and flat («ул. Ленина д. 5 кв. 3», «проспект Мира, 12», «пер. Садовый»).
-  { label: "address", pattern: new RegExp(String.raw`(?<![\p{L}\p{N}])(?:ул\.|улица|пр-т|пр-кт|просп\.|проспект|пер\.|переулок|ш\.|шоссе|б-р|бульвар|наб\.|набережная|пл\.|площадь|мкр\.?|микрорайон)\s*${STREET}(?:,?\s*\d+[а-яА-Я]?(?![\p{L}\p{N}]))?${HOUSE}`, "gu"), replacement: "[АДРЕС]" },
+  { label: "address", pattern: new RegExp(String.raw`(?<![\p{L}\p{N}])${STREET_TYPE}\s*${STREET}(?:,?\s*${NUMBER}(?![\p{L}]))?${HOUSE}`, "gu"), replacement: "[АДРЕС]" },
+  // «пр. Мира 12-45»: «пр.» is a street only with a name and a house after it.
+  { label: "address", pattern: new RegExp(String.raw`(?<![\p{L}\p{N}])пр\.\s*${STREET},?\s*${NUMBER}${HOUSE}`, "gu"), replacement: "[АДРЕС]" },
+  // The street type after the name («Ленинский проспект 32, кв 7», «Садовая улица, д. 4»).
+  { label: "address", pattern: new RegExp(String.raw`(?<![\p{L}\p{N}])[А-ЯЁ][\p{L}-]+\s+(?:улица|проспект|переулок|шоссе|бульвар|набережная|площадь|проезд|ул\.|пр-т|просп\.)(?:,?\s*${NUMBER}(?![\p{L}]))?${HOUSE}`, "gu"), replacement: "[АДРЕС]" },
+  // A street name in the genitive with a house and flat and no type («Ленина 5-3», «Гагарина 12/4»).
+  { label: "address", pattern: new RegExp(String.raw`(?<![\p{L}\p{N}])[А-ЯЁ][а-яё]+(?:ина|ына|ова|ева|ского|цкого|ой)\s+\d{1,3}[а-яА-Я]?\s*[-/]\s*\d{1,4}(?![\p{N}])(?!\s*(?:%|мг|мкг|мл|мкмоль|ммоль|г\/|ед|лет|года|мм|кг|раз|мин))${HOUSE}`, "gu"), replacement: "[АДРЕС]" },
   // A house with a flat on its own («д. 5, кв. 3»).
-  { label: "address", pattern: /(?<![\p{L}\p{N}])(?:д\.|дом)\s*\d+[а-яА-Я]?(?:\s*\/\s*\d+)?(?:,?\s*(?:корп\.|к\.|стр\.)\s*\d+)?,?\s*(?:кв\.|квартира)\s*\d+/gu, replacement: "[АДРЕС]" },
+  { label: "address", pattern: /(?<![\p{L}\p{N}])(?:д\.|дом)\s*\d+[а-яА-Я]?(?:\s*\/\s*\d+)?(?:,?\s*(?:корп\.|к\.|стр\.)\s*\d+)?,?\s*(?:кв\.?|квартира)\s*\d+/gu, replacement: "[АДРЕС]" },
+  // A surname right next to an address («[АДРЕС], Иванов»; «Иванов, [АДРЕС]»): a surname by its suffix, here a person.
+  { label: "fio", pattern: new RegExp(String.raw`(?<=\[АДРЕС\],?\s*)${SURNAME}(?![\p{L}])|${SURNAME}(?=,?\s*\[АДРЕС\])`, "gu"), replacement: "[ФИО]" },
   { label: "birth_date", pattern: /(?<![\p{L}\p{N}])(?:дата рождения|д\.\s*р\.)\s*[:—-]?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}(?![\p{L}\p{N}_])/giu, replacement: "Дата рождения: [REDACTED]" },
+  // A date of birth in words or digits after «родился» («родился 12 марта 1956 г.», «родилась 03.04.1950»).
+  { label: "birth_date", pattern: new RegExp(String.raw`(?<![\p{L}])(?:родил(?:ся|ась)|дата\s+рождения|д\.\s*р\.)\s*[:—-]?\s*(?:\d{1,2}\s+(?:${MONTHS})\s+(?:19|20)\d{2}|\d{1,2}[./-]\d{1,2}[./-](?:19|20)?\d{2})(?:\s*(?:г\.|года?)(?![\p{L}]))?`, "giu"), replacement: "Дата рождения: [REDACTED]" },
+  { label: "birth_date", pattern: /(?<![\p{L}])родил(?:ся|ась)\s+в\s+(?:19|20)\d{2}(?:\s*(?:г\.|году))?/giu, replacement: "[ГОД РОЖДЕНИЯ]" },
   // A year of birth («1956 г.р.», «1956 г. р.», «1956 года рождения», «г.р. 1956»).
   { label: "birth_date", pattern: /(?<![\p{N}])(?:(?:19|20)\d{2}\s*(?:г\.?\s*р\.?|года?\s+рождения|гр\.)|(?:г\.\s*р\.|год\s+рождения)\s*[:—-]?\s*(?:19|20)\d{2})(?![\p{L}\p{N}])/giu, replacement: "[ГОД РОЖДЕНИЯ]" },
 ];

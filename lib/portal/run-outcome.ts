@@ -76,7 +76,12 @@ export function runOutcome(run: Pick<AgentRun, "status" | "plan" | "toolsUsed" |
   if (excludedStep && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${excludedStep.detail}.`, tone: "warning", sourcesLink: true };
   // The only source that could answer is excluded in the profile (a PMID with PubMed off): not checked, never «проверено».
   const excludedTool = run.toolsUsed.find(tool => EXCLUDED_IN_PROFILE.test(tool.note ?? ""));
-  if (excludedTool && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${(excludedTool.note ?? "").replace(/\.$/u, "")} — включите его в источниках профиля, чтобы проверить.`, tone: "warning", sourcesLink: true };
+  // A search the review's own filters skipped («Каталог специальности пропущен: при фильтре «только международные»…»):
+  // nothing was searched there either, so the run is not «проверено» (R1 B round 2, finding 4).
+  const skippedByFilter = run.toolsUsed.filter(tool => SEARCH_TOOLS.has(tool.tool) && /пропущен/u.test(tool.note ?? "")).map(tool => (tool.note ?? "").replace(/\.$/u, ""));
+  const filterNote = skippedByFilter.length ? `; ${skippedByFilter.map(note => `${note[0].toLocaleLowerCase("ru-RU")}${note.slice(1)}`).join("; ")}` : "";
+  if (excludedTool && !searched) return { kind: "not_run", label: "Проверка не выполнялась", note: `${(excludedTool.note ?? "").replace(/\.$/u, "")}${filterNote} — ${skippedByFilter.length ? "включите его в источниках профиля или смените фильтр разбора" : "включите его в источниках профиля"}, чтобы проверить.`, tone: "warning", sourcesLink: true };
+  if (skippedByFilter.length && !searched && !sourceFailed) return { kind: "not_run", label: "Проверка не выполнялась", note: `${filterNote.slice(2)[0].toLocaleUpperCase("ru-RU")}${filterNote.slice(3)} — смените фильтр разбора, чтобы проверить.`, tone: "warning" };
   if (nothingToSearch) return { kind: "not_run", label: "Проверка не выполнялась", note: options.monitoring ? "Не выбраны темы, по которым проверять. Выберите темы в настройках — проверка запустится." : "В запросе не распознаны заболевание, препарат или тема — искать было нечего.", tone: "warning" };
   if (sourceFailed && !searched) return { kind: "source_error", label: "Проверка не завершена", note: `${silent.length ? `${missing}. ` : ""}Источники не ответили — результат не установлен. Это не значит, что изменений или публикаций нет.`, tone: "danger", retryable: !structural };
   if (sourceFailed) return { kind: "source_error", label: "Результат не установлен", note: `${missing}, в остальных ничего не нашлось — вывод «ничего нет» сделать нельзя.`, tone: "warning", retryable: !structural };

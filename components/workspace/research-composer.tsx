@@ -57,7 +57,7 @@ export function ResearchComposer({
   const [excludeDomainsText, setExcludeDomainsText] = useState(initialOptions.excludeDomains.join(", "));
   const [busy, setBusy] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (focusFilters) filtersRef.current?.scrollIntoView({ block: "center" }); }, [focusFilters]);
+  useEffect(() => { if (focusFilters) filtersRef.current?.scrollIntoView({ block: "nearest" }); }, [focusFilters]);
 
   const options = useMemo<PhysicianResearchViewOptions>(() => {
     const excludeDomains = normalizeResearchDomains([excludeDomainsText]);
@@ -114,7 +114,7 @@ export function ResearchComposer({
   }
 
   const selected = RESEARCH_MODE_OPTIONS.find(option => option.id === mode) ?? RESEARCH_MODE_OPTIONS[0];
-  const profileNote = [pubmedExcluded ? "PubMed не используется" : null, excludedJournals.length ? `${excludedJournals.join(", ")} не используются` : null].filter(Boolean).join(" · ");
+  const profileNote = [pubmedExcluded ? "PubMed не используется" : null, excludedJournals.length ? `${excludedJournals.join(", ")} не ${excludedJournals.length > 1 ? "используются" : "используется"}` : null].filter(Boolean).join(" · ");
 
   // The question comes first; what to get and where to search follow it, on one line each.
   return <form className="ws-research-composer" onSubmit={event => void submit(event)} aria-label="Разбор по исследованиям">

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { ExternalLink, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatDateRu, weakestVerification } from "@/lib/agents/format";
-import { RISK_COPY } from "@/lib/agents/risk-rules";
+import { PATIENT_DOSE_LINE, RISK_COPY } from "@/lib/agents/risk-rules";
 import type { AgentResultView, AgentRun, RunExperience } from "@/lib/agents/types";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
 import type { EvidenceGraph, GraphDocument, NormalizedClaim, SourceOutcome } from "@/lib/mesh/evidence";
-import { conclusionNamesTopics } from "@/lib/mesh/compiler";
+import { conclusionNamesTopics, namesNosology } from "@/lib/mesh/compiler";
 import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
@@ -49,6 +49,20 @@ interface Ctx {
   /** Instruction sections the question named, and whether it opened as a version comparison (part of «Искали по»). */
   askedSections: readonly string[];
   comparison: boolean;
+  /** A dose asked for a described patient (R1 C-3): dosing is reference in the card, never part of «Коротко». */
+  patientDose: boolean;
+  /** The run's status already links to the profile's sources: a gap does not add a second link (R1 B round 2 N-3). */
+  sourcesLinked: boolean;
+  /** The view line already says no previous version was found: the versions module does not say it again (R1 A round 2 №5). */
+  missingVersionSaid: boolean;
+}
+
+/** An instruction claim about dosing, by its kind or by the section it was read from. */
+function isDosingClaim(index: Index, claimId: string): boolean {
+  const claim = index.claim.get(claimId);
+  if (!claim) return false;
+  const chunk = claim.chunkId ? index.chunk.get(claim.chunkId) : undefined;
+  return claim.kind === "dosing" || drugSectionGroup(chunk?.heading) === "dosing";
 }
 
 /** Section headings as the physician reads them, per result family. */
@@ -209,14 +223,14 @@ function societiesIn(graph: EvidenceGraph): Set<string> {
     .flatMap(name => name.match(/[A-Za-z]{2,}/gu) ?? []).map(name => name.toLowerCase()));
 }
 
-function Gaps({ graph }: { graph: EvidenceGraph }) {
+function Gaps({ graph, linked = false }: { graph: EvidenceGraph; linked?: boolean }) {
   const drugs = graph.context.drugs.length > 0;
   const guidelines = graph.family === "guidelines" || graph.documents.some(document => document.kind === "guideline");
   const gaps = graph.gaps.map(physicianSafe).filter((gap): gap is string => Boolean(gap));
   // A gap the physician's own settings made has its way back one click away (R1 A-8).
-  const bySettings = gaps.some(gap => /исключ[её]н[аоы]? в ваших источниках/u.test(gap));
+  const bySettings = gaps.some(gap => /исключ\p{L}* в ваших источниках/u.test(gap));
   return <>
-    {gaps.length > 0 && <p>{nbsp(`Чего не хватает: ${gaps.join("; ")}.`)}{bySettings && <> <Link className="ws-text-link" href={`/${graph.specialty}/settings#sources`} data-sources-link="true">Изменить источники</Link></>}</p>}
+    {gaps.length > 0 && <p>{nbsp(`Чего не хватает: ${gaps.join("; ")}.`)}{bySettings && !linked && <> <Link className="ws-text-link" href={`/${graph.specialty}/settings#sources`} data-sources-link="true">Изменить источники</Link></>}</p>}
     {drugs && <p>{nbsp("Официальный статус регистрации и инструкции в России проверяйте в ГРЛС.")}</p>}
     {guidelines && <p>{nbsp("Действующую версию клинических рекомендаций проверяйте в рубрикаторе Минздрава.")}</p>}
   </>;
@@ -261,13 +275,19 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
   </p>;
 }
 
+/** A statement as compared for repeats: case, spacing and punctuation aside. */
+const sameStatement = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
 /** A publication whose read conclusion never names the asked disease is off the question, whatever the search matched. */
 function offTopic(document: GraphDocument, ctx: Pick<Ctx, "graph">): boolean {
   const nosology = ctx.graph.context.nosology;
   if (document.attributes.questionMatch === undefined) return false;
   const claims = ctx.graph.claims.filter(claim => claim.documentId === document.id && claim.kind === "review_conclusion");
+  // A work without a read conclusion is judged by its title (R1 round 2: a menopause burden study on endocarditis):
+  // the asked disease, or without one the question's disease topics («кардиомиопатии»).
+  if (!claims.length && nosology) return namesNosology(ctx.graph, document) === false;
+  if (!nosology && (ctx.graph.context.topics ?? []).length && !claims.length) return !conclusionNamesTopics(ctx.graph, { statement: "", quote: null }, document);
   if (!claims.length) return false;
-  // Without a nosology, the question's disease topics («кардиомиопатии») are named in the title or the conclusion.
   if (!nosology) return !claims.some(claim => conclusionNamesTopics(ctx.graph, claim, document));
   return !claims.some(claim => claim.entityIds.includes(`nosology:${nosology}`));
 }
@@ -291,22 +311,17 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
         ? `В PubMed нет обзоров и рекомендаций за последние годы, где были бы все условия вопроса — не хватает: ${unmatched}. Найденные работы шире вопроса и на него напрямую не отвечают; они ниже, в разделе «Шире вопроса».`
         : "В выводах найденных обзоров нет прямого ответа на то, что спрошено, поэтому главного вывода нет. Работы — ниже, как есть; уточните вопрос, если нужен прямой ответ.")}</p>
       <SearchConditions ctx={ctx} />
-      <Gaps graph={ctx.graph} />
+      <Gaps graph={ctx.graph} linked={ctx.sourcesLinked} />
     </section>;
   }
   const widened = Number(entry.props.widened ?? 0);
-  // A dose asked for a described patient (R1 C-3): the instruction's dosing section is reference, never the answer.
-  const patientDose = ctx.run.riskNotices.includes(RISK_COPY.prescribing) && ctx.run.riskNotices.includes(RISK_COPY.patientSpecific);
-  const isDosing = (claimId: string) => {
-    const claim = ctx.index.claim.get(claimId);
-    if (!claim) return false;
-    const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
-    return claim.kind === "dosing" || drugSectionGroup(chunk?.heading) === "dosing";
-  };
-  const claimIds = patientDose ? entry.claimIds.filter(claimId => !isDosing(claimId)) : entry.claimIds;
+  // A dose asked for a described patient (R1 C-3): the compiler leaves dosing out; runs compiled before that are
+  // filtered here the same way.
+  const claimIds = ctx.patientDose ? entry.claimIds.filter(claimId => !isDosingClaim(ctx.index, claimId)) : entry.claimIds;
   return <section className="pt-synthesis pt-takeaway" aria-labelledby={id} data-module="key_takeaway" data-answer="direct">
     <h2 id={id} className="pt-subtitle">{nbsp(heading(entry, ctx.job))}</h2>
-    {patientDose && <p className="pt-patient-dose" data-patient-dose="true">{nbsp("Дозу для описанного пациента не подбираем: раздел о дозировании — в карточке инструкции ниже, решение остаётся за вами.")}</p>}
+    {ctx.patientDose && <p className="pt-patient-dose" data-patient-dose="true">{nbsp(PATIENT_DOSE_LINE)}</p>}
+    {typeof entry.props.labelIndication === "string" && <p className="pt-boundary" data-label-indication="true"><ShieldAlert size={14} aria-hidden="true" />{nbsp(entry.props.labelIndication)}</p>}
     <SearchConditions ctx={ctx} />
     <ol className="pt-takeaway-list">
       {claimIds.map((claimId, position) => {
@@ -337,7 +352,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
       })}
     </ol>
     {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — шире вопроса${unmatched ? ` (найдены без условия «${unmatched}»)` : ""}: они ниже, в «Шире вопроса», и в этот вывод не вошли.`)}</p>}
-    <Gaps graph={ctx.graph} />
+    <Gaps graph={ctx.graph} linked={ctx.sourcesLinked} />
   </section>;
 }
 
@@ -371,8 +386,8 @@ function RecommendationDelta({ module: entry, ctx }: { module: ManifestModule; c
   const previous = typeof entry.props.previousVersion === "string" ? entry.props.previousVersion : null;
   const expanded = typeof entry.props.expandedDocumentId === "string" ? entry.props.expandedDocumentId : null;
   return <Section module={entry} ctx={ctx}>
-    {comparison === "current_state" && <p className="pt-version-note" data-comparison="current_state">{typeof entry.props.hiddenPreviousVersion === "string"
-      ? nbsp(`В показанных источниках предыдущая версия не указана — показано текущее состояние и срок пересмотра. Предыдущую версию (${entry.props.hiddenPreviousVersion}) называет ${entry.props.hiddenBy === "jurisdiction" ? "международный источник, скрытый фильтром «только российские источники»" : "документ, скрытый фильтром по году"}.`)
+    {comparison === "current_state" && (typeof entry.props.hiddenPreviousVersion === "string" || !ctx.missingVersionSaid) && <p className="pt-version-note" data-comparison="current_state">{typeof entry.props.hiddenPreviousVersion === "string"
+      ? nbsp(`${ctx.missingVersionSaid ? "" : "В показанных источниках предыдущая версия не указана — показано текущее состояние и срок пересмотра. "}Предыдущую версию (${entry.props.hiddenPreviousVersion}) называет ${entry.props.hiddenBy === "jurisdiction" ? "международный источник, скрытый фильтром «только российские источники»" : "документ, скрытый фильтром по году"}.`)
       : nbsp("Предыдущая версия в найденных источниках не указана — показано текущее состояние документов и срок их пересмотра.")}</p>}
     <ol className="pt-versions">
       {entry.documentIds.map(documentId => {
@@ -429,19 +444,24 @@ function Conflicts({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx })
 
 function DrugSection({ group, claims: all, headingId, ctx }: { group: DrugSectionGroup; claims: readonly NormalizedClaim[]; headingId: string; ctx: Ctx }) {
   const claims = all.filter(claim => !ctx.takeawayClaims.has(claim.id));
+  const entries = claims.map(claim => {
+    const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
+    const sub = chunk?.heading && chunk.heading.toLocaleLowerCase("ru-RU") !== DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU") ? chunk.heading : null;
+    return <div key={claim.id} className="pt-drug-entry">
+      {sub && <p className="pt-drug-sub">{nbsp(sub)}</p>}
+      {claim.language === "ru"
+        ? <p lang="ru">{nbsp(claim.statement)}</p>
+        : <><p className="pt-derived">{nbsp("Раздел официальной инструкции FDA — на английском.")}</p><Original><p>{claim.statement}</p></Original></>}
+    </div>;
+  });
+  // For a described patient the dosing section is reference: one click away, closed, and said to be reference.
+  const reference = ctx.patientDose && group === "dosing" && claims.length > 0;
   return <section id={`${headingId}-${group}`} className="pt-drug-section" aria-label={DRUG_SECTION_TITLE[group]}>
     <h3>{DRUG_SECTION_TITLE[group]}</h3>
     {claims.length < all.length && <p className="ws-muted" data-in-takeaway={all.length - claims.length}>{nbsp(claims.length ? "Часть раздела — выше, в «Коротко»." : "Текст раздела — выше, в «Коротко».")}</p>}
-    {claims.map(claim => {
-      const chunk = claim.chunkId ? ctx.index.chunk.get(claim.chunkId) : undefined;
-      const sub = chunk?.heading && chunk.heading.toLocaleLowerCase("ru-RU") !== DRUG_SECTION_TITLE[group].toLocaleLowerCase("ru-RU") ? chunk.heading : null;
-      return <div key={claim.id} className="pt-drug-entry">
-        {sub && <p className="pt-drug-sub">{nbsp(sub)}</p>}
-        {claim.language === "ru"
-          ? <p lang="ru">{nbsp(claim.statement)}</p>
-          : <><p className="pt-derived">{nbsp("Раздел официальной инструкции FDA — на английском.")}</p><Original><p>{claim.statement}</p></Original></>}
-      </div>;
-    })}
+    {reference
+      ? <details className="pt-widened" data-dose-reference="true"><summary>{nbsp("Справочно: раздел инструкции о дозировании — не подбор дозы для пациента")}</summary>{entries}</details>
+      : entries}
   </section>;
 }
 
@@ -545,8 +565,13 @@ function Evidence({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) 
   // Publications from a widened search are kept apart and closed: they are context, not evidence for the answer.
   // A work whose conclusion is the main answer is not listed again; the list says how many it leaves out.
   const aside = (document: GraphDocument) => document.attributes.questionMatch === "partial" || offTopic(document, ctx);
-  const repeated = all.filter(document => ctx.inTakeaway.has(document.id) && !aside(document));
-  const documents = all.filter(document => !aside(document) && !ctx.inTakeaway.has(document.id));
+  // A work whose conclusion says word for word what «Коротко» says (an earlier version of the same review) is not
+  // listed again either (R1 round 2: a Parkinson paragraph shown twice).
+  const said = new Set([...ctx.takeawayClaims].map(id => ctx.index.claim.get(id)?.statement).filter((text): text is string => Boolean(text)).map(sameStatement));
+  const repeats = (document: GraphDocument) => ctx.graph.claims.some(claim => claim.documentId === document.id && claim.kind === "review_conclusion" && said.has(sameStatement(claim.statement)));
+  const shown = (document: GraphDocument) => ctx.inTakeaway.has(document.id) || repeats(document);
+  const repeated = all.filter(document => shown(document) && !aside(document));
+  const documents = all.filter(document => !aside(document) && !shown(document));
   const widened = all.filter(aside);
   // Everything is already in «Коротко»: no section that only says so.
   if (!documents.length && !widened.length && !ctx.sectionQuestion) return null;
@@ -643,7 +668,7 @@ function Notices({ ctx }: { ctx: Ctx }) {
   const named = (ctx.graph.context.conditions ?? []).length > 0;
   return <div className="pt-synthesis" data-module="notices">
     {!ctx.graph.documents.length && !excluded && outcome.kind !== "source_error" && <p>{nbsp(named ? "Подходящих источников не нашлось." : `${searched ? "Подходящих источников не нашлось. " : ""}Назовите заболевание, препарат (МНН) или тему — например, ${examples}.`)}</p>}
-    <Gaps graph={ctx.graph} />
+    <Gaps graph={ctx.graph} linked={ctx.sourcesLinked} />
   </div>;
 }
 
@@ -678,8 +703,10 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
   const finished = run.status === "completed" || run.status === "partial";
   const line = experience.manifest.execution?.class === "skill" ? experience.manifest.execution.explanation ?? null : null;
   const explanation = line && finished
-    ? (/^Сравниваем/u.test(line) && deltaShown && !compared ? "Предыдущую версию не нашли — показано текущее состояние рекомендаций и срок пересмотра." : line.replace(/^(Открываем|Сверяем|Сравниваем)/u, verb => PAST[verb] ?? verb))
+    ? (/^Сравниваем/u.test(line) && deltaShown && !compared ? (missingVersion ? null : "Предыдущую версию не нашли — показано текущее состояние рекомендаций и срок пересмотра.") : line.replace(/^(Открываем|Сверяем|Сравниваем)/u, verb => PAST[verb] ?? verb))
     : line;
+  const patientDose = experience.manifest.modules.some(entry => entry.family === "key_takeaway" && entry.props.patientDose === true)
+    || (run.riskNotices.includes(RISK_COPY.prescribing) && run.riskNotices.includes(RISK_COPY.patientSpecific));
   const ctx: Ctx = {
     run,
     graph,
@@ -687,9 +714,12 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
     job: job ?? graph.family,
     sectionQuestion: experience.manifest.modules.some(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) && entry.props.asked.length > 0),
     inTakeaway: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway" && !entry.props.noDirectAnswer).flatMap(entry => entry.documentIds)),
-    takeawayClaims: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway").flatMap(entry => entry.claimIds)),
+    takeawayClaims: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway").flatMap(entry => entry.claimIds).filter(claimId => !patientDose || !isDosingClaim(index, claimId))),
     askedSections: experience.manifest.modules.flatMap(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) ? entry.props.asked : []),
     comparison: experience.manifest.view?.comparison === "previous_version",
+    patientDose,
+    missingVersionSaid: Boolean(missingVersion),
+    sourcesLinked: Array.isArray(run.plan) && Array.isArray(run.toolsUsed) && Boolean(runOutcome(run).sourcesLink),
     resultFor: (documentId, entry) => {
       const key = entry.resultKeys.find(item => item.endsWith(`mesh:${documentId}`)) ?? `${run.agentId}:mesh:${documentId}`;
       return byKey.get(key) ?? null;

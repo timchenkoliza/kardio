@@ -1,10 +1,11 @@
 import { densityForMode, type AnswerMode } from "@/lib/portal/answer-mode";
 import type { PortalJob } from "@/lib/portal/jobs";
-import type { ClaimKind, EvidenceGraph, GraphDocument, NormalizedClaim } from "./evidence";
+import { POPULATION_PASSAGE, type ClaimKind, type EvidenceGraph, type GraphDocument, type NormalizedClaim } from "./evidence";
 import type { JobType } from "./jobs";
 import { experienceManifestSchema, MANIFEST_SCHEMA, MODULE_POLICY, STABLE_SHELL_VERSION, type ExperienceManifest, type ManifestAction, type ManifestExecution, type ManifestModule, type ManifestView, type ModuleFamily, type RepresentationMode } from "./manifest";
 import { validateManifest, type PolicyContext, type PolicyReport } from "./policies";
 import { matchesJournal, meshSourcePreference } from "./source-preferences";
+import { nosologyById } from "./domain-graph";
 
 /**
  * Experience Compiler:
@@ -31,6 +32,33 @@ export interface UserContext {
 
 /** Manifest signal recording a «Приоритет» source option, so a refinement keeps the same order. */
 export const PRIORITY_SIGNAL = "priority_source:";
+
+/** Manifest signal: the question names the ejection fraction («ФВ 30%») without naming the disease. */
+export const EJECTION_FRACTION_SIGNAL = "question:ejection_fraction";
+
+/**
+ * A US label read for a condition its indications do not name (bisoprolol is labelled for hypertension, the question is
+ * about heart failure): «Коротко» says so, so a dose from that label is never read as a dose for the condition (R1 C N-5).
+ */
+export function labelIndicationNote(graph: EvidenceGraph, user: Partial<UserContext> | undefined): string | null {
+  const nosology = nosologyById(graph.context.nosology ?? undefined);
+  const heartFailure = nosologyById("cardiology/heart_failure");
+  const condition = nosology ?? (user?.signals?.includes(EJECTION_FRACTION_SIGNAL) ? heartFailure : undefined);
+  if (!condition?.rankingTerms.length) return null;
+  for (const document of graph.documents) {
+    if (document.kind !== "drug_label" || document.jurisdiction !== "US") continue;
+    const indications = graph.claims.filter(claim => claim.documentId === document.id && claim.kind === "indication").map(claim => claim.statement.toLowerCase());
+    if (!indications.length || condition.rankingTerms.some(term => indications.some(text => text.includes(term.toLowerCase())))) continue;
+    return `Среди показаний в инструкции США (FDA) этого состояния нет («${condition.label}»): дозы и схемы для него в этой инструкции не описаны. Показания и дозы в России — по инструкции из ГРЛС.`;
+  }
+  return null;
+}
+
+/**
+ * Manifest signal: the question asks a dose for a described patient. «Коротко» then holds no dosing claim, and its
+ * first line says the dose is not chosen; the instruction card keeps the section (R1 C-3, C round 2).
+ */
+export const PATIENT_DOSE_SIGNAL = "patient_dose";
 
 export interface CompileInput {
   graph: EvidenceGraph;
@@ -93,6 +121,8 @@ const TAKEAWAY_ORDER: Record<string, ReadonlyArray<[ClaimKind, number]>> = {
   answer: [["review_conclusion", 3], ["indication", 1], ["guideline_statement", 1], ["society_assertion", 1], ["currentness", 1]],
 };
 const TAKEAWAY_MAX = 6;
+/** Population passages put first in the key takeaway. */
+const MAX_POPULATION_PASSAGES = 4;
 
 /**
  * «Приоритет» from the profile as a rank: a prioritised journal (0), then a
@@ -133,6 +163,26 @@ export function conclusionNamesTopics(graph: Pick<EvidenceGraph, "context">, cla
   return topics.every(group => group.some(word => text.includes(word)));
 }
 
+/**
+ * A guideline publication whose title is about another disease («2023 ACC/AHA… Guideline for… Atrial Fibrillation» on
+ * a heart-failure question) is not a version of the asked guideline (R1 A round 2): it is listed with the evidence.
+ */
+/**
+ * Whether a document is about the asked disease: its title names it, or one of its claims is about it. Null when the
+ * question names no known disease.
+ */
+export function namesNosology(graph: Pick<EvidenceGraph, "context" | "claims">, document: GraphDocument): boolean | null {
+  const nosology = nosologyById(graph.context.nosology);
+  if (!nosology) return null;
+  const title = `${document.title} ${String(document.attributes.originalTitle ?? "")}`.toLowerCase();
+  if (nosology.rankingTerms.some(term => title.includes(term.toLowerCase())) || title.includes(nosology.label.toLowerCase())) return true;
+  return graph.claims.some(claim => claim.documentId === document.id && claim.entityIds.includes(`nosology:${nosology.id}`));
+}
+
+function otherDisease(graph: Pick<EvidenceGraph, "context" | "claims">, document: GraphDocument): boolean {
+  return document.kind === "guideline_publication" && namesNosology(graph, document) === false;
+}
+
 /** A statement as compared for repeats: case, spacing and punctuation aside. */
 const sameText = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
@@ -152,8 +202,10 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   const onAsked = (claim: NormalizedClaim) => { const text = claimText(claim); return asked.reduce((sum, group, index) => sum + (group.some(word => text.includes(word)) ? weights[index] : 0), 0); };
   const topics = graph.context.topics ?? [];
   const namesTopics = (claim: NormalizedClaim) => conclusionNamesTopics(graph, claim, docs.get(claim.documentId));
+  const patientDose = Boolean(input.user?.signals?.includes(PATIENT_DOSE_SIGNAL));
   const relevant = (claim: NormalizedClaim) => claim.verification !== "UNSUPPORTED"
     && !widened.has(claim.documentId)
+    && (!patientDose || claim.kind !== "dosing")
     // A review's conclusion answers a question about a disease only when it names that disease (title or conclusion).
     && (claim.kind !== "review_conclusion" || !nosology || claim.entityIds.includes(nosology))
     && (claim.kind !== "review_conclusion" || nosology || !topics.length || namesTopics(claim))
@@ -171,6 +223,15 @@ function takeawayClaims(graph: EvidenceGraph, input: Partial<Pick<CompileInput, 
   for (const claimId of input.priorityClaims ?? []) {
     const claim = graph.claims.find(item => item.id === claimId);
     if (claim && relevant(claim) && !picked.includes(claimId) && picked.length < TAKEAWAY_MAX) picked.push(claimId);
+  }
+  // A population question about a drug («у пожилых с ХБП») is answered first by the instruction's passages about it.
+  // Passages that state a threshold for the population («15–29 мл/мин», «80 лет и старше», «60 кг») come before
+  // the general ones («не требуется коррекции дозы…»); the instruction's order otherwise.
+  const threshold = (claim: NormalizedClaim) => Number(/\d+(?:[.,]\d+)?\s*(?:-\s*\d+\s*)?(?:мл\/мин|мкмоль|мг\/дл|лет|кг)/u.test(claim.statement));
+  const passages = graph.claims.map((claim, order) => ({ claim, order })).filter(item => item.claim.covers.includes(POPULATION_PASSAGE) && relevant(item.claim))
+    .sort((a, b) => threshold(b.claim) - threshold(a.claim) || a.order - b.order).map(item => item.claim);
+  for (const claim of passages.slice(0, MAX_POPULATION_PASSAGES)) {
+    if (!picked.includes(claim.id) && picked.length < TAKEAWAY_MAX) picked.push(claim.id);
   }
   for (const [kind, cap] of input.takeaway ?? TAKEAWAY_ORDER[family]) {
     const candidates = graph.claims.filter(claim => claim.kind === kind && relevant(claim))
@@ -212,11 +273,13 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       // Nothing answers the question as asked: the first thing the physician reads says so, not a neighbour's conclusion.
       const reviews = graph.documents.filter(document => document.kind === "review" || document.kind === "guideline_publication");
       if (!claimIds.length) return widened.length || (graph.family === "answer" && reviews.length) ? { ...base, emphasis: "primary", documentIds: (widened.length ? widened : reviews).map(document => document.id), props: { gaps: graph.gaps, noDirectAnswer: true, unmatched: unmatched || null } } : null;
-      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null } };
+      const patientDose = Boolean(input.user?.signals?.includes(PATIENT_DOSE_SIGNAL));
+      const indication = labelIndicationNote(graph, input.user);
+      return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null, ...(patientDose ? { patientDose: true } : {}), ...(indication ? { labelIndication: indication } : {}) } };
     }
     case "recommendation_delta": {
       // A guideline publication from a widened search is not a version of the asked guideline: it goes to «Шире вопроса».
-      const docs = graph.documents.filter(document => (document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication") && document.attributes.questionMatch !== "partial").sort(byDate);
+      const docs = graph.documents.filter(document => (document.kind === "guideline" || document.kind === "society_guideline_summary" || document.kind === "guideline_publication") && document.attributes.questionMatch !== "partial" && !otherDisease(graph, document)).sort(byDate);
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       // Russian guideline: every statement about it; society summaries: the three most on-topic assertions (the rest is one click away).
@@ -242,7 +305,7 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
     case "evidence": {
       // Every found publication stays: partial matches of a widened search last; the physician's priority journals and sources go first among the rest.
       const priority = priorityRank(input.user);
-      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && (graph.family !== "guidelines" || document.attributes.questionMatch === "partial"))).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || priority(a) - priority(b) || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
+      const docs = graph.documents.filter(document => document.kind === "review" || (document.kind === "guideline_publication" && (graph.family !== "guidelines" || document.attributes.questionMatch === "partial" || otherDisease(graph, document)))).sort((a, b) => Number(a.attributes.questionMatch === "partial") - Number(b.attributes.questionMatch === "partial") || priority(a) - priority(b) || Number(a.attributes.relevance ?? 99) - Number(b.attributes.relevance ?? 99));
       if (!docs.length) return null;
       const ids = new Set(docs.map(document => document.id));
       return { ...base, documentIds: docs.map(document => document.id), claimIds: graph.claims.filter(claim => ids.has(claim.documentId) && claim.kind === "review_conclusion").map(claim => claim.id), resultKeys: keysFor(docs.map(document => document.id)), props: { language: "en" } };
@@ -300,7 +363,7 @@ function assemble(graph: EvidenceGraph, input: CompileInput, modules: ManifestMo
     representation: { density, mode: args.fallback ? "safe_answer" : REPRESENTATION[graph.job] },
     modules,
     actions: actionsFor(graph, modules),
-    personalization: { applied: false, source: "default", signals: input.user.signals.filter(signal => signal === "specialty" || signal.startsWith("saved_topic:") || signal.startsWith(PRIORITY_SIGNAL)) },
+    personalization: { applied: false, source: "default", signals: input.user.signals.filter(signal => signal === "specialty" || signal === PATIENT_DOSE_SIGNAL || (signal === EJECTION_FRACTION_SIGNAL && !graph.context.nosology) || signal.startsWith("saved_topic:") || signal.startsWith(PRIORITY_SIGNAL)) },
     stableShell: STABLE_SHELL_VERSION,
     provenance: { sourceIds: [...new Set(graph.sources.filter(source => source.outcome !== "not_invoked").map(source => source.id))], documentCount: graph.documents.length, claimCount: graph.claims.length },
     compiler: { version: COMPILER_VERSION, fallback: args.fallback, warnings: args.warnings, decisions: args.decisions, policy: { passed: args.report?.passed ?? true, blocking: args.report?.blocking ?? 0, findings: args.report?.findings.length ?? 0 } },

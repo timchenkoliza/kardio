@@ -17,6 +17,7 @@ import { searchUserMaterials as searchMaterials, type MaterialHit } from "./serv
 import { matchPartnerContent as matchPartner } from "./services/partner";
 import { retrieveDocument as retrieveCatalogDocument, searchMedical as searchCatalog, searchSources as searchCatalogSources, sourcePreferenceMatches, type CatalogHit } from "./services/search";
 import { filterCatalogForResearch, pubmedAllowedForResearch, researchRunOptionsFor } from "./services/research-runtime-policy";
+import { researchContentScopeLabel, researchSourceScopeLabel } from "@/lib/agents/research-options";
 import { SOURCE_OPTIONS } from "@/lib/agents/vocabulary";
 import { matchesJournal, meshSourcePreference } from "@/lib/mesh/source-preferences";
 import { factCheck as factCheckEvidence } from "./services/fact-check";
@@ -31,6 +32,12 @@ export function searchMedical(ctx: AgentContext, args: { query?: string | null; 
   return timedTool("searchMedical", ["catalog"], () => {
     const researchOptions = ctx.agentId === "research" ? researchRunOptionsFor(ctx.profile) : null;
     const content = researchOptions ? filterCatalogForResearch(ctx.catalog.content, researchOptions) : ctx.catalog.content;
+    // The review's own filters left nothing of the catalog (all of it is Russian, «Только международные» is on): the
+    // catalog was not searched, and the run never says «проверено» about it (R1 B round 2, finding 4).
+    if (researchOptions && ctx.catalog.content.length > 0 && content.length === 0) {
+      const filters = [researchOptions.sourceScope !== "all" ? `«${researchSourceScopeLabel(researchOptions.sourceScope)}»` : null, researchOptions.contentScope !== "all" ? `«${researchContentScopeLabel(researchOptions.contentScope)}»` : null, researchOptions.includeDomains.length || researchOptions.excludeDomains.length ? "«конкретные сайты»" : null].filter(Boolean);
+      return { items: [], status: "ok", note: `Каталог специальности пропущен: при фильтре разбора ${filters.join(", ") || "источников"} в нём нет материалов` };
+    }
     const baseArgs = {
       specialty: ctx.specialty,
       content,
@@ -77,10 +84,18 @@ export function pubmedTermForTopics(ctx: AgentContext, topics: readonly string[]
  * a catalogue, not a quality mark («частично» in the physicians' validation).
  */
 export function trustedJournals(ctx: AgentContext): string[] {
-  const chosen = ctx.preference.trustedSources.map(id => SOURCE_OPTIONS.find(option => option.id === id)?.pubmedJournal).filter((value): value is string => Boolean(value));
   // «Не использовать» wins over the physicians' approval: an excluded journal is never searched first.
   const excluded = excludedJournals(ctx);
-  return [...new Set([...approvedJournals(), ...chosen])].filter(journal => !matchesJournal(journal, excluded));
+  return listedJournals(ctx).filter(journal => !matchesJournal(journal, excluded));
+}
+
+/**
+ * The journals' standing, apart from the search: approved by the physicians or chosen as «Приоритет». A journal the
+ * physician excluded is still on the list — excluded, not «нет в списке» (R1 A round 2 №7, C N-9).
+ */
+export function listedJournals(ctx: AgentContext): string[] {
+  const chosen = ctx.preference.trustedSources.map(id => SOURCE_OPTIONS.find(option => option.id === id)?.pubmedJournal).filter((value): value is string => Boolean(value));
+  return [...new Set([...approvedJournals(), ...chosen])];
 }
 
 /** PubMed journals of the options the physician set to «Не использовать» («The Lancet» → «Lancet»). */
@@ -108,12 +123,16 @@ export function searchPubmed(ctx: AgentContext, args: { term: string | null; min
     const result = await ctx.pubmed({ term: args.term, minDate: args.minDate, maxDate: args.maxDate, retmax: args.retmax, journals, publicationTypes: args.publicationTypes, ...(args.sort ? { sort: args.sort } : {}) });
     const status = result.status === "ok" ? "ok" as const : result.status === "unavailable" ? "unavailable" as const : "failed" as const;
     const inExcluded = result.articles.filter(article => matchesJournal(article.journal, excluded));
-    if (!inExcluded.length) return { items: result.articles, status, note: result.error };
+    // A search limited to journals says which listed journals the profile kept out of it, even when nothing was hidden
+    // after the search (R1 B round 2 N-5, C N-10).
+    const keptOut = !args.named && args.journals?.length ? excludedJournalNames(ctx, listedJournals(ctx).filter(journal => matchesJournal(journal, excluded))) : "";
+    const keptOutNote = keptOut ? `исключены в вашем профиле и в поиск не входили: ${keptOut}` : null;
+    if (!inExcluded.length) return { items: result.articles, status, note: [result.error, keptOutNote].filter(Boolean).join("; ") || null };
     const names = excludedJournalNames(ctx, inExcluded.map(article => article.journal));
     // A publication the physician named by PMID or DOI is shown, and said to be from an excluded journal.
     if (args.named) return { items: result.articles, status, note: [result.error, `журнал исключён в вашем профиле (${names}) — публикация показана, потому что вы назвали её сами`].filter(Boolean).join("; ") };
     // The same note as on the answer path: what was withheld, and from which journals.
-    return { items: result.articles.filter(article => !inExcluded.includes(article)), status, note: [result.error, `скрыты публикации журналов, исключённых в ваших источниках (${names}): ${inExcluded.length}`].filter(Boolean).join("; ") };
+    return { items: result.articles.filter(article => !inExcluded.includes(article)), status, note: [result.error, keptOutNote, `скрыты публикации журналов, исключённых в ваших источниках (${names}): ${inExcluded.length}`].filter(Boolean).join("; ") };
   });
 }
 

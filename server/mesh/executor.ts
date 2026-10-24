@@ -1,7 +1,8 @@
 import { countLabel } from "@/lib/agents/format";
 import { truncate } from "@/lib/agents/text";
 import type { Evidence, EvidenceLevel, IntegrationMode, PlanStep, ResultActionKind, ResultKind, RunExperience, ToolUse } from "@/lib/agents/types";
-import { compileExperience, PRIORITY_SIGNAL, type CompileInput, type CompileOutput, type UserContext } from "@/lib/mesh/compiler";
+import { compileExperience, EJECTION_FRACTION_SIGNAL, PATIENT_DOSE_SIGNAL, PRIORITY_SIGNAL, type CompileInput, type CompileOutput, type UserContext } from "@/lib/mesh/compiler";
+import { detectRiskSignals } from "@/lib/agents/risk-rules";
 import type { EvidenceGraph, NormalizedClaim, NormalizedDocument, SourceInvocation, SourceResult } from "@/lib/mesh/evidence";
 import { buildEvidenceGraph } from "@/lib/mesh/evidence-graph";
 import { compareShadow, shadowSide, type RunExecution, type ShadowComparison } from "@/lib/mesh/execution";
@@ -179,7 +180,13 @@ function synthesisOf(graph: EvidenceGraph, intent: NormalizedIntent, question: s
 /** The physician's real signals for the compiler: specialty, own topics and «Приоритет» sources (an order, never a filter). */
 function userContext(ctx: AgentContext): UserContext {
   const trusted = ctx.preference.trustedSources.filter(id => !ctx.preference.excludedSources.includes(id));
-  return { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`), ...trusted.map(id => `${PRIORITY_SIGNAL}${id}`)], topics: ctx.preference.topics, trustedSources: trusted };
+  // A dose asked for a described patient: the compiler keeps dosing out of «Коротко» (R1 C-3), so the screen, «Сохранить
+  // ответ» and the export agree (R1 C round 2).
+  const risk = detectRiskSignals(ctx.inputText ?? "");
+  const question: string[] = risk.prescribing && risk.patientSpecific ? [PATIENT_DOSE_SIGNAL] : [];
+  // «ФВ 30%»: the ejection fraction names heart failure for the label-indication check, never for the search.
+  if (/(?<![\p{L}])фв(?![\p{L}])|фракци\p{L}*\s+выброс/iu.test(ctx.inputText ?? "")) question.push(EJECTION_FRACTION_SIGNAL);
+  return { signals: ["specialty", ...ctx.preference.topics.map(topic => `saved_topic:${topic}`), ...trusted.map(id => `${PRIORITY_SIGNAL}${id}`), ...question], topics: ctx.preference.topics, trustedSources: trusted };
 }
 
 const META_FAMILIES = new Set(["sources", "handoff", "next_actions", "notices"]);

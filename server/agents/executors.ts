@@ -228,7 +228,8 @@ async function researchByIdentifiers(ctx: AgentContext, builder: PlanBuilder, qu
   builder.note("Распознали публикацию в запросе", asked);
   const articles = builder.record("Нашли публикацию в PubMed по идентификатору", await tools.searchPubmed(ctx, { term: pubmedTermForIdentifiers(identifiers), retmax: studyIdentifierCount(identifiers), sort: "relevance", named: true }), items => items.length ? countLabel(items.length, ["публикация", "публикации", "публикаций"]) : "не найдена");
   const questionKey = question.toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
-  const approved = new Set(tools.trustedJournals(ctx).map(journal => journal.toLocaleLowerCase("en-US")));
+  // The journal's standing, not the search filter: an approved journal the physician excluded is not «нет в списке».
+  const approved = new Set(tools.listedJournals(ctx).map(journal => journal.toLocaleLowerCase("en-US")));
   const drafts = await finishWithChecks(builder, ctx, articles.map(article => {
     const draft = pubmedFindingDraft(ctx, questionKey, question, article, `Вы указали: ${asked}`);
     const outsideList = article.journal && !approved.has(article.journal.toLocaleLowerCase("en-US"));
@@ -240,7 +241,7 @@ async function researchByIdentifiers(ctx: AgentContext, builder: PlanBuilder, qu
   const synthesis = unavailable
     ? `PubMed недоступен: ${pubmedUse?.note ?? "нет ответа"}. Публикацию (${asked}) проверить не удалось, разбор не выполнен.`
     : skipped
-      ? `${pubmedUse?.note}. Публикацию (${asked}) не искали: включите международные источники и исследования в настройках разбора.`
+      ? `${pubmedUse?.note}. Публикацию (${asked}) не искали: смените фильтры «Источники» и «Тип» над вопросом.`
       : drafts.length
       ? `Разбор публикации по ${asked}: ${drafts.map(draft => `«${truncate(draft.title, 140)}» (${draft.source.source})`).join("; ")}.`
       : `В PubMed нет публикации по ${asked}. Проверьте идентификатор или вставьте ссылку на страницу статьи в PubMed.`;

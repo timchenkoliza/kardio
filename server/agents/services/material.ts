@@ -1,5 +1,7 @@
 import { inflateRawSync } from "node:zlib";
+import { PATIENT_DOSE_SAVED, RISK_COPY } from "@/lib/agents/risk-rules";
 import { contentTokens, stableId, stem, truncate } from "@/lib/agents/text";
+import { drugSectionGroup } from "@/lib/presentation/physician";
 import type { MaterialFormat, AgentResult, AgentRun, Material, MaterialParseStatus, Provenance } from "@/lib/agents/types";
 import type { SpecialtyId } from "@/lib/domain/types";
 import { fallbackTitle, knownSite, type LinkEnrichment } from "./link-enrichment";
@@ -263,15 +265,20 @@ export function materialFromResult(result: AgentResult, now: string, origin: { r
  * A whole answer kept as one material: the question, the points of «Коротко» with their sources and the links.
  * Only what the answer showed, verbatim; nothing is summarised again.
  */
+type AgentRunClaim = NonNullable<AgentRun["experience"]>["graph"]["claims"][number];
+
 export function materialFromAnswer(run: AgentRun, now: string): Material {
   const question = (run.input.continuation?.followup ?? run.input.text ?? "").trim();
   const experience = run.experience!;
   const takeaway = experience.manifest.modules.find(entry => entry.family === "key_takeaway");
-  const claims = (takeaway?.claimIds ?? []).map(id => experience.graph.claims.find(claim => claim.id === id)).filter((claim): claim is NonNullable<typeof claim> => Boolean(claim));
+  // A dose asked for a described patient: the saved answer leaves dosing out, as «Коротко» does (R1 C round 2, N-4).
+  const patientDose = takeaway?.props.patientDose === true || (run.riskNotices.includes(RISK_COPY.prescribing) && run.riskNotices.includes(RISK_COPY.patientSpecific));
+  const dosing = (claim: AgentRunClaim) => claim.kind === "dosing" || drugSectionGroup(experience.graph.chunks.find(chunk => chunk.id === claim.chunkId)?.heading) === "dosing";
+  const claims = (takeaway?.claimIds ?? []).map(id => experience.graph.claims.find(claim => claim.id === id)).filter((claim): claim is NonNullable<typeof claim> => Boolean(claim)).filter(claim => !patientDose || !dosing(claim));
   const documentOf = (documentId: string) => experience.graph.documents.find(document => document.id === documentId);
   const points = claims.map(claim => { const document = documentOf(claim.documentId); return `— ${claim.statement}${document ? ` (${document.title}${document.url ? `, ${document.url}` : ""})` : ""}`; });
   const sources = [...new Set(experience.graph.documents.map(document => document.url).filter(Boolean))].slice(0, 20);
-  const text = [`Вопрос: ${question}`, points.length ? `Коротко:\n${points.join("\n")}` : "Прямого ответа не нашлось.", experience.graph.gaps.length ? `Чего не хватает: ${experience.graph.gaps.join("; ")}` : null, sources.length ? `Источники:\n${sources.join("\n")}` : null].filter(Boolean).join("\n\n");
+  const text = [`Вопрос: ${question}`, patientDose ? PATIENT_DOSE_SAVED : null, points.length ? `Коротко:\n${points.join("\n")}` : "Прямого ответа не нашлось.", experience.graph.gaps.length ? `Чего не хватает: ${experience.graph.gaps.join("; ")}` : null, sources.length ? `Источники:\n${sources.join("\n")}` : null].filter(Boolean).join("\n\n");
   return {
     id: newMaterialId(),
     specialty: run.specialty,

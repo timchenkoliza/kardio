@@ -88,9 +88,10 @@ export function cleanSection(raw: string, limit = SECTION_CHARS): { text: string
   let text = raw.replace(/\s*■\s*/g, " • ").replace(/\s+/g, " ").trim();
   text = text.replace(/^(?:\d+(?:\.\d+)?\s+)?[A-Z][A-Z &/,()-]{3,80}?(?=\s+[A-Z][a-z])/u, "").trim();
   if (text.length <= limit) return { text, truncated: false };
-  const cut = text.slice(0, limit);
+  // The «…» counts too: a cut section is at most `limit` long with it, or the source's excerpt limit (SP-03) rejects it (R1 C round 2).
+  const cut = text.slice(0, limit - 1);
   const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
-  return { text: `${(stop > limit * 0.5 ? cut.slice(0, stop + 1) : cut).trim()}…`, truncated: true };
+  return { text: `${(stop > limit * 0.5 ? cut.slice(0, stop + 1) : cut).trim()}…`.slice(0, limit), truncated: true };
 }
 
 /** «Dosage (2.5) 6/2026 Dosage ( 2.5 ) 6/2026» → one entry per changed section. */

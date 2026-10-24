@@ -40,3 +40,26 @@ export function matchesJournal(journal: unknown, journals: readonly string[]): b
   const key = journalKey(journal);
   return journals.some(item => journalKey(item) === key);
 }
+
+/** The options' own names of the journals the physician excluded («The Lancet»), as the profile shows them. */
+export function excludedJournalLabels(optionIds: readonly string[], among?: readonly string[]): string[] {
+  return SOURCE_OPTIONS.filter(option => optionIds.includes(option.id) && option.pubmedJournal && (!among || matchesJournal(option.pubmedJournal, among))).map(option => option.label);
+}
+
+/** PubMed invocation notes about excluded journals (server/mesh/sources/pubmed.ts) → one line of «Чего не хватает». */
+const WITHHELD_NOTE = /скрыты публикации журналов, исключённых в ваших источниках \(([^)]+)\): (\d+)/u;
+const KEPT_OUT_NOTE = /журналы, исключённые в ваших источниках, не показываем: (.+)$/u;
+export const keptOutJournalsNote = (labels: readonly string[]) => `журналы, исключённые в ваших источниках, не показываем: ${labels.join(", ")}`;
+
+export function excludedJournalsGap(note: string | null | undefined): string | null {
+  for (const part of (note ?? "").split("; ")) {
+    const withheld = part.match(WITHHELD_NOTE);
+    const keptOut = withheld ? null : part.match(KEPT_OUT_NOTE);
+    const names = withheld?.[1] ?? keptOut?.[1];
+    if (!names) continue;
+    const many = names.includes(",");
+    // The physician's own setting, named, so «Изменить источники» next to it is the way back (R1 A round 2 №3).
+    return `${names} — ${many ? "исключены" : "исключён"} в ваших источниках: публикации ${many ? "этих журналов" : "журнала"} не показываем${withheld ? ` (скрыто: ${withheld[2]})` : ""}`;
+  }
+  return null;
+}

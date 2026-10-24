@@ -11,29 +11,10 @@ export interface DeidentifiedText {
   needsReview: boolean;
 }
 
-// Role word in any singular case + surname, then up to two more capitalised words (first name, patronymic) or
-// initials. Cyrillic names only: «Patient Reported Outcomes» is a term, not a person.
-const PATIENT_NAME = /(?<![\p{L}])([Пп]ациент(?:ка|ки|ке|ку|кой|а|у|ом|е)?|[Бб]ольн(?:ой|ого|ому|ым|ом|ая|ую))\s+([А-ЯЁ][а-яё]+(?:[-‐][А-ЯЁ][а-яё]+)?)((?:\s+[А-ЯЁ][а-яё]+){0,2})(\s+[А-ЯЁ]\.\s?(?:[А-ЯЁ]\.)?)?/gu;
-// A full name with a patronymic, without a role word: «Петрова Анна Сергеевна», «Анна Сергеевна Петрова».
-const FULL_NAME = /(?<![\p{L}])(?:[А-ЯЁ][а-яё]+\s+){1,2}[А-ЯЁ][а-яё]*(?:ович|евич|ич|овна|евна|ична|инична)(?:\s+[А-ЯЁ][а-яё]+)?(?![\p{L}])/gu;
-
+/** One rule set for the question and the de-identification tool (lib/clinical-case/anonymizer.ts, R1 C round 2 N-3). */
 export function deidentify(text: string): DeidentifiedText {
   const result = redactDirectIdentifiers(text);
-  const redactions = [...result.detectedMarkers];
-  let redacted = result.redactedText;
-  if (PATIENT_NAME.test(redacted)) {
-    PATIENT_NAME.lastIndex = 0;
-    redacted = redacted.replace(PATIENT_NAME, (_, role: string) => `${role} [ФИО]`);
-    if (!redactions.includes("fio")) redactions.push("fio");
-  }
-  PATIENT_NAME.lastIndex = 0;
-  if (FULL_NAME.test(redacted)) {
-    FULL_NAME.lastIndex = 0;
-    redacted = redacted.replace(FULL_NAME, "[ФИО]");
-    if (!redactions.includes("fio")) redactions.push("fio");
-  }
-  FULL_NAME.lastIndex = 0;
-  return { text: redacted, redactions, needsReview: result.status === "needs_review" };
+  return { text: result.redactedText, redactions: [...result.detectedMarkers], needsReview: result.status === "needs_review" };
 }
 
 /**

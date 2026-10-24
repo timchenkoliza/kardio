@@ -154,8 +154,9 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     {/* Nothing found, nothing searched or a silent source: said first, in words, never as «Готово». */}
     {outcome && outcome.kind !== "found" && outcome.kind !== "blocked" && phase !== "expired" && <div className="pt-outcome" role="status" data-outcome={outcome.kind}>
       <span className="ws-run-status" data-tone={outcome.tone}>{outcome.label}</span>
-      {outcome.note && <p>{outcome.note}</p>}
-      {outcome.sourcesLink && <Link className="ws-text-link" href={`/${specialty}/settings#sources`} data-sources-link="true">Источники в профиле</Link>}
+      {/* A research review says the exclusion in its own first line, with the link: said once on the screen (R1 B round 2 N-3). */}
+      {outcome.note && !(job === "research" && outcome.sourcesLink) && <p>{outcome.note}</p>}
+      {outcome.sourcesLink && job !== "research" && <Link className="ws-text-link" href={`/${specialty}/settings#sources`} data-sources-link="true">Источники в профиле</Link>}
       {(outcome.kind === "partial" || outcome.kind === "source_error") && outcome.retryable && run.input.text && (run.input.continuation
         // A repeated follow-up is typed again under its previous step, so it stays a continuation (never the joined text).
         ? <RetryRun text={run.input.continuation.followup} job={retryJob} contextRunId={run.input.continuation.runId} />

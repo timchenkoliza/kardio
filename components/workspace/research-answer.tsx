@@ -68,7 +68,7 @@ export function ResearchAnswerView({ run, results, mode = "brief" }: { run: Agen
       {answer.trust.length > 0 && <section aria-labelledby="ws-ra-trust"><h3 id="ws-ra-trust">Что проверили</h3><ul>{answer.trust.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
       {/* «Как читать результат» speaks about found works: with none, there is nothing to read. */}
       {answer.kind !== "blocked" && answer.totalFound > 0 && <section aria-labelledby="ws-ra-practice"><h3 id="ws-ra-practice">Как читать результат</h3><p>{nbsp(answer.practice)}</p></section>}
-      {answer.limitations.length > 0 && <section aria-labelledby="ws-ra-limits"><h3 id="ws-ra-limits">Ограничения</h3><ul>{answer.limitations.map(line => <li key={line}>{nbsp(line)}</li>)}</ul></section>}
+      {answer.limitations.length > 0 && <section aria-labelledby="ws-ra-limits"><h3 id="ws-ra-limits">Ограничения</h3><ul>{answer.limitations.map(line => <li key={line}>{nbsp(line)}{/исключ\p{L}* в (?:вашем профиле|ваших источниках)/u.test(line) && !answer.sourcesLink && <> · <Link className="ws-text-link" href={`/${specialty}/settings#sources`} data-sources-link="limitation">Изменить</Link></>}</li>)}</ul></section>}
     </div>
   </section>;
 }

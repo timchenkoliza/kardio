@@ -227,3 +227,9 @@ export interface EvidenceGraph {
   /** False while planned sources are still being checked (a validated partial graph). Absent on older graphs = complete. */
   complete?: boolean;
 }
+
+/**
+ * Marks a claim quoted from an instruction passage about the population the question names (`NormalizedClaim.covers`):
+ * the key takeaway reads these first (R1 C-4).
+ */
+export const POPULATION_PASSAGE = "focus:population";

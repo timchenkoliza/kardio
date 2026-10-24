@@ -2,7 +2,7 @@ import { countLabel } from "@/lib/agents/format";
 import { nosologyById, subtypeById } from "@/lib/mesh/domain-graph";
 import type { EntityRef, NormalizedClaim, NormalizedDocument, SourceResult } from "@/lib/mesh/evidence";
 import type { NormalizedIntent } from "@/lib/mesh/intent";
-import { matchesJournal, meshSourcePreference } from "@/lib/mesh/source-preferences";
+import { excludedJournalLabels, keptOutJournalsNote, matchesJournal, meshSourcePreference } from "@/lib/mesh/source-preferences";
 import type { SourceDescriptor, SourceStatusReport } from "@/lib/mesh/sources";
 import { pubmedBroadTermFor, pubmedCoreTermFor, pubmedTermFor, type QueryConcept } from "@/lib/portal/lexicon";
 import { entrezDate, type PubmedArticle } from "@/server/agents/adapters/pubmed";
@@ -181,13 +181,14 @@ export function createPubmedAdapter(): SourceAdapter {
     const approvedPmids = new Set<string>();
     const articles: PubmedArticle[] = [];
     const withheld = new Set<string>();
+    const withheldJournal = new Map<string, string>();
     const notes: string[] = [];
     let failure: string | null = null;
     const search = async (searchTerm: string, journals?: string[], retmax = 6) => {
       const result = await ctx.pubmed({ term: searchTerm, minDate, maxDate, retmax, journals, publicationTypes: types, sort: "relevance" });
       if (result.status !== "ok") failure = result.error ?? result.status;
       const found = result.status === "ok" ? result.articles : [];
-      for (const article of found) if (matchesJournal(article.journal, excludedJournals)) withheld.add(article.pmid);
+      for (const article of found) if (matchesJournal(article.journal, excludedJournals)) { withheld.add(article.pmid); withheldJournal.set(article.pmid, article.journal ?? ""); }
       return found.filter(article => !withheld.has(article.pmid));
     };
     // Which search found an article: the strict one (every condition) or a widened one (and what it dropped).
@@ -242,7 +243,10 @@ export function createPubmedAdapter(): SourceAdapter {
       documents.push(articleDocument(intent, article, abstract, { approved: approvedPmids.has(article.pmid), relevance: index, retrievedAt: ctx.nowIso, maxExcerpt: PUBMED_DESCRIPTOR.usagePolicy.maxExcerptChars!, match: found.match, unmatched: found.unmatched }));
     }
     if (ranked.length < articles.length) notes.push(`${countLabel(articles.length - ranked.length, ["публикация упоминает", "публикации упоминают", "публикаций упоминают"])} тему вопроса только вскользь — скрыты`);
-    if (withheld.size) notes.push(`скрыты публикации журналов, исключённых в ваших источниках: ${withheld.size}`);
+    // Named, with or without a hit: on a reused answer the exclusion is still said (R1 A round 2 №3, B N-5).
+    const excludedLabels = excludedJournalLabels(ctx.preference.excludedSources);
+    if (withheld.size) notes.push(`скрыты публикации журналов, исключённых в ваших источниках (${excludedJournalLabels(ctx.preference.excludedSources, [...withheld].map(pmid => withheldJournal.get(pmid) ?? "")).join(", ") || excludedLabels.join(", ")}): ${withheld.size}`);
+    else if (excludedLabels.length) notes.push(keptOutJournalsNote(excludedLabels));
     return {
       invocation: invocation(request, { sourceId: "pubmed", outcome: documents.length ? "ok" : "empty", status: report.status, execution: "api", started, note: notes.join("; ") || null, documentIds: documents.map(document => document.id), urls: [`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(term)}`] }),
       documents,
