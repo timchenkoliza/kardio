@@ -272,9 +272,13 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
       const unmatched = [...new Set(widened.flatMap(document => String(document.attributes.unmatchedConditions ?? "").split(", ").filter(Boolean)))].join(", ");
       // Nothing answers the question as asked: the first thing the physician reads says so, not a neighbour's conclusion.
       const reviews = graph.documents.filter(document => document.kind === "review" || document.kind === "guideline_publication");
-      if (!claimIds.length) return widened.length || (graph.family === "answer" && reviews.length) ? { ...base, emphasis: "primary", documentIds: (widened.length ? widened : reviews).map(document => document.id), props: { gaps: graph.gaps, noDirectAnswer: true, unmatched: unmatched || null } } : null;
       const patientDose = Boolean(input.user?.signals?.includes(PATIENT_DOSE_SIGNAL));
       const indication = labelIndicationNote(graph, input.user);
+      // A dose for a described patient when the question asked only about dosing: «Коротко» holds no point, and still
+      // opens with «Дозу… не подбираем» and the label's indication boundary (R1 round 3: A №3, B N3-1, C Р3-2).
+      const instructions = graph.documents.filter(document => document.kind === "drug_instruction" || document.kind === "drug_label");
+      if (!claimIds.length && patientDose && instructions.length) return { ...base, emphasis: "primary", documentIds: instructions.map(document => document.id), props: { gaps: graph.gaps, patientDose: true, doseOnly: true, unmatched: unmatched || null, ...(indication ? { labelIndication: indication } : {}) } };
+      if (!claimIds.length) return widened.length || (graph.family === "answer" && reviews.length) ? { ...base, emphasis: "primary", documentIds: (widened.length ? widened : reviews).map(document => document.id), props: { gaps: graph.gaps, noDirectAnswer: true, unmatched: unmatched || null } } : null;
       return { ...base, emphasis: "primary", claimIds, documentIds: [...new Set(claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId))], props: { gaps: graph.gaps, widened: widened.length, unmatched: unmatched || null, ...(patientDose ? { patientDose: true } : {}), ...(indication ? { labelIndication: indication } : {}) } };
     }
     case "recommendation_delta": {

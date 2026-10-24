@@ -314,8 +314,20 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const pubmedDown = Boolean(pubmedUse && pubmedUse.status !== "ok" && pubmedUse.status !== "partial");
   const organic = results.filter(result => !result.partner);
   const ranked = [...organic].sort((a, b) => a.rank - b.rank);
+  // The works that name what the question asks («left main», PCI, CABG) come first, trials and meta-analyses before
+  // registries among them: the first cards answer the question (R1 round 3, A №3).
+  const asked = named ? [] : pubmedConceptsIn(question);
+  const askedWords = asked.map(concept => ({ concept, words: [...concept.term.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z0-9-]{2,})/gu)].map(match => (match[1] ?? match[2]).toLowerCase()) }));
+  const coverage = (study: StudyDigest) => {
+    const text = `${study.title} ${study.conclusion?.text ?? ""}`;
+    const lower = text.toLowerCase();
+    return askedWords.filter(({ concept, words }) => words.some(word => lower.includes(word)) || concept.match.test(fold(text))).length;
+  };
+  const strongDesign = (study: StudyDigest) => /метаанализ|систематическ|РКИ/u.test(study.design ?? "") ? 0 : 1;
   const digests = ranked.map(result => ({ digest: studyDigest(result), rank: result.rank }))
     .sort((a, b) => a.rank - b.rank || depth(a.digest) - depth(b.digest))
+    .map((entry, order) => ({ digest: entry.digest, order, covered: askedWords.length > 1 ? coverage(entry.digest) : 0 }))
+    .sort((a, b) => b.covered - a.covered || (askedWords.length > 1 ? strongDesign(a.digest) - strongDesign(b.digest) : 0) || a.order - b.order)
     .map(entry => entry.digest);
 
   if (run.status === "blocked") {
@@ -394,9 +406,14 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   }
   if (!organic.length) {
     const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
+    // The review's own filters skipped every search: that is the reason, not the question's wording (R1 round 3, B N3-2).
+    const skipped = run.toolsUsed.filter(use => (use.tool === "searchPubmed" || use.tool === "searchMedical") && /пропущен/u.test(use.note ?? "")).map(use => (use.note ?? "").replace(/\.$/u, ""));
+    const searchedSomewhere = run.toolsUsed.some(use => (use.tool === "searchPubmed" || use.tool === "searchMedical") && (use.status === "ok" || use.status === "partial") && !/пропущен/u.test(use.note ?? ""));
     const headline = noTopic
       ? "Не удалось понять тему вопроса: в PubMed не искали, в каталоге специальности совпадений нет. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
-      : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте фильтры «Источники» и «Тип» над вопросом.";
+      : skipped.length && !searchedSomewhere
+        ? `Поиск не выполнялся: ${skipped.join("; ")}. Смените фильтры «Источники» и «Тип» над вопросом, чтобы искать.`
+        : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте фильтры «Источники» и «Тип» над вопросом.";
     // With nothing found the physician still sees what was searched and what was not («ХСН», not «СНнФВ»).
     return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0, ...(noTopic ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }

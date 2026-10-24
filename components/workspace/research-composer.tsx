@@ -57,7 +57,19 @@ export function ResearchComposer({
   const [excludeDomainsText, setExcludeDomainsText] = useState(initialOptions.excludeDomains.join(", "));
   const [busy, setBusy] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (focusFilters) filtersRef.current?.scrollIntoView({ block: "nearest" }); }, [focusFilters]);
+  // Scrolled only as far as the filters need and the way back allows: «← К результату» never goes under the sticky
+  // header (R1 round 3, A №8).
+  useEffect(() => {
+    const filters = filtersRef.current;
+    if (!focusFilters || !filters) return;
+    const need = filters.getBoundingClientRect().bottom - window.innerHeight;
+    if (need <= 0) return;
+    const sticky = Array.from(document.querySelectorAll<HTMLElement>("header")).find(element => ["sticky", "fixed"].includes(getComputedStyle(element).position));
+    const back = document.querySelector<HTMLElement>(".ws-back");
+    const room = back ? back.getBoundingClientRect().top - (sticky?.getBoundingClientRect().bottom ?? 0) - 8 : need;
+    const by = Math.min(need, room);
+    if (by > 0) window.scrollBy(0, by);
+  }, [focusFilters]);
 
   const options = useMemo<PhysicianResearchViewOptions>(() => {
     const excludeDomains = normalizeResearchDomains([excludeDomainsText]);

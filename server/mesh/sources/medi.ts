@@ -189,17 +189,23 @@ const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?!
 const FOCUS_PATTERNS: Readonly<Record<string, string>> = {
   renal: "почеч|почк|клиренс|(?<![\\p{L}])КК(?![\\p{L}])|рСКФ|диализ",
   elderly: "пожил|старше\\s*\\d|\\d+\\s*лет\\s+и\\s+старше|возраст\\p{L}*\\s*(?:≥|>|от)?\\s*\\d",
+  // R1 round 3 (A №1): «а при беременности?» reads the pregnancy sentences, not the first population sentence (the liver).
+  pregnancy: "беременн|лактац|кормлени|грудн\\p{L}*\\s+вскармлив",
+  children: "(?<![\\p{L}])дет(?:и|ей|ям|ск)|до\\s+18\\s+лет|младше\\s+18|подрост",
 };
 
 /**
  * The focus of a population question in an instruction: the populations it names («пожилых с ХБП» → renal and age
  * sentences), or every population adjustment when it names none of them by concept («при сниженной функции почек»).
  */
-export function instructionFocus(intent: Pick<NormalizedIntent, "entities"> | null | undefined): string[] {
+export function instructionFocus(intent: (Pick<NormalizedIntent, "entities"> & { context?: Pick<NormalizedIntent["context"], "populations"> }) | null | undefined): string[] {
   const ids = intent?.entities.concepts.map(concept => concept.id ?? "") ?? [];
+  const populations = intent?.context?.populations ?? [];
   return [
     ...(ids.some(id => /cardiorenal|ckd|kidney|renal/u.test(id)) ? ["renal"] : []),
     ...(ids.includes("concept:elderly") ? ["elderly"] : []),
+    ...(populations.includes("pregnancy") || populations.includes("lactation") || ids.includes("concept:pregnancy") ? ["pregnancy"] : []),
+    ...(populations.includes("children") ? ["children"] : []),
   ];
 }
 
@@ -208,7 +214,10 @@ export function instructionFocus(intent: Pick<NormalizedIntent, "entities"> | nu
  * quote fails policy SP-03 and the whole answer falls back to a safe representation (R1 A, round 2: the joined
  * excerpts of round 1 lost the instruction from «Коротко»). At most MAX_PASSAGES passages per section.
  */
-const FOCUS_SPAN = Math.min(640, MAX_EXCERPT);
+const FOCUS_SPAN = Math.min(690, MAX_EXCERPT);
+// A sentence with its own threshold («клиренс креатинина 15-29 мл/мин», «менее 15 мл/мин») starts a passage of its own:
+// joined to the sentence before it, its dose rule was cut off at the span (R1 round 3, C Р3-4).
+const THRESHOLD = /\d+(?:[.,]\d+)?\s*(?:[-–]\s*\d+(?:[.,]\d+)?\s*)?(?:мл\/мин|мкмоль|мг\/дл|кг)|(?:менее|более|ниже|выше)\s+\d+/u;
 const MAX_PASSAGES = 3;
 
 /**
@@ -243,7 +252,8 @@ function focusedPassages(text: string, focus: RegExp, options: { skipTo?: number
     // A passage stops before the next numbered indication («3. Лечение тромбоза…»): that text is about another condition.
     // It also stops before a paragraph about another population («Пациенты с печёночной недостаточностью»).
     const otherPopulation = (next: string) => /^(?:Пациенты|У пациентов|Применение у пациентов|Пожилые|Дети|Беременн)/u.test(next) && !focus.test(next);
-    while (end + 1 < units.length && !/^\d{1,2}\.\s+[А-ЯЁ]/u.test(units[end + 1].text) && !otherPopulation(units[end + 1].text) && units[end + 1].at + units[end + 1].text.length - unit.at <= FOCUS_SPAN) end += 1;
+    const ownRule = (next: string) => focus.test(next) && THRESHOLD.test(next);
+    while (end + 1 < units.length && !/^\d{1,2}\.\s+[А-ЯЁ]/u.test(units[end + 1].text) && !otherPopulation(units[end + 1].text) && !ownRule(units[end + 1].text) && units[end + 1].at + units[end + 1].text.length - unit.at <= FOCUS_SPAN) end += 1;
     const part = text.slice(unit.at, units[end].at + units[end].text.length);
     parts.push(part.length > FOCUS_SPAN ? excerpt(part, FOCUS_SPAN).text : part);
     covered = units[end].at + units[end].text.length;
@@ -472,7 +482,11 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
     // are quoted from the passages about the population only, as before.
     const opening = excerpt(section.text, MAX_EXCERPT);
     const passages = focused ? focusedPassages(section.text, populationFocus, { skipTo: section.id === "contraindications" ? opening.text.replace(/…$/u, "").length : 0 }) : [];
-    if (!focused || section.id === "contraindications" || !passages.length) claims.push(claim(opening.text));
+    // The section about the asked population itself («Применение при беременности…», «… у детей») is that population's
+    // passage: «Коротко» leads with it (R1 round 3, A №1).
+    const ownPopulation = (section.id === "pregnancy" && kinds.includes("pregnancy")) || (section.id === "children" && kinds.includes("children"));
+    if (ownPopulation) claims.push(claim(opening.text, [POPULATION_PASSAGE]));
+    else if (!focused || section.id === "contraindications" || !passages.length) claims.push(claim(opening.text));
     for (const passage of passages) claims.push(claim(passage, [POPULATION_PASSAGE]));
   });
   const nosologyRef = args.nosology ? nosologyEntity(args.nosology.id) : null;

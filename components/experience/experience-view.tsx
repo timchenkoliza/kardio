@@ -5,7 +5,7 @@ import { formatDateRu, weakestVerification } from "@/lib/agents/format";
 import { PATIENT_DOSE_LINE, RISK_COPY } from "@/lib/agents/risk-rules";
 import type { AgentResultView, AgentRun, RunExperience } from "@/lib/agents/types";
 import { topicsMentioned } from "@/lib/agents/vocabulary";
-import type { EvidenceGraph, GraphDocument, NormalizedClaim, SourceOutcome } from "@/lib/mesh/evidence";
+import { POPULATION_PASSAGE, type EvidenceGraph, type GraphDocument, type NormalizedClaim, type SourceOutcome } from "@/lib/mesh/evidence";
 import { conclusionNamesTopics, namesNosology } from "@/lib/mesh/compiler";
 import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
@@ -245,7 +245,8 @@ function SearchConditions({ ctx }: { ctx: Ctx }) {
   const present = new Set(ctx.graph.claims.flatMap(claim => {
     const document = ctx.index.document.get(claim.documentId);
     if (!document || (document.kind !== "drug_instruction" && document.kind !== "drug_label")) return [];
-    return [drugSectionGroup(claim.chunkId ? ctx.index.chunk.get(claim.chunkId)?.heading : undefined)];
+    // A passage about the asked population covers «особые группы» wherever it was read (R1 round 3, A №7, C Р3-9).
+    return [drugSectionGroup(claim.chunkId ? ctx.index.chunk.get(claim.chunkId)?.heading : undefined), ...(claim.covers.includes(POPULATION_PASSAGE) ? ["populations" as DrugSectionGroup] : [])];
   }));
   const asked = ctx.askedSections.filter((group): group is DrugSectionGroup => (DRUG_SECTION_ORDER as readonly string[]).includes(group));
   const base = ctx.graph.context.conditions ?? [];
@@ -323,7 +324,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
     {ctx.patientDose && <p className="pt-patient-dose" data-patient-dose="true">{nbsp(PATIENT_DOSE_LINE)}</p>}
     {typeof entry.props.labelIndication === "string" && <p className="pt-boundary" data-label-indication="true"><ShieldAlert size={14} aria-hidden="true" />{nbsp(entry.props.labelIndication)}</p>}
     <SearchConditions ctx={ctx} />
-    <ol className="pt-takeaway-list">
+    {claimIds.length > 0 && <ol className="pt-takeaway-list">
       {claimIds.map((claimId, position) => {
         const claim = ctx.index.claim.get(claimId);
         const document = claim ? ctx.index.document.get(claim.documentId) : undefined;
@@ -350,7 +351,7 @@ function KeyTakeaway({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx 
           </div>}
         </li>;
       })}
-    </ol>
+    </ol>}
     {widened > 0 && <p className="ws-muted" data-widened={widened}>{nbsp(`Ещё ${widened} — шире вопроса${unmatched ? ` (найдены без условия «${unmatched}»)` : ""}: они ниже, в «Шире вопроса», и в этот вывод не вошли.`)}</p>}
     <Gaps graph={ctx.graph} linked={ctx.sourcesLinked} />
   </section>;
@@ -713,7 +714,7 @@ export function ExperienceView({ run, experience, results, job }: { run: AgentRu
     index,
     job: job ?? graph.family,
     sectionQuestion: experience.manifest.modules.some(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) && entry.props.asked.length > 0),
-    inTakeaway: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway" && !entry.props.noDirectAnswer).flatMap(entry => entry.documentIds)),
+    inTakeaway: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway" && !entry.props.noDirectAnswer && !entry.props.doseOnly).flatMap(entry => entry.documentIds)),
     takeawayClaims: new Set(experience.manifest.modules.filter(entry => entry.family === "key_takeaway").flatMap(entry => entry.claimIds).filter(claimId => !patientDose || !isDosingClaim(index, claimId))),
     askedSections: experience.manifest.modules.flatMap(entry => entry.family === "drug_reference" && Array.isArray(entry.props.asked) ? entry.props.asked : []),
     comparison: experience.manifest.view?.comparison === "previous_version",
