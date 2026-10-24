@@ -79,7 +79,8 @@ describe("«Для вас» in every launch specialty", () => {
 describe("agent gallery", () => {
   it("launches each available agent in the same tab, never as an external link", () => {
     // «Консилиум» was the same answer job under another name (UX-02, A-08): one task, one name.
-    expect(GALLERY.map(agent => agent.id)).toEqual(["drug", "guidelines", "research", "calculators", "events", "materials", "learning", "updates"]);
+    // «Консилиум» is back as its own result — positions of the sources side by side (owner's decision of 24.10; UXR-03 removed it as an alias of the answer).
+    expect(GALLERY.map(agent => agent.id)).toEqual(["drug", "guidelines", "research", "consilium", "calculators", "events", "materials", "learning", "updates"]);
     // «Что нового» is the check that fills «Для вас», with its settings — not a second, separate page.
     expect(galleryHref(GALLERY.find(agent => agent.id === "updates")!, "therapy")).toBe("/therapy/agents/whats-new");
     expect(galleryHref(GALLERY.find(agent => agent.id === "drug")!, "neurology")).toBe("/neurology/ask?job=drug");

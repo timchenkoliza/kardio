@@ -27,6 +27,8 @@ const STOP = new Set([
   // English service words of an English question are not conditions («Beta blockers in heart failure»).
   "in", "of", "vs", "versus", "and", "or", "the", "for", "with", "at", "on", "to", "a", "an", "by", "from", "is", "are", "was", "were", "be",
   "теме", "теми", "приеме", "приёме", "фоне",
+  // «Консилиум: …», «позиции рекомендаций», «что говорят источники»: the kind of result asked for, not a condition.
+  "консилиум", "консилиума", "консилиуме", "консилиумом", "позиции", "позиций", "позиция", "говорят", "расходятся", "расходится", "источники", "источников",
 ]);
 
 /**

@@ -31,7 +31,7 @@ export const PUBMED_DESCRIPTOR: SourceDescriptor = {
   connectorId: "pubmed",
   domains: ["research", "guideline"],
   specialties: "all",
-  jobs: ["reference_answer", "guideline_check", "guideline_discovery", "disease_reference", "evidence_review", "updates_digest", "professional_article_search", "drug_reference", "drug_comparison"],
+  jobs: ["reference_answer", "guideline_check", "guideline_discovery", "disease_reference", "evidence_review", "updates_digest", "professional_article_search", "drug_reference", "drug_comparison", "source_positions"],
   provides: ["current_research", "international_guideline"],
   operations: ["literature_search"],
   authority: "primary",

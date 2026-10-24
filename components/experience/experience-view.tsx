@@ -8,7 +8,7 @@ import { graphIndex } from "@/lib/mesh/evidence-graph";
 import { applyView, viewLabel } from "@/lib/mesh/refine";
 import type { ManifestModule, ModuleFamily } from "@/lib/mesh/manifest";
 import type { SourceStatus } from "@/lib/mesh/sources";
-import { COMPARISON_ROWS } from "@/lib/mesh/compiler";
+import { COMPARISON_ROWS, CONSILIUM_SEATS } from "@/lib/mesh/compiler";
 import type { CapabilityState } from "@/lib/portal/cards";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { DRUGS, latinTermsIn } from "@/lib/portal/lexicon";
@@ -68,6 +68,7 @@ function heading(entry: ManifestModule, job: PortalJob): string {
     case "conflict": return "Расхождения между источниками";
     case "drug_reference": return "Инструкция по применению";
     case "comparison": return "Сравнение инструкций";
+    case "positions": return "Консилиум: позиции источников";
     case "evidence": return job === "guidelines" ? "Доказательства" : job === "drug" ? "Исследования и обзоры" : "Исследования";
     case "sources": return "Источники";
     default: return entry.title;
@@ -420,6 +421,42 @@ function Conflicts({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx })
   </Section>;
 }
 
+/**
+ * «Консилиум»: each seat is a kind of source with its own position — never an invented or real-person
+ * expert. Positions are shown side by side; where they disagree is the next module; nothing is averaged.
+ */
+function Positions({ module: entry, ctx }: { module: ManifestModule; ctx: Ctx }) {
+  const seats = (Array.isArray(entry.props.seats) ? entry.props.seats as string[] : []).map(value => {
+    const [id, list = ""] = value.split("|");
+    return { id, entries: list.split(",").filter(Boolean).map(item => { const [claimId, currentnessId = null] = item.split("~"); return { claimId, currentnessId, documentId: ctx.index.claim.get(claimId)?.documentId ?? "" }; }) };
+  });
+  const missing = Array.isArray(entry.props.missing) ? entry.props.missing as string[] : [];
+  const label = (id: string) => CONSILIUM_SEATS.find(seat => seat.id === id)?.label ?? id;
+  const conflicts = typeof entry.props.conflicts === "number" ? entry.props.conflicts : 0;
+  return <Section module={entry} ctx={ctx} className="pt-positions">
+    <SearchConditions ctx={ctx} />
+    <p className="ws-muted">{nbsp(`Места консилиума — источники, а не врачи: у каждой позиции есть документ и дата. ${conflicts ? "Где позиции расходятся — ниже." : "Явных расхождений между найденными позициями правила не нашли — это не значит, что источники согласны во всём."} Решение о тактике остаётся за вами.`)}</p>
+    <div className="pt-positions-grid">
+      {seats.map(seat => <section key={seat.id} className="pt-position" data-seat={seat.id} aria-labelledby={`pt-seat-${seat.id}`}>
+        <h3 id={`pt-seat-${seat.id}`}>{label(seat.id)}</h3>
+        {seat.entries.map(({ documentId, claimId, currentnessId }) => {
+          const document = ctx.index.document.get(documentId);
+          const claim = ctx.index.claim.get(claimId);
+          const currentness = currentnessId ? ctx.index.claim.get(currentnessId) : undefined;
+          if (!document || !claim) return null;
+          return <div key={claimId} className="pt-position-entry">
+            <p className="pt-takeaway-source">{nbsp(`${sourceName(document)} · ${documentTitle(document).title}${document.version.date ? ` · ${document.version.date.slice(0, 4)}` : document.publishedAt ? ` · ${document.publishedAt.slice(0, 4)}` : ""}`)}</p>
+            <Claim claim={claim} ctx={ctx} />
+            {currentness && <Claim claim={currentness} ctx={ctx} />}
+            <TrackedLink className="pt-source-link" href={document.url} external events={["source_opened"]} resultId={ctx.resultFor(documentId, entry)?.id} resultKind={ctx.resultFor(documentId, entry)?.kind}>Открыть первоисточник<ExternalLink size={13} aria-hidden="true" /></TrackedLink>
+          </div>;
+        })}
+      </section>)}
+    </div>
+    {missing.length > 0 && <p className="ws-muted pt-positions-missing">{nbsp(`Позиция не найдена: ${missing.map(id => label(id).toLocaleLowerCase("ru-RU")).join("; ")}. Это пробел поиска, а не согласие или отказ источника.`)}</p>}
+  </Section>;
+}
+
 function DrugSection({ group, claims: all, headingId, ctx }: { group: DrugSectionGroup; claims: readonly NormalizedClaim[]; headingId: string; ctx: Ctx }) {
   const claims = all.filter(claim => !ctx.takeawayClaims.has(claim.id));
   return <section id={`${headingId}-${group}`} className="pt-drug-section" aria-label={DRUG_SECTION_TITLE[group]}>
@@ -736,6 +773,7 @@ const RENDERERS: Partial<Record<ModuleFamily, (props: { module: ManifestModule; 
   conflict: Conflicts,
   drug_reference: DrugReference,
   comparison: Comparison,
+  positions: Positions,
   evidence: Evidence,
   sources: Sources,
   handoff: Handoff,

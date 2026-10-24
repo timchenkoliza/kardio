@@ -139,6 +139,9 @@ export function decideStrategy(input: StrategyInput): Strategy {
   const suitability = clarify(suitabilityClarification(effectiveText, generic));
   if (suitability) return suitability;
 
+  // «Консилиум» is asked for explicitly: no Skill replaces it with another job, and it never stops for a plan.
+  if (generic.job.primary === "source_positions") return result({ executionClass: "dynamic", planPreview: null, alternatives: [] });
+
   let match = matchSkill(generic, effectiveText, input.specialty, library);
 
   // A Skill's job is clearly asked for but its topic is missing: the session may name it; otherwise one question.

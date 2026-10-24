@@ -40,7 +40,7 @@ export interface PolicyContext {
 }
 
 const IMPLEMENTATION_VOCABULARY = /(?<![\p{L}])(?:агент\p{L}*|коннектор\p{L}*|connector|agent|llm|нейросет\p{L}*|playwright|api|скрейп\p{L}*|парсер\p{L}*)(?![\p{L}])/iu;
-const CONTENT_FAMILIES: ReadonlySet<ModuleFamily> = new Set(["key_takeaway", "recommendation_delta", "conflict", "drug_reference", "evidence", "event_list", "learning_next_step", "comparison", "timeline", "calculator"]);
+const CONTENT_FAMILIES: ReadonlySet<ModuleFamily> = new Set(["key_takeaway", "recommendation_delta", "conflict", "drug_reference", "evidence", "event_list", "learning_next_step", "comparison", "positions", "timeline", "calculator"]);
 
 function finding(policy: PolicyName, rule: string, severity: PolicyFinding["severity"], target: string, message: string, fix: FixSuggestion | null = null): PolicyFinding {
   return { policy, rule, severity, target, message, fix };

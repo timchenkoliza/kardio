@@ -53,6 +53,9 @@ const UNAVAILABLE_COPY: Record<Exclude<RunAvailability, "available">, string> = 
   session_mismatch: "Этот результат сохранён в другой сессии браузера, поэтому здесь его не показать. Задайте вопрос ещё раз — ответ сохранится в этой сессии.",
 };
 
+/** «Консилиум» on the ask page: the answer job in the source-positions mode. */
+const CONSILIUM_DEFINITION = { id: "answer", label: "Консилиум источников", promise: "Позиции российских и зарубежных рекомендаций, систематических обзоров и инструкции по одному вопросу — рядом, с датами. Где они расходятся и чего не нашли. Кто прав, продукт не решает.", icon: "scale" } as const;
+
 export default async function AskPage({ params, searchParams }: { params: Promise<{ specialty: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { specialty } = await params;
   if (!isSpecialty(specialty)) notFound();
@@ -80,8 +83,10 @@ export default async function AskPage({ params, searchParams }: { params: Promis
 
   if (!run) {
     const job: PortalJob | null = isPortalJob(requestedJob) ? requestedJob : null;
-    const definition = job ? JOBS[job] : null;
-    const quick = job ? QUICK_START[job] : undefined;
+    // «Консилиум» is the answer job in its own mode: the cue word in the text makes the run (lib/portal/router.ts, CONSILIUM_CUE).
+    const consilium = job === "answer" && first(query.view) === "consilium";
+    const definition = consilium ? CONSILIUM_DEFINITION : job ? JOBS[job] : null;
+    const quick = job && !consilium ? QUICK_START[job] : undefined;
     const defaults = await loadProfile(sessionId, specialty);
     return <div className="ws-page pt-ask">
       <Link className="ws-back" href={`/${specialty}`}><ArrowLeft size={15} aria-hidden="true" />Главное</Link>
@@ -93,7 +98,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
         </div>
       </header>
       {lookup && lookup.availability !== "available" && <p className="ws-empty" role="status" data-run-unavailable={lookup.availability}>{UNAVAILABLE_COPY[lookup.availability]}</p>}
-      <PortalInput specialty={specialty} job={job} autoFocus examples={job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} pubmedExcluded={defaults.interests.excludedSources.includes("pubmed")} />
+      <PortalInput specialty={specialty} job={job} autoFocus examples={consilium ? [] : job ? JOB_EXAMPLES[job]?.[specialty] ?? [] : []} label={definition ? "Ваш запрос" : "Что хотите узнать или сделать?"} answerMode={defaults.answerMode} pubmedExcluded={defaults.interests.excludedSources.includes("pubmed")} {...(consilium ? { initialText: "Консилиум: ", placeholder: "Консилиум: вопрос, по которому нужны позиции источников" } : {})} />
       {quick && <div className="pt-card-actions"><FollowupJobButton text={quick.text} job={job as PortalJob} label={quick.label} primary /></div>}
     </div>;
   }

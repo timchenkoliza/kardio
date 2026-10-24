@@ -34,7 +34,7 @@ export const CAPABILITIES: Record<CapabilityId, CapabilityDefinition> = {
   evidence_answer: {
     id: "evidence_answer",
     description: "Answers from sources: plans the source set for the intent, normalizes evidence into a graph and compiles the experience",
-    jobs: ["reference_answer", "drug_reference", "drug_comparison", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search"],
+    jobs: ["reference_answer", "drug_reference", "drug_comparison", "source_positions", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search"],
     implementation: { kind: "mesh" },
     host: "reference",
     sourceDomains: ["drug", "inn", "disease", "guideline", "research", "article", "regulatory"],

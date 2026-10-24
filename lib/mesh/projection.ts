@@ -11,6 +11,7 @@ const REPRESENTATION: Record<RepresentationMode, ControlPlaneRepresentation> = {
   professional_answer: "SHORT_TEXT",
   drug_card: "TABLE",
   drug_comparison: "COMPARISON_MATRIX",
+  source_positions: "COMPARISON_MATRIX",
   guideline_delta: "EVIDENCE_STACK",
   evidence_comparison: "COMPARISON_MATRIX",
   event_list: "TIMELINE",
@@ -26,6 +27,7 @@ const SECONDARY: Partial<Record<ModuleFamily, ControlPlaneRepresentation>> = {
   recommendation_delta: "EVIDENCE_STACK",
   drug_reference: "TABLE",
   comparison: "COMPARISON_MATRIX",
+  positions: "COMPARISON_MATRIX",
   handoff: "ACTION_PANEL",
   next_actions: "ACTION_PANEL",
 };

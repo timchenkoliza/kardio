@@ -47,7 +47,7 @@ export const MEDI_DESCRIPTOR: SourceDescriptor = {
   connectorId: "medi",
   domains: ["drug", "inn", "disease", "guideline", "article"],
   specialties: "all",
-  jobs: ["drug_reference", "drug_comparison", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search", "reference_answer"],
+  jobs: ["drug_reference", "drug_comparison", "inn_lookup", "disease_reference", "guideline_check", "guideline_discovery", "professional_article_search", "reference_answer", "source_positions"],
   provides: ["russian_drug_reference", "product_listing", "russian_guideline", "professional_article"],
   operations: ["drug_reference", "inn_lookup", "disease_reference", "guideline_discovery", "professional_article_search"],
   authority: "professional",

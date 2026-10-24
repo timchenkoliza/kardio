@@ -187,6 +187,12 @@ export function eventsBridge(text: string, specialty: SpecialtyId): "top" | "bot
   return topicsMentioned(specialty, text).length || conceptsIn(text, specialty).some(concept => concept.kind === "topic" || concept.kind === "concept") ? "bottom" : null;
 }
 
+/**
+ * «Консилиум», «позиции рекомендаций / источников / обществ», «что говорят разные рекомендации»,
+ * «где рекомендации расходятся»: the positions of several kinds of sources side by side (lib/mesh/jobs.ts, source_positions).
+ */
+export const CONSILIUM_CUE = re(`(?<![${L}])(?:консилиум${L}*|позици${L}*\\s+(?:разных\\s+)?(?:рекомендаций|источников|обществ|гайдлайнов)|что\\s+говорят\\s+(?:разные\\s+)?(?:рекомендации|общества|источники)|(?:рекомендации|источники|общества)\\s+расход${L}*)`);
+
 /** «Сравни», «чем отличаются», «X или Y», «X vs Y». */
 const COMPARISON_CUE = re(`(?<![${L}])(?:сравн${L}*|отлича${L}*|отличи${L}*|разниц${L}*|vs|versus|против|или)(?![${L}])`);
 /** Outcome and study words: such a comparison is answered by evidence, not by the instructions. */
@@ -237,6 +243,8 @@ export function routePortalIntent(text: string, specialty: SpecialtyId, options:
   const drugCue = hasDrugCue(text);
   if (drugs.length) add("drug", 3 + (drugCue ? 2 : 0), drugs.map(item => item.ru).join(", "));
   else if (drugCue) add("drug", 3, "вопрос о препарате");
+  // «Консилиум»: an explicit request for the positions of the sources; it outweighs a named drug or a guideline cue.
+  if (CONSILIUM_CUE.test(value)) add("answer", 8, "позиции источников");
   // Several drugs side by side: by their instructions, unless the question is about outcomes, events or studies.
   if (drugs.length >= 2 && comparesDrugsByLabel(value)) add("drug", 4, "сравнение препаратов по инструкциям");
   else if (drugs.length >= 2 && scores.has("research")) add("research", 2, "сравнение препаратов");

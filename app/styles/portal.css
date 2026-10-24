@@ -286,3 +286,15 @@
 .pt-share-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--ws-space-12); }
 .pt-share-list li > div { display: flex; flex-direction: column; gap: var(--ws-space-4); min-width: 0; }
 .pt-share-list li[data-share-active="false"] { color: var(--ws-text-secondary); }
+
+/* «Консилиум»: one column per kind of source on wide screens, stacked on phones. */
+.pt-positions-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ws-space-16); }
+.pt-position { display: flex; flex-direction: column; gap: var(--ws-space-12); min-width: 0; padding: var(--ws-space-16); border: 1px solid var(--ws-hairline); border-radius: var(--ws-radius-card); background: var(--ws-canvas); }
+.pt-position h3 { margin: 0; font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); line-height: var(--ws-leading-label); }
+.pt-position-entry { display: flex; flex-direction: column; gap: var(--ws-space-8); }
+.pt-position-entry + .pt-position-entry { padding-top: var(--ws-space-12); border-top: 1px solid var(--ws-hairline); }
+.pt-position-entry .pt-source-link { display: inline-flex; align-items: center; gap: var(--ws-space-4); min-height: var(--ws-touch-target); }
+.pt-positions-missing { margin: 0; }
+@media (min-width: 768px) {
+  .pt-positions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

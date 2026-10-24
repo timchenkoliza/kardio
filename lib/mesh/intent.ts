@@ -1,7 +1,7 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import type { PortalJob } from "@/lib/portal/jobs";
 import { latinTermsIn, normalizeQuery, type DrugEntry, type QueryConcept } from "@/lib/portal/lexicon";
-import { routePortalIntent, type PortalRoute } from "@/lib/portal/router";
+import { CONSILIUM_CUE, routePortalIntent, type PortalRoute } from "@/lib/portal/router";
 import { detectDomain, NOSOLOGIES, scenarioFor, type SafetyRuleId } from "./domain-graph";
 import { DEFAULT_JOB_FOR_FAMILY, JOB_DEFINITIONS, type EvidenceRequirement, type JobType } from "./jobs";
 import type { ModuleFamily } from "./manifest";
@@ -55,6 +55,7 @@ function chooseJobType(family: PortalJob, text: string, args: { drugs: number; n
   const value = normalizeQuery(text);
   switch (family) {
     case "answer":
+      if (CONSILIUM_CUE.test(value)) return { job: "source_positions", reason: "позиции источников рядом" };
       if (args.nosology && DISEASE_REFERENCE.test(value)) return { job: "disease_reference", reason: "вопрос о самом заболевании" };
       if (RUSSIAN_ARTICLES.test(value) && RUSSIAN_SCOPE.test(value)) return { job: "professional_article_search", reason: "нужны статьи на русском" };
       return { job: "reference_answer", reason: null };
@@ -64,6 +65,7 @@ function chooseJobType(family: PortalJob, text: string, args: { drugs: number; n
       if (args.drugs >= 2) return { job: "drug_comparison", reason: "сравнение препаратов по инструкциям" };
       return { job: "drug_reference", reason: null };
     case "guidelines":
+      if (CONSILIUM_CUE.test(value)) return { job: "source_positions", reason: "позиции источников рядом" };
       if (args.drugs) return { job: "guideline_check", reason: "препарат в контексте рекомендаций" };
       if (CURRENT_STATE.test(value)) return { job: "guideline_check", reason: "вопрос о текущем состоянии рекомендаций" };
       return { job: "guideline_discovery", reason: null };
@@ -75,6 +77,8 @@ function chooseJobType(family: PortalJob, text: string, args: { drugs: number; n
 /** Module order for a job without a domain scenario, when it differs from the default. */
 const JOB_MODULES: Partial<Record<JobType, ModuleFamily[]>> = {
   drug_comparison: ["key_takeaway", "comparison", "drug_reference", "evidence", "sources", "handoff", "next_actions"],
+  // No summary above the positions: a consilium shows each source's position, not a verdict assembled from them.
+  source_positions: ["positions", "conflict", "evidence", "sources", "handoff", "next_actions"],
 };
 
 function unique<T>(values: readonly T[]): T[] {

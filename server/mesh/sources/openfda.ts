@@ -19,7 +19,7 @@ export const OPENFDA_DESCRIPTOR: SourceDescriptor = {
   connectorId: "openfda-labels",
   domains: ["drug"],
   specialties: "all",
-  jobs: ["drug_reference", "drug_comparison", "reference_answer", "guideline_check"],
+  jobs: ["drug_reference", "drug_comparison", "reference_answer", "guideline_check", "source_positions"],
   provides: ["drug_label"],
   operations: ["drug_label"],
   authority: "official",

@@ -75,6 +75,7 @@ const REPRESENTATION: Record<JobType, RepresentationMode> = {
   professional_article_search: "source_list",
   drug_reference: "drug_card",
   drug_comparison: "drug_comparison",
+  source_positions: "source_positions",
   inn_lookup: "drug_card",
   guideline_check: "guideline_delta",
   guideline_discovery: "guideline_delta",
@@ -192,6 +193,56 @@ export function comparedDrugs(graph: EvidenceGraph): Array<{ inn: string; label:
 }
 
 /** Rows of a drug comparison: the same instruction sections for every drug, in reading order. */
+/** «Места» of a consilium: kinds of sources, each with its own position. A seat is never an invented or real-person expert. */
+export const CONSILIUM_SEATS = [
+  { id: "ru_guideline", label: "Российские клинические рекомендации" },
+  { id: "int_guideline", label: "Международные и зарубежные рекомендации" },
+  { id: "reviews", label: "Систематические обзоры и метаанализы" },
+  { id: "label", label: "Инструкция по применению" },
+] as const;
+export type ConsiliumSeatId = (typeof CONSILIUM_SEATS)[number]["id"];
+
+const SEAT_CLAIMS: Record<ConsiliumSeatId, readonly ClaimKind[]> = {
+  ru_guideline: ["guideline_statement", "society_assertion"],
+  int_guideline: ["guideline_statement", "society_assertion"],
+  reviews: ["review_conclusion"],
+  label: ["indication", "contraindication", "warning", "dosing"],
+};
+
+function seatOf(document: GraphDocument): ConsiliumSeatId | null {
+  if (document.kind === "review") return "reviews";
+  if (document.kind === "drug_instruction" || document.kind === "drug_label") return "label";
+  if (document.kind === "guideline" || document.kind === "guideline_publication" || document.kind === "society_guideline_summary") return document.jurisdiction === "RU" ? "ru_guideline" : "int_guideline";
+  return null;
+}
+
+/**
+ * Each seat: up to two documents (newest first), each with its one most on-topic statement that the
+ * source supports. Statements the source does not support are never a position. The instruction seat
+ * is expected only when the question names a drug.
+ */
+export function consiliumSeats(graph: EvidenceGraph): Array<{ id: ConsiliumSeatId; expected: boolean; entries: Array<{ documentId: string; claimId: string; currentnessId: string | null }> }> {
+  const terms = graph.context.terms ?? [];
+  const nosology = graph.context.nosology ? `nosology:${graph.context.nosology}` : null;
+  const onTopic = (claim: NormalizedClaim) => {
+    const text = `${claim.statement} ${claim.quote ?? ""}`.toLowerCase();
+    return terms.filter(term => text.includes(term)).length + (nosology && claim.entityIds.includes(nosology) ? 1 : 0);
+  };
+  return CONSILIUM_SEATS.map(seat => {
+    const documents = graph.documents.filter(document => seatOf(document) === seat.id && document.attributes.questionMatch !== "partial")
+      .sort((a, b) => DATE(b).localeCompare(DATE(a)));
+    const entries = documents.flatMap(document => {
+      const claim = graph.claims
+        .filter(item => item.documentId === document.id && SEAT_CLAIMS[seat.id].includes(item.kind) && item.verification !== "UNSUPPORTED")
+        .sort((a, b) => onTopic(b) - onTopic(a))[0];
+      // An overdue revision travels with the position (EX-06): a stale guideline never looks current.
+      const currentness = graph.claims.find(item => item.documentId === document.id && item.kind === "currentness") ?? null;
+      return claim ? [{ documentId: document.id, claimId: claim.id, currentnessId: currentness?.id ?? null }] : [];
+    }).slice(0, 2);
+    return { id: seat.id, expected: seat.id !== "label" || graph.context.drugs.length > 0, entries };
+  });
+}
+
 export const COMPARISON_ROWS: ReadonlyArray<{ id: string; label: string }> = [
   { id: "indications", label: "Показания" },
   { id: "contraindications", label: "Противопоказания" },
@@ -263,6 +314,21 @@ function moduleFor(family: ModuleFamily, fullGraph: EvidenceGraph, input: Compil
     case "conflict": {
       if (!graph.conflicts.length) return null;
       return { ...base, emphasis: "primary", claimIds: [...new Set(graph.conflicts.flatMap(conflict => conflict.claimIds))], documentIds: [...new Set(graph.conflicts.flatMap(conflict => conflict.claimIds.map(claimId => graph.claims.find(claim => claim.id === claimId)!.documentId)))], props: { conflictIds: graph.conflicts.map(conflict => conflict.id) } };
+    }
+    case "positions": {
+      if (graph.job !== "source_positions") return null;
+      const seats = consiliumSeats(graph);
+      const filled = seats.filter(seat => seat.entries.length);
+      if (!filled.length) return null;
+      return {
+        ...base,
+        emphasis: "primary",
+        documentIds: [...new Set(filled.flatMap(seat => seat.entries.map(entry => entry.documentId)))],
+        claimIds: filled.flatMap(seat => seat.entries.flatMap(entry => [entry.claimId, ...(entry.currentnessId ? [entry.currentnessId] : [])])),
+        resultKeys: keysFor([...new Set(filled.flatMap(seat => seat.entries.map(entry => entry.documentId)))]),
+        // "seat|claimId~currentnessId,…" per filled seat (a claim names its document); empty seats are named, never dropped silently.
+        props: { seats: filled.map(seat => `${seat.id}|${seat.entries.map(entry => [entry.claimId, entry.currentnessId].filter(Boolean).join("~")).join(",")}`), missing: seats.filter(seat => !seat.entries.length && seat.expected).map(seat => seat.id), conflicts: graph.conflicts.length },
+      };
     }
     case "drug_reference": {
       // In a comparison the table already shows every instruction; the card is the fallback for a single one.
@@ -416,7 +482,9 @@ export function compileExperience(input: CompileInput): CompileOutput {
   const decisions: string[] = [];
   const warnings: string[] = [];
   // Policy order: takeaway first, then the scenario's order, sources/hand-offs late, next actions last.
-  const preferred: ModuleFamily[] = ["key_takeaway", ...input.modules.filter(family => family !== "key_takeaway" && family !== "next_actions" && family !== "sources" && family !== "handoff")];
+  // A consilium has no takeaway above the positions: it would be a verdict assembled from them.
+  const lead: ModuleFamily[] = graph.job === "source_positions" ? [] : ["key_takeaway"];
+  const preferred: ModuleFamily[] = [...lead, ...input.modules.filter(family => family !== "key_takeaway" && family !== "next_actions" && family !== "sources" && family !== "handoff")];
   if (graph.conflicts.length && !preferred.includes("conflict")) preferred.splice(1, 0, "conflict");
   const ordered: ModuleFamily[] = [...preferred, "notices", "sources", "handoff", "next_actions"];
   const modules: ManifestModule[] = [];
