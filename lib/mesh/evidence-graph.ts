@@ -6,6 +6,7 @@ import { detectDomain } from "./domain-graph";
 import { REQUIREMENT_LABEL, type EvidenceRequirement } from "./jobs";
 import type { ExecutionPlan } from "./planner";
 import type { SourceDescriptor, SourceId, SourceStatusReport } from "./sources";
+import { excludedJournalsGap } from "./source-preferences";
 
 /**
  * Evidence Graph v0.1 — the only input of the Experience layer.
@@ -89,10 +90,30 @@ export function topicTerms(intent: NormalizedIntent): string[] {
 }
 
 /**
+ * What a key or a qualifier of a topic is called in a title or conclusion. A topic that covers several diseases is
+ * answered only by the one the question named: «Гипертрофическая кардиомиопатия» needs «cardiomyopathy» and
+ * «hypertrophic», never «myocarditis» (R1 round 2: ICI myocarditis was the answer on cardiomyopathy).
+ */
+const TOPIC_WORD_NAMES: Readonly<Record<string, readonly string[]>> = {
+  "кардиомиопат": ["cardiomyopath"],
+  "гкмп": ["hypertrophic cardiomyopathy", "hcm"],
+  "миокардит": ["myocarditis"],
+  "амилоид": ["amyloid"],
+};
+/** Qualifiers written before a key: each is a condition of its own when the lexicon knows its name. */
+const QUALIFIER_NAMES: ReadonlyArray<[RegExp, readonly string[]]> = [
+  [/^гипертрофическ/u, ["hypertrophic", "гипертрофическ"]],
+  [/^дилатационн/u, ["dilated", "dilatation", "дилатационн"]],
+  [/^рестриктивн/u, ["restrictive", "рестриктивн"]],
+  [/^аритмогенн/u, ["arrhythmogenic", "аритмогенн"]],
+];
+
+/**
  * The disease topics of a question that names no nosology («Кардиомиопатии», «Инфекционный эндокардит»), one
- * word group each, from the topic's own PubMed term and Russian keywords: a review conclusion answers the question
- * only when its title or conclusion names each of them. A generic, specialty-framed topic («Профилактика») is not
- * a disease and sets no condition.
+ * word group each: a review conclusion answers the question only when its title or conclusion names each of them.
+ * A topic is named by the keys the question used (with their names in titles), else by its whole PubMed term and
+ * keys; a known qualifier the question wrote («гипертрофическая») is a group of its own. A generic, specialty-framed
+ * topic («Профилактика») is not a disease and sets no condition.
  */
 export function topicGroups(intent: NormalizedIntent): string[][] {
   if (intent.context.nosology) return [];
@@ -101,8 +122,12 @@ export function topicGroups(intent: NormalizedIntent): string[][] {
     const topic = all.find(item => item.label === concept.label && item.pubmed === concept.term);
     if (!topic || topic.specialtyBound) return [];
     const english = [...topic.pubmed.replace(/\[[a-z]+\]/giu, " ").replace(/\b(?:AND|OR|NOT)\b/gu, " ").matchAll(/"([^"]+)"|([A-Za-z][A-Za-z0-9-]*\*?)/gu)].map(match => (match[1] ?? match[2]).toLowerCase().replace(/\*$/u, "")).filter(word => word.length >= 4);
-    const words = [...new Set([...english, ...topic.keywords.map(keyword => keyword.toLowerCase()).filter(keyword => keyword.length >= 4)])];
-    return words.length ? [words] : [];
+    const whole = [...new Set([...english, ...topic.keywords.map(keyword => keyword.toLowerCase()).filter(keyword => keyword.length >= 4)])];
+    const matched = concept.matched ?? [];
+    const keys = matched.filter(word => TOPIC_WORD_NAMES[word]);
+    const named = keys.length ? [...new Set(keys.flatMap(key => [key, ...TOPIC_WORD_NAMES[key]]))] : whole;
+    const qualifiers = matched.flatMap(word => QUALIFIER_NAMES.filter(([pattern]) => pattern.test(word)).map(([, names]) => [...names]));
+    return [...(named.length ? [named] : []), ...qualifiers];
   });
 }
 
@@ -229,6 +254,12 @@ export function buildEvidenceGraph(args: {
     if (unread.length) gaps.push(`инструкция не найдена: ${unread.map(drug => drug.ru).join(", ")} — по ${unread.length === 1 ? "этому препарату" : "этим препаратам"} сравнение не составлено`);
   }
 
+  // Journals the physician excluded are named on the answer, also when the evidence was reused (R1 A round 2 №3).
+  for (const item of invocations) {
+    const gap = excludedJournalsGap(item.note);
+    if (gap && !gaps.some(existing => existing.includes(gap))) gaps.push(gap);
+  }
+
   // A guideline question about a drug: when no guideline or society document states a position on the drug or its class
   // — for the asked phenotype, when one is asked — the physician reads that first, not a 2016 sentence about «no specific
   // treatment» as the current position, nor a class statement about another phenotype (R1 C-5).
@@ -236,7 +267,9 @@ export function buildEvidenceGraph(args: {
     const guidelineKinds = new Set(["guideline", "society_guideline_summary", "guideline_publication"]);
     const positions = [...claims.values()].filter(claim => guidelineKinds.has(documents.get(claim.documentId)?.kind ?? "") && (claim.kind === "guideline_statement" || claim.kind === "society_assertion" || claim.kind === "review_conclusion"));
     const subtype = intent.context.subtype;
-    const phenotype = subtype?.label ?? intent.context.nosology?.label ?? null;
+    // «хроническая сердечная недостаточность с сохранённой фракцией выброса», never «при с сохранённой…» (R1 C round 2 N-10).
+    const disease = intent.context.nosology ? conditionLabel(intent.context.nosology.label) : null;
+    const phenotype = subtype ? [disease, subtype.label].filter(Boolean).join(" ") : disease;
     const fold = (text: string) => text.normalize("NFKC").toLowerCase().replace(/ё/gu, "е");
     const onSubtype = (claim: NormalizedClaim, text: string) => !subtype || claim.covers.includes(subtype.id) || claim.entityIds.includes(`subtype:${subtype.id}`) || text.includes(fold(subtype.label));
     for (const drug of intent.entities.drugs) {
@@ -244,7 +277,7 @@ export function buildEvidenceGraph(args: {
       const classes = PUBMED_CONCEPTS.filter(concept => concept.match.test(fold(drug.ru)));
       const namesDrug = (claim: NormalizedClaim, text: string) => claim.entityIds.includes(`drug:${drug.inn}`) || text.includes(fold(drug.inn)) || text.includes(fold(drug.ru)) || classes.some(concept => concept.match.test(text));
       const stated = positions.some(claim => { const text = fold(`${claim.statement} ${claim.quote ?? ""}`); return namesDrug(claim, text) && onSubtype(claim, text); });
-      if (!stated) gaps.push(`позиции действующих рекомендаций по препарату «${drug.ru}»${phenotype ? ` при ${phenotype}` : ""} в показанных источниках нет`);
+      if (!stated) gaps.push(`позиции действующих рекомендаций по препарату «${drug.ru}»${phenotype ? ` (${phenotype})` : ""} в показанных источниках нет`);
     }
   }
 

@@ -132,6 +132,26 @@ export interface QueryConcept {
   exclude?: string;
   /** A modifier that names the information asked for («длительность», «дозирование»), not the context («антибиотики»). */
   asked?: boolean;
+  /**
+   * For a topic: the words of the question that named it — the matched keys and the adjective written right before one
+   * («гипертрофическая кардиомиопатия» → «гипертрофическая», «кардиомиопат»). A topic that covers several diseases
+   * («Кардиомиопатии»: cardiomyopathy OR myocarditis) is then answered only by what the question named.
+   */
+  matched?: string[];
+}
+
+/** The keys of a topic found in a question, with the adjective written right before a key («гипертрофическая»). */
+function topicWordsIn(value: string, keywords: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const keyword of keywords) {
+    const key = keyword.toLocaleLowerCase("ru-RU").replace(/ё/gu, "е");
+    const at = value.indexOf(key);
+    if (at < 0) continue;
+    out.push(key);
+    const before = value.slice(0, at).match(/(\p{L}{4,}(?:ая|яя|ый|ий|ой|ое|ее|ые|ие|ых|их|ую|юю|ого|его|ым|им))\s+\p{L}*$/u)?.[1];
+    if (before) out.push(before);
+  }
+  return [...new Set(out)];
 }
 
 /**
@@ -189,7 +209,7 @@ export function conceptsIn(text: string, specialty: SpecialtyId): QueryConcept[]
       if (topicKeywords.has(keywordKey)) continue;
       topicKeywords.add(keywordKey);
       topicLabelsSeen.add(topic.label);
-      push({ id: `${id}:${topic.id}`, label: topic.label, term: topic.pubmed, kind: "topic" });
+      push({ id: `${id}:${topic.id}`, label: topic.label, term: topic.pubmed, kind: "topic", matched: topicWordsIn(value, topic.keywords) });
     }
   }
   for (const concept of PUBMED_CONCEPTS) if (concept.match.test(value) || concept.cased?.test(text.normalize("NFKC"))) push({ id: `concept:${concept.id}`, label: concept.label, term: concept.term, kind: "concept" });

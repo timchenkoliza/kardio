@@ -89,6 +89,9 @@ export function trialNameIn(question: string): string | null {
 
 const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/gu, "");
 
+/** Titles of secondary, pooled or subgroup analyses of a trial (R1 A round 2: DAPA-HF and DELIVER pooled). */
+export const SECONDARY_ANALYSIS = /\b(?:post[- ]?hoc|secondary|pooled|participant[- ]level|patient[- ]level|sub-?analys[ie]s|subgroups?|insights? from|analys[ie]s (?:of|from)|meta-analys[ie]s|prespecified|pre-specified|exploratory|trials\b)/iu;
+
 const DESIGN_RU: ReadonlyArray<[RegExp, string]> = [
   [/^meta-analysis$/iu, "метаанализ"],
   [/^systematic review$/iu, "систематический обзор"],
@@ -354,10 +357,13 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   ].filter((value): value is string => Boolean(value));
 
   // Journals set to «Не использовать»: what was withheld, or that a named publication comes from one.
-  const journalNote = !pubmedDown ? pubmedUse?.note?.split("; ").find(part => /исключённых в ваших источниках|журнал исключён в вашем профиле/u.test(part)) ?? null : null;
+  // Journals kept out of the search are named even when nothing was hidden after it (R1 B round 2 N-5).
+  const journalNotes = !pubmedDown ? (pubmedUse?.note?.split("; ").filter(part => /исключённых в ваших источниках|журнал исключён в вашем профиле|исключены в вашем профиле и в поиск не входили/u.test(part)) ?? []) : [];
+  const keptOut = journalNotes.find(part => /в поиск не входили/u.test(part));
+  const journalLines = journalNotes.map(part => part === keptOut ? `В поиск не входили журналы, исключённые в вашем профиле: ${part.replace(/^.*?:\s*/u, "")}.` : `${part[0].toLocaleUpperCase("ru-RU")}${part.slice(1)}.`);
   const limitations = [
     pubmedDown ? `PubMed: ${(pubmedUse?.note ?? "недоступен во время запуска").replace(/^PubMed\s+/u, "")}.` : null,
-    journalNote ? `${journalNote[0].toLocaleUpperCase("ru-RU")}${journalNote.slice(1)}.` : null,
+    ...journalLines,
     read.length && read.length === read.filter(study => study.access === "abstract").length ? "Полных текстов в открытом доступе нет: прочитаны только аннотации." : null,
     read.length > withEffect ? `Для ${countLabel(read.length - withEffect, ["публикации", "публикаций", "публикаций"])} величина эффекта в тексте не найдена — поле оставлено пустым.` : null,
     digests.some(study => study.outsideApprovedList) ? "Журнала нет в списке, проверенном врачами: качество источника оцените сами." : null,
@@ -390,7 +396,7 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
     const noTopic = pubmedUse?.status === "partial" && /Нет тем/u.test(pubmedUse.note ?? "");
     const headline = noTopic
       ? "Не удалось понять тему вопроса: в PubMed не искали, в каталоге специальности совпадений нет. Назовите заболевание, вмешательство или сравнение, например «ПОАК у пожилых с фибрилляцией предсердий», или вставьте PMID статьи."
-      : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте источники в настройках разбора.";
+      : "По вопросу ничего не нашлось в выбранных источниках. Уточните заболевание, вмешательство или сравнение, либо расширьте фильтры «Источники» и «Тип» над вопросом.";
     // With nothing found the physician still sees what was searched and what was not («ХСН», not «СНнФВ»).
     return { kind: "not_found", headline, studies: [], trust, practice: practiceFor(0), limitations, totalFound: 0, ...(noTopic ? {} : { conditions: search.conditions, unmatched: search.unmatched }) };
   }
@@ -399,7 +405,8 @@ export function buildResearchAnswer(run: AgentRun, results: readonly AgentResult
   const journalLine = journals && pubmedCount ? ` Искали в журналах: ${journals}.` : "";
   // The named trial is not among the found titles: say so first, with the way to get it (PMID or DOI search any journal).
   const trial = trialNameIn(question);
-  if (trial && !digests.some(study => squash(study.title).includes(squash(trial)))) {
+  // A secondary or pooled analysis that names the trial («…from the DAPA-HF and DELIVER trials») is not its main publication.
+  if (trial && !digests.some(study => squash(study.title).includes(squash(trial)) && !SECONDARY_ANALYSIS.test(study.title))) {
     const headline = `Основную публикацию «${trial}» не нашли: поиск по теме идёт только в журналах из списка${journals ? ` (${journals})` : ""}. Вставьте PMID или DOI — по ним ищем в любом журнале. Ниже — работы шире вопроса.`;
     return { kind: "question", headline, studies: digests.slice(0, 3), trust, practice: practiceFor(read.length), limitations, totalFound: organic.length, conditions: search.conditions, unmatched: search.unmatched, broader: true };
   }

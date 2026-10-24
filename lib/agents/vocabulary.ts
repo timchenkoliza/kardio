@@ -230,6 +230,9 @@ const concept = (id: string, label: string, stems: string, term: string, cased?:
 
 export const PUBMED_CONCEPTS: readonly PubmedConcept[] = [
   concept("anticoagulation", "антикоагулянты", "поак|ноак|доак|антикоагул|апиксабан|ривароксабан|дабигатран|эдоксабан|варфарин", "anticoagula*[tiab] OR \"factor Xa\"[tiab] OR apixaban[tiab] OR rivaroxaban[tiab] OR dabigatran[tiab] OR edoxaban[tiab] OR warfarin[tiab]"),
+  // «ствол левой коронарной артерии», «ствол ЛКА»: the anatomy decides between PCI and CABG (R1 round 2: a question on the
+  // left main was answered by a review on revascularisation before non-cardiac surgery).
+  concept("left_main", "ствол левой коронарной артерии", "ствол\\p{L}*\\s+(?:левой\\s+)?(?:коронарн|лка)|ствол\\p{L}*\\s+лка", "\"left main\"[tiab]"),
   concept("antiplatelet", "антиагреганты", "антиагрегант|антитромбоцитар|дезагрегант|тикагрелор|клопидогрел|прасугрел", "antiplatelet[tiab] OR ticagrelor[tiab] OR clopidogrel[tiab] OR prasugrel[tiab]"),
   concept("stroke", "инсульт", "(?:(?:остр\\p{L}*\\s+)?(?:ишемическ|геморрагическ|кардиоэмболическ|лакунарн)\\p{L}*\\s+)?инсульт|онмк|тиа(?![\\p{L}])|транзиторн\\p{L}*\\s+ишемическ\\p{L}*\\s+атак|инфаркт\\p{L}*\\s+(?:головного\\s+)?мозг", "stroke[tiab] OR \"transient ischemic\"[tiab]"),
   concept("intermediate", "промежуточный риск", "промежуточн", "intermediate[tiab]"),

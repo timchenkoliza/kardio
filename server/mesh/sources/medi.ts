@@ -1,6 +1,6 @@
 import type { SpecialtyId } from "@/lib/domain/types";
 import { NOSOLOGIES, nosologyById, subtypeById, titleMatchesNosology, type NosologyNode } from "@/lib/mesh/domain-graph";
-import type { EntityRef, NormalizedClaim, NormalizedDocument, SemanticChunk, SourceResult } from "@/lib/mesh/evidence";
+import { POPULATION_PASSAGE, type EntityRef, type NormalizedClaim, type NormalizedDocument, type SemanticChunk, type SourceResult } from "@/lib/mesh/evidence";
 import type { NormalizedIntent } from "@/lib/mesh/intent";
 import type { SourceDescriptor, SourceStatusReport } from "@/lib/mesh/sources";
 import { normalizeQuery, type DrugEntry } from "@/lib/portal/lexicon";
@@ -183,7 +183,7 @@ export interface InstructionPage {
 }
 
 /** What a question about a population looks for inside a long section: renal, hepatic, age and weight adjustments. */
-const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?![\p{L}])|рСКФ|пожил|старше\s*\d|печен|масс\p{L}* тела/iu;
+const POPULATION_FOCUS = /почеч|почк|клиренс|(?<![\p{L}])КК(?![\p{L}])|рСКФ|диализ|пожил|старше\s*\d|печен|масс\p{L}* тела/iu;
 
 /** What each population a question names looks for in an instruction section. */
 const FOCUS_PATTERNS: Readonly<Record<string, string>> = {
@@ -203,25 +203,29 @@ export function instructionFocus(intent: Pick<NormalizedIntent, "entities"> | nu
   ];
 }
 
-/** A focused part of a section, at most this long; all parts of one excerpt together at most TOTAL. */
-const FOCUS_SPAN = 640;
-const FOCUS_TOTAL = 1600;
+/**
+ * A focused passage is at most the source's excerpt limit (MAX_EXCERPT, the usage policy's maxExcerptChars): a longer
+ * quote fails policy SP-03 and the whole answer falls back to a safe representation (R1 A, round 2: the joined
+ * excerpts of round 1 lost the instruction from «Коротко»). At most MAX_PASSAGES passages per section.
+ */
+const FOCUS_SPAN = Math.min(640, MAX_EXCERPT);
+const MAX_PASSAGES = 3;
 
 /**
- * A verbatim excerpt for a population question: every passage of the section the question is about, in the
- * section's order, joined by «…» (the renal contraindication of apixaban is the 9th sentence of a long list, the
- * 15–29 ml/min dose rule comes after the age rule). `keepStart` keeps the section's opening too (contraindications).
- * Each passage runs from a sentence about the population to the end of its paragraph, within FOCUS_SPAN.
+ * Verbatim passages of a section that a population question is about, in the section's order, each a claim of its
+ * own (the renal contraindication of apixaban is the 9th sentence of a long list; the 15–29 ml/min dose rule comes
+ * after the age rule). Each passage runs from a sentence about the population to the end of its paragraph, within
+ * FOCUS_SPAN; `skipTo` leaves out what the section's opening excerpt already shows.
  */
-function focusedExcerpt(text: string, focus: RegExp | null, options: { keepStart?: boolean } = {}): { text: string; truncated: boolean } {
-  if (!focus) return excerpt(text, MAX_EXCERPT);
+function focusedPassages(text: string, focus: RegExp, options: { skipTo?: number } = {}): string[] {
   const units: Array<{ text: string; at: number }> = [];
   let cursor = 0;
   // A numbered indication («… выше. 3. Лечение тромбоза…») starts a unit of its own: its number goes with it.
   const split = sentences(text).flatMap(item => item.split(/(?<=[.;:])\s+(?=\d{1,2}\.\s+[А-ЯЁ])/u));
+  // Only a number after a sentence end is an item number («… выше. 3.»), not the end of a sentence («… в сутки 7.»).
   const numbered = split.map((item, index) => {
-    const own = item.replace(/\s\d{1,2}\.$/u, "");
-    const carried = index > 0 ? split[index - 1].match(/\s(\d{1,2}\.)$/u)?.[1] : undefined;
+    const own = item.replace(/(?<=[.;:])\s\d{1,2}\.$/u, "");
+    const carried = index > 0 ? split[index - 1].match(/[.;:]\s(\d{1,2}\.)$/u)?.[1] : undefined;
     return carried ? `${carried} ${own}` : own;
   });
   for (const sentence of numbered) {
@@ -230,11 +234,9 @@ function focusedExcerpt(text: string, focus: RegExp | null, options: { keepStart
     units.push({ text: sentence, at });
     cursor = at + sentence.length;
   }
-  const start = options.keepStart ? excerpt(text, MAX_EXCERPT) : null;
-  let covered = start ? start.text.replace(/…$/u, "").length : 0;
-  let total = start?.text.length ?? 0;
+  let covered = options.skipTo ?? 0;
   const parts: string[] = [];
-  for (let index = 0; index < units.length; index += 1) {
+  for (let index = 0; index < units.length && parts.length < MAX_PASSAGES; index += 1) {
     const unit = units[index];
     if (unit.at < covered || !focus.test(unit.text)) continue;
     let end = index;
@@ -242,18 +244,12 @@ function focusedExcerpt(text: string, focus: RegExp | null, options: { keepStart
     // It also stops before a paragraph about another population («Пациенты с печёночной недостаточностью»).
     const otherPopulation = (next: string) => /^(?:Пациенты|У пациентов|Применение у пациентов|Пожилые|Дети|Беременн)/u.test(next) && !focus.test(next);
     while (end + 1 < units.length && !/^\d{1,2}\.\s+[А-ЯЁ]/u.test(units[end + 1].text) && !otherPopulation(units[end + 1].text) && units[end + 1].at + units[end + 1].text.length - unit.at <= FOCUS_SPAN) end += 1;
-    let part = text.slice(unit.at, units[end].at + units[end].text.length);
-    if (part.length > FOCUS_SPAN) part = excerpt(part, FOCUS_SPAN).text;
-    if (total + part.length > FOCUS_TOTAL) break;
-    parts.push(part);
-    total += part.length;
+    const part = text.slice(unit.at, units[end].at + units[end].text.length);
+    parts.push(part.length > FOCUS_SPAN ? excerpt(part, FOCUS_SPAN).text : part);
     covered = units[end].at + units[end].text.length;
     index = end;
   }
-  if (!parts.length) return start ?? excerpt(text, MAX_EXCERPT);
-  const joined = [...(start ? [start.text.replace(/…$/u, "")] : []), ...parts].join(" … ");
-  // Shortened unless the passages are the whole section.
-  return { text: joined, truncated: joined.length < text.length };
+  return parts;
 }
 
 /** Populations a question names: «беременность» may be recognised as a search concept rather than a population. */
@@ -472,7 +468,14 @@ export function normalizeInstruction(raw: InstructionPage, page: PageSnapshot, a
     const kinds = (args.focus ?? []).filter(kind => FOCUS_PATTERNS[kind]);
     const populationFocus = kinds.length ? new RegExp(kinds.map(kind => FOCUS_PATTERNS[kind]).join("|"), "iu") : POPULATION_FOCUS;
     const focused = args.sections?.includes("populations") && (section.id === "dosing" || section.id === "caution" || section.id === "contraindications");
-    claims.push(quoteClaim({ document: doc, chunk: chunks[index], kind: KIND[section.id] ?? "label_section", quote: focusedExcerpt(section.text, focused ? populationFocus : null, { keepStart: section.id === "contraindications" }).text, entityIds: [drugRef.id], covers: [], verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" }));
+    const kind = KIND[section.id] ?? "label_section";
+    const claim = (quote: string, covers: string[] = []) => quoteClaim({ document: doc, chunk: chunks[index], kind, quote, entityIds: [drugRef.id], covers, verifyIn: "ГРЛС (grls.rosminzdrav.ru)", level: "regulatory" });
+    // Contraindications keep their opening (the list starts with the absolute ones); dosing and «С осторожностью»
+    // are quoted from the passages about the population only, as before.
+    const opening = excerpt(section.text, MAX_EXCERPT);
+    const passages = focused ? focusedPassages(section.text, populationFocus, { skipTo: section.id === "contraindications" ? opening.text.replace(/…$/u, "").length : 0 }) : [];
+    if (!focused || section.id === "contraindications" || !passages.length) claims.push(claim(opening.text));
+    for (const passage of passages) claims.push(claim(passage, [POPULATION_PASSAGE]));
   });
   const nosologyRef = args.nosology ? nosologyEntity(args.nosology.id) : null;
   return {
